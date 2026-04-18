@@ -13,4 +13,6 @@ members = [
     "doido-cache",
     "doido-jobs-macros",
     "doido-jobs",
+    "doido-mailer-macros",
+    "doido-mailer",
 ]
