@@ -15,4 +15,6 @@ members = [
     "doido-jobs",
     "doido-mailer-macros",
     "doido-mailer",
+    "doido-cable-macros",
+    "doido-cable",
 ]
