@@ -10,4 +10,5 @@ members = [
     "doido-view",
     "doido-model",
     "doido-middleware",
+    "doido-cache",
 ]

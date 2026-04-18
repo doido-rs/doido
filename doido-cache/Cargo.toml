@@ -1,0 +1,10 @@
+[package]
+name = "doido-cache"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+doido-core = { path = "../doido-core" }
+serde_json = "1"
+
+[dev-dependencies]
