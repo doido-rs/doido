@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 doido-core = { path = "../doido-core" }
+async-trait = "0.1"
 axum = "0.8"
 tower = { version = "0.5", features = ["full"] }
 tower-http = { version = "0.6", features = ["cors", "trace", "catch-panic"] }

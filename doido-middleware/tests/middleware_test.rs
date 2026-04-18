@@ -16,11 +16,11 @@ async fn test_middleware_stack_processes_request() {
 #[tokio::test]
 async fn test_cookie_session_store_load_returns_none() {
     let store = CookieSessionStore;
-    assert!(store.load("any-id").unwrap().is_none());
+    assert!(store.load("any-id").await.unwrap().is_none());
 }
 
 #[tokio::test]
 async fn test_session_store_is_object_safe() {
     let store: Box<dyn SessionStore> = Box::new(CookieSessionStore);
-    assert!(store.load("x").unwrap().is_none());
+    assert!(store.load("x").await.unwrap().is_none());
 }
