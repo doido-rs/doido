@@ -59,3 +59,9 @@ fn test_worker_command() {
 fn test_credentials_edit_command() {
     cmd().args(["credentials", "edit"]).assert().success().stdout(predicate::str::contains("credentials"));
 }
+
+#[test]
+fn test_console_command() {
+    cmd().arg("console").assert().success()
+        .stdout(predicate::str::contains("console"));
+}

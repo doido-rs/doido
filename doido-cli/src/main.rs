@@ -16,6 +16,8 @@ enum Commands {
     Server,
     /// Print routes
     Routes,
+    /// Start interactive console
+    Console,
     /// Database commands
     Db {
         #[command(subcommand)]
@@ -47,6 +49,7 @@ fn main() {
     match cli.command {
         Commands::Server => println!("Starting server on http://0.0.0.0:3000"),
         Commands::Routes => println!("Routes:"),
+        Commands::Console => commands::console::run(),
         Commands::Worker => commands::worker::run(),
         Commands::Db { action } => commands::db::run(action),
         Commands::Jobs { action } => commands::jobs::run(action),
