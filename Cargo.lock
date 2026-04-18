@@ -619,6 +619,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "doido-cable"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "doido-cable-macros",
+ "doido-core",
+ "serde",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
+name = "doido-cable-macros"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.117",
+]
+
+[[package]]
 name = "doido-cache"
 version = "0.1.0"
 dependencies = [
@@ -695,6 +716,73 @@ dependencies = [
 
 [[package]]
 name = "doido-jobs-macros"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.117",
+]
+
+[[package]]
+name = "doido-kafka"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "doido-core",
+ "doido-kafka-macros",
+ "serde",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
+name = "doido-kafka-macros"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.117",
+]
+
+[[package]]
+name = "doido-mailer"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "doido-core",
+ "doido-mailer-macros",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "doido-mailer-macros"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.117",
+]
+
+[[package]]
+name = "doido-mcp"
+version = "0.1.0"
+dependencies = [
+ "axum 0.8.9",
+ "doido-core",
+ "doido-mcp-macros",
+ "http",
+ "http-body-util",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tower 0.5.3",
+]
+
+[[package]]
+name = "doido-mcp-macros"
 version = "0.1.0"
 dependencies = [
  "proc-macro2",

@@ -19,4 +19,6 @@ members = [
     "doido-cable",
     "doido-kafka-macros",
     "doido-kafka",
+    "doido-mcp-macros",
+    "doido-mcp",
 ]
