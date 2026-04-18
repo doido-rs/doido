@@ -51,3 +51,23 @@ async fn test_job_macro_compiles() {
     // just verifying the macro compiles and the function is callable
     my_job(json!({})).await.unwrap();
 }
+
+#[tokio::test]
+async fn test_job_macro_generates_enqueue_fn() {
+    use doido_jobs::{job, MemoryQueue, JobQueue};
+    use std::sync::Arc;
+
+    #[job(max_retries = 2, queue = "emails")]
+    #[allow(dead_code)]
+    async fn send_welcome(_data: serde_json::Value) -> doido_core::Result<()> {
+        Ok(())
+    }
+
+    let queue = Arc::new(MemoryQueue::new());
+    send_welcome_enqueue(queue.as_ref(), json!({"user": "alice"})).await.unwrap();
+    let job = queue.dequeue("emails").await.unwrap();
+    assert!(job.is_some());
+    let j = job.unwrap();
+    assert_eq!(j.max_retries, 2);
+    assert_eq!(j.queue, "emails");
+}
