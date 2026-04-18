@@ -17,11 +17,15 @@ impl<S: CacheStore> NamespacedStore<S> {
     }
 }
 
-impl<S: CacheStore> CacheStore for NamespacedStore<S> {
-    fn get(&self, key: &str) -> Result<Option<Value>> { self.inner.get(&self.full_key(key)) }
-    fn set(&self, key: &str, value: Value, ttl: Option<u64>) -> Result<()> { self.inner.set(&self.full_key(key), value, ttl) }
-    fn delete(&self, key: &str) -> Result<()> { self.inner.delete(&self.full_key(key)) }
-    fn exists(&self, key: &str) -> Result<bool> { self.inner.exists(&self.full_key(key)) }
+#[async_trait::async_trait]
+impl<S: CacheStore + Send + Sync> CacheStore for NamespacedStore<S> {
+    async fn get(&self, key: &str) -> Result<Option<Value>> { self.inner.get(&self.full_key(key)).await }
+    async fn set(&self, key: &str, value: Value, ttl: Option<u64>) -> Result<()> { self.inner.set(&self.full_key(key), value, ttl).await }
+    async fn delete(&self, key: &str) -> Result<()> { self.inner.delete(&self.full_key(key)).await }
+    async fn exists(&self, key: &str) -> Result<bool> { self.inner.exists(&self.full_key(key)).await }
+    async fn increment(&self, key: &str, by: i64) -> Result<i64> { self.inner.increment(&self.full_key(key), by).await }
+    async fn decrement(&self, key: &str, by: i64) -> Result<i64> { self.inner.decrement(&self.full_key(key), by).await }
+    async fn clear(&self) -> Result<()> { self.inner.clear().await }
 }
 
 #[cfg(test)]
@@ -30,20 +34,20 @@ mod tests {
     use crate::{memory::MemoryStore, store::CacheStore};
     use serde_json::json;
 
-    #[test]
-    fn test_namespaced_store_prepends_prefix() {
+    #[tokio::test]
+    async fn test_namespaced_store_prepends_prefix() {
         let inner = MemoryStore::new();
         let ns = NamespacedStore::new(inner, "myapp:prod:custom");
-        ns.set("users:1", json!("alice"), None).unwrap();
-        assert_eq!(ns.get("users:1").unwrap(), Some(json!("alice")));
-        assert!(ns.get("non:existent").unwrap().is_none());
+        ns.set("users:1", json!("alice"), None).await.unwrap();
+        assert_eq!(ns.get("users:1").await.unwrap(), Some(json!("alice")));
+        assert!(ns.get("non:existent").await.unwrap().is_none());
     }
 
-    #[test]
-    fn test_namespaced_delete() {
+    #[tokio::test]
+    async fn test_namespaced_delete() {
         let ns = NamespacedStore::new(MemoryStore::new(), "app");
-        ns.set("k", json!(1), None).unwrap();
-        ns.delete("k").unwrap();
-        assert!(ns.get("k").unwrap().is_none());
+        ns.set("k", json!(1), None).await.unwrap();
+        ns.delete("k").await.unwrap();
+        assert!(ns.get("k").await.unwrap().is_none());
     }
 }
