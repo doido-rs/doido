@@ -9,4 +9,5 @@ members = [
     "doido-router",
     "doido-view",
     "doido-model",
+    "doido-middleware",
 ]
