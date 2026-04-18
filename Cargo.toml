@@ -11,4 +11,6 @@ members = [
     "doido-model",
     "doido-middleware",
     "doido-cache",
+    "doido-jobs-macros",
+    "doido-jobs",
 ]
