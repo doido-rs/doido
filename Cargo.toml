@@ -17,4 +17,6 @@ members = [
     "doido-mailer",
     "doido-cable-macros",
     "doido-cable",
+    "doido-kafka-macros",
+    "doido-kafka",
 ]
