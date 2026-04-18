@@ -1,4 +1,8 @@
-#[derive(Clone, Debug, Default)]
+use serde::{Deserialize, Serialize};
+use crate::deliverer::Deliverer;
+use doido_core::Result;
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct Mail {
     pub from: Option<String>,
     pub to: String,
@@ -36,6 +40,10 @@ impl Mail {
         self.body_text = Some(text.into());
         self
     }
+
+    pub async fn deliver_now(&self, deliverer: &dyn Deliverer) -> Result<()> {
+        deliverer.deliver(self).await
+    }
 }
 
 #[cfg(test)]
@@ -64,5 +72,22 @@ mod tests {
             .body_text("Hello");
         assert_eq!(m.from, Some("sender@example.com".to_string()));
         assert_eq!(m.body_html, Some("<p>Hello</p>".to_string()));
+    }
+
+    #[test]
+    fn test_mail_serializes_to_json() {
+        let m = Mail::new().to("a@b.com").subject("S").body_text("B");
+        let json = serde_json::to_string(&m).unwrap();
+        assert!(json.contains("a@b.com"));
+    }
+
+    #[tokio::test]
+    async fn test_deliver_now_uses_deliverer() {
+        use crate::deliverer::TestDeliverer;
+        let d = TestDeliverer::new();
+        let m = Mail::new().to("x@y.com").subject("Hi").body_text("body");
+        m.deliver_now(&d).await.unwrap();
+        let sent = d.sent().await;
+        assert_eq!(sent.len(), 1);
     }
 }

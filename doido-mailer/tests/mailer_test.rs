@@ -54,3 +54,14 @@ async fn test_multiple_mails_captured() {
     let sent = deliverer.sent().await;
     assert_eq!(sent.len(), 2);
 }
+
+#[tokio::test]
+async fn test_mail_deliver_now_method() {
+    let deliverer = TestDeliverer::new();
+    let sent_count = {
+        let mail = WelcomeMailer::welcome("dave@example.com");
+        mail.deliver_now(&deliverer).await.unwrap();
+        deliverer.sent().await.len()
+    };
+    assert_eq!(sent_count, 1);
+}
