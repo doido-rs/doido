@@ -1,0 +1,11 @@
+[package]
+name = "doido-generators"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+doido-core = { path = "../doido-core" }
+chrono = { version = "0.4", features = ["clock"] }
+
+[dev-dependencies]
+tempfile = "3"

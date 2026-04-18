@@ -21,4 +21,5 @@ members = [
     "doido-kafka",
     "doido-mcp-macros",
     "doido-mcp",
+    "doido-generators",
 ]
