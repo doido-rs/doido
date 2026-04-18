@@ -8,4 +8,5 @@ members = [
     "doido-router-macros",
     "doido-router",
     "doido-view",
+    "doido-model",
 ]
