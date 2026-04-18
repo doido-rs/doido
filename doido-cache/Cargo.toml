@@ -10,3 +10,5 @@ async-trait = "0.1"
 
 [dev-dependencies]
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "time"] }
+doido-core = { path = "../doido-core" }
+async-trait = "0.1"
