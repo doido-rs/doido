@@ -1,0 +1,19 @@
+[package]
+name = "doido-middleware"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+doido-core = { path = "../doido-core" }
+async-trait = "0.1"
+axum = "0.8"
+tower = { version = "0.5", features = ["full"] }
+tower-http = { version = "0.6", features = ["cors", "trace", "catch-panic"] }
+tracing = "0.1"
+serde_json = "1"
+http = "1"
+
+[dev-dependencies]
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+http-body-util = "0.1"
+tower = { version = "0.5", features = ["util"] }
