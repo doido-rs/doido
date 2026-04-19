@@ -104,7 +104,7 @@ async fn test_controller_index_action_via_axum() {
 
 #[tokio::test]
 async fn test_controller_show_action_via_axum() {
-    let app = axum::Router::new().route("/hello/:id", axum::routing::get(HelloController::show));
+    let app = axum::Router::new().route("/hello/{id}", axum::routing::get(HelloController::show));
 
     let resp = app
         .oneshot(
@@ -245,9 +245,9 @@ impl ScopedController {
 async fn test_before_action_only_fires_for_specified_actions() {
     let app = axum::Router::new()
         .route("/items", axum::routing::get(ScopedController::index))
-        .route("/items/:id", axum::routing::get(ScopedController::show))
+        .route("/items/{id}", axum::routing::get(ScopedController::show))
         .route(
-            "/items/:id/edit",
+            "/items/{id}/edit",
             axum::routing::get(ScopedController::edit),
         );
 
@@ -356,7 +356,7 @@ async fn test_full_stack_controller_with_filters_via_axum_router() {
     let app = axum::Router::new()
         .route("/articles", axum::routing::get(ArticlesController::index))
         .route(
-            "/articles/:id",
+            "/articles/{id}",
             axum::routing::get(ArticlesController::show),
         );
 

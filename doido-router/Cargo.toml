@@ -7,11 +7,11 @@ edition = "2021"
 [dependencies]
 doido-core = { path = "../doido-core" }
 doido-router-macros = { path = "../doido-router-macros" }
-axum = "0.7"
-tokio = { version = "1", features = ["full"] }
+axum.workspace = true
+tokio = { workspace = true, features = ["full"] }
 
 [dev-dependencies]
-tower = { version = "0.4", features = ["util"] }
-http-body-util = "0.1"
-http = "1"
-tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+tower.workspace = true
+http-body-util.workspace = true
+http.workspace = true
+tokio.workspace = true

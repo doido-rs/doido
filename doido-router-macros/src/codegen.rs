@@ -47,8 +47,8 @@ fn generate_inner(
                 let prefix = path_prefix.unwrap_or("");
                 let base = format!("{}/{}", prefix, name);
                 let base_new = format!("{}/{}/new", prefix, name);
-                let base_id = format!("{}/{}/:id", prefix, name);
-                let base_id_edit = format!("{}/{}/:id/edit", prefix, name);
+                let base_id = format!("{}/{}/{{id}}", prefix, name);
+                let base_id_edit = format!("{}/{}/{{id}}/edit", prefix, name);
                 let ctrl = &controller;
 
                 let mut collection = quote! { axum::routing::MethodRouter::new() };
