@@ -2,6 +2,7 @@ use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
 #[serde(default)]
+#[derive(Default)]
 pub struct Config {
     pub server: ServerConfig,
     pub database: DatabaseConfig,
@@ -9,16 +10,6 @@ pub struct Config {
     pub log: LogConfig,
 }
 
-impl Default for Config {
-    fn default() -> Self {
-        Self {
-            server: ServerConfig::default(),
-            database: DatabaseConfig::default(),
-            view: ViewConfig::default(),
-            log: LogConfig::default(),
-        }
-    }
-}
 
 #[derive(Debug, Deserialize)]
 #[serde(default)]

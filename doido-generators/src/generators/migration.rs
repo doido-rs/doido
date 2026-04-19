@@ -18,9 +18,7 @@ impl Generator for MigrationGenerator {
         let snake = to_snake(name);
         Ok(vec![GeneratedFile {
             path: format!("db/migrations/{}_{}.rs", timestamp, snake),
-            content: format!(
-                "use sea_orm_migration::prelude::*;\n\n#[derive(DeriveMigrationName)]\npub struct Migration;\n\n#[async_trait::async_trait]\nimpl MigrationTrait for Migration {{\n    async fn up(&self, manager: &SchemaManager<'_>) -> Result<(), DbErr> {{\n        // TODO: implement migration\n        Ok(())\n    }}\n\n    async fn down(&self, manager: &SchemaManager<'_>) -> Result<(), DbErr> {{\n        // TODO: implement rollback\n        Ok(())\n    }}\n}}\n",
-            ),
+            content: "use sea_orm_migration::prelude::*;\n\n#[derive(DeriveMigrationName)]\npub struct Migration;\n\n#[async_trait::async_trait]\nimpl MigrationTrait for Migration {\n    async fn up(&self, manager: &SchemaManager<'_>) -> Result<(), DbErr> {\n        // TODO: implement migration\n        Ok(())\n    }\n\n    async fn down(&self, manager: &SchemaManager<'_>) -> Result<(), DbErr> {\n        // TODO: implement rollback\n        Ok(())\n    }\n}\n".to_string(),
         }])
     }
 }
