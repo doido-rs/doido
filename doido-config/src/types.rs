@@ -29,7 +29,10 @@ pub struct ServerConfig {
 
 impl Default for ServerConfig {
     fn default() -> Self {
-        Self { port: 3000, bind: "127.0.0.1".to_string() }
+        Self {
+            port: 3000,
+            bind: "127.0.0.1".to_string(),
+        }
     }
 }
 
@@ -77,6 +80,8 @@ pub struct LogConfig {
 
 impl Default for LogConfig {
     fn default() -> Self {
-        Self { level: "info".to_string() }
+        Self {
+            level: "info".to_string(),
+        }
     }
 }

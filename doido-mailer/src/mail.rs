@@ -1,6 +1,6 @@
-use serde::{Deserialize, Serialize};
 use crate::deliverer::Deliverer;
 use doido_core::Result;
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct Mail {

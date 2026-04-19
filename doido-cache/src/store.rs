@@ -1,5 +1,5 @@
-use serde_json::Value;
 use doido_core::Result;
+use serde_json::Value;
 
 #[async_trait::async_trait]
 pub trait CacheStore: Send + Sync {

@@ -5,7 +5,11 @@ struct FakeConsumer;
 
 #[async_trait::async_trait]
 impl Consumer for FakeConsumer {
-    async fn handle(&self, _ctx: &ConsumerContext, _payload: serde_json::Value) -> doido_core::Result<()> {
+    async fn handle(
+        &self,
+        _ctx: &ConsumerContext,
+        _payload: serde_json::Value,
+    ) -> doido_core::Result<()> {
         Ok(())
     }
 }

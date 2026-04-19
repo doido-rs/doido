@@ -1,6 +1,6 @@
-use std::sync::Arc;
 use crate::queue::{JobPayload, JobQueue};
 use doido_core::Result;
+use std::sync::Arc;
 
 pub struct Worker {
     queue: Arc<dyn JobQueue>,
@@ -9,7 +9,10 @@ pub struct Worker {
 
 impl Worker {
     pub fn new(queue: Arc<dyn JobQueue>, queue_name: impl Into<String>) -> Self {
-        Self { queue, queue_name: queue_name.into() }
+        Self {
+            queue,
+            queue_name: queue_name.into(),
+        }
     }
 
     pub async fn run_once<F, Fut>(&self, performer: F) -> Result<()>

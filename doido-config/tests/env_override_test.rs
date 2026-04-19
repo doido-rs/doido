@@ -42,7 +42,8 @@ fn test_ignores_single_underscore_vars() {
         vec![
             ("DOIDO_ENV".to_string(), "test".to_string()),
             ("PATH".to_string(), "/usr/bin".to_string()),
-        ].into_iter(),
+        ]
+        .into_iter(),
     );
     assert!(v.as_table().unwrap().is_empty());
 }

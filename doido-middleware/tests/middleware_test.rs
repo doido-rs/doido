@@ -1,14 +1,15 @@
-use doido_middleware::{MiddlewareStack, SessionStore, CookieSessionStore};
-use axum::{Router, routing::get};
-use tower::ServiceExt;
+use axum::{routing::get, Router};
+use doido_middleware::{CookieSessionStore, MiddlewareStack, SessionStore};
 use http::{Request, StatusCode};
+use tower::ServiceExt;
 
 #[tokio::test]
 async fn test_middleware_stack_processes_request() {
-    let app = MiddlewareStack::new().apply(
-        Router::new().route("/", get(|| async { "ok" }))
-    );
-    let req = Request::builder().uri("/").body(axum::body::Body::empty()).unwrap();
+    let app = MiddlewareStack::new().apply(Router::new().route("/", get(|| async { "ok" })));
+    let req = Request::builder()
+        .uri("/")
+        .body(axum::body::Body::empty())
+        .unwrap();
     let resp = app.oneshot(req).await.unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
 }

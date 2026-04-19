@@ -5,13 +5,27 @@ struct FakeStore;
 
 #[async_trait::async_trait]
 impl CacheStore for FakeStore {
-    async fn get(&self, _k: &str) -> doido_core::Result<Option<Value>> { Ok(None) }
-    async fn set(&self, _k: &str, _v: Value, _t: Option<u64>) -> doido_core::Result<()> { Ok(()) }
-    async fn delete(&self, _k: &str) -> doido_core::Result<()> { Ok(()) }
-    async fn exists(&self, _k: &str) -> doido_core::Result<bool> { Ok(false) }
-    async fn increment(&self, _k: &str, _by: i64) -> doido_core::Result<i64> { Ok(0) }
-    async fn decrement(&self, _k: &str, _by: i64) -> doido_core::Result<i64> { Ok(0) }
-    async fn clear(&self) -> doido_core::Result<()> { Ok(()) }
+    async fn get(&self, _k: &str) -> doido_core::Result<Option<Value>> {
+        Ok(None)
+    }
+    async fn set(&self, _k: &str, _v: Value, _t: Option<u64>) -> doido_core::Result<()> {
+        Ok(())
+    }
+    async fn delete(&self, _k: &str) -> doido_core::Result<()> {
+        Ok(())
+    }
+    async fn exists(&self, _k: &str) -> doido_core::Result<bool> {
+        Ok(false)
+    }
+    async fn increment(&self, _k: &str, _by: i64) -> doido_core::Result<i64> {
+        Ok(0)
+    }
+    async fn decrement(&self, _k: &str, _by: i64) -> doido_core::Result<i64> {
+        Ok(0)
+    }
+    async fn clear(&self) -> doido_core::Result<()> {
+        Ok(())
+    }
 }
 
 #[test]

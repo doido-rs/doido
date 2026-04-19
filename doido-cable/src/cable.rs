@@ -1,6 +1,6 @@
-use std::sync::Arc;
 use crate::pubsub::PubSub;
 use doido_core::Result;
+use std::sync::Arc;
 
 pub struct Cable {
     pubsub: Arc<dyn PubSub>,

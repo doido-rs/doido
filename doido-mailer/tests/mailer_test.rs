@@ -36,7 +36,10 @@ async fn test_mailer_log_deliverer() {
 #[tokio::test]
 async fn test_deliverer_as_arc_dyn() {
     let deliverer: Arc<dyn Deliverer> = Arc::new(TestDeliverer::new());
-    let mail = Mail::new().to("c@example.com").subject("Test").body_text("body");
+    let mail = Mail::new()
+        .to("c@example.com")
+        .subject("Test")
+        .body_text("body");
     deliverer.deliver(&mail).await.unwrap();
 }
 

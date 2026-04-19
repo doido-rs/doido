@@ -1,4 +1,4 @@
-use doido_core::error::{Result, AnyhowContext};
+use doido_core::error::{AnyhowContext, Result};
 
 // Define a typed error as any downstream crate would
 #[derive(doido_core::thiserror::Error, Debug)]
@@ -20,7 +20,10 @@ fn propagate_via_question_mark() -> Result<()> {
 fn test_thiserror_propagates_into_anyhow_result() {
     let result = propagate_via_question_mark();
     assert!(result.is_err());
-    assert!(result.unwrap_err().to_string().contains("something went wrong: bad"));
+    assert!(result
+        .unwrap_err()
+        .to_string()
+        .contains("something went wrong: bad"));
 }
 
 #[test]

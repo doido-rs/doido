@@ -1,11 +1,11 @@
+use crate::store::CacheStore;
+use doido_core::Result;
+use serde_json::Value;
 use std::{
     collections::HashMap,
     sync::RwLock,
     time::{Duration, Instant},
 };
-use serde_json::Value;
-use crate::store::CacheStore;
-use doido_core::Result;
 
 pub struct MemoryStore {
     data: RwLock<HashMap<String, (Value, Option<Instant>)>>,
@@ -13,12 +13,16 @@ pub struct MemoryStore {
 
 impl MemoryStore {
     pub fn new() -> Self {
-        Self { data: RwLock::new(HashMap::new()) }
+        Self {
+            data: RwLock::new(HashMap::new()),
+        }
     }
 }
 
 impl Default for MemoryStore {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 #[async_trait::async_trait]
@@ -42,7 +46,10 @@ impl CacheStore for MemoryStore {
 
     async fn set(&self, key: &str, value: Value, ttl_secs: Option<u64>) -> Result<()> {
         let expiry = ttl_secs.map(|s| Instant::now() + Duration::from_secs(s));
-        self.data.write().unwrap().insert(key.to_string(), (value, expiry));
+        self.data
+            .write()
+            .unwrap()
+            .insert(key.to_string(), (value, expiry));
         Ok(())
     }
 
@@ -57,7 +64,9 @@ impl CacheStore for MemoryStore {
 
     async fn increment(&self, key: &str, by: i64) -> Result<i64> {
         let mut data = self.data.write().unwrap();
-        let entry = data.entry(key.to_string()).or_insert((serde_json::json!(0), None));
+        let entry = data
+            .entry(key.to_string())
+            .or_insert((serde_json::json!(0), None));
         let current = entry.0.as_i64().unwrap_or(0);
         let new_val = current + by;
         entry.0 = serde_json::json!(new_val);

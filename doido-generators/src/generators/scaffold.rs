@@ -1,20 +1,20 @@
 use crate::generator::{GeneratedFile, Generator};
 use crate::generators::{
-    controller::ControllerGenerator,
-    model::ModelGenerator,
-    migration::MigrationGenerator,
-    to_snake,
+    controller::ControllerGenerator, migration::MigrationGenerator, model::ModelGenerator, to_snake,
 };
 use doido_core::Result;
 
 pub struct ScaffoldGenerator;
 
 impl Generator for ScaffoldGenerator {
-    fn name(&self) -> &str { "scaffold" }
+    fn name(&self) -> &str {
+        "scaffold"
+    }
 
     fn generate(&self, args: &[&str]) -> Result<Vec<GeneratedFile>> {
-        let name = args.first().copied()
-            .ok_or_else(|| doido_core::anyhow::anyhow!("scaffold generator requires a name argument"))?;
+        let name = args.first().copied().ok_or_else(|| {
+            doido_core::anyhow::anyhow!("scaffold generator requires a name argument")
+        })?;
 
         let mut files = vec![];
         files.extend(ControllerGenerator.generate(args)?);

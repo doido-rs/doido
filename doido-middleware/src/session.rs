@@ -1,5 +1,5 @@
-use serde_json::Value;
 use doido_core::Result;
+use serde_json::Value;
 
 #[derive(Clone, Debug)]
 pub struct Session {
@@ -18,7 +18,13 @@ pub struct CookieSessionStore;
 
 #[async_trait::async_trait]
 impl SessionStore for CookieSessionStore {
-    async fn load(&self, _id: &str) -> Result<Option<Session>> { Ok(None) }
-    async fn save(&self, _session: &Session) -> Result<()> { Ok(()) }
-    async fn destroy(&self, _id: &str) -> Result<()> { Ok(()) }
+    async fn load(&self, _id: &str) -> Result<Option<Session>> {
+        Ok(None)
+    }
+    async fn save(&self, _session: &Session) -> Result<()> {
+        Ok(())
+    }
+    async fn destroy(&self, _id: &str) -> Result<()> {
+        Ok(())
+    }
 }

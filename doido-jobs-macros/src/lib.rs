@@ -2,8 +2,8 @@ use proc_macro::TokenStream;
 use proc_macro2::Span;
 use quote::quote;
 use syn::{
-    parse::Parser, parse_macro_input, ItemFn, Lit, LitInt, LitStr, MetaNameValue,
-    punctuated::Punctuated, Token,
+    parse::Parser, parse_macro_input, punctuated::Punctuated, ItemFn, Lit, LitInt, LitStr,
+    MetaNameValue, Token,
 };
 
 #[proc_macro_attribute]
@@ -20,7 +20,11 @@ pub fn job(attr: TokenStream, item: TokenStream) -> TokenStream {
     let parser = Punctuated::<MetaNameValue, Token![,]>::parse_terminated;
     if let Ok(pairs) = parser.parse2(attr_tokens) {
         for pair in pairs {
-            let key = pair.path.get_ident().map(|i| i.to_string()).unwrap_or_default();
+            let key = pair
+                .path
+                .get_ident()
+                .map(|i| i.to_string())
+                .unwrap_or_default();
             match key.as_str() {
                 "queue" => {
                     if let syn::Expr::Lit(expr_lit) = &pair.value {

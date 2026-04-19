@@ -1,5 +1,5 @@
+use doido_core::{anyhow::Context as _, Result};
 use std::path::Path;
-use doido_core::{Result, anyhow::Context as _};
 
 pub fn load_toml(path: &Path) -> Result<Option<toml::Value>> {
     if !path.exists() {
@@ -32,11 +32,9 @@ pub fn deep_merge(base: toml::Value, over: toml::Value) -> toml::Value {
 pub fn load_layers(root: &Path, env: &str) -> Result<toml::Value> {
     // 1. Base config — required
     let base_path = root.join("config/doido.toml");
-    let mut merged = load_toml(&base_path)?
-        .ok_or_else(|| doido_core::anyhow::anyhow!(
-            "config/doido.toml not found in {}",
-            root.display()
-        ))?;
+    let mut merged = load_toml(&base_path)?.ok_or_else(|| {
+        doido_core::anyhow::anyhow!("config/doido.toml not found in {}", root.display())
+    })?;
 
     // 2. Environment-specific override — optional
     let env_path = root.join(format!("config/doido.{env}.toml"));
@@ -53,8 +51,8 @@ pub fn load_layers(root: &Path, env: &str) -> Result<toml::Value> {
             .context("failed to read config/credentials.toml.enc")?;
         let plaintext = crate::crypto::decrypt_credentials(&encoded, &key)
             .context("failed to decrypt config/credentials.toml.enc")?;
-        let cred_value: toml::Value = toml::from_str(&plaintext)
-            .context("failed to parse decrypted credentials as TOML")?;
+        let cred_value: toml::Value =
+            toml::from_str(&plaintext).context("failed to parse decrypted credentials as TOML")?;
         merged = deep_merge(merged, cred_value);
     }
 

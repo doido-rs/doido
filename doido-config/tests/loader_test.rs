@@ -63,8 +63,11 @@ fn test_deep_merge_adds_new_keys() {
 fn test_load_layers_applies_env_override_file() {
     let dir = TempDir::new().unwrap();
     write(&dir, "config/doido.toml", BASE);
-    write(&dir, "config/doido.prod.toml",
-        "[server]\nbind = \"0.0.0.0\"\n[log]\nlevel = \"warn\"");
+    write(
+        &dir,
+        "config/doido.prod.toml",
+        "[server]\nbind = \"0.0.0.0\"\n[log]\nlevel = \"warn\"",
+    );
     let val = load_layers(dir.path(), "prod").unwrap();
     assert_eq!(val["server"]["port"].as_integer(), Some(3000));
     assert_eq!(val["server"]["bind"].as_str(), Some("0.0.0.0"));
@@ -102,7 +105,10 @@ fn test_load_layers_merges_credentials() {
     write(&dir, "config/master.key", &hex_key);
 
     let val = load_layers(dir.path(), "noenv").unwrap();
-    assert_eq!(val["database"]["url"].as_str(), Some("postgres://secret@prod/db"));
+    assert_eq!(
+        val["database"]["url"].as_str(),
+        Some("postgres://secret@prod/db")
+    );
     assert_eq!(val["server"]["port"].as_integer(), Some(3000));
 }
 
@@ -118,7 +124,11 @@ fn test_load_layers_skips_credentials_when_file_absent() {
 fn test_load_layers_errors_when_credentials_exist_but_key_missing() {
     let dir = TempDir::new().unwrap();
     write(&dir, "config/doido.toml", BASE);
-    write(&dir, "config/credentials.toml.enc", "fake-encrypted-content");
+    write(
+        &dir,
+        "config/credentials.toml.enc",
+        "fake-encrypted-content",
+    );
     if std::env::var("DOIDO_MASTER_KEY").is_err() {
         let result = load_layers(dir.path(), "noenv");
         assert!(result.is_err());

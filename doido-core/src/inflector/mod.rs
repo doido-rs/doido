@@ -33,15 +33,37 @@ fn global() -> &'static Inflections {
 pub struct Inflector;
 
 impl Inflector {
-    pub fn pluralize(s: &str) -> String      { global().pluralize(s) }
-    pub fn singularize(s: &str) -> String    { global().singularize(s) }
-    pub fn camelize(s: &str) -> String       { global().camelize(s) }
-    pub fn camelize_lower(s: &str) -> String { global().camelize_lower(s) }
-    pub fn underscore(s: &str) -> String     { global().underscore(s) }
-    pub fn dasherize(s: &str) -> String      { global().dasherize(s) }
-    pub fn humanize(s: &str) -> String       { global().humanize(s) }
-    pub fn tableize(s: &str) -> String       { global().tableize(s) }
-    pub fn classify(s: &str) -> String       { global().classify(s) }
-    pub fn foreign_key(s: &str) -> String    { global().foreign_key(s) }
-    pub fn constantize(s: &str) -> String    { global().constantize(s) }
+    pub fn pluralize(s: &str) -> String {
+        global().pluralize(s)
+    }
+    pub fn singularize(s: &str) -> String {
+        global().singularize(s)
+    }
+    pub fn camelize(s: &str) -> String {
+        global().camelize(s)
+    }
+    pub fn camelize_lower(s: &str) -> String {
+        global().camelize_lower(s)
+    }
+    pub fn underscore(s: &str) -> String {
+        global().underscore(s)
+    }
+    pub fn dasherize(s: &str) -> String {
+        global().dasherize(s)
+    }
+    pub fn humanize(s: &str) -> String {
+        global().humanize(s)
+    }
+    pub fn tableize(s: &str) -> String {
+        global().tableize(s)
+    }
+    pub fn classify(s: &str) -> String {
+        global().classify(s)
+    }
+    pub fn foreign_key(s: &str) -> String {
+        global().foreign_key(s)
+    }
+    pub fn constantize(s: &str) -> String {
+        global().constantize(s)
+    }
 }

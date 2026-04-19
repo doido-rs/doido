@@ -2,10 +2,7 @@ pub fn apply_env_overrides(value: &mut toml::Value) {
     apply_overrides_from(value, std::env::vars());
 }
 
-pub fn apply_overrides_from(
-    value: &mut toml::Value,
-    vars: impl Iterator<Item = (String, String)>,
-) {
+pub fn apply_overrides_from(value: &mut toml::Value, vars: impl Iterator<Item = (String, String)>) {
     for (key, val_str) in vars {
         if let Some(path) = parse_env_key(&key) {
             set_nested(value, &path, coerce_value(val_str));

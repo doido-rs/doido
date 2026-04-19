@@ -8,11 +8,20 @@ pub struct ConsumerContext {
 
 impl ConsumerContext {
     pub fn new(topic: impl Into<String>, partition: i32, offset: i64) -> Self {
-        Self { topic: topic.into(), partition, offset, key: None }
+        Self {
+            topic: topic.into(),
+            partition,
+            offset,
+            key: None,
+        }
     }
 }
 
 #[async_trait::async_trait]
 pub trait Consumer: Send + Sync {
-    async fn handle(&self, ctx: &ConsumerContext, payload: serde_json::Value) -> doido_core::Result<()>;
+    async fn handle(
+        &self,
+        ctx: &ConsumerContext,
+        payload: serde_json::Value,
+    ) -> doido_core::Result<()>;
 }

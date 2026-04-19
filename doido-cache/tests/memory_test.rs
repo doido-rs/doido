@@ -1,5 +1,5 @@
-use doido_cache::MemoryStore;
 use doido_cache::CacheStore;
+use doido_cache::MemoryStore;
 use serde_json::json;
 use std::time::Duration;
 

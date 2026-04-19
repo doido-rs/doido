@@ -1,18 +1,14 @@
 pub mod generator;
-pub mod registry;
 pub mod generators;
+pub mod registry;
 
 pub use generator::{GeneratedFile, Generator};
-pub use registry::GeneratorRegistry;
 pub use generators::{
-    controller::ControllerGenerator,
-    model::ModelGenerator,
-    migration::MigrationGenerator,
-    job::JobGenerator,
-    mailer::MailerGenerator,
-    channel::ChannelGenerator,
+    channel::ChannelGenerator, controller::ControllerGenerator, job::JobGenerator,
+    mailer::MailerGenerator, migration::MigrationGenerator, model::ModelGenerator,
     scaffold::ScaffoldGenerator,
 };
+pub use registry::GeneratorRegistry;
 
 pub fn default_registry() -> GeneratorRegistry {
     let mut reg = GeneratorRegistry::new();

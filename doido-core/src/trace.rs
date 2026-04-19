@@ -1,11 +1,23 @@
 /// Emit a structured event for an HTTP request
 pub fn request(method: &str, path: &str, status: u16, latency_ms: u64) {
-    tracing::info!(method = method, path = path, status = status, latency_ms = latency_ms, "request");
+    tracing::info!(
+        method = method,
+        path = path,
+        status = status,
+        latency_ms = latency_ms,
+        "request"
+    );
 }
 
 /// Emit a structured event for a background job execution
 pub fn job(job_name: &str, queue: &str, attempt: u32, result: &str) {
-    tracing::info!(job_name = job_name, queue = queue, attempt = attempt, result = result, "job");
+    tracing::info!(
+        job_name = job_name,
+        queue = queue,
+        attempt = attempt,
+        result = result,
+        "job"
+    );
 }
 
 /// Emit a structured event for a database query

@@ -1,6 +1,6 @@
-use std::sync::RwLock;
 use crate::engine::TemplateEngine;
-use doido_core::{Result, anyhow::Context as _};
+use doido_core::{anyhow::Context as _, Result};
+use std::sync::RwLock;
 
 pub struct TeraEngine {
     tera: RwLock<tera::Tera>,

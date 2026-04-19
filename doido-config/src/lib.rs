@@ -1,12 +1,12 @@
-pub mod types;
-pub mod loader;
-pub mod env_override;
 pub mod crypto;
+pub mod env_override;
+pub mod loader;
+pub mod types;
 
 pub use types::{Config, DatabaseConfig, LogConfig, ServerConfig, ViewConfig};
 
-use std::{path::Path, sync::Arc};
 use doido_core::Result;
+use std::{path::Path, sync::Arc};
 
 impl Config {
     /// Load config using the current directory as root, environment from `DOIDO_ENV`

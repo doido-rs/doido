@@ -1,5 +1,5 @@
-use doido_middleware::stack::MiddlewareStack;
 use axum::Router;
+use doido_middleware::stack::MiddlewareStack;
 
 #[test]
 fn test_middleware_stack_builds_without_panic() {

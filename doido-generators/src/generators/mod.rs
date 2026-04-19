@@ -1,9 +1,9 @@
+pub mod channel;
 pub mod controller;
-pub mod model;
-pub mod migration;
 pub mod job;
 pub mod mailer;
-pub mod channel;
+pub mod migration;
+pub mod model;
 pub mod scaffold;
 
 pub fn to_snake(s: &str) -> String {
