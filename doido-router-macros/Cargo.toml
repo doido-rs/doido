@@ -1,6 +1,7 @@
 [package]
 name = "doido-router-macros"
 version.workspace = true
+license.workspace = true
 edition = "2021"
 
 [lib]
