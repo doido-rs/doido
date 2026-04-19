@@ -739,6 +739,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "doido"
+version = "0.1.0"
+dependencies = [
+ "assert_cmd",
+ "doido-cable",
+ "doido-cache",
+ "doido-cli",
+ "doido-config",
+ "doido-controller",
+ "doido-core",
+ "doido-generators",
+ "doido-jobs",
+ "doido-kafka",
+ "doido-mailer",
+ "doido-mcp",
+ "doido-middleware",
+ "doido-model",
+ "doido-router",
+ "doido-view",
+ "predicates",
+]
+
+[[package]]
 name = "doido-cable"
 version = "0.1.0"
 dependencies = [

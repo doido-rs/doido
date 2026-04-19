@@ -3,9 +3,9 @@ name = "doido-cli"
 version = "0.1.0"
 edition = "2021"
 
-[[bin]]
-name = "doido"
-path = "src/main.rs"
+[lib]
+name = "doido_cli"
+path = "src/lib.rs"
 
 [dependencies]
 doido-core = { path = "../doido-core" }

@@ -23,4 +23,5 @@ members = [
     "doido-mcp",
     "doido-generators",
     "doido-cli",
+    "doido",
 ]

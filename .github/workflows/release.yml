@@ -1,0 +1,130 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Semver version to publish (e.g. 0.1.0)"
+        required: true
+        type: string
+      dry_run:
+        description: "Dry run — skip publish and GitHub Release creation"
+        required: true
+        type: boolean
+        default: false
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo fmt --check --all
+      - run: cargo clippy --workspace -- -D warnings
+      - run: cargo install cargo-deny --locked && cargo deny check
+      - run: cargo install cargo-audit --locked && cargo audit
+
+  test:
+    name: Test
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo test --workspace
+
+  publish:
+    name: Publish to crates.io
+    needs: test
+    runs-on: ubuntu-latest
+    if: ${{ inputs.dry_run == false }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo install cargo-workspaces --locked
+      - run: cargo workspaces version --exact --yes ${{ inputs.version }}
+      - run: cargo workspaces publish --verbose --yes
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+  build:
+    name: Build — ${{ matrix.target }}
+    needs: test
+    strategy:
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            use_cross: false
+          - runner: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            use_cross: true
+          - runner: macos-latest
+            target: x86_64-apple-darwin
+            use_cross: false
+          - runner: macos-latest
+            target: aarch64-apple-darwin
+            use_cross: false
+          - runner: windows-latest
+            target: x86_64-pc-windows-msvc
+            use_cross: false
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+      - name: Install cross (ARM Linux only)
+        if: ${{ matrix.use_cross }}
+        run: cargo install cross --locked
+      - name: Build (native)
+        if: ${{ !matrix.use_cross }}
+        run: cargo build --release --bin doido --target ${{ matrix.target }}
+      - name: Build (cross)
+        if: ${{ matrix.use_cross }}
+        run: cross build --release --bin doido --target ${{ matrix.target }}
+      - name: Upload artifact (Unix)
+        if: ${{ matrix.runner != 'windows-latest' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: doido-${{ matrix.target }}
+          path: target/${{ matrix.target }}/release/doido
+      - name: Upload artifact (Windows)
+        if: ${{ matrix.runner == 'windows-latest' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: doido-${{ matrix.target }}
+          path: target/${{ matrix.target }}/release/doido.exe
+
+  release:
+    name: GitHub Release
+    needs: [publish, build]
+    runs-on: ubuntu-latest
+    if: ${{ inputs.dry_run == false }}
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ inputs.version }}
+          name: v${{ inputs.version }}
+          files: artifacts/**/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
