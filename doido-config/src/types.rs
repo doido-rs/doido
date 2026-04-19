@@ -10,7 +10,6 @@ pub struct Config {
     pub log: LogConfig,
 }
 
-
 #[derive(Debug, Deserialize)]
 #[serde(default)]
 pub struct ServerConfig {

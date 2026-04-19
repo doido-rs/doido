@@ -18,9 +18,9 @@ pub use doido_mcp as mcp;
 
 // Flat re-exports for ergonomic top-level access
 pub use doido_core::Result;
-pub use doido_middleware::MiddlewareStack;
-pub use doido_generators::{Generator, GeneratedFile};
+pub use doido_generators::{GeneratedFile, Generator};
 pub use doido_mailer::{Deliverer, LogDeliverer};
+pub use doido_middleware::MiddlewareStack;
 pub mod store {
     pub use doido_cache::store::CacheStore;
 }
