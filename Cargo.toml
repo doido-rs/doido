@@ -25,3 +25,6 @@ members = [
     "doido-cli",
     "doido",
 ]
+
+[workspace.package]
+version = "0.1.0"
