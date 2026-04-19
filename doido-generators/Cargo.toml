@@ -6,7 +6,7 @@ edition = "2021"
 
 [dependencies]
 doido-core = { path = "../doido-core" }
-chrono = { version = "0.4", features = ["clock"] }
+chrono.workspace = true
 
 [dev-dependencies]
 tempfile = "3"

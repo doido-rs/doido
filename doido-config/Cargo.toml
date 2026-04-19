@@ -6,7 +6,7 @@ edition = "2021"
 
 [dependencies]
 doido-core = { path = "../doido-core" }
-serde = { version = "1", features = ["derive"] }
+serde.workspace = true
 toml = "0.8"
 aes-gcm = "0.10"
 base64 = "0.22"

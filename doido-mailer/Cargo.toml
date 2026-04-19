@@ -7,11 +7,11 @@ edition = "2021"
 [dependencies]
 doido-core = { path = "../doido-core" }
 doido-mailer-macros = { path = "../doido-mailer-macros" }
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-async-trait = "0.1"
-tracing = "0.1"
-tokio = { version = "1", features = ["sync"] }
+serde.workspace = true
+serde_json.workspace = true
+async-trait.workspace = true
+tracing.workspace = true
+tokio = { workspace = true, features = ["sync"] }
 
 [dev-dependencies]
-tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+tokio.workspace = true
