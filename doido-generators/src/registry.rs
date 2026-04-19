@@ -1,6 +1,6 @@
-use std::collections::HashMap;
 use crate::generator::{GeneratedFile, Generator};
 use doido_core::Result;
+use std::collections::HashMap;
 
 pub struct GeneratorRegistry {
     generators: HashMap<String, Box<dyn Generator>>,
@@ -8,15 +8,20 @@ pub struct GeneratorRegistry {
 
 impl GeneratorRegistry {
     pub fn new() -> Self {
-        Self { generators: HashMap::new() }
+        Self {
+            generators: HashMap::new(),
+        }
     }
 
     pub fn register(&mut self, generator: Box<dyn Generator>) {
-        self.generators.insert(generator.name().to_string(), generator);
+        self.generators
+            .insert(generator.name().to_string(), generator);
     }
 
     pub fn run(&self, name: &str, args: &[&str]) -> Result<Vec<GeneratedFile>> {
-        let gen = self.generators.get(name)
+        let gen = self
+            .generators
+            .get(name)
             .ok_or_else(|| doido_core::anyhow::anyhow!("generator '{}' not found", name))?;
         gen.generate(args)
     }
@@ -29,5 +34,7 @@ impl GeneratorRegistry {
 }
 
 impl Default for GeneratorRegistry {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }

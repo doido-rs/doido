@@ -1,6 +1,6 @@
+use doido_core::Result;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use doido_core::Result;
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub enum JobStatus {

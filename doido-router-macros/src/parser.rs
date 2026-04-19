@@ -5,10 +5,24 @@ use syn::{
 };
 
 pub enum RouteDecl {
-    Method { method: String, path: LitStr, handler: Expr },
-    Resources { resource_name: Ident, controller: Ident, filter: ResourceFilter },
-    Namespace { name: Ident, body: RoutesInput },
-    Scope { path_prefix: LitStr, body: RoutesInput },
+    Method {
+        method: String,
+        path: LitStr,
+        handler: Expr,
+    },
+    Resources {
+        resource_name: Ident,
+        controller: Ident,
+        filter: ResourceFilter,
+    },
+    Namespace {
+        name: Ident,
+        body: RoutesInput,
+    },
+    Scope {
+        path_prefix: LitStr,
+        body: RoutesInput,
+    },
 }
 
 pub enum ResourceFilter {
@@ -74,18 +88,36 @@ impl Parse for RoutesInput {
                         match key.to_string().as_str() {
                             "only" => ResourceFilter::Only(actions),
                             "except" => ResourceFilter::Except(actions),
-                            other => return Err(syn::Error::new(key.span(), format!("unknown option: {other}"))),
+                            other => {
+                                return Err(syn::Error::new(
+                                    key.span(),
+                                    format!("unknown option: {other}"),
+                                ))
+                            }
                         }
                     };
-                    decls.push(RouteDecl::Resources { resource_name, controller, filter });
+                    decls.push(RouteDecl::Resources {
+                        resource_name,
+                        controller,
+                        filter,
+                    });
                 }
                 method @ ("get" | "post" | "put" | "patch" | "delete") => {
                     let path: LitStr = content.parse()?;
                     let _comma: Token![,] = content.parse()?;
                     let handler: Expr = content.parse()?;
-                    decls.push(RouteDecl::Method { method: method.to_string(), path, handler });
+                    decls.push(RouteDecl::Method {
+                        method: method.to_string(),
+                        path,
+                        handler,
+                    });
                 }
-                other => return Err(syn::Error::new(macro_ident.span(), format!("unknown macro: {other}!"))),
+                other => {
+                    return Err(syn::Error::new(
+                        macro_ident.span(),
+                        format!("unknown macro: {other}!"),
+                    ))
+                }
             }
         }
         Ok(RoutesInput { decls })

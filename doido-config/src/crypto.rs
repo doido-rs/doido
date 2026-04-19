@@ -3,8 +3,8 @@ use aes_gcm::{
     Aes256Gcm, Nonce,
 };
 use base64::{engine::general_purpose::STANDARD, Engine as _};
+use doido_core::{anyhow::Context as _, Result};
 use std::path::Path;
-use doido_core::{Result, anyhow::Context as _};
 
 /// Encrypts `plaintext` with `key` using AES-256-GCM with a random nonce.
 /// Returns a base64-encoded blob: `nonce(12 bytes) || ciphertext`.
@@ -47,8 +47,7 @@ pub fn load_master_key(root: &Path) -> Result<[u8; 32]> {
             .map(|s| s.trim().to_string())
             .map_err(|e| doido_core::anyhow::anyhow!("cannot read config/master.key: {e}"))
     })?;
-    let bytes = hex::decode(hex_str.trim())
-        .context("master key is not valid hex")?;
+    let bytes = hex::decode(hex_str.trim()).context("master key is not valid hex")?;
     bytes
         .try_into()
         .map_err(|_| doido_core::anyhow::anyhow!("master key must be 32 bytes (64 hex chars)"))

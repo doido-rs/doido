@@ -1,0 +1,5 @@
+[advisories]
+# RUSTSEC-2023-0071: Marvin Attack timing side-channel in `rsa` crate.
+# Pulled in transitively via sqlx-mysql -> sqlx -> sea-orm.
+# No fixed version is available upstream; ignored until sqlx/sea-orm resolves it.
+ignore = ["RUSTSEC-2023-0071"]

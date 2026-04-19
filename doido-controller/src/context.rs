@@ -1,6 +1,6 @@
 use axum::{
     body::Body,
-    http::{HeaderValue, StatusCode, header},
+    http::{header, HeaderValue, StatusCode},
     response::Response,
 };
 use serde::Serialize;
@@ -14,7 +14,10 @@ pub struct Context {
 
 impl Context {
     pub fn from_request_parts(parts: http::request::Parts) -> Self {
-        Self { parts, body: Body::empty() }
+        Self {
+            parts,
+            body: Body::empty(),
+        }
     }
 
     pub fn from_request(parts: http::request::Parts, body: Body) -> Self {
@@ -50,7 +53,10 @@ impl Context {
     pub fn redirect_to(&self, location: impl AsRef<str>) -> Response {
         Response::builder()
             .status(StatusCode::FOUND)
-            .header(header::LOCATION, HeaderValue::from_str(location.as_ref()).unwrap())
+            .header(
+                header::LOCATION,
+                HeaderValue::from_str(location.as_ref()).unwrap(),
+            )
             .body(Body::empty())
             .unwrap()
     }

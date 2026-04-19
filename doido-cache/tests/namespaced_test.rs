@@ -1,4 +1,4 @@
-use doido_cache::{MemoryStore, NamespacedStore, CacheStore};
+use doido_cache::{CacheStore, MemoryStore, NamespacedStore};
 use serde_json::json;
 
 #[tokio::test]

@@ -10,13 +10,21 @@ fn is_active(action: &str, filter: &ResourceFilter) -> bool {
     }
 }
 
-fn generate_inner(input: RoutesInput, path_prefix: Option<&str>, helper_prefix: Option<&str>) -> TokenStream {
+fn generate_inner(
+    input: RoutesInput,
+    path_prefix: Option<&str>,
+    helper_prefix: Option<&str>,
+) -> TokenStream {
     let mut route_stmts = Vec::new();
     let mut helper_fns = Vec::new();
 
     for decl in input.decls {
         match decl {
-            RouteDecl::Method { method, path, handler } => {
+            RouteDecl::Method {
+                method,
+                path,
+                handler,
+            } => {
                 let axum_method = syn::Ident::new(&method, Span::call_site());
                 let full_path = match path_prefix {
                     Some(pfx) => {
@@ -29,14 +37,18 @@ fn generate_inner(input: RoutesInput, path_prefix: Option<&str>, helper_prefix: 
                     .route(#full_path, axum::routing::#axum_method(#handler))
                 });
             }
-            RouteDecl::Resources { resource_name, controller, filter } => {
+            RouteDecl::Resources {
+                resource_name,
+                controller,
+                filter,
+            } => {
                 let name = resource_name.to_string();
                 let singular = name.trim_end_matches('s').to_string();
                 let prefix = path_prefix.unwrap_or("");
                 let base = format!("{}/{}", prefix, name);
                 let base_new = format!("{}/{}/new", prefix, name);
-                let base_id = format!("{}/{}/:id", prefix, name);
-                let base_id_edit = format!("{}/{}/:id/edit", prefix, name);
+                let base_id = format!("{}/{}/{{id}}", prefix, name);
+                let base_id_edit = format!("{}/{}/{{id}}/edit", prefix, name);
                 let ctrl = &controller;
 
                 let mut collection = quote! { axum::routing::MethodRouter::new() };
@@ -65,7 +77,8 @@ fn generate_inner(input: RoutesInput, path_prefix: Option<&str>, helper_prefix: 
                 route_stmts.push(quote! { .route(#base_id, #member) });
 
                 if is_active("edit", &filter) {
-                    route_stmts.push(quote! { .route(#base_id_edit, axum::routing::get(#ctrl::edit)) });
+                    route_stmts
+                        .push(quote! { .route(#base_id_edit, axum::routing::get(#ctrl::edit)) });
                 }
 
                 // URL helpers with optional prefix
@@ -111,7 +124,10 @@ fn generate_inner(input: RoutesInput, path_prefix: Option<&str>, helper_prefix: 
                 let inner_ts = generate_inner(body, Some(&ns_path), Some(&combined_helper));
                 route_stmts.push(quote! { .merge(#inner_ts) });
             }
-            RouteDecl::Scope { path_prefix: scope_path, body } => {
+            RouteDecl::Scope {
+                path_prefix: scope_path,
+                body,
+            } => {
                 let full_path = match path_prefix {
                     Some(pfx) => format!("{}{}", pfx, scope_path.value()),
                     None => scope_path.value(),

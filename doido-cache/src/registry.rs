@@ -1,5 +1,5 @@
-use std::{collections::HashMap, sync::Arc};
 use crate::store::CacheStore;
+use std::{collections::HashMap, sync::Arc};
 
 pub struct CacheRegistry {
     stores: HashMap<String, Arc<dyn CacheStore>>,
@@ -7,7 +7,9 @@ pub struct CacheRegistry {
 
 impl CacheRegistry {
     pub fn new() -> Self {
-        Self { stores: HashMap::new() }
+        Self {
+            stores: HashMap::new(),
+        }
     }
 
     pub fn add(&mut self, name: impl Into<String>, store: Arc<dyn CacheStore>) {
@@ -20,5 +22,7 @@ impl CacheRegistry {
 }
 
 impl Default for CacheRegistry {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }

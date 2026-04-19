@@ -2,22 +2,12 @@ use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
 #[serde(default)]
+#[derive(Default)]
 pub struct Config {
     pub server: ServerConfig,
     pub database: DatabaseConfig,
     pub view: ViewConfig,
     pub log: LogConfig,
-}
-
-impl Default for Config {
-    fn default() -> Self {
-        Self {
-            server: ServerConfig::default(),
-            database: DatabaseConfig::default(),
-            view: ViewConfig::default(),
-            log: LogConfig::default(),
-        }
-    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -29,7 +19,10 @@ pub struct ServerConfig {
 
 impl Default for ServerConfig {
     fn default() -> Self {
-        Self { port: 3000, bind: "127.0.0.1".to_string() }
+        Self {
+            port: 3000,
+            bind: "127.0.0.1".to_string(),
+        }
     }
 }
 
@@ -77,6 +70,8 @@ pub struct LogConfig {
 
 impl Default for LogConfig {
     fn default() -> Self {
-        Self { level: "info".to_string() }
+        Self {
+            level: "info".to_string(),
+        }
     }
 }

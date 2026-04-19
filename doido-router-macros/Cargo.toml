@@ -1,12 +1,13 @@
 [package]
 name = "doido-router-macros"
-version = "0.1.0"
+version.workspace = true
+license.workspace = true
 edition = "2021"
 
 [lib]
 proc-macro = true
 
 [dependencies]
-syn = { version = "2", features = ["full"] }
-quote = "1"
-proc-macro2 = "1"
+proc-macro2.workspace = true
+quote.workspace = true
+syn.workspace = true

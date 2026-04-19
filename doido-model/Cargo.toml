@@ -1,12 +1,13 @@
 [package]
 name = "doido-model"
-version = "0.1.0"
+version.workspace = true
+license.workspace = true
 edition = "2021"
 
 [dependencies]
 doido-core = { path = "../doido-core" }
-sea-orm = { version = "1", features = ["sqlx-sqlite", "runtime-tokio-rustls", "macros"] }
-tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+sea-orm.workspace = true
+tokio.workspace = true
 
 [dev-dependencies]
-tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+tokio.workspace = true

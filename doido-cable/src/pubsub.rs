@@ -1,6 +1,6 @@
+use doido_core::Result;
 use std::collections::HashMap;
 use tokio::sync::{broadcast, Mutex};
-use doido_core::Result;
 
 const CHANNEL_CAPACITY: usize = 128;
 
@@ -17,12 +17,16 @@ pub struct MemoryPubSub {
 
 impl MemoryPubSub {
     pub fn new() -> Self {
-        Self { senders: Mutex::new(HashMap::new()) }
+        Self {
+            senders: Mutex::new(HashMap::new()),
+        }
     }
 }
 
 impl Default for MemoryPubSub {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 #[async_trait::async_trait]

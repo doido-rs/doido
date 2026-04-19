@@ -1,6 +1,7 @@
-use doido_generators::{default_registry, Generator,
-    ControllerGenerator, ModelGenerator, MigrationGenerator,
-    JobGenerator, MailerGenerator, ChannelGenerator, ScaffoldGenerator};
+use doido_generators::{
+    default_registry, ChannelGenerator, ControllerGenerator, Generator, JobGenerator,
+    MailerGenerator, MigrationGenerator, ModelGenerator, ScaffoldGenerator,
+};
 
 #[test]
 fn test_controller_generator_produces_correct_file() {

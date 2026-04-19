@@ -1,11 +1,11 @@
-use std::sync::Arc;
-use axum::{extract::State, routing::post, Router, Json};
-use tokio::sync::Mutex;
-use serde_json::{json, Value};
 use crate::{
     protocol::{JsonRpcRequest, JsonRpcResponse},
     registry::{ResourceRegistry, ToolRegistry},
 };
+use axum::{extract::State, routing::post, Json, Router};
+use serde_json::{json, Value};
+use std::sync::Arc;
+use tokio::sync::Mutex;
 
 #[derive(Clone)]
 pub struct McpState {
@@ -31,7 +31,11 @@ async fn dispatch(state: McpState, req: JsonRpcRequest) -> JsonRpcResponse {
     match req.method.as_str() {
         "tools/list" => {
             let tools = state.tools.lock().await;
-            let list: Vec<Value> = tools.list().iter().map(|t| json!({"name": t.name, "description": t.description})).collect();
+            let list: Vec<Value> = tools
+                .list()
+                .iter()
+                .map(|t| json!({"name": t.name, "description": t.description}))
+                .collect();
             JsonRpcResponse::ok(req.id, json!({"tools": list}))
         }
         "tools/call" => {
@@ -45,7 +49,11 @@ async fn dispatch(state: McpState, req: JsonRpcRequest) -> JsonRpcResponse {
         }
         "resources/list" => {
             let resources = state.resources.lock().await;
-            let list: Vec<Value> = resources.list().iter().map(|r| json!({"uri": r.uri, "description": r.description})).collect();
+            let list: Vec<Value> = resources
+                .list()
+                .iter()
+                .map(|r| json!({"uri": r.uri, "description": r.description}))
+                .collect();
             JsonRpcResponse::ok(req.id, json!({"resources": list}))
         }
         "resources/read" => {

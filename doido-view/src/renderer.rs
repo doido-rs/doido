@@ -1,6 +1,6 @@
-use std::sync::Arc;
 use crate::{engine::TemplateEngine, response::ViewResponse};
 use doido_core::Result;
+use std::sync::Arc;
 
 pub struct Renderer {
     engine: Arc<dyn TemplateEngine>,
@@ -9,7 +9,10 @@ pub struct Renderer {
 
 impl Renderer {
     pub fn new(engine: Arc<dyn TemplateEngine>, default_layout: impl Into<String>) -> Self {
-        Self { engine, default_layout: default_layout.into() }
+        Self {
+            engine,
+            default_layout: default_layout.into(),
+        }
     }
 
     pub fn render(&self, response: &ViewResponse) -> Result<String> {
@@ -32,6 +35,7 @@ impl Renderer {
                 serde_json::Value::String(content),
             );
         }
-        self.engine.render(&format!("layouts/{}", layout), &layout_ctx)
+        self.engine
+            .render(&format!("layouts/{}", layout), &layout_ctx)
     }
 }

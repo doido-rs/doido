@@ -1,6 +1,6 @@
 use proc_macro2::TokenStream;
 use quote::quote;
-use syn::{FnArg, ImplItem, ItemImpl, Meta, Pat, PatIdent, PatType, Result, parse2};
+use syn::{parse2, FnArg, ImplItem, ItemImpl, Meta, Pat, PatIdent, PatType, Result};
 
 fn is_action_method(method: &syn::ImplItemFn) -> bool {
     if method.sig.asyncness.is_none() {
@@ -22,7 +22,9 @@ fn parse_filter_attr(attr: &syn::Attribute) -> Option<(proc_macro2::Ident, Optio
     if path_ident != "before_action" && path_ident != "after_action" {
         return None;
     }
-    let Meta::List(list) = &attr.meta else { return None };
+    let Meta::List(list) = &attr.meta else {
+        return None;
+    };
 
     let tokens_str = list.tokens.to_string();
     let filter_name = tokens_str.split(',').next()?.trim().to_string();
@@ -52,8 +54,12 @@ pub fn expand_controller(_attr: TokenStream, item: TokenStream) -> Result<TokenS
     let mut handler_fns: Vec<TokenStream> = Vec::new();
 
     for impl_item in &impl_block.items {
-        let ImplItem::Fn(method) = impl_item else { continue };
-        if !is_action_method(method) { continue; }
+        let ImplItem::Fn(method) = impl_item else {
+            continue;
+        };
+        if !is_action_method(method) {
+            continue;
+        }
 
         let fn_name = &method.sig.ident;
         let fn_name_str = fn_name.to_string();
@@ -63,7 +69,12 @@ pub fn expand_controller(_attr: TokenStream, item: TokenStream) -> Result<TokenS
         let mut after_chain: Vec<TokenStream> = Vec::new();
 
         for attr in &method.attrs {
-            let path_name = attr.meta.path().get_ident().map(|i| i.to_string()).unwrap_or_default();
+            let path_name = attr
+                .meta
+                .path()
+                .get_ident()
+                .map(|i| i.to_string())
+                .unwrap_or_default();
 
             if path_name == "before_action" {
                 if let Some((filter_fn, only)) = parse_filter_attr(attr) {

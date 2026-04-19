@@ -9,7 +9,12 @@ pub struct ViewResponse {
 
 impl ViewResponse {
     pub fn new(template: impl Into<String>, context: Value) -> Self {
-        Self { template: template.into(), context, status: 200, layout: None }
+        Self {
+            template: template.into(),
+            context,
+            status: 200,
+            layout: None,
+        }
     }
 
     pub fn status(mut self, code: u16) -> Self {

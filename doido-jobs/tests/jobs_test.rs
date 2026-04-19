@@ -13,13 +13,16 @@ async fn test_full_job_lifecycle_enqueue_perform_ack() {
     let performed = Arc::new(Mutex::new(false));
     let performed_clone = performed.clone();
 
-    worker.run_once(|_job| {
-        let p = performed_clone.clone();
-        async move {
-            *p.lock().await = true;
-            Ok(())
-        }
-    }).await.unwrap();
+    worker
+        .run_once(|_job| {
+            let p = performed_clone.clone();
+            async move {
+                *p.lock().await = true;
+                Ok(())
+            }
+        })
+        .await
+        .unwrap();
 
     assert!(*performed.lock().await);
 }
@@ -31,9 +34,10 @@ async fn test_failed_job_goes_to_dead_after_max_retries() {
     queue.enqueue(job).await.unwrap();
 
     let worker = Worker::new(queue.clone(), "default");
-    worker.run_once(|_job| async {
-        Err(doido_core::anyhow::anyhow!("always fails"))
-    }).await.unwrap();
+    worker
+        .run_once(|_job| async { Err(doido_core::anyhow::anyhow!("always fails")) })
+        .await
+        .unwrap();
 
     let dead = queue.dead_jobs("default").await.unwrap();
     assert_eq!(dead.len(), 1);
@@ -54,7 +58,7 @@ async fn test_job_macro_compiles() {
 
 #[tokio::test]
 async fn test_job_macro_generates_enqueue_fn() {
-    use doido_jobs::{job, MemoryQueue, JobQueue};
+    use doido_jobs::{job, JobQueue, MemoryQueue};
     use std::sync::Arc;
 
     #[job(max_retries = 2, queue = "emails")]
@@ -64,7 +68,9 @@ async fn test_job_macro_generates_enqueue_fn() {
     }
 
     let queue = Arc::new(MemoryQueue::new());
-    send_welcome_enqueue(queue.as_ref(), json!({"user": "alice"})).await.unwrap();
+    send_welcome_enqueue(queue.as_ref(), json!({"user": "alice"}))
+        .await
+        .unwrap();
     let job = queue.dequeue("emails").await.unwrap();
     assert!(job.is_some());
     let j = job.unwrap();

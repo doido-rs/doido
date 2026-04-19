@@ -5,11 +5,14 @@ use doido_core::Result;
 pub struct ModelGenerator;
 
 impl Generator for ModelGenerator {
-    fn name(&self) -> &str { "model" }
+    fn name(&self) -> &str {
+        "model"
+    }
 
     fn generate(&self, args: &[&str]) -> Result<Vec<GeneratedFile>> {
-        let name = args.first().copied()
-            .ok_or_else(|| doido_core::anyhow::anyhow!("model generator requires a name argument"))?;
+        let name = args.first().copied().ok_or_else(|| {
+            doido_core::anyhow::anyhow!("model generator requires a name argument")
+        })?;
         let snake = to_snake(name);
         Ok(vec![GeneratedFile {
             path: format!("app/models/{}.rs", snake),

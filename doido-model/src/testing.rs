@@ -1,5 +1,5 @@
-use sea_orm::{Database, DatabaseConnection};
 use doido_core::Result;
+use sea_orm::{Database, DatabaseConnection};
 
 pub struct TestDb {
     conn: DatabaseConnection,
@@ -7,7 +7,8 @@ pub struct TestDb {
 
 impl TestDb {
     pub async fn new() -> Result<Self> {
-        let conn = Database::connect("sqlite::memory:").await
+        let conn = Database::connect("sqlite::memory:")
+            .await
             .map_err(|e| doido_core::anyhow::anyhow!("TestDb connect failed: {e}"))?;
         Ok(Self { conn })
     }

@@ -1,6 +1,6 @@
-use doido_cache::{CacheRegistry, MemoryStore, CacheStore};
-use std::sync::Arc;
+use doido_cache::{CacheRegistry, CacheStore, MemoryStore};
 use serde_json::json;
+use std::sync::Arc;
 
 #[tokio::test]
 async fn test_registry_add_and_retrieve() {

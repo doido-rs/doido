@@ -43,8 +43,11 @@ fn test_load_base_config() {
 fn test_env_file_overrides_base() {
     let dir = TempDir::new().unwrap();
     write(&dir, "config/doido.toml", BASE_TOML);
-    write(&dir, "config/doido.staging.toml",
-        "[server]\nbind = \"0.0.0.0\"\n[log]\nlevel = \"warn\"");
+    write(
+        &dir,
+        "config/doido.staging.toml",
+        "[server]\nbind = \"0.0.0.0\"\n[log]\nlevel = \"warn\"",
+    );
     let config = Config::load_from_env(dir.path(), "staging").unwrap();
     assert_eq!(config.server.port, 3000);
     assert_eq!(config.server.bind, "0.0.0.0");
@@ -90,7 +93,10 @@ fn test_missing_base_config_returns_error() {
     let dir = TempDir::new().unwrap();
     let result = Config::load_from_env(dir.path(), "dev");
     assert!(result.is_err());
-    assert!(result.unwrap_err().to_string().contains("config/doido.toml not found"));
+    assert!(result
+        .unwrap_err()
+        .to_string()
+        .contains("config/doido.toml not found"));
 }
 
 #[test]
@@ -98,12 +104,19 @@ fn test_missing_base_config_returns_error() {
 fn test_missing_master_key_with_credentials_file_returns_error() {
     let dir = TempDir::new().unwrap();
     write(&dir, "config/doido.toml", BASE_TOML);
-    write(&dir, "config/credentials.toml.enc", "not-valid-encrypted-content");
+    write(
+        &dir,
+        "config/credentials.toml.enc",
+        "not-valid-encrypted-content",
+    );
     if std::env::var("DOIDO_MASTER_KEY").is_err() {
         let result = Config::load_from_env(dir.path(), "noenv");
         assert!(result.is_err());
         let msg = result.unwrap_err().to_string();
-        assert!(msg.contains("master key") || msg.contains("master.key"), "got: {msg}");
+        assert!(
+            msg.contains("master key") || msg.contains("master.key"),
+            "got: {msg}"
+        );
     }
 }
 
@@ -112,7 +125,11 @@ fn test_missing_master_key_with_credentials_file_returns_error() {
 fn test_load_from_uses_doido_env() {
     let dir = TempDir::new().unwrap();
     write(&dir, "config/doido.toml", BASE_TOML);
-    write(&dir, "config/doido.test.toml", "[log]\nlevel = \"test-level\"");
+    write(
+        &dir,
+        "config/doido.test.toml",
+        "[log]\nlevel = \"test-level\"",
+    );
     let config = Config::load_from_env(dir.path(), "test").unwrap();
     assert_eq!(config.log.level, "test-level");
 }

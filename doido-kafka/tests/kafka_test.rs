@@ -8,7 +8,11 @@ struct EventConsumer;
 #[async_trait::async_trait]
 impl Consumer for EventConsumer {
     #[topic("user.created")]
-    async fn handle(&self, ctx: &ConsumerContext, payload: serde_json::Value) -> doido_core::Result<()> {
+    async fn handle(
+        &self,
+        ctx: &ConsumerContext,
+        payload: serde_json::Value,
+    ) -> doido_core::Result<()> {
         let _ = (ctx, payload);
         Ok(())
     }

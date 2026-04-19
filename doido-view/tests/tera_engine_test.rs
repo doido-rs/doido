@@ -1,7 +1,7 @@
 use doido_view::engine::TemplateEngine;
 use doido_view::tera_engine::TeraEngine;
-use tempfile::TempDir;
 use std::fs;
+use tempfile::TempDir;
 
 fn write_tpl(dir: &TempDir, rel: &str, content: &str) {
     let path = dir.path().join(rel);
@@ -34,7 +34,9 @@ fn test_template_key_resolves_to_html_tera_extension() {
     let dir = TempDir::new().unwrap();
     write_tpl(&dir, "posts/index.html.tera", "resolved");
     let engine = TeraEngine::new(dir.path().to_str().unwrap()).unwrap();
-    let result = engine.render("posts/index", &serde_json::json!({})).unwrap();
+    let result = engine
+        .render("posts/index", &serde_json::json!({}))
+        .unwrap();
     assert_eq!(result, "resolved");
 }
 
@@ -43,7 +45,9 @@ fn test_nested_controller_path_resolves_correctly() {
     let dir = TempDir::new().unwrap();
     write_tpl(&dir, "admin/users/index.html.tera", "admin-users");
     let engine = TeraEngine::new(dir.path().to_str().unwrap()).unwrap();
-    let result = engine.render("admin/users/index", &serde_json::json!({})).unwrap();
+    let result = engine
+        .render("admin/users/index", &serde_json::json!({}))
+        .unwrap();
     assert_eq!(result, "admin-users");
 }
 
@@ -52,10 +56,14 @@ fn test_hot_reload_picks_up_template_changes() {
     let dir = TempDir::new().unwrap();
     write_tpl(&dir, "posts/index.html.tera", "version1");
     let engine = TeraEngine::new(dir.path().to_str().unwrap()).unwrap();
-    let first = engine.render("posts/index", &serde_json::json!({})).unwrap();
+    let first = engine
+        .render("posts/index", &serde_json::json!({}))
+        .unwrap();
     assert_eq!(first, "version1");
     write_tpl(&dir, "posts/index.html.tera", "version2");
     engine.reload().unwrap();
-    let second = engine.render("posts/index", &serde_json::json!({})).unwrap();
+    let second = engine
+        .render("posts/index", &serde_json::json!({}))
+        .unwrap();
     assert_eq!(second, "version2");
 }

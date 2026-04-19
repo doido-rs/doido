@@ -22,20 +22,23 @@ impl Inflections {
 
     pub fn plural(&mut self, pattern: &str, replacement: &str) {
         self.plurals.push((
-            Regex::new(pattern).unwrap_or_else(|e| panic!("invalid plural pattern `{pattern}`: {e}")),
+            Regex::new(pattern)
+                .unwrap_or_else(|e| panic!("invalid plural pattern `{pattern}`: {e}")),
             replacement.to_string(),
         ));
     }
 
     pub fn singular(&mut self, pattern: &str, replacement: &str) {
         self.singulars.push((
-            Regex::new(pattern).unwrap_or_else(|e| panic!("invalid singular pattern `{pattern}`: {e}")),
+            Regex::new(pattern)
+                .unwrap_or_else(|e| panic!("invalid singular pattern `{pattern}`: {e}")),
             replacement.to_string(),
         ));
     }
 
     pub fn irregular(&mut self, singular: &str, plural: &str) {
-        self.irregulars.push((singular.to_lowercase(), plural.to_lowercase()));
+        self.irregulars
+            .push((singular.to_lowercase(), plural.to_lowercase()));
     }
 
     pub fn uncountable(&mut self, word: &str) {
@@ -87,9 +90,7 @@ impl Inflections {
                     let mut chars = word.chars();
                     match chars.next() {
                         None => String::new(),
-                        Some(first) => {
-                            first.to_uppercase().collect::<String>() + chars.as_str()
-                        }
+                        Some(first) => first.to_uppercase().collect::<String>() + chars.as_str(),
                     }
                 }
             })

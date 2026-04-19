@@ -30,7 +30,10 @@ fn test_decrypt_fails_with_wrong_key() {
     let encrypted = encrypt_credentials("secret", &key1).unwrap();
     let result = decrypt_credentials(&encrypted, &key2);
     assert!(result.is_err());
-    assert!(result.unwrap_err().to_string().contains("decryption failed"));
+    assert!(result
+        .unwrap_err()
+        .to_string()
+        .contains("decryption failed"));
 }
 
 #[test]

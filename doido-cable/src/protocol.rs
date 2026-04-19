@@ -3,9 +3,16 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(tag = "type", rename_all = "lowercase")]
 pub enum CableFrame {
-    Subscribe { identifier: String },
-    Unsubscribe { identifier: String },
-    Message { identifier: String, data: serde_json::Value },
+    Subscribe {
+        identifier: String,
+    },
+    Unsubscribe {
+        identifier: String,
+    },
+    Message {
+        identifier: String,
+        data: serde_json::Value,
+    },
 }
 
 impl CableFrame {

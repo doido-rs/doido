@@ -27,5 +27,7 @@ impl MiddlewareStack {
 }
 
 impl Default for MiddlewareStack {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }

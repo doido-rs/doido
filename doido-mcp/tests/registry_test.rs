@@ -25,7 +25,10 @@ async fn test_tool_registry_unknown_tool_returns_error() {
 async fn test_tool_registry_list() {
     let mut reg = ToolRegistry::new();
     reg.register(
-        ToolDef { name: "ping".to_string(), description: "pong".to_string() },
+        ToolDef {
+            name: "ping".to_string(),
+            description: "pong".to_string(),
+        },
         Arc::new(|_| Box::pin(async { Ok(json!("pong")) })),
     );
     let tools = reg.list();
@@ -37,7 +40,10 @@ async fn test_tool_registry_list() {
 async fn test_resource_registry_register_and_read() {
     let mut reg = ResourceRegistry::new();
     reg.register(
-        ResourceDef { uri: "mcp://app/status".to_string(), description: "app status".to_string() },
+        ResourceDef {
+            uri: "mcp://app/status".to_string(),
+            description: "app status".to_string(),
+        },
         Arc::new(|| Box::pin(async { Ok(json!({"status": "ok"})) })),
     );
     let result = reg.read("mcp://app/status").await.unwrap();

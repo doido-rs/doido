@@ -1,7 +1,7 @@
-use std::collections::{HashMap, VecDeque};
-use tokio::sync::Mutex;
 use crate::queue::{JobPayload, JobQueue, JobStatus};
 use doido_core::Result;
+use std::collections::{HashMap, VecDeque};
+use tokio::sync::Mutex;
 
 pub struct MemoryQueue {
     queues: Mutex<HashMap<String, VecDeque<JobPayload>>>,
@@ -20,14 +20,18 @@ impl MemoryQueue {
 }
 
 impl Default for MemoryQueue {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 #[async_trait::async_trait]
 impl JobQueue for MemoryQueue {
     async fn enqueue(&self, mut payload: JobPayload) -> Result<()> {
         payload.status = JobStatus::Pending;
-        self.queues.lock().await
+        self.queues
+            .lock()
+            .await
             .entry(payload.queue.clone())
             .or_default()
             .push_back(payload);
@@ -40,7 +44,10 @@ impl JobQueue for MemoryQueue {
             if let Some(mut job) = q.pop_front() {
                 job.status = JobStatus::Running;
                 job.attempts += 1;
-                self.running.lock().await.insert(job.id.clone(), job.clone());
+                self.running
+                    .lock()
+                    .await
+                    .insert(job.id.clone(), job.clone());
                 return Ok(Some(job));
             }
         }
@@ -59,13 +66,17 @@ impl JobQueue for MemoryQueue {
             job.error = Some(error.to_string());
             if job.attempts >= job.max_retries {
                 job.status = JobStatus::Dead;
-                self.dead.lock().await
+                self.dead
+                    .lock()
+                    .await
                     .entry(job.queue.clone())
                     .or_default()
                     .push(job);
             } else {
                 job.status = JobStatus::Pending;
-                self.queues.lock().await
+                self.queues
+                    .lock()
+                    .await
                     .entry(job.queue.clone())
                     .or_default()
                     .push_back(job);
@@ -75,6 +86,12 @@ impl JobQueue for MemoryQueue {
     }
 
     async fn dead_jobs(&self, queue: &str) -> Result<Vec<JobPayload>> {
-        Ok(self.dead.lock().await.get(queue).cloned().unwrap_or_default())
+        Ok(self
+            .dead
+            .lock()
+            .await
+            .get(queue)
+            .cloned()
+            .unwrap_or_default())
     }
 }
