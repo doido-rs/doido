@@ -15,7 +15,6 @@ path = "src/main.rs"
 [dependencies]
 doido-core      = { path = "../doido-core" }
 doido-config    = { path = "../doido-config" }
-doido-router    = { path = "../doido-router" }
 doido-controller = { path = "../doido-controller" }
 doido-model     = { path = "../doido-model" }
 doido-view      = { path = "../doido-view" }

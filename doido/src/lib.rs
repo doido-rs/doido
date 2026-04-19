@@ -7,7 +7,7 @@ pub use doido_jobs as jobs;
 pub use doido_mailer as mailer;
 pub use doido_middleware as middleware;
 pub use doido_model as model;
-pub use doido_router as router;
+pub use doido_controller as router;
 pub use doido_view as view;
 
 // Crates with conflicting module names are exposed under their own namespaces

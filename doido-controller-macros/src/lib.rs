@@ -1,6 +1,9 @@
+mod codegen;
 mod controller;
+mod parser;
 
 use proc_macro::TokenStream;
+use syn::parse_macro_input;
 
 /// Marks an impl block as a controller. Rewrites action methods into
 /// axum-compatible handlers with filter chain support.
@@ -24,4 +27,11 @@ pub fn before_action(_attr: TokenStream, item: TokenStream) -> TokenStream {
 #[proc_macro_attribute]
 pub fn after_action(_attr: TokenStream, item: TokenStream) -> TokenStream {
     item
+}
+
+/// Declares routes and URL helpers (REST `resources!`, HTTP verbs, `namespace!`, `scope!`).
+#[proc_macro]
+pub fn routes(input: TokenStream) -> TokenStream {
+    let parsed = parse_macro_input!(input as parser::RoutesInput);
+    codegen::generate(parsed).into()
 }
