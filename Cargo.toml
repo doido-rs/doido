@@ -5,7 +5,7 @@ members = [
     "doido-config",
     "doido-controller/macros",
     "doido-controller",
-    "doido-router-macros",
+    "doido-router/macros",
     "doido-router",
     "doido-view",
     "doido-model",
