@@ -4,6 +4,7 @@ pub mod job;
 pub mod mailer;
 pub mod migration;
 pub mod model;
+pub mod new;
 pub mod scaffold;
 
 pub fn to_snake(s: &str) -> String {
