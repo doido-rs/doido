@@ -6,15 +6,19 @@ allow = [
     "ISC",
     "BSD-2-Clause",
     "BSD-3-Clause",
-    "Unicode-DFS-2016",
     "Unicode-3.0",
     "Zlib",
-    "CC0-1.0",
     "CDLA-Permissive-2.0",
 ]
 
 [bans]
 multiple-versions = "warn"
+skip = [
+    { name = "getrandom", version = "0.2" },
+    { name = "hashbrown", version = "0.15" },
+    { name = "heck", version = "0.4" },
+    { name = "windows-sys", version = "0.52" },
+]
 
 [advisories]
 ignore = []
