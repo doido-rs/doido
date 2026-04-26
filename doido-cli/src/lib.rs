@@ -1,7 +1,7 @@
 mod commands;
 
 use clap::{Parser, Subcommand};
-use commands::{db::DbCommand, generate::run_generate, jobs::JobsCommand};
+use commands::{db::DbCommand, generate::run_generate, jobs::JobsCommand, new::run_new};
 
 #[derive(Parser)]
 #[command(name = "doido", version = "0.1.0", about = "Doido framework CLI")]
@@ -42,6 +42,14 @@ enum Commands {
         /// Generator arguments
         args: Vec<String>,
     },
+    /// Create a new Doido application
+    New {
+        /// Application name
+        name: String,
+        /// Database backend: sqlite, postgres, or mysql (prompted if omitted)
+        #[arg(long)]
+        database: Option<String>,
+    },
 }
 
 pub fn run() {
@@ -57,6 +65,9 @@ pub fn run() {
         Commands::Generate { generator, args } => {
             let args_refs: Vec<&str> = args.iter().map(|s| s.as_str()).collect();
             run_generate(&generator, &args_refs);
+        }
+        Commands::New { name, database } => {
+            run_new(&name, database.as_deref());
         }
     }
 }
