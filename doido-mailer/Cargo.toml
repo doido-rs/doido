@@ -6,7 +6,7 @@ edition = "2021"
 
 [dependencies]
 doido-core = { path = "../doido-core" }
-doido-mailer-macros = { path = "../doido-mailer-macros" }
+doido-mailer-macros = { path = "macros" }
 serde.workspace = true
 serde_json.workspace = true
 async-trait.workspace = true
