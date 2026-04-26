@@ -17,7 +17,7 @@ members = [
     "doido-mailer",
     "doido-cable/macros",
     "doido-cable",
-    "doido-kafka-macros",
+    "doido-kafka/macros",
     "doido-kafka",
     "doido-mcp-macros",
     "doido-mcp",
