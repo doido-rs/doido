@@ -979,6 +979,7 @@ dependencies = [
  "doido-core",
  "doido-generators",
  "predicates",
+ "tempfile",
 ]
 
 [[package]]
