@@ -6,7 +6,7 @@ edition = "2021"
 
 [dependencies]
 doido-core = { path = "../doido-core" }
-doido-kafka-macros = { path = "../doido-kafka-macros" }
+doido-kafka-macros = { path = "macros" }
 serde.workspace = true
 serde_json.workspace = true
 async-trait.workspace = true

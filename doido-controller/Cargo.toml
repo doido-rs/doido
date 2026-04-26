@@ -6,7 +6,7 @@ edition = "2021"
 
 [dependencies]
 doido-core = { path = "../doido-core" }
-doido-controller-macros = { path = "../doido-controller-macros" }
+doido-controller-macros = { path = "macros" }
 axum.workspace = true
 tokio = { workspace = true, features = ["full"] }
 serde.workspace = true

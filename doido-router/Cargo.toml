@@ -6,7 +6,7 @@ edition = "2021"
 
 [dependencies]
 doido-core = { path = "../doido-core" }
-doido-router-macros = { path = "../doido-router-macros" }
+doido-router-macros = { path = "macros" }
 axum.workspace = true
 tokio = { workspace = true, features = ["full"] }
 
