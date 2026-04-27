@@ -918,7 +918,7 @@ dependencies = [
 
 [[package]]
 name = "doido"
-version = "0.1.0"
+version = "0.0.2-alpha.0"
 dependencies = [
  "assert_cmd",
  "doido-cable",
@@ -941,7 +941,7 @@ dependencies = [
 
 [[package]]
 name = "doido-cable"
-version = "0.1.0"
+version = "0.0.2-alpha.0"
 dependencies = [
  "async-trait",
  "doido-cable-macros",
@@ -953,7 +953,7 @@ dependencies = [
 
 [[package]]
 name = "doido-cable-macros"
-version = "0.1.0"
+version = "0.0.2-alpha.0"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -962,7 +962,7 @@ dependencies = [
 
 [[package]]
 name = "doido-cache"
-version = "0.1.0"
+version = "0.0.2-alpha.0"
 dependencies = [
  "async-trait",
  "doido-core",
@@ -972,7 +972,7 @@ dependencies = [
 
 [[package]]
 name = "doido-cli"
-version = "0.1.0"
+version = "0.0.2-alpha.0"
 dependencies = [
  "assert_cmd",
  "clap",
@@ -984,7 +984,7 @@ dependencies = [
 
 [[package]]
 name = "doido-config"
-version = "0.1.0"
+version = "0.0.2-alpha.0"
 dependencies = [
  "aes-gcm",
  "base64",
@@ -998,7 +998,7 @@ dependencies = [
 
 [[package]]
 name = "doido-controller"
-version = "0.1.0"
+version = "0.0.2-alpha.0"
 dependencies = [
  "axum",
  "doido-controller-macros",
@@ -1014,7 +1014,7 @@ dependencies = [
 
 [[package]]
 name = "doido-controller-macros"
-version = "0.1.0"
+version = "0.0.2-alpha.0"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1023,7 +1023,7 @@ dependencies = [
 
 [[package]]
 name = "doido-core"
-version = "0.1.0"
+version = "0.0.2-alpha.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1036,7 +1036,7 @@ dependencies = [
 
 [[package]]
 name = "doido-generators"
-version = "0.1.0"
+version = "0.0.2-alpha.0"
 dependencies = [
  "chrono",
  "doido-core",
@@ -1045,7 +1045,7 @@ dependencies = [
 
 [[package]]
 name = "doido-jobs"
-version = "0.1.0"
+version = "0.0.2-alpha.0"
 dependencies = [
  "async-trait",
  "doido-core",
@@ -1058,7 +1058,7 @@ dependencies = [
 
 [[package]]
 name = "doido-jobs-macros"
-version = "0.1.0"
+version = "0.0.2-alpha.0"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1067,7 +1067,7 @@ dependencies = [
 
 [[package]]
 name = "doido-kafka"
-version = "0.1.0"
+version = "0.0.2-alpha.0"
 dependencies = [
  "async-trait",
  "doido-core",
@@ -1079,7 +1079,7 @@ dependencies = [
 
 [[package]]
 name = "doido-kafka-macros"
-version = "0.1.0"
+version = "0.0.2-alpha.0"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1088,7 +1088,7 @@ dependencies = [
 
 [[package]]
 name = "doido-mailer"
-version = "0.1.0"
+version = "0.0.2-alpha.0"
 dependencies = [
  "async-trait",
  "doido-core",
@@ -1101,7 +1101,7 @@ dependencies = [
 
 [[package]]
 name = "doido-mailer-macros"
-version = "0.1.0"
+version = "0.0.2-alpha.0"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1110,7 +1110,7 @@ dependencies = [
 
 [[package]]
 name = "doido-mcp"
-version = "0.1.0"
+version = "0.0.2-alpha.0"
 dependencies = [
  "axum",
  "doido-core",
@@ -1125,7 +1125,7 @@ dependencies = [
 
 [[package]]
 name = "doido-mcp-macros"
-version = "0.1.0"
+version = "0.0.2-alpha.0"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1134,7 +1134,7 @@ dependencies = [
 
 [[package]]
 name = "doido-middleware"
-version = "0.1.0"
+version = "0.0.2-alpha.0"
 dependencies = [
  "async-trait",
  "axum",
@@ -1150,7 +1150,7 @@ dependencies = [
 
 [[package]]
 name = "doido-model"
-version = "0.1.0"
+version = "0.0.2-alpha.0"
 dependencies = [
  "doido-core",
  "sea-orm",
@@ -1159,7 +1159,7 @@ dependencies = [
 
 [[package]]
 name = "doido-router"
-version = "0.1.0"
+version = "0.0.2-alpha.0"
 dependencies = [
  "axum",
  "doido-core",
@@ -1172,7 +1172,7 @@ dependencies = [
 
 [[package]]
 name = "doido-router-macros"
-version = "0.1.0"
+version = "0.0.2-alpha.0"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1181,7 +1181,7 @@ dependencies = [
 
 [[package]]
 name = "doido-view"
-version = "0.1.0"
+version = "0.0.2-alpha.0"
 dependencies = [
  "doido-core",
  "serde_json",
