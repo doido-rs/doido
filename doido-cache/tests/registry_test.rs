@@ -1,4 +1,4 @@
-use doido_cache::{CacheRegistry, CacheStore, MemoryStore};
+use doido_cache::{CacheRegistry, MemoryStore};
 use serde_json::json;
 use std::sync::Arc;
 

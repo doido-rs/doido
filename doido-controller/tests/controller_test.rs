@@ -294,7 +294,7 @@ async fn test_before_action_only_fires_for_specified_actions() {
 }
 
 thread_local! {
-    static AFTER_FIRED: std::cell::Cell<bool> = std::cell::Cell::new(false);
+    static AFTER_FIRED: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
 }
 
 async fn log_response(_ctx: &mut Context) {
