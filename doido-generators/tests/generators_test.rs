@@ -61,7 +61,7 @@ fn test_scaffold_generator_produces_multiple_files() {
     assert!(paths.iter().any(|p| p.contains("controller")));
     assert!(paths.iter().any(|p| p.contains("model")));
     assert!(paths.iter().any(|p| p.contains("migration")));
-    assert!(paths.iter().any(|p| *p == "config/routes.rs"));
+    assert!(paths.contains(&"config/routes.rs"));
     // Route file should contain resources! call
     let routes = files.iter().find(|f| f.path == "config/routes.rs").unwrap();
     assert!(routes.content.contains("resources!(post)"));

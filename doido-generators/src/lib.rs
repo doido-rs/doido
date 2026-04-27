@@ -6,7 +6,7 @@ pub use generator::{GeneratedFile, Generator};
 pub use generators::{
     channel::ChannelGenerator, controller::ControllerGenerator, job::JobGenerator,
     mailer::MailerGenerator, migration::MigrationGenerator, model::ModelGenerator,
-    scaffold::ScaffoldGenerator,
+    new::ProjectGenerator, scaffold::ScaffoldGenerator,
 };
 pub use registry::GeneratorRegistry;
 
@@ -19,5 +19,6 @@ pub fn default_registry() -> GeneratorRegistry {
     reg.register(Box::new(MailerGenerator));
     reg.register(Box::new(ChannelGenerator));
     reg.register(Box::new(ScaffoldGenerator));
+    reg.register(Box::new(ProjectGenerator));
     reg
 }
