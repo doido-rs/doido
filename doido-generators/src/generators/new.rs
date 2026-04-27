@@ -9,9 +9,10 @@ impl Generator for ProjectGenerator {
     }
 
     fn generate(&self, args: &[&str]) -> Result<Vec<GeneratedFile>> {
-        let name = args.first().copied().ok_or_else(|| {
-            doido_core::anyhow::anyhow!("new generator requires a name argument")
-        })?;
+        let name = args
+            .first()
+            .copied()
+            .ok_or_else(|| doido_core::anyhow::anyhow!("new generator requires a name argument"))?;
 
         let database = args
             .iter()
