@@ -16,7 +16,7 @@ fn test_doido_new_creates_project_files() {
     assert!(dir.path().join("my-app/config/routes.rs").exists());
     assert!(dir.path().join("my-app/tests/integration_test.rs").exists());
     assert!(dir.path().join("my-app/.gitignore").exists());
-    assert!(dir.path().join("my-app/src/controllers/.gitkeep").exists());
+    assert!(dir.path().join("my-app/src/controllers/hello_controller.rs").exists());
     assert!(dir.path().join("my-app/db/migrations/.gitkeep").exists());
 }
 
