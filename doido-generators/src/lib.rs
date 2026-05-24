@@ -2,6 +2,13 @@ pub mod generator;
 pub mod generators;
 pub mod registry;
 
+/// `doido` semver written into generated app `Cargo.toml` (resolved when `doido-generators` is built).
+pub const TEMPLATE_PINNED_DOIDO_VERSION: &str = env!("DOIDO_GENERATOR_TEMPLATE_DOIDO_VERSION");
+
+/// `doido-controller` semver written into generated app `Cargo.toml`.
+pub const TEMPLATE_PINNED_DOIDO_CONTROLLER_VERSION: &str =
+    env!("DOIDO_GENERATOR_TEMPLATE_DOIDO_CONTROLLER_VERSION");
+
 pub use generator::{GeneratedFile, Generator};
 pub use generators::{
     channel::ChannelGenerator, controller::ControllerGenerator, job::JobGenerator,

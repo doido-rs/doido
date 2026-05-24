@@ -1042,6 +1042,7 @@ dependencies = [
  "doido-core",
  "include_dir",
  "tempfile",
+ "toml",
 ]
 
 [[package]]

@@ -1,5 +1,8 @@
 use doido_generators::generators::new::ProjectGenerator;
-use doido_generators::{default_registry, Generator};
+use doido_generators::{
+    default_registry, Generator, TEMPLATE_PINNED_DOIDO_CONTROLLER_VERSION,
+    TEMPLATE_PINNED_DOIDO_VERSION,
+};
 
 #[test]
 fn test_new_generates_all_expected_files() {
@@ -45,8 +48,20 @@ fn test_new_sqlite_cargo_toml_has_sqlite_feature() {
     assert!(cargo_toml.content.contains("my-app"));
     assert!(cargo_toml.content.contains("sqlite"));
     assert!(cargo_toml.content.contains("serde_json"));
-    assert!(cargo_toml.content.contains("doido-controller"));
     assert!(cargo_toml.content.contains("axum"));
+    assert!(
+        cargo_toml
+            .content
+            .contains(&format!("doido = \"{}\"", TEMPLATE_PINNED_DOIDO_VERSION)),
+        "generated Cargo.toml must pin `doido` to the semver resolved at build time"
+    );
+    assert!(
+        cargo_toml.content.contains(&format!(
+            "doido-controller = \"{}\"",
+            TEMPLATE_PINNED_DOIDO_CONTROLLER_VERSION
+        )),
+        "generated Cargo.toml must pin `doido-controller` to the semver resolved at build time"
+    );
 }
 
 #[test]
