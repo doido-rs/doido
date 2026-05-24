@@ -4,7 +4,7 @@ use std::fs;
 #[test]
 fn test_doido_new_creates_project_files() {
     let dir = tempfile::tempdir().unwrap();
-    let mut cmd = Command::cargo_bin("doido").unwrap();
+    let mut cmd = Command::cargo_bin("doido-cli").unwrap();
     cmd.current_dir(dir.path())
         .args(["new", "my-app", "--database=sqlite"])
         .assert()
@@ -23,7 +23,7 @@ fn test_doido_new_creates_project_files() {
 #[test]
 fn test_doido_new_cargo_toml_has_correct_name_and_database() {
     let dir = tempfile::tempdir().unwrap();
-    let mut cmd = Command::cargo_bin("doido").unwrap();
+    let mut cmd = Command::cargo_bin("doido-cli").unwrap();
     cmd.current_dir(dir.path())
         .args(["new", "blog-app", "--database=postgres"])
         .assert()
@@ -41,7 +41,7 @@ fn test_doido_new_cargo_toml_has_correct_name_and_database() {
 #[test]
 fn test_doido_new_creates_git_repository() {
     let dir = tempfile::tempdir().unwrap();
-    let mut cmd = Command::cargo_bin("doido").unwrap();
+    let mut cmd = Command::cargo_bin("doido-cli").unwrap();
     cmd.current_dir(dir.path())
         .args(["new", "my-app", "--database=sqlite"])
         .assert()
@@ -53,7 +53,7 @@ fn test_doido_new_creates_git_repository() {
 #[test]
 fn test_doido_generate_model_writes_file() {
     let dir = tempfile::tempdir().unwrap();
-    let mut cmd = Command::cargo_bin("doido").unwrap();
+    let mut cmd = Command::cargo_bin("doido-cli").unwrap();
     cmd.current_dir(dir.path())
         .args(["generate", "model", "User"])
         .assert()

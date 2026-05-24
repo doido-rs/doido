@@ -1,0 +1,9 @@
+[package]
+name = "{doido_name}"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+doido = "0.1"
+sqlx = { version = "0.8", features = ["runtime-tokio", "{doido_sqlx_feature}"] }
+tokio = { version = "1", features = ["full"] }

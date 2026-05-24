@@ -1,5 +1,61 @@
+//! New application skeleton rendered from embedded files under `templates/app/`.
+//! Placeholders: `{doido_name}`, `{doido_db_url}`, `{doido_sqlx_feature}`.
+
 use crate::generator::{GeneratedFile, Generator};
-use doido_core::Result;
+use doido_core::{anyhow, Result};
+use include_dir::{include_dir, Dir, DirEntry};
+
+/// Embedded filesystem tree merged at compile time from `templates/app`.
+static APP_TEMPLATE_DIR: Dir<'static> =
+    include_dir!("$CARGO_MANIFEST_DIR/templates/app");
+
+struct TemplateContext<'a> {
+    name: &'a str,
+    db_url: String,
+    sqlx_feature: &'a str,
+}
+
+fn substitute_template(template: &str, ctx: &TemplateContext<'_>) -> String {
+    template
+        .replace("{doido_name}", ctx.name)
+        .replace("{doido_db_url}", &ctx.db_url)
+        .replace("{doido_sqlx_feature}", ctx.sqlx_feature)
+}
+
+fn collect_from_dir(
+    dir: &Dir<'_>,
+    ctx: &TemplateContext<'_>,
+    app_name: &str,
+    out: &mut Vec<GeneratedFile>,
+) -> Result<()> {
+    for entry in dir.entries() {
+        match entry {
+            DirEntry::Dir(sub) => collect_from_dir(sub, ctx, app_name, out)?,
+            DirEntry::File(f) => {
+                // `include_dir` stores paths relative to the embedded root (`templates/app/`)
+                // for every file, including nested paths like `src/main.rs`.
+                let relative = f.path();
+                let raw = f.contents_utf8().ok_or_else(|| {
+                    anyhow::anyhow!(
+                        "template file '{}' is not valid UTF-8",
+                        relative.display()
+                    )
+                })?;
+                let rendered = substitute_template(raw, ctx);
+                let disk_path = format!(
+                    "{}/{}",
+                    app_name,
+                    relative.to_string_lossy().replace('\\', "/")
+                );
+                out.push(GeneratedFile {
+                    path: disk_path,
+                    content: rendered,
+                });
+            }
+        }
+    }
+    Ok(())
+}
 
 pub struct ProjectGenerator;
 
@@ -12,7 +68,7 @@ impl Generator for ProjectGenerator {
         let name = args
             .first()
             .copied()
-            .ok_or_else(|| doido_core::anyhow::anyhow!("new generator requires a name argument"))?;
+            .ok_or_else(|| anyhow::anyhow!("new generator requires a name argument"))?;
 
         let database = args
             .iter()
@@ -23,10 +79,10 @@ impl Generator for ProjectGenerator {
         match database {
             "sqlite" | "postgres" | "mysql" => {}
             other => {
-                return Err(doido_core::anyhow::anyhow!(
+                return Err(anyhow::anyhow!(
                     "Unknown database: {}. Use sqlite, postgres, or mysql.",
                     other
-                ))
+                ));
             }
         }
 
@@ -42,52 +98,15 @@ impl Generator for ProjectGenerator {
             _ => "sqlite",
         };
 
-        Ok(vec![
-            GeneratedFile {
-                path: format!("{name}/Cargo.toml"),
-                content: format!(
-                    "[package]\nname = \"{name}\"\nversion = \"0.1.0\"\nedition = \"2021\"\n\n[dependencies]\ndoido = \"0.1\"\nsqlx = {{ version = \"0.8\", features = [\"runtime-tokio\", \"{sqlx_feature}\"] }}\ntokio = {{ version = \"1\", features = [\"full\"] }}\n"
-                ),
-            },
-            GeneratedFile {
-                path: format!("{name}/src/main.rs"),
-                content: "fn main() {\n    println!(\"Hello from your Doido app!\");\n}\n".to_string(),
-            },
-            GeneratedFile {
-                path: format!("{name}/config/application.toml"),
-                content: format!("[app]\nname = \"{name}\"\n\n[database]\nurl = \"{db_url}\"\n"),
-            },
-            GeneratedFile {
-                path: format!("{name}/config/routes.rs"),
-                content: "use doido_router::routes;\n\nroutes! {}\n".to_string(),
-            },
-            GeneratedFile {
-                path: format!("{name}/app/controllers/.gitkeep"),
-                content: String::new(),
-            },
-            GeneratedFile {
-                path: format!("{name}/app/models/.gitkeep"),
-                content: String::new(),
-            },
-            GeneratedFile {
-                path: format!("{name}/views/layouts/application.html.tera"),
-                content: format!(
-                    "<!DOCTYPE html>\n<html>\n<head><title>{name}</title></head>\n<body>{{% block content %}}{{% endblock %}}</body>\n</html>\n"
-                ),
-            },
-            GeneratedFile {
-                path: format!("{name}/db/migrations/.gitkeep"),
-                content: String::new(),
-            },
-            GeneratedFile {
-                path: format!("{name}/tests/integration_test.rs"),
-                content: "#[test]\nfn test_app_starts() {\n    assert!(true);\n}\n".to_string(),
-            },
-            GeneratedFile {
-                path: format!("{name}/.gitignore"),
-                content: "/target\n.env\nconfig/master.key\nconfig/credentials.yml.enc\n*.db\n"
-                    .to_string(),
-            },
-        ])
+        let ctx = TemplateContext {
+            name,
+            db_url,
+            sqlx_feature,
+        };
+
+        let mut files = Vec::new();
+        collect_from_dir(&APP_TEMPLATE_DIR, &ctx, name, &mut files)?;
+        files.sort_by(|a, b| a.path.cmp(&b.path));
+        Ok(files)
     }
 }
