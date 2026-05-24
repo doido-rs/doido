@@ -66,10 +66,10 @@ mod tests {
     fn test_write_files_empty_content_creates_file() {
         let dir = tempdir().unwrap();
         let files = vec![GeneratedFile {
-            path: "app/models/.gitkeep".to_string(),
+            path: "src/models/.gitkeep".to_string(),
             content: String::new(),
         }];
         write_files(&files, dir.path()).unwrap();
-        assert!(dir.path().join("app/models/.gitkeep").exists());
+        assert!(dir.path().join("src/models/.gitkeep").exists());
     }
 }

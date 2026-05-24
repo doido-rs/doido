@@ -7,7 +7,7 @@ use doido_generators::{
 fn test_controller_generator_produces_correct_file() {
     let files = ControllerGenerator.generate(&["Posts"]).unwrap();
     assert_eq!(files.len(), 1);
-    assert_eq!(files[0].path, "app/controllers/posts_controller.rs");
+    assert_eq!(files[0].path, "src/controllers/posts_controller.rs");
     assert!(files[0].content.contains("PostsController"));
     assert!(files[0].content.contains("#[controller]"));
 }
@@ -16,7 +16,7 @@ fn test_controller_generator_produces_correct_file() {
 fn test_model_generator_produces_correct_file() {
     let files = ModelGenerator.generate(&["User"]).unwrap();
     assert_eq!(files.len(), 1);
-    assert_eq!(files[0].path, "app/models/user.rs");
+    assert_eq!(files[0].path, "src/models/user.rs");
     assert!(files[0].content.contains("DeriveEntityModel"));
 }
 
@@ -84,7 +84,7 @@ fn test_default_registry_has_all_generators() {
 fn test_registry_runs_generator_by_name() {
     let reg = default_registry();
     let files = reg.run("controller", &["Admin"]).unwrap();
-    assert_eq!(files[0].path, "app/controllers/admin_controller.rs");
+    assert_eq!(files[0].path, "src/controllers/admin_controller.rs");
 }
 
 #[test]

@@ -16,7 +16,7 @@ fn test_doido_new_creates_project_files() {
     assert!(dir.path().join("my-app/config/routes.rs").exists());
     assert!(dir.path().join("my-app/tests/integration_test.rs").exists());
     assert!(dir.path().join("my-app/.gitignore").exists());
-    assert!(dir.path().join("my-app/app/controllers/.gitkeep").exists());
+    assert!(dir.path().join("my-app/src/controllers/.gitkeep").exists());
     assert!(dir.path().join("my-app/db/migrations/.gitkeep").exists());
 }
 
@@ -59,7 +59,7 @@ fn test_doido_generate_model_writes_file() {
         .assert()
         .success();
 
-    assert!(dir.path().join("app/models/user.rs").exists());
-    let content = fs::read_to_string(dir.path().join("app/models/user.rs")).unwrap();
+    assert!(dir.path().join("src/models/user.rs").exists());
+    let content = fs::read_to_string(dir.path().join("src/models/user.rs")).unwrap();
     assert!(content.contains("DeriveEntityModel"));
 }
