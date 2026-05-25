@@ -1,5 +1,6 @@
 [package]
 name = "doido-core"
+description = "Core errors (thiserror), anyhow Result, serde, tracing, and regex helpers for the Doido framework."
 version.workspace = true
 license.workspace = true
 edition = "2021"

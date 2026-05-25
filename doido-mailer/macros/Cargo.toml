@@ -1,5 +1,6 @@
 [package]
 name = "doido-mailer-macros"
+description = "Proc-macros defining Doido mailer classes with template hooks and adapters."
 version.workspace = true
 license.workspace = true
 edition = "2021"

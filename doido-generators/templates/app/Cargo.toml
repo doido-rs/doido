@@ -1,5 +1,6 @@
 [package]
 name = "{doido_name}"
+description = "Starter Doido web application: Axum server, routed hello endpoint, templating scaffolding."
 version = "0.1.0"
 edition = "2021"
 

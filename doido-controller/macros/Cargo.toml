@@ -1,5 +1,6 @@
 [package]
 name = "doido-controller-macros"
+description = "Proc-macros for Doido's controller attribute, handlers, and before_action/after_action filters."
 version.workspace = true
 license.workspace = true
 edition = "2021"

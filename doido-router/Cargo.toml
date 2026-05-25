@@ -1,12 +1,13 @@
 [package]
 name = "doido-router"
+description = "Rails-style routing macros and Router builder on Axum for Doido applications."
 version.workspace = true
 license.workspace = true
 edition = "2021"
 
 [dependencies]
-doido-core = { path = "../doido-core" }
-doido-router-macros = { path = "macros" }
+doido-core.workspace = true
+doido-router-macros.workspace = true
 axum.workspace = true
 tokio = { workspace = true, features = ["full"] }
 

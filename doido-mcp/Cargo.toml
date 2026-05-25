@@ -1,12 +1,13 @@
 [package]
 name = "doido-mcp"
+description = "Model Context Protocol server transport (Axum SSE/HTTP), typed MCP clients for AI tooling atop Doido."
 version.workspace = true
 license.workspace = true
 edition = "2021"
 
 [dependencies]
-doido-core = { path = "../doido-core" }
-doido-mcp-macros = { path = "macros" }
+doido-core.workspace = true
+doido-mcp-macros.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 axum.workspace = true

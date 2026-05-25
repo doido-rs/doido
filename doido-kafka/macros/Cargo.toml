@@ -1,5 +1,6 @@
 [package]
 name = "doido-kafka-macros"
+description = "Declarative Kafka topics and codegen-friendly consumer macros integrated with Doido."
 version.workspace = true
 license.workspace = true
 edition = "2021"

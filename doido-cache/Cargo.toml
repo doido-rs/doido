@@ -1,15 +1,16 @@
 [package]
 name = "doido-cache"
+description = "Named cache stores, TTL — memory/Redis backends in ActiveSupport::Cache fashion for Doido."
 version.workspace = true
 license.workspace = true
 edition = "2021"
 
 [dependencies]
-doido-core = { path = "../doido-core" }
+doido-core.workspace = true
 serde_json.workspace = true
 async-trait.workspace = true
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["time"] }
-doido-core = { path = "../doido-core" }
+doido-core.workspace = true
 async-trait.workspace = true

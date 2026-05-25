@@ -31,6 +31,32 @@ version = "0.0.2-alpha.0"
 license = "MIT"
 
 [workspace.dependencies]
+# First-party crates: every entry needs `path` *and* `version` so `cargo publish`
+# strips `path`, keeps the semver, and resolves from crates.io.
+doido = { path = "doido", version = "0.0.2-alpha.0" }
+doido-cable = { path = "doido-cable", version = "0.0.2-alpha.0" }
+doido-cable-macros = { path = "doido-cable/macros", version = "0.0.2-alpha.0" }
+doido-cache = { path = "doido-cache", version = "0.0.2-alpha.0" }
+doido-cli = { path = "doido-cli", version = "0.0.2-alpha.0" }
+doido-config = { path = "doido-config", version = "0.0.2-alpha.0" }
+doido-controller = { path = "doido-controller", version = "0.0.2-alpha.0" }
+doido-controller-macros = { path = "doido-controller/macros", version = "0.0.2-alpha.0" }
+doido-core = { path = "doido-core", version = "0.0.2-alpha.0" }
+doido-generators = { path = "doido-generators", version = "0.0.2-alpha.0" }
+doido-jobs = { path = "doido-jobs", version = "0.0.2-alpha.0" }
+doido-jobs-macros = { path = "doido-jobs/macros", version = "0.0.2-alpha.0" }
+doido-kafka = { path = "doido-kafka", version = "0.0.2-alpha.0" }
+doido-kafka-macros = { path = "doido-kafka/macros", version = "0.0.2-alpha.0" }
+doido-mailer = { path = "doido-mailer", version = "0.0.2-alpha.0" }
+doido-mailer-macros = { path = "doido-mailer/macros", version = "0.0.2-alpha.0" }
+doido-mcp = { path = "doido-mcp", version = "0.0.2-alpha.0" }
+doido-mcp-macros = { path = "doido-mcp/macros", version = "0.0.2-alpha.0" }
+doido-middleware = { path = "doido-middleware", version = "0.0.2-alpha.0" }
+doido-model = { path = "doido-model", version = "0.0.2-alpha.0" }
+doido-router = { path = "doido-router", version = "0.0.2-alpha.0" }
+doido-router-macros = { path = "doido-router/macros", version = "0.0.2-alpha.0" }
+doido-view = { path = "doido-view", version = "0.0.2-alpha.0" }
+
 # ORM
 sea-orm     = { version = "2.0.0-rc.38", features = ["sqlx-sqlite", "runtime-tokio-rustls", "macros"] }
 

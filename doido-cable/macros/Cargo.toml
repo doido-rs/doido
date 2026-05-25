@@ -1,5 +1,6 @@
 [package]
 name = "doido-cable-macros"
+description = "Proc-macros declaring WebSocket channel handlers and broadcast wiring for Doido Cable."
 version.workspace = true
 license.workspace = true
 edition = "2021"

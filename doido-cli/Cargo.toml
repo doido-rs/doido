@@ -1,5 +1,6 @@
 [package]
 name = "doido-cli"
+description = "Unified doido CLI: servers, consoles, migrations, generators, credential helpers."
 version.workspace = true
 license.workspace = true
 edition = "2021"
@@ -9,8 +10,8 @@ name = "doido_cli"
 path = "src/lib.rs"
 
 [dependencies]
-doido-core = { path = "../doido-core" }
-doido-generators = { path = "../doido-generators" }
+doido-core.workspace = true
+doido-generators.workspace = true
 clap.workspace = true
 
 [dev-dependencies]

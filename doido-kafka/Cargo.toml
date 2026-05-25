@@ -1,12 +1,13 @@
 [package]
 name = "doido-kafka"
+description = "Optional Kafka producers/consumers with codecs and job dispatch bridging for Doido apps."
 version.workspace = true
 license.workspace = true
 edition = "2021"
 
 [dependencies]
-doido-core = { path = "../doido-core" }
-doido-kafka-macros = { path = "macros" }
+doido-core.workspace = true
+doido-kafka-macros.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 async-trait.workspace = true

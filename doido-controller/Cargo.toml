@@ -1,12 +1,13 @@
 [package]
 name = "doido-controller"
+description = "Action Controller analogue: Axum handlers, Context, JSON responses, filters for Doido."
 version.workspace = true
 license.workspace = true
 edition = "2021"
 
 [dependencies]
-doido-core = { path = "../doido-core" }
-doido-controller-macros = { path = "macros" }
+doido-core.workspace = true
+doido-controller-macros.workspace = true
 axum.workspace = true
 tokio = { workspace = true, features = ["full"] }
 serde.workspace = true
