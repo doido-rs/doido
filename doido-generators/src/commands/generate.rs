@@ -1,5 +1,5 @@
 use crate::commands::write_files;
-use doido_generators::default_registry;
+use crate::default_registry;
 use std::path::Path;
 
 pub fn run_generate(generator: &str, args: &[&str]) {

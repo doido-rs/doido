@@ -1,6 +1,11 @@
+mod cli;
+pub mod commands;
 pub mod generator;
 pub mod generators;
 pub mod registry;
+
+// CLI entry point (merged in from the former `doido-cli` crate).
+pub use cli::run;
 
 /// `doido` semver written into generated app `Cargo.toml` (resolved when `doido-generators` is built).
 pub const TEMPLATE_PINNED_DOIDO_VERSION: &str = env!("DOIDO_GENERATOR_TEMPLATE_DOIDO_VERSION");

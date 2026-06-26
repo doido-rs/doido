@@ -1,5 +1,5 @@
 use crate::commands::write_files;
-use doido_generators::default_registry;
+use crate::default_registry;
 use std::io::{self, Write};
 use std::path::Path;
 use std::process::Command;

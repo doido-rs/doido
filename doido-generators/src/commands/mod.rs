@@ -7,8 +7,8 @@ pub mod new;
 pub mod server;
 pub mod worker;
 
+use crate::generator::GeneratedFile;
 use doido_core::Result;
-use doido_generators::GeneratedFile;
 use std::fs;
 use std::path::Path;
 

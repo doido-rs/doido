@@ -14,8 +14,8 @@ to the spec documents that drive the interview and planning process.
 | [docs/03-model.md](docs/03-model.md) | `doido-model` | sea-orm re-exports + connection pool + test helpers |
 | [docs/04-view.md](docs/04-view.md) | `doido-view` | Tera template engine, layouts, partials, Action View analogue |
 | [docs/05-config.md](docs/05-config.md) | `doido-config` | TOML layered config, encrypted credentials, env var overrides |
-| [docs/06-cli.md](docs/06-cli.md) | `doido-cli` | Runtime commands only: server, console, db, worker, credentials |
-| [docs/06b-generators.md](docs/06b-generators.md) | `doido-generators` | All Rails generator targets, extensible registry, route auto-injection |
+| [docs/06-cli.md](docs/06-cli.md) | `doido-generators` | CLI runtime commands (server, console, db, worker, credentials) — merged into `doido-generators` |
+| [docs/06b-generators.md](docs/06b-generators.md) | `doido-generators` | All Rails generator targets + the unified CLI, extensible registry, route auto-injection |
 | [docs/07-middleware.md](docs/07-middleware.md) | `doido-middleware` | Tower middleware stack, sessions, CORS, Rack analogue |
 | [docs/08-mailer.md](docs/08-mailer.md) | `doido-mailer` | Email composition, delivery backends, Action Mailer analogue |
 | [docs/09-jobs.md](docs/09-jobs.md) | `doido-jobs` | Background jobs, queue backends, Active Job analogue |
@@ -35,8 +35,7 @@ doido/                  ← workspace root (Cargo.toml)
 ├── doido-model/        ← sea-orm re-exports + framework glue
 ├── doido-view/         ← templates and response helpers
 ├── doido-config/       ← environment config
-├── doido-cli/          ← runtime CLI commands (server, db, worker…)
-├── doido-generators/   ← code generators (model, scaffold, job…)
+├── doido-generators/   ← code generators (model, scaffold, job…) + CLI (server, db, worker…)
 ├── doido-mailer/       ← email
 ├── doido-jobs/         ← background jobs
 ├── doido-cache/        ← cache store

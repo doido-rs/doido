@@ -15,7 +15,6 @@ members = [
     "doido-cable/macros",
     "doido-cable",
     "doido-generators",
-    "doido-cli",
     "doido",
 ]
 
@@ -30,7 +29,6 @@ doido = { path = "doido", version = "0.0.2-alpha.0" }
 doido-cable = { path = "doido-cable", version = "0.0.2-alpha.0" }
 doido-cable-macros = { path = "doido-cable/macros", version = "0.0.2-alpha.0" }
 doido-cache = { path = "doido-cache", version = "0.0.2-alpha.0" }
-doido-cli = { path = "doido-cli", version = "0.0.2-alpha.0" }
 doido-controller = { path = "doido-controller", version = "0.0.2-alpha.0" }
 doido-controller-macros = { path = "doido-controller/macros", version = "0.0.2-alpha.0" }
 doido-core = { path = "doido-core", version = "0.0.2-alpha.0" }

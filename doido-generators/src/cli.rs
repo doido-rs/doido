@@ -1,7 +1,5 @@
-mod commands;
-
+use crate::commands::{self, db::DbCommand, generate::run_generate, jobs::JobsCommand, new::run_new};
 use clap::{Parser, Subcommand};
-use commands::{db::DbCommand, generate::run_generate, jobs::JobsCommand, new::run_new};
 
 #[derive(Parser)]
 #[command(name = "doido", version = "0.1.0", about = "Doido framework CLI")]

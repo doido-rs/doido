@@ -1,10 +1,18 @@
 [package]
 name = "doido-generators"
-description = "Scaffold generators (models migrations cable MCP kafka) powering the bundled doido-cli commands."
+description = "Doido code generators plus the unified CLI (server, console, db, worker, generate, new, credentials)."
 version.workspace = true
 license.workspace = true
 edition = "2021"
 build = "build.rs"
+
+[lib]
+name = "doido_generators"
+path = "src/lib.rs"
+
+[[bin]]
+name = "doido-generators"
+path = "src/main.rs"
 
 [build-dependencies]
 toml = "0.8"
@@ -12,7 +20,10 @@ toml = "0.8"
 [dependencies]
 doido-core.workspace = true
 chrono.workspace = true
+clap.workspace = true
 include_dir = "0.7"
 
 [dev-dependencies]
+assert_cmd = "2"
+predicates = "3"
 tempfile = "3"

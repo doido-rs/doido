@@ -868,7 +868,6 @@ dependencies = [
  "assert_cmd",
  "doido-cable",
  "doido-cache",
- "doido-cli",
  "doido-controller",
  "doido-core",
  "doido-generators",
@@ -909,18 +908,6 @@ dependencies = [
  "doido-core",
  "serde_json",
  "tokio",
-]
-
-[[package]]
-name = "doido-cli"
-version = "0.0.2-alpha.0"
-dependencies = [
- "assert_cmd",
- "clap",
- "doido-core",
- "doido-generators",
- "predicates",
- "tempfile",
 ]
 
 [[package]]
@@ -965,9 +952,12 @@ dependencies = [
 name = "doido-generators"
 version = "0.0.2-alpha.0"
 dependencies = [
+ "assert_cmd",
  "chrono",
+ "clap",
  "doido-core",
  "include_dir",
+ "predicates",
  "tempfile",
  "toml",
 ]

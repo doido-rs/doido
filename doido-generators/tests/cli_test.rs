@@ -2,7 +2,7 @@ use assert_cmd::Command;
 use predicates::prelude::*;
 
 fn cmd() -> Command {
-    Command::cargo_bin("doido-cli").unwrap()
+    Command::cargo_bin("doido-generators").unwrap()
 }
 
 #[test]
@@ -57,7 +57,11 @@ fn test_jobs_failed_command() {
 
 #[test]
 fn test_generate_controller() {
+    // Run in a tempdir: `generate` writes files relative to the cwd, so running
+    // it in the package root would pollute the crate's own source tree.
+    let dir = tempfile::tempdir().unwrap();
     cmd()
+        .current_dir(dir.path())
         .args(["generate", "controller", "Posts"])
         .assert()
         .success()
