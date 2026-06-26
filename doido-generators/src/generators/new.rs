@@ -1,6 +1,10 @@
 //! New application skeleton rendered from embedded files under `templates/app/`.
 //! Placeholders: `{doido_name}`, `{doido_db_url}`, `{doido_sqlx_feature}`,
 //! `{doido_version}`, `{doido_controller_version}` (semver pins captured at compile time).
+//!
+//! Template files carrying a trailing `.template` suffix (e.g. `Cargo.toml.template`)
+//! have the suffix stripped on output; the suffix keeps `cargo package` from treating
+//! `templates/app/` as a nested crate and excluding it from the published tarball.
 
 use crate::generator::{GeneratedFile, Generator};
 use doido_core::{anyhow, Result};
@@ -44,11 +48,13 @@ fn collect_from_dir(
                     anyhow::anyhow!("template file '{}' is not valid UTF-8", relative.display())
                 })?;
                 let rendered = substitute_template(raw, ctx);
-                let disk_path = format!(
-                    "{}/{}",
-                    app_name,
-                    relative.to_string_lossy().replace('\\', "/")
-                );
+                // Template manifests are stored with a trailing `.template` suffix
+                // (e.g. `Cargo.toml.template`) so `cargo package` doesn't mistake
+                // `templates/app/` for a nested crate and drop it from the tarball.
+                // Strip the suffix when writing the generated app to disk.
+                let relative = relative.to_string_lossy().replace('\\', "/");
+                let relative = relative.strip_suffix(".template").unwrap_or(&relative);
+                let disk_path = format!("{app_name}/{relative}");
                 out.push(GeneratedFile {
                     path: disk_path,
                     content: rendered,
