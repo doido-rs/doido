@@ -7,8 +7,7 @@ use doido_core::{anyhow, Result};
 use include_dir::{include_dir, Dir, DirEntry};
 
 /// Embedded filesystem tree merged at compile time from `templates/app`.
-static APP_TEMPLATE_DIR: Dir<'static> =
-    include_dir!("$CARGO_MANIFEST_DIR/templates/app");
+static APP_TEMPLATE_DIR: Dir<'static> = include_dir!("$CARGO_MANIFEST_DIR/templates/app");
 
 struct TemplateContext<'a> {
     name: &'a str,
@@ -42,10 +41,7 @@ fn collect_from_dir(
                 // for every file, including nested paths like `src/main.rs`.
                 let relative = f.path();
                 let raw = f.contents_utf8().ok_or_else(|| {
-                    anyhow::anyhow!(
-                        "template file '{}' is not valid UTF-8",
-                        relative.display()
-                    )
+                    anyhow::anyhow!("template file '{}' is not valid UTF-8", relative.display())
                 })?;
                 let rendered = substitute_template(raw, ctx);
                 let disk_path = format!(

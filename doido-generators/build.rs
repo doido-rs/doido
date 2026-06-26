@@ -30,7 +30,10 @@ fn resolve_package_version(pkg: &toml::Table, workspace_fallback: Option<&str>) 
     }
 }
 
-fn read_member_manifest_version(member_manifest: &Path, workspace_fallback: Option<&str>) -> Option<String> {
+fn read_member_manifest_version(
+    member_manifest: &Path,
+    workspace_fallback: Option<&str>,
+) -> Option<String> {
     let txt = fs::read_to_string(member_manifest).ok()?;
     let val: toml::Value = txt.parse().ok()?;
     let pkg = val.get("package")?.as_table()?;
@@ -56,12 +59,8 @@ fn main() {
     let doido_ver = resolve_pinned_version(&doido_manifest, &workspace_manifest);
     let controller_ver = resolve_pinned_version(&controller_manifest, &workspace_manifest);
 
-    println!(
-        "cargo:rustc-env=DOIDO_GENERATOR_TEMPLATE_DOIDO_VERSION={doido_ver}"
-    );
-    println!(
-        "cargo:rustc-env=DOIDO_GENERATOR_TEMPLATE_DOIDO_CONTROLLER_VERSION={controller_ver}"
-    );
+    println!("cargo:rustc-env=DOIDO_GENERATOR_TEMPLATE_DOIDO_VERSION={doido_ver}");
+    println!("cargo:rustc-env=DOIDO_GENERATOR_TEMPLATE_DOIDO_CONTROLLER_VERSION={controller_ver}");
 
     println!("cargo:rerun-if-changed={}", workspace_manifest.display());
     println!("cargo:rerun-if-changed={}", doido_manifest.display());
