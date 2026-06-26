@@ -9,7 +9,7 @@ to the spec documents that drive the interview and planning process.
 | File | Crate | Description |
 |------|-------|-------------|
 | [docs/00-overview.md](docs/00-overview.md) | all | Framework philosophy, crate map, TDD strategy |
-| [docs/01-router.md](docs/01-router.md) | `doido-router` | Route DSL, URL helpers, Action Dispatch analogue |
+| [docs/01-router.md](docs/01-router.md) | `doido-controller` | Route DSL, URL helpers, Action Dispatch analogue (merged into `doido-controller`) |
 | [docs/02-controller.md](docs/02-controller.md) | `doido-controller` | Request handling, params, filters, Action Controller analogue |
 | [docs/03-model.md](docs/03-model.md) | `doido-model` | sea-orm re-exports + connection pool + test helpers |
 | [docs/04-view.md](docs/04-view.md) | `doido-view` | Tera template engine, layouts, partials, Action View analogue |
@@ -31,8 +31,7 @@ to the spec documents that drive the interview and planning process.
 doido/                  ← workspace root (Cargo.toml)
 ├── doido/              ← binary entry point
 ├── doido-core/         ← shared traits, errors, utilities
-├── doido-router/       ← route DSL on top of axum
-├── doido-controller/   ← action controller
+├── doido-controller/   ← action controller + route DSL (routes! macro) on axum
 ├── doido-model/        ← sea-orm re-exports + framework glue
 ├── doido-view/         ← templates and response helpers
 ├── doido-config/       ← environment config

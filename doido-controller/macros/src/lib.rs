@@ -1,6 +1,17 @@
+mod codegen;
 mod controller;
+mod parser;
 
 use proc_macro::TokenStream;
+use syn::parse_macro_input;
+
+/// Expands the `routes!` DSL (verbs, `resources!`, `namespace!`, `scope!`)
+/// into an `axum::Router`. Merged in from the former `doido-router` crate.
+#[proc_macro]
+pub fn routes(input: TokenStream) -> TokenStream {
+    let parsed = parse_macro_input!(input as parser::RoutesInput);
+    codegen::generate(parsed).into()
+}
 
 /// Marks an impl block as a controller. Rewrites action methods into
 /// axum-compatible handlers with filter chain support.

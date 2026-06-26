@@ -2,11 +2,8 @@
 resolver = "2"
 members = [
     "doido-core",
-    "doido-config",
     "doido-controller/macros",
     "doido-controller",
-    "doido-router/macros",
-    "doido-router",
     "doido-view",
     "doido-model",
     "doido-middleware",
@@ -17,10 +14,6 @@ members = [
     "doido-mailer",
     "doido-cable/macros",
     "doido-cable",
-    "doido-kafka/macros",
-    "doido-kafka",
-    "doido-mcp/macros",
-    "doido-mcp",
     "doido-generators",
     "doido-cli",
     "doido",
@@ -38,23 +31,16 @@ doido-cable = { path = "doido-cable", version = "0.0.2-alpha.0" }
 doido-cable-macros = { path = "doido-cable/macros", version = "0.0.2-alpha.0" }
 doido-cache = { path = "doido-cache", version = "0.0.2-alpha.0" }
 doido-cli = { path = "doido-cli", version = "0.0.2-alpha.0" }
-doido-config = { path = "doido-config", version = "0.0.2-alpha.0" }
 doido-controller = { path = "doido-controller", version = "0.0.2-alpha.0" }
 doido-controller-macros = { path = "doido-controller/macros", version = "0.0.2-alpha.0" }
 doido-core = { path = "doido-core", version = "0.0.2-alpha.0" }
 doido-generators = { path = "doido-generators", version = "0.0.2-alpha.0" }
 doido-jobs = { path = "doido-jobs", version = "0.0.2-alpha.0" }
 doido-jobs-macros = { path = "doido-jobs/macros", version = "0.0.2-alpha.0" }
-doido-kafka = { path = "doido-kafka", version = "0.0.2-alpha.0" }
-doido-kafka-macros = { path = "doido-kafka/macros", version = "0.0.2-alpha.0" }
 doido-mailer = { path = "doido-mailer", version = "0.0.2-alpha.0" }
 doido-mailer-macros = { path = "doido-mailer/macros", version = "0.0.2-alpha.0" }
-doido-mcp = { path = "doido-mcp", version = "0.0.2-alpha.0" }
-doido-mcp-macros = { path = "doido-mcp/macros", version = "0.0.2-alpha.0" }
 doido-middleware = { path = "doido-middleware", version = "0.0.2-alpha.0" }
 doido-model = { path = "doido-model", version = "0.0.2-alpha.0" }
-doido-router = { path = "doido-router", version = "0.0.2-alpha.0" }
-doido-router-macros = { path = "doido-router/macros", version = "0.0.2-alpha.0" }
 doido-view = { path = "doido-view", version = "0.0.2-alpha.0" }
 
 # ORM

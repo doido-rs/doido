@@ -1,6 +1,6 @@
 [package]
 name = "doido-controller"
-description = "Action Controller analogue: Axum handlers, Context, JSON responses, filters for Doido."
+description = "Action Controller + routing for Doido: Axum handlers, Context, JSON responses, filters, and the routes! DSL."
 version.workspace = true
 license.workspace = true
 edition = "2021"

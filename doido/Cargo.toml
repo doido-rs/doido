@@ -1,6 +1,6 @@
 [package]
 name = "doido"
-description = "Rails-inspired Axum framework metacrate exporting router, MVC, adapters (SeaORM Kafka MCP)."
+description = "Rails-inspired Axum framework metacrate exporting routing, MVC, and SeaORM model adapters."
 version.workspace = true
 license.workspace = true
 edition = "2021"
@@ -15,8 +15,6 @@ path = "src/main.rs"
 
 [dependencies]
 doido-core.workspace = true
-doido-config.workspace = true
-doido-router.workspace = true
 doido-controller.workspace = true
 doido-model.workspace = true
 doido-view.workspace = true
@@ -25,8 +23,6 @@ doido-cache.workspace = true
 doido-jobs.workspace = true
 doido-mailer.workspace = true
 doido-cable.workspace = true
-doido-kafka.workspace = true
-doido-mcp.workspace = true
 doido-generators.workspace = true
 doido-cli.workspace = true
 
