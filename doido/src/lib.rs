@@ -6,7 +6,6 @@ pub use doido_core as core;
 pub use doido_generators as generators;
 pub use doido_jobs as jobs;
 pub use doido_mailer as mailer;
-pub use doido_middleware as middleware;
 pub use doido_model as model;
 pub use doido_view as view;
 
@@ -16,7 +15,8 @@ pub use doido_cable as cable;
 pub use doido_core::Result;
 pub use doido_generators::{GeneratedFile, Generator};
 pub use doido_mailer::{Deliverer, LogDeliverer};
-pub use doido_middleware::MiddlewareStack;
+// MiddlewareStack now lives in doido-controller (merged from doido-middleware).
+pub use doido_controller::MiddlewareStack;
 pub mod store {
     pub use doido_cache::store::CacheStore;
 }

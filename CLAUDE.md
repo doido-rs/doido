@@ -16,7 +16,7 @@ to the spec documents that drive the interview and planning process.
 | [docs/05-config.md](docs/05-config.md) | `doido-config` | TOML layered config, encrypted credentials, env var overrides |
 | [docs/06-cli.md](docs/06-cli.md) | `doido-generators` | CLI runtime commands (server, console, db, worker, credentials) — merged into `doido-generators` |
 | [docs/06b-generators.md](docs/06b-generators.md) | `doido-generators` | All Rails generator targets + the unified CLI, extensible registry, route auto-injection |
-| [docs/07-middleware.md](docs/07-middleware.md) | `doido-middleware` | Tower middleware stack, sessions, CORS, Rack analogue |
+| [docs/07-middleware.md](docs/07-middleware.md) | `doido-controller` | Tower middleware stack, sessions, CORS, Rack analogue — merged into `doido-controller` |
 | [docs/08-mailer.md](docs/08-mailer.md) | `doido-mailer` | Email composition, delivery backends, Action Mailer analogue |
 | [docs/09-jobs.md](docs/09-jobs.md) | `doido-jobs` | Background jobs, queue backends, Active Job analogue |
 | [docs/10-cache.md](docs/10-cache.md) | `doido-cache` | Pluggable cache store, TTL, Active Support Cache analogue |
@@ -31,7 +31,7 @@ to the spec documents that drive the interview and planning process.
 doido/                  ← workspace root (Cargo.toml)
 ├── doido/              ← binary entry point
 ├── doido-core/         ← shared traits, errors, utilities
-├── doido-controller/   ← action controller + route DSL (routes! macro) on axum
+├── doido-controller/   ← action controller + route DSL (routes! macro) + tower middleware/sessions on axum
 ├── doido-model/        ← sea-orm re-exports + framework glue
 ├── doido-view/         ← templates and response helpers
 ├── doido-config/       ← environment config
@@ -39,7 +39,6 @@ doido/                  ← workspace root (Cargo.toml)
 ├── doido-mailer/       ← email
 ├── doido-jobs/         ← background jobs
 ├── doido-cache/        ← cache store
-├── doido-middleware/   ← tower middleware stack
 ├── doido-cable/        ← websocket channels + pub/sub
 ├── doido-kafka/        ← kafka producers + consumers
 └── doido-mcp/          ← mcp server + client

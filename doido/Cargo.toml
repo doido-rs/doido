@@ -18,7 +18,6 @@ doido-core.workspace = true
 doido-controller.workspace = true
 doido-model.workspace = true
 doido-view.workspace = true
-doido-middleware.workspace = true
 doido-cache.workspace = true
 doido-jobs.workspace = true
 doido-mailer.workspace = true

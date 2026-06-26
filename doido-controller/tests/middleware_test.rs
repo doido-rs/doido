@@ -1,5 +1,5 @@
 use axum::{routing::get, Router};
-use doido_middleware::{CookieSessionStore, MiddlewareStack, SessionStore};
+use doido_controller::{CookieSessionStore, MiddlewareStack, SessionStore};
 use http::{Request, StatusCode};
 use tower::ServiceExt;
 

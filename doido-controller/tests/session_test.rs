@@ -1,4 +1,4 @@
-use doido_middleware::session::{Session, SessionStore};
+use doido_controller::session::{Session, SessionStore};
 
 struct FakeStore;
 

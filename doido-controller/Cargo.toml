@@ -1,6 +1,6 @@
 [package]
 name = "doido-controller"
-description = "Action Controller + routing for Doido: Axum handlers, Context, JSON responses, filters, and the routes! DSL."
+description = "Action Controller + routing + Tower middleware for Doido: handlers, Context, responses, filters, routes! DSL, sessions, and middleware stacks."
 version.workspace = true
 license.workspace = true
 edition = "2021"
@@ -8,14 +8,17 @@ edition = "2021"
 [dependencies]
 doido-core.workspace = true
 doido-controller-macros.workspace = true
+async-trait.workspace = true
 axum.workspace = true
 tokio = { workspace = true, features = ["full"] }
+tower = { workspace = true, features = ["full"] }
+tower-http.workspace = true
+tracing.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 http.workspace = true
 serde_urlencoded = "0.7"
 
 [dev-dependencies]
-tower.workspace = true
 http-body-util.workspace = true
 tokio.workspace = true
