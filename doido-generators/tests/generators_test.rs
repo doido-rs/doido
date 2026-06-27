@@ -40,6 +40,24 @@ fn test_model_generator_produces_model_migration_and_updates_lib() {
 }
 
 #[test]
+fn test_model_generator_pluralizes_irregular_table_name() {
+    // Proves the model generator uses the inflector (Person -> people), not a
+    // naive `name + "s"` ("persons").
+    let files = ModelGenerator.generate(&["Person"]).unwrap();
+    let paths: Vec<&str> = files.iter().map(|f| f.path.as_str()).collect();
+
+    assert!(paths.contains(&"app/models/person.rs"));
+    let model = files
+        .iter()
+        .find(|f| f.path == "app/models/person.rs")
+        .unwrap();
+    assert!(model.content.contains("table_name = \"people\""));
+    assert!(paths
+        .iter()
+        .any(|p| p.ends_with("_create_people_table.rs")));
+}
+
+#[test]
 fn test_migration_generator_has_timestamp_in_filename() {
     let files = MigrationGenerator.generate(&["create_users"]).unwrap();
     assert_eq!(files.len(), 1);

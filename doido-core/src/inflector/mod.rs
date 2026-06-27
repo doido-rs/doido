@@ -1,11 +1,17 @@
+pub mod config;
 pub mod inflections;
 pub(crate) mod rules;
 
+pub use config::InflectionConfig;
 pub use inflections::Inflections;
 
+use std::path::Path;
 use std::sync::OnceLock;
 
 static INFLECTIONS: OnceLock<Inflections> = OnceLock::new();
+
+/// Default location, relative to the project root, of the custom inflection file.
+pub const DEFAULT_CONFIG_PATH: &str = "config/inflection.yaml";
 
 /// Call this once at application boot, before any `Inflector::*` call.
 /// The closure receives the default English rules; add custom overrides there.
@@ -21,6 +27,63 @@ pub fn init_inflections<F: FnOnce(&mut Inflections)>(configure: F) {
     configure(&mut base);
     // Silently ignore if already initialised (e.g. called twice in tests).
     let _ = INFLECTIONS.set(base);
+}
+
+/// Errors raised while loading custom inflections from disk.
+#[derive(Debug, thiserror::Error)]
+pub enum LoadError {
+    #[error("failed to read inflection file `{path}`: {source}")]
+    Read {
+        path: String,
+        #[source]
+        source: std::io::Error,
+    },
+    #[error("failed to parse inflection file `{path}`: {source}")]
+    Parse {
+        path: String,
+        #[source]
+        source: serde_norway::Error,
+    },
+}
+
+/// Load custom inflections from a YAML file (default: `config/inflection.yaml`)
+/// layered on top of the default English rules, and install them globally.
+///
+/// A **missing** file is not an error — the default rules are installed and
+/// `Ok(false)` is returned. `Ok(true)` means custom rules were found and
+/// applied. Returns `Err` only when the file exists but cannot be read/parsed.
+///
+/// ```no_run
+/// // At application boot, from the project root:
+/// doido_core::inflector::load_inflections(doido_core::inflector::DEFAULT_CONFIG_PATH).unwrap();
+/// ```
+pub fn load_inflections(path: impl AsRef<Path>) -> Result<bool, LoadError> {
+    let path = path.as_ref();
+    let mut base = Inflections::default();
+
+    let found = match std::fs::read_to_string(path) {
+        Ok(contents) => {
+            let config = InflectionConfig::from_yaml(&contents).map_err(|source| {
+                LoadError::Parse {
+                    path: path.display().to_string(),
+                    source,
+                }
+            })?;
+            config.apply(&mut base);
+            true
+        }
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => false,
+        Err(source) => {
+            return Err(LoadError::Read {
+                path: path.display().to_string(),
+                source,
+            })
+        }
+    };
+
+    // Silently ignore if already initialised (e.g. called twice in tests).
+    let _ = INFLECTIONS.set(base);
+    Ok(found)
 }
 
 fn global() -> &'static Inflections {

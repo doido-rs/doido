@@ -60,6 +60,13 @@ enum Commands {
 /// HTTP server only when `routes` is `Some`; with `None` (e.g. the standalone
 /// `doido-generators` binary) the server is not started.
 pub async fn run(routes: Option<axum::Router>) {
+    // Install project-specific inflection rules from `config/inflection.yaml`
+    // (relative to the project root) before any generator pluralizes a name.
+    // A missing file falls back to the default English rules.
+    if let Err(e) = doido_core::load_inflections(doido_core::inflector::DEFAULT_CONFIG_PATH) {
+        eprintln!("Warning: {e}");
+    }
+
     // Seed DATABASE_URL from `config/<env>.yml` before clap parses, so the SeaORM
     // CLI under `doido db` (whose `generate entity` requires a database URL)
     // picks up the configured database without the user exporting it by hand.

@@ -1,5 +1,5 @@
 use crate::generator::{GeneratedFile, Generator};
-use crate::generators::to_snake;
+use crate::generators::{to_snake, to_table_name};
 use chrono::Utc;
 use doido_core::Result;
 
@@ -26,8 +26,9 @@ impl Generator for ModelGenerator {
             doido_core::anyhow::anyhow!("model generator requires a name argument")
         })?;
         let snake = to_snake(name);
-        // Naive pluralization, matching the rest of the generators.
-        let table_name = format!("{snake}s");
+        // Pluralize via the inflector, honouring custom `config/inflection.yaml`
+        // rules (e.g. `person` → `people`, uncountables, irregulars).
+        let table_name = to_table_name(name);
 
         // Model file.
         let model = MODEL_TEMPLATE.replace("{table_name}", &table_name);

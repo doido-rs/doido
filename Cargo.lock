@@ -986,6 +986,7 @@ dependencies = [
  "async-trait",
  "regex",
  "serde",
+ "serde_norway",
  "thiserror",
  "tracing",
  "tracing-test",
