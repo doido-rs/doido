@@ -23,6 +23,7 @@ doido-jobs.workspace = true
 doido-mailer.workspace = true
 doido-cable.workspace = true
 doido-generators.workspace = true
+tokio = { workspace = true, features = ["full"] }
 
 [dev-dependencies]
 assert_cmd  = "2"

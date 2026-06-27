@@ -20,12 +20,14 @@ fn test_version_output() {
 }
 
 #[test]
-fn test_server_command() {
+fn test_server_command_without_routes_does_not_start() {
+    // The standalone binary passes `None` for routes, so the server must not
+    // start — it just reports there is nothing to serve.
     cmd()
         .arg("server")
         .assert()
         .success()
-        .stdout(predicate::str::contains("Starting server"));
+        .stdout(predicate::str::contains("server not started"));
 }
 
 #[test]

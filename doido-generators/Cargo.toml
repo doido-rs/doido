@@ -16,8 +16,10 @@ path = "src/main.rs"
 
 [dependencies]
 doido-core.workspace = true
+doido-controller.workspace = true
 chrono.workspace = true
 clap.workspace = true
+tokio = { workspace = true, features = ["full"] }
 include_dir = "0.7"
 
 [dev-dependencies]

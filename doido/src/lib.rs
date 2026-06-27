@@ -13,7 +13,7 @@ pub use doido_cable as cable;
 
 // Flat re-exports for ergonomic top-level access
 pub use doido_core::Result;
-pub use doido_generators::{GeneratedFile, Generator};
+pub use doido_generators::{run, GeneratedFile, Generator};
 pub use doido_mailer::{Deliverer, LogDeliverer};
 // MiddlewareStack now lives in doido-controller (merged from doido-middleware).
 pub use doido_controller::MiddlewareStack;

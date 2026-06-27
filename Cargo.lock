@@ -876,6 +876,7 @@ dependencies = [
  "doido-model",
  "doido-view",
  "predicates",
+ "tokio",
 ]
 
 [[package]]
@@ -958,10 +959,12 @@ dependencies = [
  "assert_cmd",
  "chrono",
  "clap",
+ "doido-controller",
  "doido-core",
  "include_dir",
  "predicates",
  "tempfile",
+ "tokio",
 ]
 
 [[package]]

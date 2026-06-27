@@ -2,6 +2,7 @@ use crate::commands::{
     self, db::DbCommand, generate::run_generate, jobs::JobsCommand, new::run_new,
 };
 use clap::{Parser, Subcommand};
+use doido_controller::axum;
 
 #[derive(Parser)]
 #[command(name = "doido", version = "0.1.0", about = "Doido framework CLI")]
@@ -52,10 +53,15 @@ enum Commands {
     },
 }
 
-pub fn run() {
+/// Runs the Doido CLI.
+///
+/// `routes` carries the application's router. The `server` command starts the
+/// HTTP server only when `routes` is `Some`; with `None` (e.g. the standalone
+/// `doido-generators` binary) the server is not started.
+pub async fn run(routes: Option<axum::Router>) {
     let cli = Cli::parse();
     match cli.command {
-        Commands::Server => println!("Starting server on http://0.0.0.0:3000"),
+        Commands::Server => commands::server::run(routes).await,
         Commands::Routes => println!("Routes:"),
         Commands::Console => commands::console::run(),
         Commands::Worker => commands::worker::run(),
