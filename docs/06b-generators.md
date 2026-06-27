@@ -107,6 +107,51 @@ doido_generators::dispatch("scaffold", args)?;
 | `mcp_resource` | `mcp/resources/<name>_resource.rs` with `#[resource]` stub | No |
 | `mcp_client` | `clients/<name>_client.rs` typed wrapper from live server schema | No |
 
+## Field Specs (`model`, `scaffold`, `resource`)
+
+After the name, pass any number of `name:type[:modifier...]` specs. The `model`
+generator turns each spec into both a migration column and a SeaORM model field;
+the implicit auto-incrementing `id` primary key is always added for you.
+
+```sh
+doido generate model Post \
+  title:string:not_null body:text author:references \
+  slug:string:unique views:integer:index
+```
+
+```rust
+// db/migration/src/m..._create_posts_table.rs
+create_table(manager, "posts", |t| {
+    t.string("title").not_null();
+    t.text("body");
+    t.references("author");          // adds `author_id` (NOT NULL)
+    t.string("slug").unique_key();
+    t.integer("views");
+})
+.await?;
+add_index(manager, "posts", &["views"]).await?;
+Ok(())
+
+// app/models/post.rs
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
+    pub title: String,            // NOT NULL → bare type
+    pub body: Option<String>,     // nullable → Option<T>
+    pub author_id: i64,
+    pub slug: Option<String>,
+    pub views: Option<i32>,
+}
+```
+
+- **Type** (default `string`): `string`, `text`, `integer`/`int`, `bigint`,
+  `float`, `double`, `decimal`, `boolean`/`bool`, `timestamp`/`datetime`,
+  `date`, `json`/`jsonb`, `uuid`, `binary`, `references`/`belongs_to`.
+- **Modifiers**: `not_null` (column is required; otherwise the model field is
+  `Option<T>`), `unique`, `index`. `references` columns get an `_id` suffix and
+  are always NOT NULL.
+- Unknown types or modifiers are a hard error so typos surface immediately.
+
 ## Route Auto-Injection into `config/routes.rs`
 
 ```rust

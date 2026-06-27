@@ -1,4 +1,4 @@
-use doido_model::migration::{create_table, drop_table};
+{migration_imports}
 use sea_orm_migration::prelude::*;
 
 #[derive(DeriveMigrationName)]
@@ -7,10 +7,7 @@ pub struct Migration;
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        // `create_table` adds an auto-incrementing `id` primary key for you.
-        // Add columns with the builder, e.g. `t.string("name").not_null();`.
-        create_table(manager, "{table_name}", |_t| {}).await
-    }
+{up_body}    }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         drop_table(manager, "{table_name}").await

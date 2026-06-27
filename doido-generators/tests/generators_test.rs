@@ -58,6 +58,68 @@ fn test_model_generator_pluralizes_irregular_table_name() {
 }
 
 #[test]
+fn test_model_generator_emits_columns_from_field_specs() {
+    let files = ModelGenerator
+        .generate(&[
+            "Post",
+            "title:string:not_null",
+            "body:text",
+            "author:references",
+            "slug:string:unique",
+            "views:integer:index",
+        ])
+        .unwrap();
+
+    // Model struct carries one field per column with correct nullability.
+    let model = files
+        .iter()
+        .find(|f| f.path == "app/models/post.rs")
+        .unwrap();
+    assert!(model.content.contains("pub title: String,"));
+    assert!(model.content.contains("pub body: Option<String>,"));
+    assert!(model.content.contains("pub author_id: i64,"));
+    assert!(model.content.contains("pub slug: Option<String>,"));
+    assert!(model.content.contains("pub views: Option<i32>,"));
+
+    // Migration builds the columns and an index for the `:index` field.
+    let migration = files
+        .iter()
+        .find(|f| f.path.ends_with("_create_posts_table.rs"))
+        .unwrap();
+    assert!(migration.content.contains("t.string(\"title\").not_null();"));
+    assert!(migration.content.contains("t.text(\"body\");"));
+    assert!(migration.content.contains("t.references(\"author\");"));
+    assert!(migration
+        .content
+        .contains("t.string(\"slug\").unique_key();"));
+    assert!(migration.content.contains("t.integer(\"views\");"));
+    assert!(migration.content.contains("use doido_model::migration::{add_index, create_table, drop_table};"));
+    assert!(migration
+        .content
+        .contains("add_index(manager, \"posts\", &[\"views\"]).await?;"));
+}
+
+#[test]
+fn test_model_generator_without_fields_emits_empty_table() {
+    let files = ModelGenerator.generate(&["User"]).unwrap();
+    let migration = files
+        .iter()
+        .find(|f| f.path.ends_with("_create_users_table.rs"))
+        .unwrap();
+    // Falls back to the no-column closure (and no unused `add_index` import).
+    assert!(migration.content.contains("|_t| {}).await"));
+    assert!(migration
+        .content
+        .contains("use doido_model::migration::{create_table, drop_table};"));
+    assert!(!migration.content.contains("add_index"));
+}
+
+#[test]
+fn test_model_generator_rejects_bad_field_type() {
+    assert!(ModelGenerator.generate(&["User", "age:notatype"]).is_err());
+}
+
+#[test]
 fn test_migration_generator_has_timestamp_in_filename() {
     let files = MigrationGenerator.generate(&["create_users"]).unwrap();
     assert_eq!(files.len(), 1);
