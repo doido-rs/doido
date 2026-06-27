@@ -10,7 +10,8 @@ fn index_name(table: &str, columns: &[&str]) -> String {
 
 fn add_index_statement(table: &str, columns: &[&str]) -> IndexCreateStatement {
     let mut stmt = SqIndex::create();
-    stmt.name(index_name(table, columns)).table(Alias::new(table));
+    stmt.name(index_name(table, columns))
+        .table(Alias::new(table));
     for col in columns {
         stmt.col(Alias::new(*col));
     }
@@ -19,7 +20,8 @@ fn add_index_statement(table: &str, columns: &[&str]) -> IndexCreateStatement {
 
 fn remove_index_statement(table: &str, columns: &[&str]) -> IndexDropStatement {
     let mut stmt = SqIndex::drop();
-    stmt.name(index_name(table, columns)).table(Alias::new(table));
+    stmt.name(index_name(table, columns))
+        .table(Alias::new(table));
     stmt
 }
 

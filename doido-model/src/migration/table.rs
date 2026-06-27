@@ -154,7 +154,9 @@ impl Table {
         name: &str,
         f: impl FnOnce(&mut TableBuilder),
     ) -> Result<(), DbErr> {
-        db.execute(&create_table_statement(name, f)).await.map(|_| ())
+        db.execute(&create_table_statement(name, f))
+            .await
+            .map(|_| ())
     }
 
     /// `drop_table :name` — drops the table if it exists.
@@ -164,7 +166,9 @@ impl Table {
 
     /// `rename_table :from, :to`.
     pub async fn rename<C: ConnectionTrait>(db: &C, from: &str, to: &str) -> Result<(), DbErr> {
-        db.execute(&rename_table_statement(from, to)).await.map(|_| ())
+        db.execute(&rename_table_statement(from, to))
+            .await
+            .map(|_| ())
     }
 }
 
