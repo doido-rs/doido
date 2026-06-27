@@ -18,9 +18,15 @@ fn test_doido_new_creates_project_files() {
     assert!(dir.path().join("my-app/.gitignore").exists());
     assert!(dir
         .path()
-        .join("my-app/src/controllers/hello_controller.rs")
+        .join("my-app/app/controllers/hello_controller.rs")
         .exists());
-    assert!(dir.path().join("my-app/db/migrations/.gitkeep").exists());
+    assert!(dir.path().join("my-app/app/models/.gitkeep").exists());
+    assert!(dir
+        .path()
+        .join("my-app/app/views/layouts/application.html.tera")
+        .exists());
+    assert!(dir.path().join("my-app/db/schema/.gitkeep").exists());
+    assert!(dir.path().join("my-app/db/migration/.gitkeep").exists());
 }
 
 #[test]

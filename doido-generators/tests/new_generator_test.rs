@@ -11,11 +11,12 @@ fn test_new_generates_all_expected_files() {
     assert!(paths.contains(&"my-app/src/main.rs"));
     assert!(paths.contains(&"my-app/config/application.toml"));
     assert!(paths.contains(&"my-app/config/routes.rs"));
-    assert!(paths.contains(&"my-app/src/controllers/hello_controller.rs"));
-    assert!(paths.contains(&"my-app/src/controllers/mod.rs"));
-    assert!(paths.contains(&"my-app/src/models/.gitkeep"));
-    assert!(paths.contains(&"my-app/views/layouts/application.html.tera"));
-    assert!(paths.contains(&"my-app/db/migrations/.gitkeep"));
+    assert!(paths.contains(&"my-app/app/controllers/hello_controller.rs"));
+    assert!(paths.contains(&"my-app/app/controllers/mod.rs"));
+    assert!(paths.contains(&"my-app/app/models/.gitkeep"));
+    assert!(paths.contains(&"my-app/app/views/layouts/application.html.tera"));
+    assert!(paths.contains(&"my-app/db/schema/.gitkeep"));
+    assert!(paths.contains(&"my-app/db/migration/.gitkeep"));
     assert!(paths.contains(&"my-app/tests/integration_test.rs"));
     assert!(paths.contains(&"my-app/.gitignore"));
 }
@@ -27,7 +28,7 @@ fn test_new_template_includes_json_hello_action() {
         .unwrap();
     let hello = files
         .iter()
-        .find(|f| f.path == "api/src/controllers/hello_controller.rs")
+        .find(|f| f.path == "api/app/controllers/hello_controller.rs")
         .unwrap();
     assert!(hello.content.contains("Hello word!"));
     assert!(hello.content.contains("json!("));
