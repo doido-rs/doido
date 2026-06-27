@@ -11,6 +11,9 @@ fn test_new_generates_all_expected_files() {
     assert!(paths.contains(&"my-app/src/main.rs"));
     assert!(paths.contains(&"my-app/config/application.toml"));
     assert!(paths.contains(&"my-app/config/routes.rs"));
+    assert!(paths.contains(&"my-app/config/development.yml"));
+    assert!(paths.contains(&"my-app/config/test.yml"));
+    assert!(paths.contains(&"my-app/config/production.yml"));
     assert!(paths.contains(&"my-app/app/controllers/hello_controller.rs"));
     assert!(paths.contains(&"my-app/app/controllers/mod.rs"));
     assert!(paths.contains(&"my-app/app/models/.gitkeep"));
