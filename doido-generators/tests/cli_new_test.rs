@@ -47,7 +47,7 @@ fn test_doido_new_cargo_toml_has_correct_name_and_database() {
 
     let app_config =
         fs::read_to_string(dir.path().join("blog-app/config/application.toml")).unwrap();
-    assert!(app_config.contains("postgres://localhost/blog-app_development"));
+    assert!(app_config.contains("postgres://postgres:postgres@localhost:5432/blog-app_development"));
 }
 
 #[test]

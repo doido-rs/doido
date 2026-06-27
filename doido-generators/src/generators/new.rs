@@ -66,6 +66,67 @@ fn collect_from_dir(
     Ok(())
 }
 
+/// Default local connection parameters for a server backend.
+struct DbDefaults {
+    /// URL scheme (`postgres` / `mysql`).
+    scheme: &'static str,
+    /// Default superuser for a local install.
+    user: &'static str,
+    /// Default development/test password (placeholder in production).
+    password: &'static str,
+    /// Default listening port.
+    port: u16,
+}
+
+/// Returns the default connection parameters for `postgres`/`mysql`, or `None`
+/// for file-based backends (sqlite) that carry no user/host/port.
+fn db_defaults(backend: &str) -> Option<DbDefaults> {
+    match backend {
+        "postgres" => Some(DbDefaults {
+            scheme: "postgres",
+            user: "postgres",
+            password: "postgres",
+            port: 5432,
+        }),
+        "mysql" => Some(DbDefaults {
+            scheme: "mysql",
+            user: "root",
+            password: "password",
+            port: 3306,
+        }),
+        _ => None,
+    }
+}
+
+/// Builds the `database.url` for one environment of a generated app.
+///
+/// Server backends (postgres/mysql) include the default user, password, host
+/// and port so the generated config is close to a working local setup, e.g.
+/// `postgres://postgres:postgres@localhost:5432/blog_development`. sqlite uses a
+/// bare file path. In **production** the password is a `CHANGE_ME` placeholder
+/// that must be overridden (e.g. via the `DATABASE_URL` env var) — real
+/// credentials are never baked into the generated repo.
+///
+/// Note: the default credentials contain no URL-reserved characters, so no
+/// percent-encoding is needed. That would change if custom passwords were ever
+/// accepted here.
+fn default_database_url(backend: &str, name: &str, env: &str) -> String {
+    match db_defaults(backend) {
+        Some(d) => {
+            let password = if env == "production" {
+                "CHANGE_ME"
+            } else {
+                d.password
+            };
+            format!(
+                "{}://{}:{}@localhost:{}/{}_{}",
+                d.scheme, d.user, password, d.port, name, env
+            )
+        }
+        None => format!("sqlite://db/{env}.db"),
+    }
+}
+
 pub struct ProjectGenerator;
 
 impl Generator for ProjectGenerator {
@@ -95,23 +156,9 @@ impl Generator for ProjectGenerator {
             }
         }
 
-        let (db_url, db_url_test, db_url_production) = match database {
-            "postgres" => (
-                format!("postgres://localhost/{name}_development"),
-                format!("postgres://localhost/{name}_test"),
-                format!("postgres://localhost/{name}_production"),
-            ),
-            "mysql" => (
-                format!("mysql://localhost/{name}_development"),
-                format!("mysql://localhost/{name}_test"),
-                format!("mysql://localhost/{name}_production"),
-            ),
-            _ => (
-                "sqlite://db/development.db".to_string(),
-                "sqlite://db/test.db".to_string(),
-                "sqlite://db/production.db".to_string(),
-            ),
-        };
+        let db_url = default_database_url(database, name, "development");
+        let db_url_test = default_database_url(database, name, "test");
+        let db_url_production = default_database_url(database, name, "production");
 
         let sqlx_feature = match database {
             "postgres" => "postgres",
@@ -131,5 +178,46 @@ impl Generator for ProjectGenerator {
         collect_from_dir(&APP_TEMPLATE_DIR, &ctx, name, &mut files)?;
         files.sort_by(|a, b| a.path.cmp(&b.path));
         Ok(files)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::default_database_url;
+
+    #[test]
+    fn postgres_url_has_default_user_password_and_port() {
+        assert_eq!(
+            default_database_url("postgres", "blog", "development"),
+            "postgres://postgres:postgres@localhost:5432/blog_development"
+        );
+    }
+
+    #[test]
+    fn mysql_url_has_default_user_password_and_port() {
+        assert_eq!(
+            default_database_url("mysql", "store", "test"),
+            "mysql://root:password@localhost:3306/store_test"
+        );
+    }
+
+    #[test]
+    fn production_password_is_a_placeholder() {
+        assert_eq!(
+            default_database_url("postgres", "blog", "production"),
+            "postgres://postgres:CHANGE_ME@localhost:5432/blog_production"
+        );
+        assert_eq!(
+            default_database_url("mysql", "store", "production"),
+            "mysql://root:CHANGE_ME@localhost:3306/store_production"
+        );
+    }
+
+    #[test]
+    fn sqlite_stays_a_bare_file_path() {
+        assert_eq!(
+            default_database_url("sqlite", "blog", "development"),
+            "sqlite://db/development.db"
+        );
     }
 }

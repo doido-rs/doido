@@ -97,9 +97,15 @@ fn test_new_env_yml_files_carry_per_env_database_url() {
             .content
             .clone()
     };
-    assert!(find("blog/config/development.yml").contains("postgres://localhost/blog_development"));
-    assert!(find("blog/config/test.yml").contains("postgres://localhost/blog_test"));
-    assert!(find("blog/config/production.yml").contains("postgres://localhost/blog_production"));
+    // Dev/test carry working local credentials, host and port.
+    assert!(find("blog/config/development.yml")
+        .contains("postgres://postgres:postgres@localhost:5432/blog_development"));
+    assert!(find("blog/config/test.yml")
+        .contains("postgres://postgres:postgres@localhost:5432/blog_test"));
+    // Production keeps the same shape but never ships a real password.
+    let prod = find("blog/config/production.yml");
+    assert!(prod.contains("postgres://postgres:CHANGE_ME@localhost:5432/blog_production"));
+    assert!(!prod.contains(":postgres@"));
 }
 
 #[test]
@@ -113,7 +119,7 @@ fn test_new_postgres_sets_correct_database_url() {
         .unwrap();
     assert!(app_config
         .content
-        .contains("postgres://localhost/blog_development"));
+        .contains("postgres://postgres:postgres@localhost:5432/blog_development"));
 }
 
 #[test]
@@ -127,7 +133,7 @@ fn test_new_mysql_sets_correct_database_url() {
         .unwrap();
     assert!(app_config
         .content
-        .contains("mysql://localhost/store_development"));
+        .contains("mysql://root:password@localhost:3306/store_development"));
 }
 
 #[test]

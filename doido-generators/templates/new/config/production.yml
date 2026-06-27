@@ -2,4 +2,8 @@ server:
   bind: 0.0.0.0
   port: 8080
 database:
+  # The password below is a CHANGE_ME placeholder — never commit real
+  # production credentials. Override with a full connection string at deploy
+  # time via the DATABASE__URL environment variable (SECTION__KEY overrides
+  # config.database.url).
   url: {doido_db_url_production}
