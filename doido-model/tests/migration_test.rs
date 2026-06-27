@@ -1,6 +1,4 @@
-use doido_model::migration::{
-    add_index, alter_table, create_table, drop_table, rename_table,
-};
+use doido_model::migration::{add_index, alter_table, create_table, drop_table, rename_table};
 use doido_model::sea_orm::ConnectionTrait;
 use doido_model::testing::TestDb;
 use doido_model::SchemaManager;

@@ -111,7 +111,9 @@ fn migration_up_body(table_name: &str, fields: &[Field]) -> String {
     let indexes: Vec<&Field> = fields.iter().filter(|f| f.wants_index()).collect();
 
     let mut body = String::new();
-    body.push_str("        // `create_table` adds an auto-incrementing `id` primary key for you.\n");
+    body.push_str(
+        "        // `create_table` adds an auto-incrementing `id` primary key for you.\n",
+    );
     body.push_str(&format!(
         "        create_table(manager, \"{table_name}\", |t| {{\n{columns}        }})\n"
     ));

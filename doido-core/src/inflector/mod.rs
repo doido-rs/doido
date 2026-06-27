@@ -63,12 +63,11 @@ pub fn load_inflections(path: impl AsRef<Path>) -> Result<bool, LoadError> {
 
     let found = match std::fs::read_to_string(path) {
         Ok(contents) => {
-            let config = InflectionConfig::from_yaml(&contents).map_err(|source| {
-                LoadError::Parse {
+            let config =
+                InflectionConfig::from_yaml(&contents).map_err(|source| LoadError::Parse {
                     path: path.display().to_string(),
                     source,
-                }
-            })?;
+                })?;
             config.apply(&mut base);
             true
         }

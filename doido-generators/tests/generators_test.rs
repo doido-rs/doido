@@ -19,7 +19,10 @@ fn test_model_generator_produces_model_migration_and_updates_lib() {
 
     // Model file in app/models/.
     assert!(paths.contains(&"app/models/user.rs"));
-    let model = files.iter().find(|f| f.path == "app/models/user.rs").unwrap();
+    let model = files
+        .iter()
+        .find(|f| f.path == "app/models/user.rs")
+        .unwrap();
     assert!(model.content.contains("DeriveEntityModel"));
     assert!(model.content.contains("table_name = \"users\""));
 
@@ -52,9 +55,7 @@ fn test_model_generator_pluralizes_irregular_table_name() {
         .find(|f| f.path == "app/models/person.rs")
         .unwrap();
     assert!(model.content.contains("table_name = \"people\""));
-    assert!(paths
-        .iter()
-        .any(|p| p.ends_with("_create_people_table.rs")));
+    assert!(paths.iter().any(|p| p.ends_with("_create_people_table.rs")));
 }
 
 #[test]
@@ -86,14 +87,18 @@ fn test_model_generator_emits_columns_from_field_specs() {
         .iter()
         .find(|f| f.path.ends_with("_create_posts_table.rs"))
         .unwrap();
-    assert!(migration.content.contains("t.string(\"title\").not_null();"));
+    assert!(migration
+        .content
+        .contains("t.string(\"title\").not_null();"));
     assert!(migration.content.contains("t.text(\"body\");"));
     assert!(migration.content.contains("t.references(\"author\");"));
     assert!(migration
         .content
         .contains("t.string(\"slug\").unique_key();"));
     assert!(migration.content.contains("t.integer(\"views\");"));
-    assert!(migration.content.contains("use doido_model::migration::{add_index, create_table, drop_table};"));
+    assert!(migration
+        .content
+        .contains("use doido_model::migration::{add_index, create_table, drop_table};"));
     assert!(migration
         .content
         .contains("add_index(manager, \"posts\", &[\"views\"]).await?;"));

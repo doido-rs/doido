@@ -305,7 +305,9 @@ mod tests {
         let add = stmts[0].to_string(PostgresQueryBuilder);
         assert!(add.contains("ALTER TABLE \"items\""));
         assert!(add.contains("\"age\""));
-        assert!(stmts[1].to_string(PostgresQueryBuilder).contains("\"legacy\""));
+        assert!(stmts[1]
+            .to_string(PostgresQueryBuilder)
+            .contains("\"legacy\""));
         let rename = stmts[2].to_string(PostgresQueryBuilder);
         assert!(rename.contains("\"sku\""));
         assert!(rename.contains("\"code\""));

@@ -10,6 +10,4 @@ pub use ::thiserror;
 pub use ::tracing;
 
 pub use error::{AnyhowContext, Result};
-pub use inflector::{
-    init_inflections, load_inflections, InflectionConfig, Inflections, Inflector,
-};
+pub use inflector::{init_inflections, load_inflections, InflectionConfig, Inflections, Inflector};
