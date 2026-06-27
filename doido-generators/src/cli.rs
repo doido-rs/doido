@@ -1,4 +1,6 @@
-use crate::commands::{self, db::DbCommand, generate::run_generate, jobs::JobsCommand, new::run_new};
+use crate::commands::{
+    self, db::DbCommand, generate::run_generate, jobs::JobsCommand, new::run_new,
+};
 use clap::{Parser, Subcommand};
 
 #[derive(Parser)]
