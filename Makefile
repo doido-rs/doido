@@ -10,6 +10,12 @@
 # (e.g. `make publish PUBLISH_FLAGS=--no-verify`).
 PUBLISH_FLAGS ?=
 
+# Isolated, always-wiped target dir for packaging + verification. Keeping it
+# separate from the normal `target/` guarantees cargo's verify step compiles the
+# freshly packaged crates instead of reusing stale build artifacts from an
+# earlier run with different sources (e.g. after a crate is merged or renamed).
+PUBLISH_TARGET_DIR ?= target/publish
+
 # Version to (un)yank. Defaults to the current workspace version when empty.
 VERSION ?=
 
@@ -23,18 +29,22 @@ list_crates = cargo metadata --no-deps --format-version 1 | tr '{' '\n' \
 	| grep -oE '"name":"[^"]+","version":"[^"]+"' \
 	| sed -E 's/"name":"([^"]+)".*/\1/' | sort -u
 
-.PHONY: help publish publish-dry-run check yank unyank
+.PHONY: help publish publish-dry-run clean-package check yank unyank
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
 		| awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}'
 
-publish: ## Publish the whole workspace to crates.io
-	@command -v cargo >/dev/null || { echo "error: cargo not found in PATH" >&2; exit 1; }
-	cargo publish --workspace $(PUBLISH_FLAGS)
+# Wipe the isolated packaging target so each run starts from a clean slate.
+clean-package: ## Remove the isolated packaging target dir
+	rm -rf "$(PUBLISH_TARGET_DIR)"
 
-publish-dry-run: ## Package and verify the workspace without uploading
-	cargo publish --workspace --dry-run $(PUBLISH_FLAGS)
+publish: clean-package ## Publish the whole workspace to crates.io
+	@command -v cargo >/dev/null || { echo "error: cargo not found in PATH" >&2; exit 1; }
+	CARGO_TARGET_DIR="$(PUBLISH_TARGET_DIR)" cargo publish --workspace $(PUBLISH_FLAGS)
+
+publish-dry-run: clean-package ## Package and verify the workspace without uploading
+	CARGO_TARGET_DIR="$(PUBLISH_TARGET_DIR)" cargo publish --workspace --dry-run $(PUBLISH_FLAGS)
 
 # crates.io has no hard delete for published versions; `cargo yank` is the
 # supported way to pull a version. Yanked versions can no longer be selected by
