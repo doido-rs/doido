@@ -21,7 +21,12 @@ skip = [
 ]
 
 [advisories]
-ignore = []
+ignore = [
+    # proc-macro-error2 is unmaintained, pulled in transitively via
+    # sea-bae -> sea-orm-macros -> sea-orm. No safe upgrade is available;
+    # remove once sea-orm drops the dependency.
+    "RUSTSEC-2026-0173",
+]
 
 [sources]
 unknown-registry = "deny"

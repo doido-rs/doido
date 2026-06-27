@@ -9,14 +9,14 @@ to the spec documents that drive the interview and planning process.
 | File | Crate | Description |
 |------|-------|-------------|
 | [docs/00-overview.md](docs/00-overview.md) | all | Framework philosophy, crate map, TDD strategy |
-| [docs/01-router.md](docs/01-router.md) | `doido-router` | Route DSL, URL helpers, Action Dispatch analogue |
+| [docs/01-router.md](docs/01-router.md) | `doido-controller` | Route DSL, URL helpers, Action Dispatch analogue (merged into `doido-controller`) |
 | [docs/02-controller.md](docs/02-controller.md) | `doido-controller` | Request handling, params, filters, Action Controller analogue |
 | [docs/03-model.md](docs/03-model.md) | `doido-model` | sea-orm re-exports + connection pool + test helpers |
 | [docs/04-view.md](docs/04-view.md) | `doido-view` | Tera template engine, layouts, partials, Action View analogue |
 | [docs/05-config.md](docs/05-config.md) | `doido-config` | TOML layered config, encrypted credentials, env var overrides |
-| [docs/06-cli.md](docs/06-cli.md) | `doido-cli` | Runtime commands only: server, console, db, worker, credentials |
-| [docs/06b-generators.md](docs/06b-generators.md) | `doido-generators` | All Rails generator targets, extensible registry, route auto-injection |
-| [docs/07-middleware.md](docs/07-middleware.md) | `doido-middleware` | Tower middleware stack, sessions, CORS, Rack analogue |
+| [docs/06-cli.md](docs/06-cli.md) | `doido-generators` | CLI runtime commands (server, console, db, worker, credentials) — merged into `doido-generators` |
+| [docs/06b-generators.md](docs/06b-generators.md) | `doido-generators` | All Rails generator targets + the unified CLI, extensible registry, route auto-injection |
+| [docs/07-middleware.md](docs/07-middleware.md) | `doido-controller` | Tower middleware stack, sessions, CORS, Rack analogue — merged into `doido-controller` |
 | [docs/08-mailer.md](docs/08-mailer.md) | `doido-mailer` | Email composition, delivery backends, Action Mailer analogue |
 | [docs/09-jobs.md](docs/09-jobs.md) | `doido-jobs` | Background jobs, queue backends, Active Job analogue |
 | [docs/10-cache.md](docs/10-cache.md) | `doido-cache` | Pluggable cache store, TTL, Active Support Cache analogue |
@@ -31,17 +31,14 @@ to the spec documents that drive the interview and planning process.
 doido/                  ← workspace root (Cargo.toml)
 ├── doido/              ← binary entry point
 ├── doido-core/         ← shared traits, errors, utilities
-├── doido-router/       ← route DSL on top of axum
-├── doido-controller/   ← action controller
+├── doido-controller/   ← action controller + route DSL (routes! macro) + tower middleware/sessions on axum
 ├── doido-model/        ← sea-orm re-exports + framework glue
 ├── doido-view/         ← templates and response helpers
 ├── doido-config/       ← environment config
-├── doido-cli/          ← runtime CLI commands (server, db, worker…)
-├── doido-generators/   ← code generators (model, scaffold, job…)
+├── doido-generators/   ← code generators (model, scaffold, job…) + CLI (server, db, worker…)
 ├── doido-mailer/       ← email
 ├── doido-jobs/         ← background jobs
 ├── doido-cache/        ← cache store
-├── doido-middleware/   ← tower middleware stack
 ├── doido-cable/        ← websocket channels + pub/sub
 ├── doido-kafka/        ← kafka producers + consumers
 └── doido-mcp/          ← mcp server + client

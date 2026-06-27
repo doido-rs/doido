@@ -1,5 +1,8 @@
 use doido_generators::generators::new::ProjectGenerator;
-use doido_generators::{default_registry, Generator};
+use doido_generators::{
+    default_registry, Generator, TEMPLATE_PINNED_DOIDO_CONTROLLER_VERSION,
+    TEMPLATE_PINNED_DOIDO_VERSION,
+};
 
 #[test]
 fn test_new_generates_all_expected_files() {
@@ -11,12 +14,26 @@ fn test_new_generates_all_expected_files() {
     assert!(paths.contains(&"my-app/src/main.rs"));
     assert!(paths.contains(&"my-app/config/application.toml"));
     assert!(paths.contains(&"my-app/config/routes.rs"));
-    assert!(paths.contains(&"my-app/app/controllers/.gitkeep"));
-    assert!(paths.contains(&"my-app/app/models/.gitkeep"));
+    assert!(paths.contains(&"my-app/src/controllers/hello_controller.rs"));
+    assert!(paths.contains(&"my-app/src/controllers/mod.rs"));
+    assert!(paths.contains(&"my-app/src/models/.gitkeep"));
     assert!(paths.contains(&"my-app/views/layouts/application.html.tera"));
     assert!(paths.contains(&"my-app/db/migrations/.gitkeep"));
     assert!(paths.contains(&"my-app/tests/integration_test.rs"));
     assert!(paths.contains(&"my-app/.gitignore"));
+}
+
+#[test]
+fn test_new_template_includes_json_hello_action() {
+    let files = ProjectGenerator
+        .generate(&["api", "--database=sqlite"])
+        .unwrap();
+    let hello = files
+        .iter()
+        .find(|f| f.path == "api/src/controllers/hello_controller.rs")
+        .unwrap();
+    assert!(hello.content.contains("Hello word!"));
+    assert!(hello.content.contains("json!("));
 }
 
 #[test]
@@ -30,6 +47,21 @@ fn test_new_sqlite_cargo_toml_has_sqlite_feature() {
         .unwrap();
     assert!(cargo_toml.content.contains("my-app"));
     assert!(cargo_toml.content.contains("sqlite"));
+    assert!(cargo_toml.content.contains("serde_json"));
+    assert!(cargo_toml.content.contains("axum"));
+    assert!(
+        cargo_toml
+            .content
+            .contains(&format!("doido = \"{}\"", TEMPLATE_PINNED_DOIDO_VERSION)),
+        "generated Cargo.toml must pin `doido` to the semver resolved at build time"
+    );
+    assert!(
+        cargo_toml.content.contains(&format!(
+            "doido-controller = \"{}\"",
+            TEMPLATE_PINNED_DOIDO_CONTROLLER_VERSION
+        )),
+        "generated Cargo.toml must pin `doido-controller` to the semver resolved at build time"
+    );
 }
 
 #[test]

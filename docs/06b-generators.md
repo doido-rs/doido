@@ -132,7 +132,7 @@ Injection rules:
 
 When a file already exists, prompts:
 ```
-conflict  controllers/posts_controller.rs
+conflict  src/controllers/posts_controller.rs
 Overwrite? [Y]es / [N]o / [A]ll / [Q]uit
 ```
 

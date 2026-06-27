@@ -1,14 +1,15 @@
 [package]
 name = "doido-view"
+description = "Default Tera engine, layouts, partials — Action View style templating for Doido."
 version.workspace = true
 license.workspace = true
 edition = "2021"
 
 [dependencies]
-doido-core = { path = "../doido-core" }
+doido-core.workspace = true
 tera = "1"
 serde_json.workspace = true
 
 [dev-dependencies]
-doido-core = { path = "../doido-core" }
+doido-core.workspace = true
 tempfile = "3"

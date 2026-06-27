@@ -1,12 +1,13 @@
 [package]
 name = "doido-jobs"
+description = "Background queues (memory/redis/db workers) — Active Job analogue for Doido."
 version.workspace = true
 license.workspace = true
 edition = "2021"
 
 [dependencies]
-doido-core = { path = "../doido-core" }
-doido-jobs-macros = { path = "macros" }
+doido-core.workspace = true
+doido-jobs-macros.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 tokio = { workspace = true, features = ["sync", "time"] }

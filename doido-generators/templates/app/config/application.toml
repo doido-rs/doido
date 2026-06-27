@@ -1,0 +1,5 @@
+[app]
+name = "{doido_name}"
+
+[database]
+url = "{doido_db_url}"

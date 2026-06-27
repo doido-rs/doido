@@ -1,0 +1,13 @@
+[package]
+name = "{doido_name}"
+description = "Starter Doido web application: Axum server, routed hello endpoint, templating scaffolding."
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+doido = "{doido_version}"
+doido-controller = "{doido_controller_version}"
+axum = "0.8"
+serde_json = "1"
+sqlx = { version = "0.8", features = ["runtime-tokio", "{doido_sqlx_feature}"] }
+tokio = { version = "1", features = ["full"] }

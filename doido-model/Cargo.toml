@@ -1,11 +1,12 @@
 [package]
 name = "doido-model"
+description = "SeaORM re-exports plus connection pooling and model testing helpers for Doido apps."
 version.workspace = true
 license.workspace = true
 edition = "2021"
 
 [dependencies]
-doido-core = { path = "../doido-core" }
+doido-core.workspace = true
 sea-orm.workspace = true
 tokio.workspace = true
 

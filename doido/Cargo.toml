@@ -1,5 +1,6 @@
 [package]
 name = "doido"
+description = "Rails-inspired Axum framework metacrate exporting routing, MVC, and SeaORM model adapters."
 version.workspace = true
 license.workspace = true
 edition = "2021"
@@ -13,21 +14,15 @@ name = "doido"
 path = "src/main.rs"
 
 [dependencies]
-doido-core      = { path = "../doido-core" }
-doido-config    = { path = "../doido-config" }
-doido-router    = { path = "../doido-router" }
-doido-controller = { path = "../doido-controller" }
-doido-model     = { path = "../doido-model" }
-doido-view      = { path = "../doido-view" }
-doido-middleware = { path = "../doido-middleware" }
-doido-cache     = { path = "../doido-cache" }
-doido-jobs      = { path = "../doido-jobs" }
-doido-mailer    = { path = "../doido-mailer" }
-doido-cable     = { path = "../doido-cable" }
-doido-kafka     = { path = "../doido-kafka" }
-doido-mcp       = { path = "../doido-mcp" }
-doido-generators = { path = "../doido-generators" }
-doido-cli       = { path = "../doido-cli" }
+doido-core.workspace = true
+doido-controller.workspace = true
+doido-model.workspace = true
+doido-view.workspace = true
+doido-cache.workspace = true
+doido-jobs.workspace = true
+doido-mailer.workspace = true
+doido-cable.workspace = true
+doido-generators.workspace = true
 
 [dev-dependencies]
 assert_cmd  = "2"
