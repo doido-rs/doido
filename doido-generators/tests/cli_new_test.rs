@@ -26,7 +26,10 @@ fn test_doido_new_creates_project_files() {
         .join("my-app/app/views/layouts/application.html.tera")
         .exists());
     assert!(dir.path().join("my-app/db/schema/.gitkeep").exists());
-    assert!(dir.path().join("my-app/db/migration/.gitkeep").exists());
+    // `db/migration` is a SeaORM migration project rather than an empty folder.
+    assert!(dir.path().join("my-app/db/migration/Cargo.toml").exists());
+    assert!(dir.path().join("my-app/db/migration/src/lib.rs").exists());
+    assert!(dir.path().join("my-app/db/migration/src/main.rs").exists());
 }
 
 #[test]

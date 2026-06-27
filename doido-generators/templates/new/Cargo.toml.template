@@ -4,6 +4,11 @@ description = "Starter Doido web application: Axum server, routed hello endpoint
 version = "0.1.0"
 edition = "2021"
 
+# The SeaORM migration project lives in `db/migration` and is built as part of
+# this workspace.
+[workspace]
+members = ["db/migration"]
+
 [dependencies]
 doido = { path = "{doido_path}/doido" }
 doido-controller = { path = "{doido_path}/doido-controller" }

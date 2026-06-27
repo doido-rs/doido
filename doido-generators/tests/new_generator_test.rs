@@ -17,9 +17,14 @@ fn test_new_generates_all_expected_files() {
     assert!(paths.contains(&"my-app/app/controllers/hello_controller.rs"));
     assert!(paths.contains(&"my-app/app/controllers/mod.rs"));
     assert!(paths.contains(&"my-app/app/models/.gitkeep"));
+    // `doido db generate entity` writes SeaORM entities here by default.
+    assert!(paths.contains(&"my-app/app/models/_entities/.gitkeep"));
     assert!(paths.contains(&"my-app/app/views/layouts/application.html.tera"));
     assert!(paths.contains(&"my-app/db/schema/.gitkeep"));
-    assert!(paths.contains(&"my-app/db/migration/.gitkeep"));
+    // `db/migration` is a SeaORM migration project, not an empty placeholder.
+    assert!(paths.contains(&"my-app/db/migration/Cargo.toml"));
+    assert!(paths.contains(&"my-app/db/migration/src/lib.rs"));
+    assert!(paths.contains(&"my-app/db/migration/src/main.rs"));
     assert!(paths.contains(&"my-app/tests/integration_test.rs"));
     assert!(paths.contains(&"my-app/.gitignore"));
 }
@@ -64,6 +69,37 @@ fn test_new_sqlite_cargo_toml_has_sqlite_feature() {
         )),
         "generated Cargo.toml must point `doido-controller` at the local workspace crate"
     );
+}
+
+#[test]
+fn test_new_migration_crate_uses_selected_backend() {
+    let files = ProjectGenerator
+        .generate(&["blog", "--database=postgres"])
+        .unwrap();
+    let migration_cargo = files
+        .iter()
+        .find(|f| f.path == "blog/db/migration/Cargo.toml")
+        .unwrap();
+    assert!(migration_cargo.content.contains("sea-orm-migration"));
+    assert!(migration_cargo.content.contains("sqlx-postgres"));
+}
+
+#[test]
+fn test_new_env_yml_files_carry_per_env_database_url() {
+    let files = ProjectGenerator
+        .generate(&["blog", "--database=postgres"])
+        .unwrap();
+    let find = |path: &str| {
+        files
+            .iter()
+            .find(|f| f.path == path)
+            .unwrap_or_else(|| panic!("missing {path}"))
+            .content
+            .clone()
+    };
+    assert!(find("blog/config/development.yml").contains("postgres://localhost/blog_development"));
+    assert!(find("blog/config/test.yml").contains("postgres://localhost/blog_test"));
+    assert!(find("blog/config/production.yml").contains("postgres://localhost/blog_production"));
 }
 
 #[test]

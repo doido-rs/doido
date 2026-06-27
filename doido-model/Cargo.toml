@@ -9,6 +9,9 @@ edition = "2021"
 doido-core.workspace = true
 sea-orm.workspace = true
 tokio.workspace = true
+serde.workspace = true
+serde_norway = "0.9"
+url = "2"
 
 [dev-dependencies]
 tokio.workspace = true

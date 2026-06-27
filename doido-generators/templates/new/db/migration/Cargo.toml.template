@@ -1,0 +1,22 @@
+[package]
+name = "migration"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+name = "migration"
+path = "src/lib.rs"
+
+[dependencies]
+async-trait = "0.1"
+tokio = { version = "1", features = ["full"] }
+
+[dependencies.sea-orm-migration]
+version = "2.0.0-rc.38"
+features = [
+    # Async runtime; matches the rest of the Doido stack.
+    "runtime-tokio-rustls",
+    # Database backend selected when this app was generated.
+    "sqlx-{doido_sqlx_feature}",
+]

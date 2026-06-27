@@ -1,6 +1,4 @@
-use crate::commands::{
-    self, db::DbCommand, generate::run_generate, jobs::JobsCommand, new::run_new,
-};
+use crate::commands::{self, generate::run_generate, jobs::JobsCommand, new::run_new};
 use clap::{Parser, Subcommand};
 use doido_controller::axum;
 
@@ -19,10 +17,13 @@ enum Commands {
     Routes,
     /// Start interactive console
     Console,
-    /// Database commands
+    /// Database commands (create, SeaORM migrations and entity codegen)
     Db {
+        /// Show debug messages
+        #[arg(short, long, global = true)]
+        verbose: bool,
         #[command(subcommand)]
-        action: DbCommand,
+        command: commands::db::DbCommand,
     },
     /// Background job commands
     Jobs {
@@ -59,13 +60,19 @@ enum Commands {
 /// HTTP server only when `routes` is `Some`; with `None` (e.g. the standalone
 /// `doido-generators` binary) the server is not started.
 pub async fn run(routes: Option<axum::Router>) {
+    // Seed DATABASE_URL from `config/<env>.yml` before clap parses, so the SeaORM
+    // CLI under `doido db` (whose `generate entity` requires a database URL)
+    // picks up the configured database without the user exporting it by hand.
+    if std::env::args().nth(1).as_deref() == Some("db") {
+        commands::db::ensure_database_url_from_config();
+    }
     let cli = Cli::parse();
     match cli.command {
         Commands::Server => commands::server::run(routes).await,
         Commands::Routes => println!("Routes:"),
         Commands::Console => commands::console::run(),
         Commands::Worker => commands::worker::run(),
-        Commands::Db { action } => commands::db::run(action),
+        Commands::Db { verbose, command } => commands::db::run(command, verbose).await,
         Commands::Jobs { action } => commands::jobs::run(action),
         Commands::Credentials { action } => commands::credentials::run(action),
         Commands::Generate { generator, args } => {

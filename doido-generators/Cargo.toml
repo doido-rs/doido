@@ -17,10 +17,23 @@ path = "src/main.rs"
 [dependencies]
 doido-core.workspace = true
 doido-controller.workspace = true
+doido-model.workspace = true
 chrono.workspace = true
 clap.workspace = true
 tokio = { workspace = true, features = ["full"] }
 include_dir = "0.7"
+
+# The `doido db` command embeds the SeaORM CLI (migrate + entity codegen).
+# All three sqlx backends are enabled so a single `doido` binary works against
+# whichever database the generated app targets.
+sea-orm-cli = { version = "2.0.0-rc.41", default-features = false, features = [
+    "cli",
+    "codegen",
+    "runtime-tokio-rustls",
+    "sqlx-mysql",
+    "sqlx-postgres",
+    "sqlx-sqlite",
+] }
 
 [dev-dependencies]
 assert_cmd = "2"

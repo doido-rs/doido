@@ -17,12 +17,16 @@ static APP_TEMPLATE_DIR: Dir<'static> = include_dir!("$CARGO_MANIFEST_DIR/templa
 struct TemplateContext<'a> {
     name: &'a str,
     db_url: String,
+    db_url_test: String,
+    db_url_production: String,
     sqlx_feature: &'a str,
 }
 
 fn substitute_template(template: &str, ctx: &TemplateContext<'_>) -> String {
     template
         .replace("{doido_name}", ctx.name)
+        .replace("{doido_db_url_test}", &ctx.db_url_test)
+        .replace("{doido_db_url_production}", &ctx.db_url_production)
         .replace("{doido_db_url}", &ctx.db_url)
         .replace("{doido_sqlx_feature}", ctx.sqlx_feature)
         .replace("{doido_path}", crate::TEMPLATE_WORKSPACE_PATH)
@@ -91,10 +95,22 @@ impl Generator for ProjectGenerator {
             }
         }
 
-        let db_url = match database {
-            "postgres" => format!("postgres://localhost/{name}_development"),
-            "mysql" => format!("mysql://localhost/{name}_development"),
-            _ => "sqlite://db/development.db".to_string(),
+        let (db_url, db_url_test, db_url_production) = match database {
+            "postgres" => (
+                format!("postgres://localhost/{name}_development"),
+                format!("postgres://localhost/{name}_test"),
+                format!("postgres://localhost/{name}_production"),
+            ),
+            "mysql" => (
+                format!("mysql://localhost/{name}_development"),
+                format!("mysql://localhost/{name}_test"),
+                format!("mysql://localhost/{name}_production"),
+            ),
+            _ => (
+                "sqlite://db/development.db".to_string(),
+                "sqlite://db/test.db".to_string(),
+                "sqlite://db/production.db".to_string(),
+            ),
         };
 
         let sqlx_feature = match database {
@@ -106,6 +122,8 @@ impl Generator for ProjectGenerator {
         let ctx = TemplateContext {
             name,
             db_url,
+            db_url_test,
+            db_url_production,
             sqlx_feature,
         };
 

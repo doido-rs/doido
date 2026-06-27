@@ -31,21 +31,33 @@ fn test_server_command_without_routes_does_not_start() {
 }
 
 #[test]
-fn test_db_migrate_command() {
+fn test_db_help_lists_subcommands() {
     cmd()
-        .args(["db", "migrate"])
+        .args(["db", "--help"])
         .assert()
         .success()
-        .stdout(predicate::str::contains("migrations"));
+        .stdout(predicate::str::contains("create"))
+        .stdout(predicate::str::contains("migrate"))
+        .stdout(predicate::str::contains("generate"));
 }
 
 #[test]
-fn test_db_rollback_command() {
+fn test_db_migrate_help_lists_subcommands() {
     cmd()
-        .args(["db", "rollback"])
+        .args(["db", "migrate", "--help"])
         .assert()
         .success()
-        .stdout(predicate::str::contains("Rolling back"));
+        .stdout(predicate::str::contains("Apply pending migrations"))
+        .stdout(predicate::str::contains("Rollback applied migrations"));
+}
+
+#[test]
+fn test_db_generate_entity_help_available() {
+    cmd()
+        .args(["db", "generate", "entity", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("output"));
 }
 
 #[test]
