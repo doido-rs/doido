@@ -1,18 +1,18 @@
-//! New application skeleton rendered from embedded files under `templates/app/`.
+//! New application skeleton rendered from embedded files under `templates/new/`.
 //! Placeholders: `{doido_name}`, `{doido_db_url}`, `{doido_sqlx_feature}`,
 //! `{doido_path}` (absolute workspace root captured at compile time, used for
 //! local `doido-*` path dependencies).
 //!
 //! Template files carrying a trailing `.template` suffix (e.g. `Cargo.toml.template`)
 //! have the suffix stripped on output; the suffix keeps `cargo package` from treating
-//! `templates/app/` as a nested crate and excluding it from the published tarball.
+//! `templates/new/` as a nested crate and excluding it from the published tarball.
 
 use crate::generator::{GeneratedFile, Generator};
 use doido_core::{anyhow, Result};
 use include_dir::{include_dir, Dir, DirEntry};
 
-/// Embedded filesystem tree merged at compile time from `templates/app`.
-static APP_TEMPLATE_DIR: Dir<'static> = include_dir!("$CARGO_MANIFEST_DIR/templates/app");
+/// Embedded filesystem tree merged at compile time from `templates/new`.
+static APP_TEMPLATE_DIR: Dir<'static> = include_dir!("$CARGO_MANIFEST_DIR/templates/new");
 
 struct TemplateContext<'a> {
     name: &'a str,
@@ -38,7 +38,7 @@ fn collect_from_dir(
         match entry {
             DirEntry::Dir(sub) => collect_from_dir(sub, ctx, app_name, out)?,
             DirEntry::File(f) => {
-                // `include_dir` stores paths relative to the embedded root (`templates/app/`)
+                // `include_dir` stores paths relative to the embedded root (`templates/new/`)
                 // for every file, including nested paths like `src/main.rs`.
                 let relative = f.path();
                 let raw = f.contents_utf8().ok_or_else(|| {
