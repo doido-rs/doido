@@ -2,6 +2,8 @@ pub use sea_orm;
 pub use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, ModelTrait, QueryFilter, Set,
 };
+pub use sea_orm_migration;
+pub use sea_orm_migration::SchemaManager;
 
 pub mod config;
 pub mod create;
@@ -14,8 +16,8 @@ pub use config::{Config, DatabaseConfig, YamlConfig};
 pub use create::create_database;
 pub use environment::Environment;
 
-// Rails-style migration helpers: create_table, alter_table, Column::add, …
+// Rails-style migration helpers: create_table, alter_table, add_column, …
 pub use migration::{
-    alter_table, create_table, drop_table, rename_table, AlterTableBuilder, Column, ForeignKey,
-    Index, TableBuilder,
+    add_column, add_foreign_key, add_index, alter_table, create_table, drop_table, remove_column,
+    remove_foreign_key, remove_index, rename_column, rename_table, AlterTableBuilder, TableBuilder,
 };

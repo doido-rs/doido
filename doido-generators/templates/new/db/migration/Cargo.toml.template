@@ -11,7 +11,7 @@ path = "src/lib.rs"
 [dependencies]
 async-trait = "0.1"
 tokio = { version = "1", features = ["full"] }
-# Doido's Rails-style migration helpers (Table::create, Column::add, …).
+# Doido's Rails-style migration helpers (create_table, add_column, …).
 doido-model = { path = "{doido_path}/doido-model" }
 
 [dependencies.sea-orm-migration]

@@ -2,6 +2,7 @@
 
 use sea_orm::sea_query::{Alias, Index as SqIndex, IndexCreateStatement, IndexDropStatement};
 use sea_orm::{ConnectionTrait, DbErr};
+use sea_orm_migration::SchemaManager;
 
 /// Default index name for a `(table, columns)` pair: `idx_<table>_<col>_<col>`.
 fn index_name(table: &str, columns: &[&str]) -> String {
@@ -25,31 +26,30 @@ fn remove_index_statement(table: &str, columns: &[&str]) -> IndexDropStatement {
     stmt
 }
 
-/// Index migration operations.
-pub struct Index;
+/// `add_index :table, [columns]` — index named `idx_<table>_<cols>`.
+pub async fn add_index(
+    manager: &SchemaManager<'_>,
+    table: &str,
+    columns: &[&str],
+) -> Result<(), DbErr> {
+    manager
+        .get_connection()
+        .execute(&add_index_statement(table, columns))
+        .await
+        .map(|_| ())
+}
 
-impl Index {
-    /// `add_index :table, [columns]` — index named `idx_<table>_<cols>`.
-    pub async fn add<C: ConnectionTrait>(
-        db: &C,
-        table: &str,
-        columns: &[&str],
-    ) -> Result<(), DbErr> {
-        db.execute(&add_index_statement(table, columns))
-            .await
-            .map(|_| ())
-    }
-
-    /// `remove_index :table, [columns]` — drops `idx_<table>_<cols>`.
-    pub async fn remove<C: ConnectionTrait>(
-        db: &C,
-        table: &str,
-        columns: &[&str],
-    ) -> Result<(), DbErr> {
-        db.execute(&remove_index_statement(table, columns))
-            .await
-            .map(|_| ())
-    }
+/// `remove_index :table, [columns]` — drops `idx_<table>_<cols>`.
+pub async fn remove_index(
+    manager: &SchemaManager<'_>,
+    table: &str,
+    columns: &[&str],
+) -> Result<(), DbErr> {
+    manager
+        .get_connection()
+        .execute(&remove_index_statement(table, columns))
+        .await
+        .map(|_| ())
 }
 
 #[cfg(test)]

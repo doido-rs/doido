@@ -1,22 +1,26 @@
 //! Rails-style schema migration helpers.
 //!
-//! Table operations are free functions — [`create_table`], [`drop_table`],
-//! [`rename_table`], [`alter_table`]. Column, index and foreign-key helpers are
-//! grouped under [`Column`], [`Index`] and [`ForeignKey`]. All run against any
-//! sea-orm [`ConnectionTrait`]:
+//! Every operation is a free function taking the migration's
+//! [`SchemaManager`](sea_orm_migration::SchemaManager) as its first argument —
+//! table helpers ([`create_table`], [`drop_table`], [`rename_table`],
+//! [`alter_table`]), column helpers ([`add_column`], [`remove_column`],
+//! [`rename_column`]), index helpers ([`add_index`], [`remove_index`]) and
+//! foreign-key helpers ([`add_foreign_key`], [`remove_foreign_key`]). They are
+//! meant to be called straight from a `MigrationTrait::up`/`down`:
 //!
 //! ```no_run
-//! # async fn demo(db: &impl sea_orm::ConnectionTrait) -> Result<(), sea_orm::DbErr> {
-//! use doido_model::migration::{create_table, drop_table, alter_table, Index, ForeignKey};
+//! # use sea_orm_migration::{SchemaManager, DbErr};
+//! # async fn demo(manager: &SchemaManager<'_>) -> Result<(), DbErr> {
+//! use doido_model::migration::{create_table, drop_table, alter_table, add_index, add_foreign_key};
 //!
-//! create_table(db, "users", |t| {
+//! create_table(manager, "users", |t| {
 //!     t.string("email").not_null().unique_key();
 //!     t.string("name");
 //!     t.timestamps();
 //! })
 //! .await?;
 //!
-//! alter_table(db, "users", |t| {
+//! alter_table(manager, "users", |t| {
 //!     t.add_column("age", |c| {
 //!         c.integer();
 //!     });
@@ -24,10 +28,10 @@
 //! })
 //! .await?;
 //!
-//! Index::add(db, "users", &["email"]).await?;
-//! ForeignKey::add(db, "posts", "user_id", "users", "id").await?;
+//! add_index(manager, "users", &["email"]).await?;
+//! add_foreign_key(manager, "posts", "user_id", "users", "id").await?;
 //!
-//! drop_table(db, "users").await?;
+//! drop_table(manager, "users").await?;
 //! # Ok(())
 //! # }
 //! ```
@@ -37,9 +41,9 @@ mod foreign_key;
 mod index;
 mod table;
 
-pub use column::Column;
-pub use foreign_key::ForeignKey;
-pub use index::Index;
+pub use column::{add_column, remove_column, rename_column};
+pub use foreign_key::{add_foreign_key, remove_foreign_key};
+pub use index::{add_index, remove_index};
 pub use table::{
     alter_table, create_table, drop_table, rename_table, AlterTableBuilder, TableBuilder,
 };

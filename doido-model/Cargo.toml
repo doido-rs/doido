@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 doido-core.workspace = true
 sea-orm.workspace = true
+sea-orm-migration.workspace = true
 tokio.workspace = true
 serde.workspace = true
 serde_norway = "0.9"

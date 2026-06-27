@@ -1058,6 +1058,7 @@ version = "0.0.2-alpha.0"
 dependencies = [
  "doido-core",
  "sea-orm",
+ "sea-orm-migration",
  "serde",
  "serde_norway",
  "tokio",
@@ -2737,6 +2738,22 @@ dependencies = [
  "sea-bae",
  "syn 2.0.117",
  "unicode-ident",
+]
+
+[[package]]
+name = "sea-orm-migration"
+version = "2.0.0-rc.41"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1987e95367941bdabd0b3e126292395ee0adf6417fe26b83b574c6c986e8c1f8"
+dependencies = [
+ "async-trait",
+ "clap",
+ "dotenvy",
+ "sea-orm",
+ "sea-orm-cli",
+ "sea-schema",
+ "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]

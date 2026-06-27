@@ -7,6 +7,7 @@ use sea_orm::sea_query::{
     TableDropStatement, TableRenameStatement,
 };
 use sea_orm::{ConnectionTrait, DbErr};
+use sea_orm_migration::SchemaManager;
 
 /// Collects column definitions inside [`create_table`].
 ///
@@ -210,39 +211,48 @@ fn alter_table_statements(name: &str, ops: Vec<AlterOp>) -> Vec<TableAlterStatem
 
 /// `create_table :name do |t| ... end` — creates a table with an implicit
 /// auto-incrementing `id` primary key plus the columns added in `f`.
-pub async fn create_table<C: ConnectionTrait>(
-    db: &C,
+pub async fn create_table(
+    manager: &SchemaManager<'_>,
     name: &str,
     f: impl FnOnce(&mut TableBuilder),
 ) -> Result<(), DbErr> {
-    db.execute(&create_table_statement(name, f))
+    manager
+        .get_connection()
+        .execute(&create_table_statement(name, f))
         .await
         .map(|_| ())
 }
 
 /// `drop_table :name` — drops the table if it exists.
-pub async fn drop_table<C: ConnectionTrait>(db: &C, name: &str) -> Result<(), DbErr> {
-    db.execute(&drop_table_statement(name)).await.map(|_| ())
+pub async fn drop_table(manager: &SchemaManager<'_>, name: &str) -> Result<(), DbErr> {
+    manager
+        .get_connection()
+        .execute(&drop_table_statement(name))
+        .await
+        .map(|_| ())
 }
 
 /// `rename_table :from, :to`.
-pub async fn rename_table<C: ConnectionTrait>(db: &C, from: &str, to: &str) -> Result<(), DbErr> {
-    db.execute(&rename_table_statement(from, to))
+pub async fn rename_table(manager: &SchemaManager<'_>, from: &str, to: &str) -> Result<(), DbErr> {
+    manager
+        .get_connection()
+        .execute(&rename_table_statement(from, to))
         .await
         .map(|_| ())
 }
 
 /// `alter_table :name do |t| ... end` — applies the column changes collected in
 /// `f` (add/drop/rename), each as its own `ALTER TABLE` statement.
-pub async fn alter_table<C: ConnectionTrait>(
-    db: &C,
+pub async fn alter_table(
+    manager: &SchemaManager<'_>,
     name: &str,
     f: impl FnOnce(&mut AlterTableBuilder),
 ) -> Result<(), DbErr> {
     let mut builder = AlterTableBuilder::new();
     f(&mut builder);
+    let conn = manager.get_connection();
     for stmt in alter_table_statements(name, builder.ops) {
-        db.execute(&stmt).await.map(|_| ())?;
+        conn.execute(&stmt).await.map(|_| ())?;
     }
     Ok(())
 }

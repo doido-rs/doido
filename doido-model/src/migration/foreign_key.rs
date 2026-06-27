@@ -4,6 +4,7 @@ use sea_orm::sea_query::{
     Alias, ForeignKey as SqForeignKey, ForeignKeyCreateStatement, ForeignKeyDropStatement,
 };
 use sea_orm::{ConnectionTrait, DbErr};
+use sea_orm_migration::SchemaManager;
 
 /// Default foreign-key constraint name: `fk_<table>_<column>`.
 fn foreign_key_name(table: &str, column: &str) -> String {
@@ -30,24 +31,22 @@ fn remove_foreign_key_statement(from_table: &str, from_column: &str) -> ForeignK
     stmt
 }
 
-/// Foreign-key migration operations.
-pub struct ForeignKey;
-
-impl ForeignKey {
-    /// `add_foreign_key :from_table, :to_table` — constraint
-    /// `fk_<from_table>_<from_column>` linking `from_table.from_column` to
-    /// `to_table.to_column`.
-    ///
-    /// Note: SQLite cannot add foreign keys via `ALTER TABLE`; define them inside
-    /// [`super::create_table`] there. This works on PostgreSQL and MySQL.
-    pub async fn add<C: ConnectionTrait>(
-        db: &C,
-        from_table: &str,
-        from_column: &str,
-        to_table: &str,
-        to_column: &str,
-    ) -> Result<(), DbErr> {
-        db.execute(&add_foreign_key_statement(
+/// `add_foreign_key :from_table, :to_table` — constraint
+/// `fk_<from_table>_<from_column>` linking `from_table.from_column` to
+/// `to_table.to_column`.
+///
+/// Note: SQLite cannot add foreign keys via `ALTER TABLE`; define them inside
+/// [`super::create_table`] there. This works on PostgreSQL and MySQL.
+pub async fn add_foreign_key(
+    manager: &SchemaManager<'_>,
+    from_table: &str,
+    from_column: &str,
+    to_table: &str,
+    to_column: &str,
+) -> Result<(), DbErr> {
+    manager
+        .get_connection()
+        .execute(&add_foreign_key_statement(
             from_table,
             from_column,
             to_table,
@@ -55,18 +54,19 @@ impl ForeignKey {
         ))
         .await
         .map(|_| ())
-    }
+}
 
-    /// `remove_foreign_key :from_table, column: :from_column`.
-    pub async fn remove<C: ConnectionTrait>(
-        db: &C,
-        from_table: &str,
-        from_column: &str,
-    ) -> Result<(), DbErr> {
-        db.execute(&remove_foreign_key_statement(from_table, from_column))
-            .await
-            .map(|_| ())
-    }
+/// `remove_foreign_key :from_table, column: :from_column`.
+pub async fn remove_foreign_key(
+    manager: &SchemaManager<'_>,
+    from_table: &str,
+    from_column: &str,
+) -> Result<(), DbErr> {
+    manager
+        .get_connection()
+        .execute(&remove_foreign_key_statement(from_table, from_column))
+        .await
+        .map(|_| ())
 }
 
 #[cfg(test)]

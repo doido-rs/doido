@@ -2,6 +2,7 @@
 
 use sea_orm::sea_query::{Alias, ColumnDef, Table as SqTable, TableAlterStatement};
 use sea_orm::{ConnectionTrait, DbErr};
+use sea_orm_migration::SchemaManager;
 
 fn add_column_statement(
     table: &str,
@@ -28,40 +29,45 @@ fn rename_column_statement(table: &str, from: &str, to: &str) -> TableAlterState
     stmt
 }
 
-/// Column-level migration operations.
-pub struct Column;
+/// `add_column :table, :name, :type` — `f` configures the column type/modifiers.
+pub async fn add_column(
+    manager: &SchemaManager<'_>,
+    table: &str,
+    name: &str,
+    f: impl FnOnce(&mut ColumnDef),
+) -> Result<(), DbErr> {
+    manager
+        .get_connection()
+        .execute(&add_column_statement(table, name, f))
+        .await
+        .map(|_| ())
+}
 
-impl Column {
-    /// `add_column :table, :name, :type` — `f` configures the column type/modifiers.
-    pub async fn add<C: ConnectionTrait>(
-        db: &C,
-        table: &str,
-        name: &str,
-        f: impl FnOnce(&mut ColumnDef),
-    ) -> Result<(), DbErr> {
-        db.execute(&add_column_statement(table, name, f))
-            .await
-            .map(|_| ())
-    }
+/// `remove_column :table, :name`.
+pub async fn remove_column(
+    manager: &SchemaManager<'_>,
+    table: &str,
+    name: &str,
+) -> Result<(), DbErr> {
+    manager
+        .get_connection()
+        .execute(&remove_column_statement(table, name))
+        .await
+        .map(|_| ())
+}
 
-    /// `remove_column :table, :name`.
-    pub async fn remove<C: ConnectionTrait>(db: &C, table: &str, name: &str) -> Result<(), DbErr> {
-        db.execute(&remove_column_statement(table, name))
-            .await
-            .map(|_| ())
-    }
-
-    /// `rename_column :table, :from, :to`.
-    pub async fn rename<C: ConnectionTrait>(
-        db: &C,
-        table: &str,
-        from: &str,
-        to: &str,
-    ) -> Result<(), DbErr> {
-        db.execute(&rename_column_statement(table, from, to))
-            .await
-            .map(|_| ())
-    }
+/// `rename_column :table, :from, :to`.
+pub async fn rename_column(
+    manager: &SchemaManager<'_>,
+    table: &str,
+    from: &str,
+    to: &str,
+) -> Result<(), DbErr> {
+    manager
+        .get_connection()
+        .execute(&rename_column_statement(table, from, to))
+        .await
+        .map(|_| ())
 }
 
 #[cfg(test)]
