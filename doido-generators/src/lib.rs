@@ -7,12 +7,10 @@ pub mod registry;
 // CLI entry point (merged in from the former `doido-cli` crate).
 pub use cli::run;
 
-/// `doido` semver written into generated app `Cargo.toml` (resolved when `doido-generators` is built).
-pub const TEMPLATE_PINNED_DOIDO_VERSION: &str = env!("DOIDO_GENERATOR_TEMPLATE_DOIDO_VERSION");
-
-/// `doido-controller` semver written into generated app `Cargo.toml`.
-pub const TEMPLATE_PINNED_DOIDO_CONTROLLER_VERSION: &str =
-    env!("DOIDO_GENERATOR_TEMPLATE_DOIDO_CONTROLLER_VERSION");
+/// Absolute path to the doido workspace root, captured when `doido-generators`
+/// was built. Generated apps point their `doido-*` path dependencies here so a
+/// freshly generated app builds against the local framework crates.
+pub const TEMPLATE_WORKSPACE_PATH: &str = env!("DOIDO_GENERATOR_TEMPLATE_WORKSPACE_PATH");
 
 pub use generator::{GeneratedFile, Generator};
 pub use generators::{

@@ -14,9 +14,6 @@ path = "src/lib.rs"
 name = "doido-generators"
 path = "src/main.rs"
 
-[build-dependencies]
-toml = "0.8"
-
 [dependencies]
 doido-core.workspace = true
 chrono.workspace = true

@@ -5,8 +5,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-doido = "{doido_version}"
-doido-controller = "{doido_controller_version}"
+doido = { path = "{doido_path}/doido" }
+doido-controller = { path = "{doido_path}/doido-controller" }
 axum = "0.8"
 serde_json = "1"
 sqlx = { version = "0.8", features = ["runtime-tokio", "{doido_sqlx_feature}"] }

@@ -1,6 +1,7 @@
 //! New application skeleton rendered from embedded files under `templates/app/`.
 //! Placeholders: `{doido_name}`, `{doido_db_url}`, `{doido_sqlx_feature}`,
-//! `{doido_version}`, `{doido_controller_version}` (semver pins captured at compile time).
+//! `{doido_path}` (absolute workspace root captured at compile time, used for
+//! local `doido-*` path dependencies).
 //!
 //! Template files carrying a trailing `.template` suffix (e.g. `Cargo.toml.template`)
 //! have the suffix stripped on output; the suffix keeps `cargo package` from treating
@@ -24,11 +25,7 @@ fn substitute_template(template: &str, ctx: &TemplateContext<'_>) -> String {
         .replace("{doido_name}", ctx.name)
         .replace("{doido_db_url}", &ctx.db_url)
         .replace("{doido_sqlx_feature}", ctx.sqlx_feature)
-        .replace("{doido_version}", crate::TEMPLATE_PINNED_DOIDO_VERSION)
-        .replace(
-            "{doido_controller_version}",
-            crate::TEMPLATE_PINNED_DOIDO_CONTROLLER_VERSION,
-        )
+        .replace("{doido_path}", crate::TEMPLATE_WORKSPACE_PATH)
 }
 
 fn collect_from_dir(
