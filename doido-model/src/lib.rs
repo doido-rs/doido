@@ -14,5 +14,8 @@ pub use config::{Config, DatabaseConfig, YamlConfig};
 pub use create::create_database;
 pub use environment::Environment;
 
-// Rails-style migration objects: Table::create, Column::add, ForeignKey::add, …
-pub use migration::{Column, ForeignKey, Index, Table, TableBuilder};
+// Rails-style migration helpers: create_table, alter_table, Column::add, …
+pub use migration::{
+    alter_table, create_table, drop_table, rename_table, AlterTableBuilder, Column, ForeignKey,
+    Index, TableBuilder,
+};

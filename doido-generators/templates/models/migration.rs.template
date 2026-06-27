@@ -1,0 +1,18 @@
+use doido_model::migration::Table;
+use sea_orm_migration::prelude::*;
+
+#[derive(DeriveMigrationName)]
+pub struct Migration;
+
+#[async_trait::async_trait]
+impl MigrationTrait for Migration {
+    async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        // `Table::create` adds an auto-incrementing `id` primary key for you.
+        // Add columns with the builder, e.g. `t.string("name").not_null();`.
+        Table::create(manager.get_connection(), "{table_name}", |_t| {}).await
+    }
+
+    async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        Table::drop(manager.get_connection(), "{table_name}").await
+    }
+}

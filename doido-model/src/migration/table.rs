@@ -1,13 +1,14 @@
-//! Table operations: `create_table`, `drop_table`, `rename_table`, plus the
-//! column-definition builder used inside [`Table::create`].
+//! Table operations as free functions — [`create_table`], [`drop_table`],
+//! [`rename_table`], [`alter_table`] — plus the column-definition builders they
+//! use ([`TableBuilder`] for create, [`AlterTableBuilder`] for alter).
 
 use sea_orm::sea_query::{
-    Alias, ColumnDef, Expr, Table as SqTable, TableCreateStatement, TableDropStatement,
-    TableRenameStatement,
+    Alias, ColumnDef, Expr, Table as SqTable, TableAlterStatement, TableCreateStatement,
+    TableDropStatement, TableRenameStatement,
 };
 use sea_orm::{ConnectionTrait, DbErr};
 
-/// Collects column definitions inside [`Table::create`].
+/// Collects column definitions inside [`create_table`].
 ///
 /// A big-integer, auto-incrementing `id` primary key is added automatically,
 /// matching Rails' implicit primary key.
@@ -120,6 +121,49 @@ impl TableBuilder {
     }
 }
 
+/// One pending change collected by [`AlterTableBuilder`].
+enum AlterOp {
+    Add(ColumnDef),
+    Drop(String),
+    Rename(String, String),
+}
+
+/// Collects changes inside [`alter_table`]. Each change is applied as its own
+/// `ALTER TABLE` statement, so this works uniformly across backends (including
+/// SQLite, which permits only one alteration per statement).
+pub struct AlterTableBuilder {
+    ops: Vec<AlterOp>,
+}
+
+impl AlterTableBuilder {
+    fn new() -> Self {
+        AlterTableBuilder { ops: Vec::new() }
+    }
+
+    /// `add_column :name` — `f` configures the column type and modifiers. The
+    /// returned `&mut ColumnDef` allows further chaining.
+    pub fn add_column(&mut self, name: &str, f: impl FnOnce(&mut ColumnDef)) -> &mut ColumnDef {
+        let mut col = ColumnDef::new(Alias::new(name));
+        f(&mut col);
+        self.ops.push(AlterOp::Add(col));
+        match self.ops.last_mut().expect("just pushed an add op") {
+            AlterOp::Add(col) => col,
+            _ => unreachable!("last op is the add we just pushed"),
+        }
+    }
+
+    /// `drop_column :name`.
+    pub fn drop_column(&mut self, name: &str) {
+        self.ops.push(AlterOp::Drop(name.to_string()));
+    }
+
+    /// `rename_column :from, :to`.
+    pub fn rename_column(&mut self, from: &str, to: &str) {
+        self.ops
+            .push(AlterOp::Rename(from.to_string(), to.to_string()));
+    }
+}
+
 fn create_table_statement(name: &str, f: impl FnOnce(&mut TableBuilder)) -> TableCreateStatement {
     let mut builder = TableBuilder::new();
     f(&mut builder);
@@ -143,33 +187,64 @@ fn rename_table_statement(from: &str, to: &str) -> TableRenameStatement {
     stmt
 }
 
-/// Table-level migration operations.
-pub struct Table;
+fn alter_table_statements(name: &str, ops: Vec<AlterOp>) -> Vec<TableAlterStatement> {
+    ops.into_iter()
+        .map(|op| {
+            let mut stmt = SqTable::alter();
+            stmt.table(Alias::new(name));
+            match op {
+                AlterOp::Add(col) => {
+                    stmt.add_column(col);
+                }
+                AlterOp::Drop(name) => {
+                    stmt.drop_column(Alias::new(name));
+                }
+                AlterOp::Rename(from, to) => {
+                    stmt.rename_column(Alias::new(from), Alias::new(to));
+                }
+            }
+            stmt
+        })
+        .collect()
+}
 
-impl Table {
-    /// `create_table :name do |t| ... end` — creates a table with an implicit
-    /// auto-incrementing `id` primary key plus the columns added in `f`.
-    pub async fn create<C: ConnectionTrait>(
-        db: &C,
-        name: &str,
-        f: impl FnOnce(&mut TableBuilder),
-    ) -> Result<(), DbErr> {
-        db.execute(&create_table_statement(name, f))
-            .await
-            .map(|_| ())
-    }
+/// `create_table :name do |t| ... end` — creates a table with an implicit
+/// auto-incrementing `id` primary key plus the columns added in `f`.
+pub async fn create_table<C: ConnectionTrait>(
+    db: &C,
+    name: &str,
+    f: impl FnOnce(&mut TableBuilder),
+) -> Result<(), DbErr> {
+    db.execute(&create_table_statement(name, f))
+        .await
+        .map(|_| ())
+}
 
-    /// `drop_table :name` — drops the table if it exists.
-    pub async fn drop<C: ConnectionTrait>(db: &C, name: &str) -> Result<(), DbErr> {
-        db.execute(&drop_table_statement(name)).await.map(|_| ())
-    }
+/// `drop_table :name` — drops the table if it exists.
+pub async fn drop_table<C: ConnectionTrait>(db: &C, name: &str) -> Result<(), DbErr> {
+    db.execute(&drop_table_statement(name)).await.map(|_| ())
+}
 
-    /// `rename_table :from, :to`.
-    pub async fn rename<C: ConnectionTrait>(db: &C, from: &str, to: &str) -> Result<(), DbErr> {
-        db.execute(&rename_table_statement(from, to))
-            .await
-            .map(|_| ())
+/// `rename_table :from, :to`.
+pub async fn rename_table<C: ConnectionTrait>(db: &C, from: &str, to: &str) -> Result<(), DbErr> {
+    db.execute(&rename_table_statement(from, to))
+        .await
+        .map(|_| ())
+}
+
+/// `alter_table :name do |t| ... end` — applies the column changes collected in
+/// `f` (add/drop/rename), each as its own `ALTER TABLE` statement.
+pub async fn alter_table<C: ConnectionTrait>(
+    db: &C,
+    name: &str,
+    f: impl FnOnce(&mut AlterTableBuilder),
+) -> Result<(), DbErr> {
+    let mut builder = AlterTableBuilder::new();
+    f(&mut builder);
+    for stmt in alter_table_statements(name, builder.ops) {
+        db.execute(&stmt).await.map(|_| ())?;
     }
+    Ok(())
 }
 
 #[cfg(test)]
@@ -204,5 +279,25 @@ mod tests {
     fn drop_table_is_conditional() {
         let sql = drop_table_statement("users").to_string(PostgresQueryBuilder);
         assert!(sql.contains("DROP TABLE IF EXISTS \"users\""));
+    }
+
+    #[test]
+    fn alter_table_emits_one_statement_per_change() {
+        let mut builder = AlterTableBuilder::new();
+        builder.add_column("age", |c| {
+            c.integer();
+        });
+        builder.drop_column("legacy");
+        builder.rename_column("sku", "code");
+
+        let stmts = alter_table_statements("items", builder.ops);
+        assert_eq!(stmts.len(), 3);
+        let add = stmts[0].to_string(PostgresQueryBuilder);
+        assert!(add.contains("ALTER TABLE \"items\""));
+        assert!(add.contains("\"age\""));
+        assert!(stmts[1].to_string(PostgresQueryBuilder).contains("\"legacy\""));
+        let rename = stmts[2].to_string(PostgresQueryBuilder);
+        assert!(rename.contains("\"sku\""));
+        assert!(rename.contains("\"code\""));
     }
 }

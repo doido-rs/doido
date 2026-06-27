@@ -63,7 +63,7 @@ fn test_doido_new_creates_git_repository() {
 }
 
 #[test]
-fn test_doido_generate_model_writes_file() {
+fn test_doido_generate_model_writes_model_migration_and_lib() {
     let dir = tempfile::tempdir().unwrap();
     let mut cmd = Command::cargo_bin("doido-generators").unwrap();
     cmd.current_dir(dir.path())
@@ -71,7 +71,24 @@ fn test_doido_generate_model_writes_file() {
         .assert()
         .success();
 
-    assert!(dir.path().join("src/models/user.rs").exists());
-    let content = fs::read_to_string(dir.path().join("src/models/user.rs")).unwrap();
+    // Model file.
+    let model_path = dir.path().join("app/models/user.rs");
+    assert!(model_path.exists());
+    let content = fs::read_to_string(&model_path).unwrap();
     assert!(content.contains("DeriveEntityModel"));
+
+    // Migration registered in the migration crate lib.rs.
+    let lib = fs::read_to_string(dir.path().join("db/migration/src/lib.rs")).unwrap();
+    assert!(lib.contains("_create_users_table::Migration)"));
+
+    // The migration file itself exists in db/migration/src/.
+    let migration_exists = fs::read_dir(dir.path().join("db/migration/src"))
+        .unwrap()
+        .filter_map(|e| e.ok())
+        .any(|e| {
+            let name = e.file_name();
+            let name = name.to_string_lossy();
+            name.starts_with('m') && name.ends_with("_create_users_table.rs")
+        });
+    assert!(migration_exists);
 }

@@ -39,7 +39,7 @@ impl ForeignKey {
     /// `to_table.to_column`.
     ///
     /// Note: SQLite cannot add foreign keys via `ALTER TABLE`; define them inside
-    /// [`super::Table::create`] there. This works on PostgreSQL and MySQL.
+    /// [`super::create_table`] there. This works on PostgreSQL and MySQL.
     pub async fn add<C: ConnectionTrait>(
         db: &C,
         from_table: &str,

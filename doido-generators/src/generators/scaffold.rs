@@ -1,7 +1,5 @@
 use crate::generator::{GeneratedFile, Generator};
-use crate::generators::{
-    controller::ControllerGenerator, migration::MigrationGenerator, model::ModelGenerator, to_snake,
-};
+use crate::generators::{controller::ControllerGenerator, model::ModelGenerator, to_snake};
 use doido_core::Result;
 
 pub struct ScaffoldGenerator;
@@ -18,8 +16,9 @@ impl Generator for ScaffoldGenerator {
 
         let mut files = vec![];
         files.extend(ControllerGenerator.generate(args)?);
+        // The model generator also emits the migration and updates the migration
+        // crate's lib.rs, so no separate migration generator call is needed.
         files.extend(ModelGenerator.generate(args)?);
-        files.extend(MigrationGenerator.generate(args)?);
 
         // Route injection marker
         let snake = to_snake(name);
