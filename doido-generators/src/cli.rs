@@ -95,7 +95,7 @@ pub async fn run(routes: Option<axum::Router>) {
             }
         }
         Commands::Console => commands::console::run(),
-        Commands::Worker => commands::worker::run(),
+        Commands::Worker => commands::worker::run().await,
         Commands::Db { verbose, command } => commands::db::run(command, verbose).await,
         Commands::Jobs { action } => commands::jobs::run(action),
         Commands::Credentials { action } => commands::credentials::run(action),

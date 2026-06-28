@@ -15,6 +15,10 @@ pub fn job(attr: TokenStream, item: TokenStream) -> TokenStream {
     // Parse key=value attributes
     let mut queue_name = "default".to_string();
     let mut max_retries: u32 = 3;
+    let mut priority: i32 = 0;
+    let mut backoff = "exponential".to_string();
+    let mut backoff_base: u64 = 5;
+    let mut timeout: u64 = 30;
 
     let attr_tokens: proc_macro2::TokenStream = attr.into();
     let parser = Punctuated::<MetaNameValue, Token![,]>::parse_terminated;
@@ -40,6 +44,34 @@ pub fn job(attr: TokenStream, item: TokenStream) -> TokenStream {
                         }
                     }
                 }
+                "priority" => {
+                    if let syn::Expr::Lit(expr_lit) = &pair.value {
+                        if let Lit::Int(n) = &expr_lit.lit {
+                            priority = n.base10_parse().unwrap_or(0);
+                        }
+                    }
+                }
+                "backoff" => {
+                    if let syn::Expr::Lit(expr_lit) = &pair.value {
+                        if let Lit::Str(s) = &expr_lit.lit {
+                            backoff = s.value();
+                        }
+                    }
+                }
+                "backoff_base" => {
+                    if let syn::Expr::Lit(expr_lit) = &pair.value {
+                        if let Lit::Int(n) = &expr_lit.lit {
+                            backoff_base = n.base10_parse().unwrap_or(5);
+                        }
+                    }
+                }
+                "timeout" => {
+                    if let syn::Expr::Lit(expr_lit) = &pair.value {
+                        if let Lit::Int(n) = &expr_lit.lit {
+                            timeout = n.base10_parse().unwrap_or(30);
+                        }
+                    }
+                }
                 _ => {}
             }
         }
@@ -47,6 +79,15 @@ pub fn job(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     let max_retries_lit = LitInt::new(&max_retries.to_string(), Span::call_site());
     let queue_lit = LitStr::new(&queue_name, Span::call_site());
+    let priority_lit = LitInt::new(&priority.to_string(), Span::call_site());
+    let backoff_base_lit = LitInt::new(&backoff_base.to_string(), Span::call_site());
+    let timeout_lit = LitInt::new(&timeout.to_string(), Span::call_site());
+
+    let backoff_variant = match backoff.as_str() {
+        "linear" => quote! { doido_jobs::BackoffStrategy::Linear },
+        "none" => quote! { doido_jobs::BackoffStrategy::None },
+        _ => quote! { doido_jobs::BackoffStrategy::Exponential },
+    };
 
     let expanded = quote! {
         #func
@@ -54,8 +95,12 @@ pub fn job(attr: TokenStream, item: TokenStream) -> TokenStream {
         pub async fn #enqueue_fn_name(
             queue: &dyn doido_jobs::JobQueue,
             payload: serde_json::Value,
-        ) -> doido_core::Result<()> {
-            queue.enqueue(doido_jobs::JobPayload::new(#queue_lit, payload, #max_retries_lit)).await
+        ) -> doido_core::Result<doido_jobs::JobId> {
+            let job = doido_jobs::JobPayload::new(#queue_lit, payload, #max_retries_lit)
+                .with_priority(#priority_lit)
+                .with_backoff(#backoff_variant, #backoff_base_lit)
+                .with_timeout(#timeout_lit);
+            queue.enqueue(job).await
         }
     };
 

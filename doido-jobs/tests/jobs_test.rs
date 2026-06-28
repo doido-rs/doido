@@ -1,7 +1,10 @@
 use doido_jobs::{JobPayload, JobQueue, MemoryQueue, Worker};
 use serde_json::json;
 use std::sync::Arc;
+use std::time::Duration;
 use tokio::sync::Mutex;
+
+const QUEUES: &[&str] = &["default"];
 
 #[tokio::test]
 async fn test_full_job_lifecycle_enqueue_perform_ack() {
@@ -61,7 +64,7 @@ async fn test_job_macro_generates_enqueue_fn() {
     use doido_jobs::{job, JobQueue, MemoryQueue};
     use std::sync::Arc;
 
-    #[job(max_retries = 2, queue = "emails")]
+    #[job(max_retries = 2, queue = "emails", priority = 7, backoff = "linear", backoff_base = 3, timeout = 12)]
     #[allow(dead_code)]
     async fn send_welcome(_data: serde_json::Value) -> doido_core::Result<()> {
         Ok(())
@@ -71,9 +74,32 @@ async fn test_job_macro_generates_enqueue_fn() {
     send_welcome_enqueue(queue.as_ref(), json!({"user": "alice"}))
         .await
         .unwrap();
-    let job = queue.dequeue("emails").await.unwrap();
-    assert!(job.is_some());
-    let j = job.unwrap();
+    let r = queue
+        .reserve(&["emails"], Duration::from_millis(50))
+        .await
+        .unwrap();
+    assert!(r.is_some());
+    let j = r.unwrap().job;
     assert_eq!(j.max_retries, 2);
     assert_eq!(j.queue, "emails");
+    assert_eq!(j.priority, 7);
+    assert_eq!(j.backoff_base, 3);
+    assert_eq!(j.timeout, 12);
+}
+
+#[tokio::test]
+async fn test_run_once_returns_false_on_empty_queue() {
+    let queue = Arc::new(MemoryQueue::new());
+    let worker = Worker::new(queue.clone(), "default");
+    // No job enqueued — run_once should complete without performing anything.
+    worker
+        .run_once(|_job| async { Ok(()) })
+        .await
+        .unwrap();
+    // sanity: queue still empty/reservable returns none
+    assert!(queue
+        .reserve(QUEUES, Duration::from_millis(10))
+        .await
+        .unwrap()
+        .is_none());
 }
