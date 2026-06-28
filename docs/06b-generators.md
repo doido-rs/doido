@@ -152,6 +152,35 @@ pub struct Model {
   are always NOT NULL.
 - Unknown types or modifiers are a hard error so typos surface immediately.
 
+## Scaffold (`scaffold`)
+
+`scaffold` runs the `model` generator and adds a full RESTful controller, views,
+and route wiring — a complete CRUD resource from one command:
+
+```sh
+doido generate scaffold Post title:string:not_null body:text author:references
+doido generate scaffold Post title:string --api      # JSON API, no views
+```
+
+Produces:
+- `app/models/post.rs` + migration (via the `model` generator), registered in
+  `app/models/mod.rs`.
+- `app/controllers/posts_controller.rs` — a `#[controller]` with all 7 actions
+  (`index, show, new, create, edit, update, destroy`) performing real sea-orm
+  persistence through `Context::db()`, plus a `PostForm` strong-params struct
+  derived from the field specs. Registered in `app/controllers/mod.rs`.
+- HTML mode: `app/views/posts/{index,show,new,edit,_form}.html.tera`, with table
+  columns and form inputs derived from the fields. `--api` skips views and the
+  actions return `ctx.json(...)`.
+- `resources!(posts, PostsController);` injected into `config/routes.rs`
+  (existing routes preserved).
+
+Controller actions return `doido::Result<Response>`, so they use `?` for
+fallible work (DB calls, body parsing); the `#[controller]` macro maps an `Err`
+to a `500`. Request data is read via `ctx.param("id")`, `ctx.form::<T>()`, and
+`ctx.body_json::<T>()`. The global DB pool is installed at server boot
+(`doido_model::pool::init`).
+
 ## Route Auto-Injection into `config/routes.rs`
 
 ```rust

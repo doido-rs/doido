@@ -158,17 +158,80 @@ fn test_channel_generator_produces_correct_file() {
 
 #[test]
 fn test_scaffold_generator_produces_multiple_files() {
-    let files = ScaffoldGenerator.generate(&["Post"]).unwrap();
-    // Should produce: controller + model + migration + routes
-    assert!(files.len() >= 4);
+    let files = ScaffoldGenerator
+        .generate(&["Post", "title:string:not_null", "body:text"])
+        .unwrap();
     let paths: Vec<&str> = files.iter().map(|f| f.path.as_str()).collect();
-    assert!(paths.iter().any(|p| p.contains("controller")));
-    assert!(paths.iter().any(|p| p.contains("model")));
-    assert!(paths.iter().any(|p| p.contains("migration")));
+
+    // Model + migration + controller + 5 views + routes + both mod.rs registries.
+    assert!(paths.contains(&"app/models/post.rs"));
+    assert!(paths.contains(&"app/controllers/posts_controller.rs"));
+    assert!(paths.iter().any(|p| p.ends_with("_create_posts_table.rs")));
+    assert!(paths.contains(&"app/views/posts/index.html.tera"));
+    assert!(paths.contains(&"app/views/posts/show.html.tera"));
+    assert!(paths.contains(&"app/views/posts/new.html.tera"));
+    assert!(paths.contains(&"app/views/posts/edit.html.tera"));
+    assert!(paths.contains(&"app/views/posts/_form.html.tera"));
     assert!(paths.contains(&"config/routes.rs"));
-    // Route file should contain resources! call
+
+    // Controller has all 7 RESTful actions and a strong-params struct.
+    let ctrl = files
+        .iter()
+        .find(|f| f.path == "app/controllers/posts_controller.rs")
+        .unwrap();
+    for action in ["index", "show", "new", "create", "edit", "update", "destroy"] {
+        assert!(
+            ctrl.content.contains(&format!("fn {action}(")),
+            "missing action {action}"
+        );
+    }
+    assert!(ctrl.content.contains("pub struct PostsController;"));
+    assert!(ctrl.content.contains("pub struct PostForm"));
+    assert!(ctrl.content.contains("pub title: String,"));
+    assert!(ctrl.content.contains("title: Set(form.title),"));
+    assert!(ctrl.content.contains("ctx.render(\"posts/index\""));
+
+    // Route injection (plural + controller), preserving the existing route.
     let routes = files.iter().find(|f| f.path == "config/routes.rs").unwrap();
-    assert!(routes.content.contains("resources!(post)"));
+    assert!(routes.content.contains("resources!(posts, PostsController);"));
+    assert!(routes.content.contains("use crate::controllers::PostsController;"));
+    assert!(routes.content.contains("HelloController::index")); // preserved
+
+    // Controller registered in app/controllers/mod.rs.
+    let cmod = files
+        .iter()
+        .find(|f| f.path == "app/controllers/mod.rs")
+        .unwrap();
+    assert!(cmod.content.contains("mod posts_controller;"));
+    assert!(cmod.content.contains("pub use posts_controller::PostsController;"));
+
+    // Views are field-driven.
+    let index = files
+        .iter()
+        .find(|f| f.path == "app/views/posts/index.html.tera")
+        .unwrap();
+    assert!(index.content.contains("<th>title</th>"));
+    assert!(index.content.contains("{% for post in posts %}"));
+    assert!(index.content.contains("{{ post.title }}"));
+}
+
+#[test]
+fn test_scaffold_api_emits_json_controller_and_no_views() {
+    let files = ScaffoldGenerator
+        .generate(&["Post", "title:string", "--api"])
+        .unwrap();
+    let paths: Vec<&str> = files.iter().map(|f| f.path.as_str()).collect();
+
+    // No view templates in API mode.
+    assert!(!paths.iter().any(|p| p.contains("app/views/")));
+
+    let ctrl = files
+        .iter()
+        .find(|f| f.path == "app/controllers/posts_controller.rs")
+        .unwrap();
+    assert!(ctrl.content.contains("ctx.json("));
+    assert!(ctrl.content.contains("ctx.body_json()"));
+    assert!(!ctrl.content.contains("ctx.render("));
 }
 
 #[test]

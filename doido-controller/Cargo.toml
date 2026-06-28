@@ -8,6 +8,8 @@ edition = "2021"
 [dependencies]
 doido-core.workspace = true
 doido-controller-macros.workspace = true
+doido-model.workspace = true
+doido-view.workspace = true
 async-trait.workspace = true
 axum.workspace = true
 tokio = { workspace = true, features = ["full"] }
@@ -23,3 +25,4 @@ serde_urlencoded = "0.7"
 [dev-dependencies]
 http-body-util.workspace = true
 tokio.workspace = true
+tempfile = "3"

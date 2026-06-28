@@ -11,9 +11,13 @@ const MIGRATION_TEMPLATE: &str = include_str!("../../templates/models/migration.
 /// Fallback migration `lib.rs` used when the app doesn't have one on disk yet;
 /// kept in sync with the generated-app template so injection markers line up.
 const MIGRATION_LIB_BASE: &str = include_str!("../../templates/new/db/migration/src/lib.rs");
+/// Fallback `app/models/mod.rs` used when the app doesn't have one on disk yet.
+const MODELS_MOD_BASE: &str = include_str!("../../templates/new/app/models/mod.rs");
 
 /// Directory holding the SeaORM migration crate's sources.
 const MIGRATION_SRC_DIR: &str = "db/migration/src";
+/// Path to the application models module registry.
+const MODELS_MOD_PATH: &str = "app/models/mod.rs";
 
 pub struct ModelGenerator;
 
@@ -55,6 +59,12 @@ impl Generator for ModelGenerator {
             std::fs::read_to_string(&lib_path).unwrap_or_else(|_| MIGRATION_LIB_BASE.to_string());
         let lib = register_migration(&existing, &migration_module);
 
+        // Register the model's module in app/models/mod.rs, preserving existing
+        // registrations.
+        let models_mod_existing =
+            std::fs::read_to_string(MODELS_MOD_PATH).unwrap_or_else(|_| MODELS_MOD_BASE.to_string());
+        let models_mod = register_model_module(&models_mod_existing, &snake);
+
         Ok(vec![
             GeneratedFile {
                 path: format!("app/models/{snake}.rs"),
@@ -67,6 +77,10 @@ impl Generator for ModelGenerator {
             GeneratedFile {
                 path: lib_path,
                 content: lib,
+            },
+            GeneratedFile {
+                path: MODELS_MOD_PATH.to_string(),
+                content: models_mod,
             },
         ])
     }
@@ -133,6 +147,26 @@ fn migration_up_body(table_name: &str, fields: &[Field]) -> String {
     }
 
     body
+}
+
+/// Inserts `pub mod <module>;` into `app/models/mod.rs` just above the
+/// `@generated-models` marker. Idempotent: if the module is already registered,
+/// the file is returned unchanged.
+fn register_model_module(models_mod: &str, module: &str) -> String {
+    let decl = format!("pub mod {module};");
+    if models_mod.lines().any(|l| l.trim() == decl) {
+        return models_mod.to_string();
+    }
+
+    let mut lines: Vec<String> = models_mod.lines().map(String::from).collect();
+    if let Some(i) = lines.iter().position(|l| l.contains("@generated-models")) {
+        lines.insert(i, decl);
+    } else {
+        lines.push(decl);
+    }
+    let mut out = lines.join("\n");
+    out.push('\n');
+    out
 }
 
 /// Inserts a `mod <module>;` declaration and a `Box::new(<module>::Migration)`

@@ -1,6 +1,7 @@
 //! Convenience entry point for booting an application's HTTP server.
 
 use crate::config;
+use crate::stack::MiddlewareStack;
 
 /// Boots the HTTP server for `router`.
 ///
@@ -12,7 +13,13 @@ pub async fn start_server(router: axum::Router) -> std::io::Result<()> {
     let server = config.server();
     let addr = format!("{}:{}", server.bind, server.port);
 
+    // Apply the always-on middleware (request/response logging + panic
+    // recovery) so every request is traced through the global subscriber.
+    let router = MiddlewareStack::default().apply(router);
+
     let listener = tokio::net::TcpListener::bind(&addr).await?;
     println!("listening on http://{addr}");
+    println!("Routes:");
+    crate::route_table::print_routes();
     axum::serve(listener, router).await
 }

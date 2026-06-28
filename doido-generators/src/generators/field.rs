@@ -155,13 +155,62 @@ impl Field {
 
     /// Whether the column (and therefore the model field) is NOT NULL.
     /// References are always non-null (the builder enforces it).
-    fn is_required(&self) -> bool {
+    pub fn is_required(&self) -> bool {
         self.not_null || self.ty == ColumnType::References
     }
 
     /// Whether this field requested its own index.
     pub fn wants_index(&self) -> bool {
         self.index
+    }
+
+    /// The Rust type as written in a scaffold params struct / model field,
+    /// wrapped in `Option<…>` when the column is nullable.
+    fn rust_type(&self) -> String {
+        let ty = self.ty.rust_type();
+        if self.is_required() {
+            ty.to_string()
+        } else {
+            format!("Option<{ty}>")
+        }
+    }
+
+    /// Render a field for the scaffold's form-params struct, e.g.
+    /// `pub title: String,` — mirrors the column's nullability.
+    pub fn params_struct_field(&self) -> String {
+        format!("pub {}: {},", self.column_name(), self.rust_type())
+    }
+
+    /// Render an `ActiveModel` struct-literal entry from a parsed `form`, e.g.
+    /// `title: Set(form.title),` (used by `create`).
+    pub fn active_model_set(&self) -> String {
+        let col = self.column_name();
+        format!("{col}: Set(form.{col}),")
+    }
+
+    /// Render an `ActiveModel` field assignment from a parsed `form`, e.g.
+    /// `record.title = Set(form.title);` (used by `update`).
+    pub fn active_model_assign(&self) -> String {
+        let col = self.column_name();
+        format!("record.{col} = Set(form.{col});")
+    }
+
+    /// The HTML `<input type="…">` (or `textarea`/`checkbox`) for this column,
+    /// used by the scaffold form view.
+    pub fn html_input_type(&self) -> &'static str {
+        match self.ty {
+            ColumnType::Text => "textarea",
+            ColumnType::Boolean => "checkbox",
+            ColumnType::Integer
+            | ColumnType::BigInteger
+            | ColumnType::Float
+            | ColumnType::Double
+            | ColumnType::Decimal
+            | ColumnType::References => "number",
+            ColumnType::Date => "date",
+            ColumnType::Timestamp => "datetime-local",
+            _ => "text",
+        }
     }
 
     /// Render the migration builder line, e.g. `t.string("title").not_null();`.
@@ -183,13 +232,7 @@ impl Field {
     /// Render the SeaORM model struct field, e.g. `pub title: String,` or
     /// `pub age: Option<i32>,` for a nullable column.
     pub fn model_field(&self) -> String {
-        let ty = self.ty.rust_type();
-        let rust_ty = if self.is_required() {
-            ty.to_string()
-        } else {
-            format!("Option<{ty}>")
-        };
-        format!("pub {}: {rust_ty},", self.column_name())
+        format!("pub {}: {},", self.column_name(), self.rust_type())
     }
 }
 
@@ -230,6 +273,26 @@ mod tests {
     fn index_modifier_is_tracked() {
         let f = Field::parse("slug:string:index").unwrap();
         assert!(f.wants_index());
+    }
+
+    #[test]
+    fn params_struct_field_and_active_model_set() {
+        let f = Field::parse("title:string:not_null").unwrap();
+        assert_eq!(f.params_struct_field(), "pub title: String,");
+        assert_eq!(f.active_model_set(), "title: Set(form.title),");
+
+        let r = Field::parse("author:references").unwrap();
+        assert_eq!(r.params_struct_field(), "pub author_id: i64,");
+        assert_eq!(r.active_model_set(), "author_id: Set(form.author_id),");
+    }
+
+    #[test]
+    fn html_input_types_map_by_column_type() {
+        assert_eq!(Field::parse("name").unwrap().html_input_type(), "text");
+        assert_eq!(Field::parse("bio:text").unwrap().html_input_type(), "textarea");
+        assert_eq!(Field::parse("age:integer").unwrap().html_input_type(), "number");
+        assert_eq!(Field::parse("ok:boolean").unwrap().html_input_type(), "checkbox");
+        assert_eq!(Field::parse("born:date").unwrap().html_input_type(), "date");
     }
 
     #[test]

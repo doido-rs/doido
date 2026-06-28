@@ -61,12 +61,11 @@ async fn test_ctx_status_returns_custom_status_code() {
 }
 
 #[tokio::test]
-async fn test_ctx_render_returns_ok_with_template_name() {
+async fn test_ctx_render_without_engine_returns_500() {
+    // No view engine installed in this test binary, so render fails gracefully.
     let ctx = make_ctx("/");
     let resp = ctx.render("posts/index", serde_json::json!({}));
-    assert_eq!(resp.status(), StatusCode::OK);
-    let body = resp.into_body().collect().await.unwrap().to_bytes();
-    assert!(std::str::from_utf8(&body).unwrap().contains("posts/index"));
+    assert_eq!(resp.status(), StatusCode::INTERNAL_SERVER_ERROR);
 }
 
 struct HelloController;
@@ -328,6 +327,119 @@ async fn test_after_action_fires_after_action_body() {
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
     assert!(AFTER_FIRED.with(|f| f.get()), "after_action was not called");
+}
+
+// ── path params, body parsing, and Result-returning actions ────────────────
+
+struct ParamController;
+
+#[doido_controller::controller]
+impl ParamController {
+    async fn show(ctx: Context) -> doido_controller::Response {
+        let id = ctx.param("id").unwrap_or("none");
+        ctx.json(serde_json::json!({ "id": id }))
+    }
+}
+
+#[tokio::test]
+async fn test_ctx_param_reads_matched_path_segment() {
+    let app =
+        axum::Router::new().route("/widgets/{id}", axum::routing::get(ParamController::show));
+    let resp = app
+        .oneshot(
+            Request::builder()
+                .uri("/widgets/42")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+    let body = resp.into_body().collect().await.unwrap().to_bytes();
+    let v: serde_json::Value = serde_json::from_slice(&body).unwrap();
+    assert_eq!(v["id"], "42");
+}
+
+#[derive(Deserialize)]
+struct CreateWidget {
+    name: String,
+}
+
+struct BodyController;
+
+#[doido_controller::controller]
+impl BodyController {
+    // Returns Result<Response> — exercised by the IntoActionResponse wrapper.
+    async fn create(mut ctx: Context) -> doido_core::Result<doido_controller::Response> {
+        let form: CreateWidget = ctx.form().await?;
+        Ok(ctx.json(serde_json::json!({ "name": form.name })))
+    }
+
+    async fn create_json(mut ctx: Context) -> doido_core::Result<doido_controller::Response> {
+        let body: CreateWidget = ctx.body_json().await?;
+        Ok(ctx.json(serde_json::json!({ "name": body.name })))
+    }
+}
+
+#[tokio::test]
+async fn test_ctx_form_parses_urlencoded_body() {
+    let app =
+        axum::Router::new().route("/widgets", axum::routing::post(BodyController::create));
+    let resp = app
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/widgets")
+                .header("content-type", "application/x-www-form-urlencoded")
+                .body(Body::from("name=gizmo"))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+    let body = resp.into_body().collect().await.unwrap().to_bytes();
+    let v: serde_json::Value = serde_json::from_slice(&body).unwrap();
+    assert_eq!(v["name"], "gizmo");
+}
+
+#[tokio::test]
+async fn test_ctx_body_json_parses_json_body() {
+    let app = axum::Router::new()
+        .route("/widgets.json", axum::routing::post(BodyController::create_json));
+    let resp = app
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/widgets.json")
+                .header("content-type", "application/json")
+                .body(Body::from(r#"{"name":"doohickey"}"#))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+    let body = resp.into_body().collect().await.unwrap().to_bytes();
+    let v: serde_json::Value = serde_json::from_slice(&body).unwrap();
+    assert_eq!(v["name"], "doohickey");
+}
+
+#[tokio::test]
+async fn test_action_returning_err_becomes_500() {
+    // Missing/garbage body → form() errors → IntoActionResponse maps to 500.
+    let app =
+        axum::Router::new().route("/widgets", axum::routing::post(BodyController::create_json));
+    let resp = app
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/widgets")
+                .header("content-type", "application/json")
+                .body(Body::from("not json"))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::INTERNAL_SERVER_ERROR);
 }
 
 async fn auth_guard(ctx: &mut Context) -> Result<(), doido_controller::Response> {

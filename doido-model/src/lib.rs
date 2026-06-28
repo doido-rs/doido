@@ -15,6 +15,7 @@ pub mod testing;
 pub use config::{Config, DatabaseConfig, YamlConfig};
 pub use create::create_database;
 pub use environment::Environment;
+pub use pool::{connect, connect_with_url};
 
 // Rails-style migration helpers: create_table, alter_table, add_column, …
 pub use migration::{

@@ -72,7 +72,9 @@ doido-cli/
 - CLI argument parsing via `clap`
 - `doido generate` subcommand delegates entirely to `doido_generators::dispatch(args)`
 - All runtime commands are independently testable modules
-- `doido routes` reads the compiled route table from `doido-router`
+- `doido routes` prints the route table the `routes!` macro registers (in
+  `doido-controller`) as the app builds its router; `doido server` prints the
+  same table on startup before listening
 
 ## TDD Surface
 

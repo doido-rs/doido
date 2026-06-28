@@ -10,6 +10,7 @@ anyhow = "1"
 thiserror = "2"
 async-trait.workspace = true
 tracing.workspace = true
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
 serde.workspace = true
 serde_norway = "0.9"
 regex = "1"

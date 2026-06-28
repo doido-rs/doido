@@ -76,7 +76,15 @@ pub async fn run(routes: Option<axum::Router>) {
     let cli = Cli::parse();
     match cli.command {
         Commands::Server => commands::server::run(routes).await,
-        Commands::Routes => println!("Routes:"),
+        Commands::Routes => {
+            // `routes` being `Some` means the app already built its router, which
+            // populated the global route table the macro registers into.
+            if routes.is_some() {
+                doido_controller::print_routes();
+            } else {
+                println!("No routes configured.");
+            }
+        }
         Commands::Console => commands::console::run(),
         Commands::Worker => commands::worker::run(),
         Commands::Db { verbose, command } => commands::db::run(command, verbose).await,

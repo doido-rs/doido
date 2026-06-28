@@ -1,0 +1,66 @@
+use crate::models::{singular}::{ActiveModel, Entity};
+use doido::model::sea_orm::{entity::prelude::*, Set};
+use doido_controller::{controller, Context, Response};
+use serde::Deserialize;
+use serde_json::json;
+
+/// Strong params for creating/updating a {Model}.
+#[derive(Deserialize)]
+pub struct {Model}Form {
+{params_fields}}
+
+pub struct {Controller};
+
+#[controller]
+impl {Controller} {
+    /// GET /{plural}
+    pub async fn index(ctx: Context) -> doido::Result<Response> {
+        let {plural} = Entity::find().all(ctx.db()).await?;
+        Ok(ctx.json({plural}))
+    }
+
+    /// GET /{plural}/{id}
+    pub async fn show(ctx: Context) -> doido::Result<Response> {
+        let id = parse_id(&ctx);
+        match Entity::find_by_id(id).one(ctx.db()).await? {
+            Some({singular}) => Ok(ctx.json({singular})),
+            None => Ok(ctx.status(404)),
+        }
+    }
+
+    /// POST /{plural}
+    pub async fn create(mut ctx: Context) -> doido::Result<Response> {
+        let form: {Model}Form = ctx.body_json().await?;
+        let record = ActiveModel {
+{active_model_sets}            ..Default::default()
+        };
+        let {singular} = record.insert(ctx.db()).await?;
+        Ok(ctx.json({singular}))
+    }
+
+    /// PATCH/PUT /{plural}/{id}
+    pub async fn update(mut ctx: Context) -> doido::Result<Response> {
+        let id = parse_id(&ctx);
+        let form: {Model}Form = ctx.body_json().await?;
+        match Entity::find_by_id(id).one(ctx.db()).await? {
+            Some(existing) => {
+                let mut record: ActiveModel = existing.into();
+{active_model_assigns}                let {singular} = record.update(ctx.db()).await?;
+                Ok(ctx.json({singular}))
+            }
+            None => Ok(ctx.status(404)),
+        }
+    }
+
+    /// DELETE /{plural}/{id}
+    pub async fn destroy(ctx: Context) -> doido::Result<Response> {
+        let id = parse_id(&ctx);
+        Entity::delete_by_id(id).exec(ctx.db()).await?;
+        Ok(ctx.status(204))
+    }
+}
+
+/// Parses the `:id` path segment, defaulting to 0 when absent/invalid.
+fn parse_id(ctx: &Context) -> i32 {
+    ctx.param("id").and_then(|v| v.parse().ok()).unwrap_or_default()
+}

@@ -111,8 +111,25 @@ doido-core/
       rules.rs         ← default English inflection rules
       inflections.rs   ← Inflections config struct (user-facing)
     async_trait.rs    ← re-export async_trait for convenience
-    tracing.rs        ← tracing span helpers used across crates
+    logger.rs         ← centralized tracing_subscriber setup (logger::init)
+    trace.rs          ← tracing event helpers used across crates
 ```
+
+## Logging (centralized)
+
+`doido_core::logger` owns the framework's `tracing_subscriber` setup — the single
+place logging is configured. `doido server` calls `logger::init()` at boot,
+after which everything flows through one subscriber:
+
+- HTTP **requests & responses** — logged at `INFO` by the always-on `TraceLayer`
+  in `doido-controller`'s middleware stack (method, path, status, latency).
+- **ORM queries** — sea-orm's SQL logging (enabled on the connection in
+  `doido-model`) emits under target `sqlx::query` at `INFO`.
+- Jobs, mail, custom events — the [Tracing Helpers](#tracing-helpers) below.
+
+Verbosity is controlled by `RUST_LOG` (`EnvFilter` syntax); when unset,
+`logger::DEFAULT_DIRECTIVES` applies (`info` + `sqlx::query=info`, with pool and
+hyper/tower internals quieted). `init()` is idempotent.
 
 ## Tracing Helpers
 

@@ -1,0 +1,6 @@
+{% extends "layouts/application.html.tera" %}
+{% block content %}
+<h1>{Model}</h1>
+{show_fields}<a href="/{plural}/{{ {singular}.id }}/edit">Edit</a>
+<a href="/{plural}">Back</a>
+{% endblock %}

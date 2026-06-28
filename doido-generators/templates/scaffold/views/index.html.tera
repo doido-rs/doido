@@ -1,0 +1,22 @@
+{% extends "layouts/application.html.tera" %}
+{% block content %}
+<h1>{Model}</h1>
+<a href="/{plural}/new">New {Model}</a>
+<table>
+  <thead>
+    <tr>
+{table_headers}      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for {singular} in {plural} %}
+    <tr>
+{table_cells}      <td>
+        <a href="/{plural}/{{ {singular}.id }}">Show</a>
+        <a href="/{plural}/{{ {singular}.id }}/edit">Edit</a>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

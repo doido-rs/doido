@@ -1,6 +1,9 @@
 #[path = "../app/controllers/mod.rs"]
 mod controllers;
 
+#[path = "../app/models/mod.rs"]
+mod models;
+
 #[path = "../config/routes.rs"]
 mod routes;
 

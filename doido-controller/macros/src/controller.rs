@@ -52,6 +52,7 @@ pub fn expand_controller(_attr: TokenStream, item: TokenStream) -> Result<TokenS
     let self_ty = impl_block.self_ty.clone();
 
     let mut handler_fns: Vec<TokenStream> = Vec::new();
+    let mut action_fns: Vec<TokenStream> = Vec::new();
 
     for impl_item in &impl_block.items {
         let ImplItem::Fn(method) = impl_item else {
@@ -64,6 +65,20 @@ pub fn expand_controller(_attr: TokenStream, item: TokenStream) -> Result<TokenS
         let fn_name = &method.sig.ident;
         let fn_name_str = fn_name.to_string();
         let body = &method.block;
+        // The action's declared return type (`Response` or `Result<Response, _>`),
+        // used on the extracted action fn so `?` resolves and the error type is pinned.
+        let ret_ty = match &method.sig.output {
+            syn::ReturnType::Type(_, ty) => quote! { #ty },
+            syn::ReturnType::Default => quote! { ::axum::response::Response },
+        };
+        // The action body is moved into a private `async fn` taking `&mut Context`.
+        // Using a real `&mut Context` parameter (rather than an `async {}` block,
+        // which would capture `&Context` and be `!Send` because `Context: !Sync`)
+        // keeps the handler future `Send` as axum's `Handler` requires.
+        let action_fn = quote::format_ident!("__doido_action_{}", fn_name);
+        action_fns.push(quote! {
+            async fn #action_fn(ctx: &mut ::doido_controller::Context) -> #ret_ty #body
+        });
 
         let mut before_chain: Vec<TokenStream> = Vec::new();
         let mut after_chain: Vec<TokenStream> = Vec::new();
@@ -103,11 +118,14 @@ pub fn expand_controller(_attr: TokenStream, item: TokenStream) -> Result<TokenS
             pub async fn #fn_name(
                 req: ::axum::extract::Request,
             ) -> ::axum::response::Response {
-                let (parts, body) = req.into_parts();
                 #[allow(unused_mut)]
-                let mut ctx = ::doido_controller::Context::from_request(parts, body);
+                let mut ctx = ::doido_controller::Context::build(req).await;
                 #(#before_chain)*
-                let __response = { #body };
+                // The extracted action returns `Response` or `Result<Response, _>`;
+                // `IntoActionResponse` normalises it (mapping `Err` to a 500).
+                let __action_result = Self::#action_fn(&mut ctx).await;
+                let __response =
+                    ::doido_controller::IntoActionResponse::into_action_response(__action_result);
                 #(#after_chain)*
                 __response
             }
@@ -124,6 +142,7 @@ pub fn expand_controller(_attr: TokenStream, item: TokenStream) -> Result<TokenS
     Ok(quote! {
         #impl_block
         impl #self_ty {
+            #(#action_fns)*
             #(#handler_fns)*
         }
     })

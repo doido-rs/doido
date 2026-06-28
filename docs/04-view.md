@@ -45,6 +45,17 @@ views/
 
 ## Rendering from a Controller
 
+`Context::render(template, data) -> Response` delegates to a process-global Tera
+engine installed at server boot (`doido_view::init("app/views")`), mirroring the
+DB pool. The template key resolves under `app/views` with the `.html.tera`
+suffix (`"posts/index"` → `app/views/posts/index.html.tera`) and the response is
+`200 text/html`; a render failure or uninitialised engine yields a `500`.
+Layouts are applied the Tera way — the view does
+`{% extends "layouts/application.html.tera" %}` — which is what the scaffold
+generator emits. (`doido_view::Renderer` additionally offers the
+`content_for_layout` style for apps that prefer controller-chosen layouts.)
+Custom engines: install any `TemplateEngine` with `doido_view::set_engine(...)`.
+
 ```rust
 // ctx.render delegates to doido-view
 ctx.render("posts/index", json!({ "posts": posts }))

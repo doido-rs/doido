@@ -1,5 +1,10 @@
 use axum::Router;
-use tower_http::{catch_panic::CatchPanicLayer, cors::CorsLayer, trace::TraceLayer};
+use tower_http::{
+    catch_panic::CatchPanicLayer,
+    cors::CorsLayer,
+    trace::{DefaultOnRequest, DefaultOnResponse, TraceLayer},
+};
+use tracing::Level;
 
 pub struct MiddlewareStack {
     cors: bool,
@@ -16,9 +21,13 @@ impl MiddlewareStack {
     }
 
     pub fn apply(self, router: Router) -> Router {
-        let mut r = router
-            .layer(CatchPanicLayer::new())
-            .layer(TraceLayer::new_for_http());
+        // Log every request and response at INFO (method, path, status, latency)
+        // through the centralized subscriber installed by `doido_core::logger`.
+        let trace = TraceLayer::new_for_http()
+            .on_request(DefaultOnRequest::new().level(Level::INFO))
+            .on_response(DefaultOnResponse::new().level(Level::INFO));
+
+        let mut r = router.layer(CatchPanicLayer::new()).layer(trace);
         if self.cors {
             r = r.layer(CorsLayer::permissive());
         }

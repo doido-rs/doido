@@ -14,6 +14,7 @@ fn generate_inner(
     input: RoutesInput,
     path_prefix: Option<&str>,
     helper_prefix: Option<&str>,
+    descriptors: &mut Vec<(String, String)>,
 ) -> TokenStream {
     let mut route_stmts = Vec::new();
     let mut helper_fns = Vec::new();
@@ -33,6 +34,7 @@ fn generate_inner(
                     }
                     None => path,
                 };
+                descriptors.push((method.to_uppercase(), full_path.value()));
                 route_stmts.push(quote! {
                     .route(#full_path, axum::routing::#axum_method(#handler))
                 });
@@ -54,29 +56,36 @@ fn generate_inner(
                 let mut collection = quote! { axum::routing::MethodRouter::new() };
                 if is_active("index", &filter) {
                     collection = quote! { #collection.get(#ctrl::index) };
+                    descriptors.push(("GET".to_string(), base.clone()));
                 }
                 if is_active("create", &filter) {
                     collection = quote! { #collection.post(#ctrl::create) };
+                    descriptors.push(("POST".to_string(), base.clone()));
                 }
                 route_stmts.push(quote! { .route(#base, #collection) });
 
                 if is_active("new", &filter) {
+                    descriptors.push(("GET".to_string(), base_new.clone()));
                     route_stmts.push(quote! { .route(#base_new, axum::routing::get(#ctrl::new)) });
                 }
 
                 let mut member = quote! { axum::routing::MethodRouter::new() };
                 if is_active("show", &filter) {
                     member = quote! { #member.get(#ctrl::show) };
+                    descriptors.push(("GET".to_string(), base_id.clone()));
                 }
                 if is_active("update", &filter) {
                     member = quote! { #member.patch(#ctrl::update).put(#ctrl::update) };
+                    descriptors.push(("PUT|PATCH".to_string(), base_id.clone()));
                 }
                 if is_active("destroy", &filter) {
                     member = quote! { #member.delete(#ctrl::destroy) };
+                    descriptors.push(("DELETE".to_string(), base_id.clone()));
                 }
                 route_stmts.push(quote! { .route(#base_id, #member) });
 
                 if is_active("edit", &filter) {
+                    descriptors.push(("GET".to_string(), base_id_edit.clone()));
                     route_stmts
                         .push(quote! { .route(#base_id_edit, axum::routing::get(#ctrl::edit)) });
                 }
@@ -121,7 +130,8 @@ fn generate_inner(
                     Some(pfx) => format!("{}_{}", pfx, ns_str),
                     None => ns_str,
                 };
-                let inner_ts = generate_inner(body, Some(&ns_path), Some(&combined_helper));
+                let inner_ts =
+                    generate_inner(body, Some(&ns_path), Some(&combined_helper), descriptors);
                 route_stmts.push(quote! { .merge(#inner_ts) });
             }
             RouteDecl::Scope {
@@ -132,7 +142,7 @@ fn generate_inner(
                     Some(pfx) => format!("{}{}", pfx, scope_path.value()),
                     None => scope_path.value(),
                 };
-                let inner_ts = generate_inner(body, Some(&full_path), helper_prefix);
+                let inner_ts = generate_inner(body, Some(&full_path), helper_prefix, descriptors);
                 route_stmts.push(quote! { .merge(#inner_ts) });
             }
         }
@@ -148,5 +158,24 @@ fn generate_inner(
 }
 
 pub fn generate(input: RoutesInput) -> TokenStream {
-    generate_inner(input, None, None)
+    let mut descriptors = Vec::new();
+    let inner = generate_inner(input, None, None, &mut descriptors);
+
+    let entries = descriptors.iter().map(|(method, path)| {
+        quote! {
+            ::doido_controller::RouteEntry {
+                method: #method.to_string(),
+                path: #path.to_string(),
+            }
+        }
+    });
+
+    // Register the route table (for `doido server` / `doido routes` to print)
+    // as the router is built, then yield the router itself.
+    quote! {
+        {
+            ::doido_controller::register_routes(::std::vec![ #(#entries),* ]);
+            #inner
+        }
+    }
 }

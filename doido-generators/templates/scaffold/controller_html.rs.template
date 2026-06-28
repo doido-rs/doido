@@ -1,0 +1,73 @@
+use crate::models::{singular}::{ActiveModel, Entity};
+use doido::model::sea_orm::{entity::prelude::*, Set};
+use doido_controller::{controller, Context, Response};
+use serde::Deserialize;
+use serde_json::json;
+
+/// Strong params for creating/updating a {Model}.
+#[derive(Deserialize)]
+pub struct {Model}Form {
+{params_fields}}
+
+pub struct {Controller};
+
+#[controller]
+impl {Controller} {
+    /// GET /{plural}
+    pub async fn index(ctx: Context) -> doido::Result<Response> {
+        let {plural} = Entity::find().all(ctx.db()).await?;
+        Ok(ctx.render("{plural}/index", json!({ "{plural}": {plural} })))
+    }
+
+    /// GET /{plural}/{id}
+    pub async fn show(ctx: Context) -> doido::Result<Response> {
+        let id = parse_id(&ctx);
+        let {singular} = Entity::find_by_id(id).one(ctx.db()).await?;
+        Ok(ctx.render("{plural}/show", json!({ "{singular}": {singular} })))
+    }
+
+    /// GET /{plural}/new
+    pub async fn new(ctx: Context) -> Response {
+        ctx.render("{plural}/new", json!({}))
+    }
+
+    /// POST /{plural}
+    pub async fn create(mut ctx: Context) -> doido::Result<Response> {
+        let form: {Model}Form = ctx.form().await?;
+        let record = ActiveModel {
+{active_model_sets}            ..Default::default()
+        };
+        record.insert(ctx.db()).await?;
+        Ok(ctx.redirect_to("/{plural}"))
+    }
+
+    /// GET /{plural}/{id}/edit
+    pub async fn edit(ctx: Context) -> doido::Result<Response> {
+        let id = parse_id(&ctx);
+        let {singular} = Entity::find_by_id(id).one(ctx.db()).await?;
+        Ok(ctx.render("{plural}/edit", json!({ "{singular}": {singular} })))
+    }
+
+    /// PATCH/PUT /{plural}/{id}
+    pub async fn update(mut ctx: Context) -> doido::Result<Response> {
+        let id = parse_id(&ctx);
+        let form: {Model}Form = ctx.form().await?;
+        if let Some(existing) = Entity::find_by_id(id).one(ctx.db()).await? {
+            let mut record: ActiveModel = existing.into();
+{active_model_assigns}            record.update(ctx.db()).await?;
+        }
+        Ok(ctx.redirect_to("/{plural}"))
+    }
+
+    /// DELETE /{plural}/{id}
+    pub async fn destroy(ctx: Context) -> doido::Result<Response> {
+        let id = parse_id(&ctx);
+        Entity::delete_by_id(id).exec(ctx.db()).await?;
+        Ok(ctx.redirect_to("/{plural}"))
+    }
+}
+
+/// Parses the `:id` path segment, defaulting to 0 when absent/invalid.
+fn parse_id(ctx: &Context) -> i32 {
+    ctx.param("id").and_then(|v| v.parse().ok()).unwrap_or_default()
+}
