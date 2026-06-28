@@ -135,8 +135,11 @@ impl JobQueue for MemoryQueue {
             }
             // Park until notified or the wait window elapses, then re-check (also
             // catches scheduled jobs becoming due).
-            let _ = tokio::time::timeout(remaining.min(Duration::from_millis(50)), self.notify.notified())
-                .await;
+            let _ = tokio::time::timeout(
+                remaining.min(Duration::from_millis(50)),
+                self.notify.notified(),
+            )
+            .await;
         }
     }
 

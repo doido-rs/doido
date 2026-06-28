@@ -17,17 +17,12 @@ pub enum JobStatus {
 }
 
 /// Retry pacing strategy. The engine uses this to compute the next `retry_at`.
-#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq, Default)]
 pub enum BackoffStrategy {
+    #[default]
     Exponential,
     Linear,
     None,
-}
-
-impl Default for BackoffStrategy {
-    fn default() -> Self {
-        BackoffStrategy::Exponential
-    }
 }
 
 impl BackoffStrategy {

@@ -89,7 +89,10 @@ async fn test_redis_reclaim_expired() {
         return;
     };
     let q = q.with_visibility_timeout(Duration::from_millis(0));
-    if q.enqueue(JobPayload::new("default", json!({}), 3)).await.is_err() {
+    if q.enqueue(JobPayload::new("default", json!({}), 3))
+        .await
+        .is_err()
+    {
         eprintln!("skipping: no Redis available");
         return;
     }

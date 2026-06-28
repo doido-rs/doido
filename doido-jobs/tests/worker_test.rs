@@ -1,6 +1,4 @@
-use doido_jobs::{
-    BackoffStrategy, EngineConfig, JobPayload, JobQueue, MemoryQueue, WorkerEngine,
-};
+use doido_jobs::{BackoffStrategy, EngineConfig, JobPayload, JobQueue, MemoryQueue, WorkerEngine};
 use serde_json::json;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;

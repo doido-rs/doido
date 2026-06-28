@@ -50,9 +50,9 @@ pub fn run_new(name: &str, database: Option<&str>) {
                 Ok(output) if output.status.success() => {
                     doido_core::tracing::info!("init {name}/.git");
                 }
-                _ => doido_core::tracing::warn!(
-                    "git init failed. Run it manually: git init {name}"
-                ),
+                _ => {
+                    doido_core::tracing::warn!("git init failed. Run it manually: git init {name}")
+                }
             }
             doido_core::tracing::info!("created '{name}'. Next: cd {name} && cargo build");
         }

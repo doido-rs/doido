@@ -272,10 +272,7 @@ impl JobQueue for DbQueue {
         let data = serde_json::to_string(&job)?;
         let sql = "UPDATE doido_jobs SET status = $1, locked_at = NULL, data = $2 WHERE id = $3";
         self.conn
-            .execute_raw(self.stmt(
-                sql,
-                vec![STATUS_DEAD.into(), data.into(), id.into()],
-            ))
+            .execute_raw(self.stmt(sql, vec![STATUS_DEAD.into(), data.into(), id.into()]))
             .await
             .map_err(|e| anyhow!("dead_letter failed: {e}"))?;
         Ok(())

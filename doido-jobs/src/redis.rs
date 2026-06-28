@@ -218,7 +218,10 @@ impl JobQueue for RedisQueue {
         let mut count = 0u64;
         for id in expired {
             let Some(job) = self.load(&id).await? else {
-                let _: () = conn.zrem(self.processing_key(), &id).await.map_err(|e| anyhow!("{e}"))?;
+                let _: () = conn
+                    .zrem(self.processing_key(), &id)
+                    .await
+                    .map_err(|e| anyhow!("{e}"))?;
                 continue;
             };
             if !queues.contains(&job.queue.as_str()) {

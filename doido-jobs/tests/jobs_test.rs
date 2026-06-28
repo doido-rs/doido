@@ -64,7 +64,14 @@ async fn test_job_macro_generates_enqueue_fn() {
     use doido_jobs::{job, JobQueue, MemoryQueue};
     use std::sync::Arc;
 
-    #[job(max_retries = 2, queue = "emails", priority = 7, backoff = "linear", backoff_base = 3, timeout = 12)]
+    #[job(
+        max_retries = 2,
+        queue = "emails",
+        priority = 7,
+        backoff = "linear",
+        backoff_base = 3,
+        timeout = 12
+    )]
     #[allow(dead_code)]
     async fn send_welcome(_data: serde_json::Value) -> doido_core::Result<()> {
         Ok(())
@@ -92,10 +99,7 @@ async fn test_run_once_returns_false_on_empty_queue() {
     let queue = Arc::new(MemoryQueue::new());
     let worker = Worker::new(queue.clone(), "default");
     // No job enqueued — run_once should complete without performing anything.
-    worker
-        .run_once(|_job| async { Ok(()) })
-        .await
-        .unwrap();
+    worker.run_once(|_job| async { Ok(()) }).await.unwrap();
     // sanity: queue still empty/reservable returns none
     assert!(queue
         .reserve(QUEUES, Duration::from_millis(10))

@@ -19,7 +19,10 @@ fn test_engine_config_derivation() {
         ..JobsConfig::default()
     };
     let ec = cfg.engine_config();
-    assert_eq!(ec.queues, vec!["critical".to_string(), "default".to_string()]);
+    assert_eq!(
+        ec.queues,
+        vec!["critical".to_string(), "default".to_string()]
+    );
     assert_eq!(ec.concurrency, 1);
 }
 

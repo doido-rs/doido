@@ -94,8 +94,6 @@ async fn build_redis_queue(_config: &JobsConfig) -> Result<Arc<dyn JobQueue>> {
 
 /// Build the database-backed queue from an existing sea-orm connection.
 #[cfg(feature = "jobs-db")]
-pub fn build_db_queue(
-    conn: doido_model::sea_orm::DatabaseConnection,
-) -> Arc<dyn JobQueue> {
+pub fn build_db_queue(conn: doido_model::sea_orm::DatabaseConnection) -> Arc<dyn JobQueue> {
     Arc::new(crate::db::DbQueue::new(conn))
 }
