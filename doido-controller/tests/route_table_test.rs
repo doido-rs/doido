@@ -38,9 +38,8 @@ fn routes_macro_registers_full_table() {
     };
 
     let routes = doido_controller::all_routes();
-    let has = |method: &str, path: &str| {
-        routes.iter().any(|r| r.method == method && r.path == path)
-    };
+    let has =
+        |method: &str, path: &str| routes.iter().any(|r| r.method == method && r.path == path);
 
     assert!(has("GET", "/about"));
     assert!(has("GET", "/posts"));

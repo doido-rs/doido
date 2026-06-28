@@ -40,9 +40,19 @@ pub fn format_routes() -> String {
     }
     let width = routes.iter().map(|r| r.method.len()).max().unwrap_or(0);
     let mut out = String::new();
-    out.push_str(&format!("{:<width$}  {}\n", "METHOD", "PATH", width = width));
+    out.push_str(&format!(
+        "{:<width$}  {}\n",
+        "METHOD",
+        "PATH",
+        width = width
+    ));
     for r in &routes {
-        out.push_str(&format!("{:<width$}  {}\n", r.method, r.path, width = width));
+        out.push_str(&format!(
+            "{:<width$}  {}\n",
+            r.method,
+            r.path,
+            width = width
+        ));
     }
     out
 }

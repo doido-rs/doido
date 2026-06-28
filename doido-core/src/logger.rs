@@ -22,8 +22,7 @@ use tracing_subscriber::{fmt, EnvFilter};
 /// `tower_http` at INFO). `sqlx::query=info` surfaces sea-orm's SQL statements
 /// (logged by sqlx under that target) while `sqlx=warn` quiets the rest of the
 /// connection-pool chatter; `hyper`/`tower` internals are quieted too.
-pub const DEFAULT_DIRECTIVES: &str =
-    "info,sqlx=warn,sqlx::query=info,hyper=warn,tower=warn";
+pub const DEFAULT_DIRECTIVES: &str = "info,sqlx=warn,sqlx::query=info,hyper=warn,tower=warn";
 
 static INIT: Once = Once::new();
 

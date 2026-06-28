@@ -124,7 +124,8 @@ impl TableBuilder {
 
 /// One pending change collected by [`AlterTableBuilder`].
 enum AlterOp {
-    Add(ColumnDef),
+    // `ColumnDef` is large; box it so the enum's other variants stay small.
+    Add(Box<ColumnDef>),
     Drop(String),
     Rename(String, String),
 }
@@ -146,9 +147,9 @@ impl AlterTableBuilder {
     pub fn add_column(&mut self, name: &str, f: impl FnOnce(&mut ColumnDef)) -> &mut ColumnDef {
         let mut col = ColumnDef::new(Alias::new(name));
         f(&mut col);
-        self.ops.push(AlterOp::Add(col));
+        self.ops.push(AlterOp::Add(Box::new(col)));
         match self.ops.last_mut().expect("just pushed an add op") {
-            AlterOp::Add(col) => col,
+            AlterOp::Add(col) => col.as_mut(),
             _ => unreachable!("last op is the add we just pushed"),
         }
     }
@@ -195,7 +196,7 @@ fn alter_table_statements(name: &str, ops: Vec<AlterOp>) -> Vec<TableAlterStatem
             stmt.table(Alias::new(name));
             match op {
                 AlterOp::Add(col) => {
-                    stmt.add_column(col);
+                    stmt.add_column(*col);
                 }
                 AlterOp::Drop(name) => {
                     stmt.drop_column(Alias::new(name));

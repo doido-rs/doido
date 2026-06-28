@@ -17,6 +17,9 @@ use sea_orm_cli::{
 
 /// Subcommands of `doido db`: Doido's `create` plus the flattened SeaORM CLI.
 #[derive(Subcommand)]
+// The flattened SeaORM `Commands` is large, but this is parsed once at startup
+// and can't be boxed through clap's `#[command(flatten)]`.
+#[allow(clippy::large_enum_variant)]
 pub enum DbCommand {
     /// Create the database for the current environment
     Create,

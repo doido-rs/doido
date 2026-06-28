@@ -61,8 +61,8 @@ impl Generator for ModelGenerator {
 
         // Register the model's module in app/models/mod.rs, preserving existing
         // registrations.
-        let models_mod_existing =
-            std::fs::read_to_string(MODELS_MOD_PATH).unwrap_or_else(|_| MODELS_MOD_BASE.to_string());
+        let models_mod_existing = std::fs::read_to_string(MODELS_MOD_PATH)
+            .unwrap_or_else(|_| MODELS_MOD_BASE.to_string());
         let models_mod = register_model_module(&models_mod_existing, &snake);
 
         Ok(vec![

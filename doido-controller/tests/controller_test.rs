@@ -343,8 +343,7 @@ impl ParamController {
 
 #[tokio::test]
 async fn test_ctx_param_reads_matched_path_segment() {
-    let app =
-        axum::Router::new().route("/widgets/{id}", axum::routing::get(ParamController::show));
+    let app = axum::Router::new().route("/widgets/{id}", axum::routing::get(ParamController::show));
     let resp = app
         .oneshot(
             Request::builder()
@@ -383,8 +382,7 @@ impl BodyController {
 
 #[tokio::test]
 async fn test_ctx_form_parses_urlencoded_body() {
-    let app =
-        axum::Router::new().route("/widgets", axum::routing::post(BodyController::create));
+    let app = axum::Router::new().route("/widgets", axum::routing::post(BodyController::create));
     let resp = app
         .oneshot(
             Request::builder()
@@ -404,8 +402,10 @@ async fn test_ctx_form_parses_urlencoded_body() {
 
 #[tokio::test]
 async fn test_ctx_body_json_parses_json_body() {
-    let app = axum::Router::new()
-        .route("/widgets.json", axum::routing::post(BodyController::create_json));
+    let app = axum::Router::new().route(
+        "/widgets.json",
+        axum::routing::post(BodyController::create_json),
+    );
     let resp = app
         .oneshot(
             Request::builder()

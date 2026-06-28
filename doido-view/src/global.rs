@@ -62,6 +62,9 @@ mod tests {
     #[test]
     fn set_then_render_uses_installed_engine() {
         set_engine(Arc::new(StubEngine));
-        assert_eq!(render("posts/index", &serde_json::json!({})).unwrap(), "stub:posts/index");
+        assert_eq!(
+            render("posts/index", &serde_json::json!({})).unwrap(),
+            "stub:posts/index"
+        );
     }
 }

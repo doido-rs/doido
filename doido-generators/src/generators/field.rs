@@ -289,9 +289,18 @@ mod tests {
     #[test]
     fn html_input_types_map_by_column_type() {
         assert_eq!(Field::parse("name").unwrap().html_input_type(), "text");
-        assert_eq!(Field::parse("bio:text").unwrap().html_input_type(), "textarea");
-        assert_eq!(Field::parse("age:integer").unwrap().html_input_type(), "number");
-        assert_eq!(Field::parse("ok:boolean").unwrap().html_input_type(), "checkbox");
+        assert_eq!(
+            Field::parse("bio:text").unwrap().html_input_type(),
+            "textarea"
+        );
+        assert_eq!(
+            Field::parse("age:integer").unwrap().html_input_type(),
+            "number"
+        );
+        assert_eq!(
+            Field::parse("ok:boolean").unwrap().html_input_type(),
+            "checkbox"
+        );
         assert_eq!(Field::parse("born:date").unwrap().html_input_type(), "date");
     }
 

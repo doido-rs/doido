@@ -10,6 +10,9 @@ struct Cli {
 }
 
 #[derive(Subcommand)]
+// Parsed once at startup, so the variant-size disparity from clap's embedded
+// subcommands is irrelevant; boxing derived subcommand fields is fragile.
+#[allow(clippy::large_enum_variant)]
 enum Commands {
     /// Start the web server
     Server,

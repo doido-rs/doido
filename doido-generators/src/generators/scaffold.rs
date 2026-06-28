@@ -5,8 +5,7 @@ use crate::generators::{to_pascal, to_snake, to_table_name};
 use doido_core::Result;
 
 /// Scaffold controller templates (HTML views vs JSON API), chosen by `--api`.
-const CONTROLLER_HTML: &str =
-    include_str!("../../templates/scaffold/controller_html.rs.template");
+const CONTROLLER_HTML: &str = include_str!("../../templates/scaffold/controller_html.rs.template");
 const CONTROLLER_API: &str = include_str!("../../templates/scaffold/controller_api.rs.template");
 
 /// View templates rendered into `app/views/<plural>/` (HTML mode only).
@@ -32,7 +31,7 @@ impl Generator for ScaffoldGenerator {
     }
 
     fn generate(&self, args: &[&str]) -> Result<Vec<GeneratedFile>> {
-        let api = args.iter().any(|a| *a == "--api");
+        let api = args.contains(&"--api");
         // Positional args (name + field specs); flags filtered out.
         let positional: Vec<&str> = args
             .iter()
@@ -58,7 +57,14 @@ impl Generator for ScaffoldGenerator {
         let controller_template = if api { CONTROLLER_API } else { CONTROLLER_HTML };
         files.push(GeneratedFile {
             path: format!("app/controllers/{plural}_controller.rs"),
-            content: render_controller(controller_template, &singular, &plural, &model, &controller, &fields),
+            content: render_controller(
+                controller_template,
+                &singular,
+                &plural,
+                &model,
+                &controller,
+                &fields,
+            ),
         });
 
         // Register the controller module in app/controllers/mod.rs.
@@ -130,7 +136,13 @@ fn render_controller(
 }
 
 /// Fills a view template's field-driven fragments and names.
-fn render_view(template: &str, singular: &str, plural: &str, model: &str, fields: &[Field]) -> String {
+fn render_view(
+    template: &str,
+    singular: &str,
+    plural: &str,
+    model: &str,
+    fields: &[Field],
+) -> String {
     let table_headers: String = fields
         .iter()
         .map(|f| format!("      <th>{}</th>\n", f.column_name()))

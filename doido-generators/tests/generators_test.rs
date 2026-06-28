@@ -179,7 +179,9 @@ fn test_scaffold_generator_produces_multiple_files() {
         .iter()
         .find(|f| f.path == "app/controllers/posts_controller.rs")
         .unwrap();
-    for action in ["index", "show", "new", "create", "edit", "update", "destroy"] {
+    for action in [
+        "index", "show", "new", "create", "edit", "update", "destroy",
+    ] {
         assert!(
             ctrl.content.contains(&format!("fn {action}(")),
             "missing action {action}"
@@ -193,8 +195,12 @@ fn test_scaffold_generator_produces_multiple_files() {
 
     // Route injection (plural + controller), preserving the existing route.
     let routes = files.iter().find(|f| f.path == "config/routes.rs").unwrap();
-    assert!(routes.content.contains("resources!(posts, PostsController);"));
-    assert!(routes.content.contains("use crate::controllers::PostsController;"));
+    assert!(routes
+        .content
+        .contains("resources!(posts, PostsController);"));
+    assert!(routes
+        .content
+        .contains("use crate::controllers::PostsController;"));
     assert!(routes.content.contains("HelloController::index")); // preserved
 
     // Controller registered in app/controllers/mod.rs.
@@ -203,7 +209,9 @@ fn test_scaffold_generator_produces_multiple_files() {
         .find(|f| f.path == "app/controllers/mod.rs")
         .unwrap();
     assert!(cmod.content.contains("mod posts_controller;"));
-    assert!(cmod.content.contains("pub use posts_controller::PostsController;"));
+    assert!(cmod
+        .content
+        .contains("pub use posts_controller::PostsController;"));
 
     // Views are field-driven.
     let index = files

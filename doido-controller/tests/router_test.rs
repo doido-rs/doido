@@ -335,4 +335,3 @@ async fn test_combined_routes_block() {
         .unwrap();
     assert_eq!(r.status(), StatusCode::OK);
 }
-
