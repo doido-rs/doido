@@ -1,3 +1,3 @@
 pub fn run() {
-    println!("Starting interactive console (not yet implemented)...");
+    doido_core::tracing::info!("starting interactive console (not yet implemented)...");
 }

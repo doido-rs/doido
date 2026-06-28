@@ -8,6 +8,6 @@ pub enum CredentialsCommand {
 
 pub fn run(cmd: CredentialsCommand) {
     match cmd {
-        CredentialsCommand::Edit => println!("Opening credentials editor..."),
+        CredentialsCommand::Edit => doido_core::tracing::info!("opening credentials editor..."),
     }
 }

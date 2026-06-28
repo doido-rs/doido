@@ -1,3 +1,3 @@
 pub fn run() {
-    println!("Starting background worker...");
+    doido_core::tracing::info!("starting background worker...");
 }

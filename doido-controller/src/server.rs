@@ -18,8 +18,7 @@ pub async fn start_server(router: axum::Router) -> std::io::Result<()> {
     let router = MiddlewareStack::default().apply(router);
 
     let listener = tokio::net::TcpListener::bind(&addr).await?;
-    println!("listening on http://{addr}");
-    println!("Routes:");
-    crate::route_table::print_routes();
+    tracing::info!("listening on http://{addr}");
+    tracing::info!("routes:\n{}", crate::route_table::format_routes());
     axum::serve(listener, router).await
 }

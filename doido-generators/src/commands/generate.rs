@@ -7,16 +7,16 @@ pub fn run_generate(generator: &str, args: &[&str]) {
     match registry.run(generator, args) {
         Ok(files) => {
             if files.is_empty() {
-                println!("  (no files generated)");
+                doido_core::tracing::info!("no files generated");
                 return;
             }
             if let Err(e) = write_files(&files, Path::new(".")) {
-                eprintln!("Error writing files: {e}");
+                doido_core::tracing::error!("error writing files: {e}");
                 std::process::exit(1);
             }
         }
         Err(e) => {
-            eprintln!("Error: {e}");
+            doido_core::tracing::error!("{e}");
             std::process::exit(1);
         }
     }

@@ -66,7 +66,7 @@ fn test_jobs_failed_command() {
         .args(["jobs", "failed"])
         .assert()
         .success()
-        .stdout(predicate::str::contains("Failed jobs"));
+        .stdout(predicate::str::contains("failed jobs"));
 }
 
 #[test]

@@ -63,11 +63,15 @@ enum Commands {
 /// HTTP server only when `routes` is `Some`; with `None` (e.g. the standalone
 /// `doido-generators` binary) the server is not started.
 pub async fn run(routes: Option<axum::Router>) {
+    // Install the global tracing subscriber first so every command logs through
+    // the centralized logger.
+    doido_core::logger::init();
+
     // Install project-specific inflection rules from `config/inflection.yaml`
     // (relative to the project root) before any generator pluralizes a name.
     // A missing file falls back to the default English rules.
     if let Err(e) = doido_core::load_inflections(doido_core::inflector::DEFAULT_CONFIG_PATH) {
-        eprintln!("Warning: {e}");
+        doido_core::tracing::warn!("{e}");
     }
 
     // Seed DATABASE_URL from `config/<env>.yml` before clap parses, so the SeaORM
@@ -83,9 +87,11 @@ pub async fn run(routes: Option<axum::Router>) {
             // `routes` being `Some` means the app already built its router, which
             // populated the global route table the macro registers into.
             if routes.is_some() {
+                // The route table is this command's primary output — print it
+                // directly to stdout rather than through the logger.
                 doido_controller::print_routes();
             } else {
-                println!("No routes configured.");
+                doido_core::tracing::warn!("no routes configured");
             }
         }
         Commands::Console => commands::console::run(),

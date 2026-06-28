@@ -69,9 +69,9 @@ pub async fn run(command: DbCommand, verbose: bool) {
 async fn create() {
     let url = database_url();
     match doido_model::create_database(&url).await {
-        Ok(()) => println!("Created database: {url}"),
+        Ok(()) => doido_core::tracing::info!("created database: {url}"),
         Err(e) if e.to_string().contains("already exists") => {
-            println!("Database already exists: {url}");
+            doido_core::tracing::info!("database already exists: {url}");
         }
         Err(e) => handle_error(e),
     }
@@ -86,7 +86,7 @@ fn database_url() -> String {
     if let Ok(config) = doido_model::config::YamlConfig::load() {
         return config.database.url;
     }
-    eprintln!("DATABASE_URL is not set and config/<env>.yml could not be read");
+    doido_core::tracing::error!("DATABASE_URL is not set and config/<env>.yml could not be read");
     std::process::exit(1);
 }
 

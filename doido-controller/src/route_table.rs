@@ -57,7 +57,10 @@ pub fn format_routes() -> String {
     out
 }
 
-/// Prints the route table to stdout (used by `doido server` and `doido routes`).
+/// Prints the route table to stdout. This is the `doido routes` command's
+/// primary data output (like `ls` listing files), so it is written directly
+/// rather than through the logger. Server startup logs the table via tracing
+/// instead — see [`format_routes`].
 pub fn print_routes() {
     print!("{}", format_routes());
 }

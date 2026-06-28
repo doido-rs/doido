@@ -19,7 +19,7 @@ pub(crate) fn write_files(files: &[GeneratedFile], root: &Path) -> Result<()> {
             fs::create_dir_all(parent)?;
         }
         fs::write(&dest, &file.content)?;
-        println!("  create  {}", file.path);
+        doido_core::tracing::info!("create {}", file.path);
     }
     Ok(())
 }

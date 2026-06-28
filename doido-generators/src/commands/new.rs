@@ -5,6 +5,8 @@ use std::path::Path;
 use std::process::Command;
 
 fn prompt_database() -> String {
+    // Interactive prompt: written directly to stdout (not the logger) so it
+    // appears inline before the user's input on the same line.
     print!("Which database? [sqlite/postgres/mysql] (default: sqlite): ");
     io::stdout().flush().expect("failed to flush stdout");
     let mut input = String::new();
@@ -28,9 +30,8 @@ pub fn run_new(name: &str, database: Option<&str>) {
     match db.as_str() {
         "sqlite" | "postgres" | "mysql" => {}
         other => {
-            eprintln!(
-                "Error: Unknown database '{}'. Use sqlite, postgres, or mysql.",
-                other
+            doido_core::tracing::error!(
+                "unknown database '{other}'. Use sqlite, postgres, or mysql."
             );
             std::process::exit(1);
         }
@@ -41,20 +42,22 @@ pub fn run_new(name: &str, database: Option<&str>) {
     match registry.run("new", &[name, &db_arg]) {
         Ok(files) => {
             if let Err(e) = write_files(&files, Path::new(".")) {
-                eprintln!("Error writing files: {e}");
+                doido_core::tracing::error!("error writing files: {e}");
                 std::process::exit(1);
             }
             let git_result = Command::new("git").args(["init", name]).output();
             match git_result {
                 Ok(output) if output.status.success() => {
-                    println!("      init  {name}/.git");
+                    doido_core::tracing::info!("init {name}/.git");
                 }
-                _ => eprintln!("Warning: git init failed. Run it manually: git init {name}"),
+                _ => doido_core::tracing::warn!(
+                    "git init failed. Run it manually: git init {name}"
+                ),
             }
-            println!("\nCreated '{name}'. Next: cd {name} && cargo build");
+            doido_core::tracing::info!("created '{name}'. Next: cd {name} && cargo build");
         }
         Err(e) => {
-            eprintln!("Error: {e}");
+            doido_core::tracing::error!("{e}");
             std::process::exit(1);
         }
     }
