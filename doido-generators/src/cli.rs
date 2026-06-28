@@ -63,6 +63,14 @@ enum Commands {
 /// HTTP server only when `routes` is `Some`; with `None` (e.g. the standalone
 /// `doido-generators` binary) the server is not started.
 pub async fn run(routes: Option<axum::Router>) {
+    // Greet on startup with the DOIDO banner (stderr, so stdout output like
+    // route tables stays clean). The running mode is the first non-flag arg.
+    let mode = std::env::args()
+        .skip(1)
+        .find(|a| !a.starts_with('-'))
+        .unwrap_or_else(|| "server".to_string());
+    crate::banner::print(&mode);
+
     // Install the global tracing subscriber first so every command logs through
     // the centralized logger.
     doido_core::logger::init();

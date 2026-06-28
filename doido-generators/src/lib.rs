@@ -1,3 +1,4 @@
+mod banner;
 mod cli;
 pub mod commands;
 pub mod generator;

@@ -21,6 +21,7 @@ doido-model.workspace = true
 doido-view.workspace = true
 doido-jobs.workspace = true
 chrono.workspace = true
+figlet-rs.workspace = true
 clap.workspace = true
 tokio = { workspace = true, features = ["full"] }
 include_dir = "0.7"
