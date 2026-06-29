@@ -1,5 +1,11 @@
 [advisories]
-# RUSTSEC-2023-0071: Marvin Attack timing side-channel in `rsa` crate.
-# Pulled in transitively via sqlx-mysql -> sqlx -> sea-orm.
-# No fixed version is available upstream; ignored until sqlx/sea-orm resolves it.
-ignore = ["RUSTSEC-2023-0071"]
+ignore = [
+    # RUSTSEC-2023-0071: Marvin Attack timing side-channel in `rsa` crate.
+    # Pulled in transitively via sqlx-mysql -> sqlx -> sea-orm.
+    # No fixed version is available upstream; ignored until sqlx/sea-orm resolves it.
+    "RUSTSEC-2023-0071",
+    # RUSTSEC-2026-0173: `proc-macro-error2` is unmaintained. Pulled in transitively
+    # via sea-bae -> sea-orm-macros -> sea-orm. No safe upgrade is available;
+    # remove once sea-orm drops the dependency. (Mirrors deny.toml.)
+    "RUSTSEC-2026-0173",
+]
