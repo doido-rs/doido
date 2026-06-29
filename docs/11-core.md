@@ -118,18 +118,34 @@ doido-core/
 ## Logging (centralized)
 
 `doido_core::logger` owns the framework's `tracing_subscriber` setup — the single
-place logging is configured. `doido server` calls `logger::init()` at boot,
-after which everything flows through one subscriber:
+place logging is configured. `doido server` reads the `logger` section of
+`config/<env>.yml` into `logger::LoggerConfig` and calls
+`logger::init_with_config(&config.logger)` at boot, after which everything flows
+through one subscriber:
 
 - HTTP **requests & responses** — logged at `INFO` by the always-on `TraceLayer`
   in `doido-controller`'s middleware stack (method, path, status, latency).
-- **ORM queries** — sea-orm's SQL logging (enabled on the connection in
-  `doido-model`) emits under target `sqlx::query` at `INFO`.
+- **ORM queries** — sea-orm's SQL logging (toggled by `logger.sql`, enabled on
+  the connection in `doido-model`) emits under target `sqlx::query` at `INFO`.
 - Jobs, mail, custom events — the [Tracing Helpers](#tracing-helpers) below.
 
-Verbosity is controlled by `RUST_LOG` (`EnvFilter` syntax); when unset,
-`logger::DEFAULT_DIRECTIVES` applies (`info` + `sqlx::query=info`, with pool and
-hyper/tower internals quieted). `init()` is idempotent.
+The `logger` config section drives all of it:
+
+```yaml
+logger:
+  level: debug          # app log level → EnvFilter (info|debug|warn|…)
+  # directives: info,my_app=debug,sqlx=warn   # full EnvFilter override
+  file: log/test.log    # redirect output to a file (appended, no ANSI); omit for stdout
+  sql: true             # sea-orm SQL statement logging
+```
+
+`level` is combined with the framework's `NOISE_DIRECTIVES` (so SQL/HTTP
+internals stay quiet); `directives`, when set, fully replaces it. Because
+sea-orm logs through this same subscriber, setting `file` captures SQL too.
+`RUST_LOG` (`EnvFilter` syntax), when set, overrides the configured verbosity;
+when no config file is present, `logger::DEFAULT_DIRECTIVES` applies (`info` +
+`sqlx::query=info`, with pool and hyper/tower internals quieted).
+`init`/`init_with_config` are idempotent.
 
 ## Tracing Helpers
 

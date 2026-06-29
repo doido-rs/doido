@@ -7,3 +7,6 @@ database:
   # time via the DATABASE__URL environment variable (SECTION__KEY overrides
   # config.database.url).
   url: {doido_db_url_production}
+logger:
+  # Quieter logging in production. Override at deploy time with RUST_LOG.
+  level: info

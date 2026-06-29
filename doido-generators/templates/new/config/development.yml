@@ -3,3 +3,8 @@ server:
   port: 3000
 database:
   url: {doido_db_url}
+logger:
+  # Base application log level: trace, debug, info, warn, or error.
+  # Set `directives` for a full tracing EnvFilter string instead, e.g.
+  # `directives: info,{doido_name}=debug,sqlx=warn`. RUST_LOG overrides both.
+  level: debug

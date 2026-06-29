@@ -13,3 +13,4 @@ pub use ::tracing;
 pub use error::{AnyhowContext, Result};
 pub use inflector::{init_inflections, load_inflections, InflectionConfig, Inflections, Inflector};
 pub use logger::init as init_logger;
+pub use logger::LoggerConfig;

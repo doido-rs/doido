@@ -12,27 +12,28 @@ use std::sync::OnceLock;
 /// Process-global connection, installed by [`init`]/[`set_pool`].
 static POOL: OnceLock<DatabaseConnection> = OnceLock::new();
 
-/// Builds [`ConnectOptions`] with sea-orm's SQL statement logging enabled, so
+/// Builds [`ConnectOptions`] toggling sea-orm's SQL statement logging, so
 /// queries surface through the global tracing subscriber (target `sqlx::query`,
-/// level `INFO`). Tune visibility with `RUST_LOG` (see `doido_core::logger`).
-fn options(url: &str) -> ConnectOptions {
+/// level `INFO`) when `sql_logging` is on. The flag comes from the `logger.sql`
+/// config key; tune visibility further with `RUST_LOG` (see `doido_core::logger`).
+fn options(url: &str, sql_logging: bool) -> ConnectOptions {
     let mut opts = ConnectOptions::new(url.to_owned());
-    // Enabled by default in sea-orm, but set explicitly to centralize intent.
     // Statements log at the default `INFO` level under target `sqlx::query`.
-    opts.sqlx_logging(true);
+    opts.sqlx_logging(sql_logging);
     opts
 }
 
 /// Connects to the database named by the current environment's
-/// `config/<env>.yml` `database.url`.
+/// `config/<env>.yml` `database.url`, honouring its `logger.sql` toggle.
 pub async fn connect() -> Result<DatabaseConnection, DbErr> {
     let config = config::load();
-    Database::connect(options(config.database().url.as_str())).await
+    Database::connect(options(config.database().url.as_str(), config.logger().sql)).await
 }
 
-/// Connects using an explicit database URL, bypassing the config file.
+/// Connects using an explicit database URL, bypassing the config file. SQL
+/// statement logging stays enabled (the default).
 pub async fn connect_with_url(url: &str) -> Result<DatabaseConnection, DbErr> {
-    Database::connect(options(url)).await
+    Database::connect(options(url, true)).await
 }
 
 /// Connects (via [`connect`]) and installs the process-global pool, returning a

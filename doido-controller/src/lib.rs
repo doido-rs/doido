@@ -11,7 +11,7 @@ pub mod stack;
 // Re-exported so `routes!`-generated code and application crates can reach axum
 // through doido-controller (the former `doido-router` crate lived here).
 pub use axum;
-pub use config::{Config, ServerConfig, YamlConfig};
+pub use config::{Config, LoggerConfig, ServerConfig, YamlConfig};
 pub use context::{Context, IntoActionResponse};
 pub use doido_controller_macros::{after_action, before_action, controller, routes};
 pub use environment::Environment;

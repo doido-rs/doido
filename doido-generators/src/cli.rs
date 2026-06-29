@@ -78,8 +78,11 @@ pub async fn run(routes: Option<axum::Router>) {
     crate::banner::print(&mode);
 
     // Install the global tracing subscriber first so every command logs through
-    // the centralized logger.
-    doido_core::logger::init();
+    // the centralized logger. The fallback verbosity (when `RUST_LOG` is unset)
+    // comes from the `logger` section of `config/<env>.yml`; a missing or invalid
+    // config file falls back to the framework defaults.
+    let app_config = doido_controller::config::YamlConfig::load().unwrap_or_default();
+    doido_core::logger::init_with_config(&app_config.logger);
 
     // Install project-specific inflection rules from `config/inflection.yaml`
     // (relative to the project root) before any generator pluralizes a name.

@@ -3,3 +3,8 @@ server:
   port: 3001
 database:
   url: {doido_db_url_test}
+logger:
+  # Tests are noisy enough; only surface warnings and errors by default, and
+  # send them to a file so they don't clutter test runner output.
+  level: warn
+  file: log/test.log
