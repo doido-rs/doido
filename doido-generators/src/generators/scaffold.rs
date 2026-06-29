@@ -83,6 +83,20 @@ impl Generator for ScaffoldGenerator {
                     content: render_view(&template, &singular, &plural, &model, &fields),
                 });
             }
+
+            // Controller request tests — one per action (HTML mode only).
+            let test_template = crate::templates::get("scaffold/controller_test.rs.template");
+            files.push(GeneratedFile {
+                path: format!("tests/{plural}_controller_test.rs"),
+                content: render_controller(
+                    &test_template,
+                    &singular,
+                    &plural,
+                    &model,
+                    &controller,
+                    &fields,
+                ),
+            });
         }
 
         // Inject the RESTful routes into config/routes.rs.
@@ -118,11 +132,18 @@ fn render_controller(
         .iter()
         .map(|f| format!("            {}\n", f.active_model_assign()))
         .collect();
+    // Sample urlencoded body for create/update request tests.
+    let form_body: String = fields
+        .iter()
+        .filter_map(Field::sample_form_pair)
+        .collect::<Vec<_>>()
+        .join("&");
 
     template
         .replace("{params_fields}", &params_fields)
         .replace("{active_model_sets}", &active_model_sets)
         .replace("{active_model_assigns}", &active_model_assigns)
+        .replace("{form_body}", &form_body)
         .replace("{Controller}", controller)
         .replace("{Model}", model)
         .replace("{singular}", singular)

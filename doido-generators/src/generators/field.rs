@@ -234,6 +234,29 @@ impl Field {
     pub fn model_field(&self) -> String {
         format!("pub {}: {},", self.column_name(), self.rust_type())
     }
+
+    /// A sample form value for this column, used to build request bodies in the
+    /// generated scaffold controller test. `None` for types that cannot be
+    /// represented as a urlencoded scalar (binary), which are omitted.
+    pub fn sample_form_value(&self) -> Option<&'static str> {
+        Some(match self.ty {
+            ColumnType::String | ColumnType::Text => "Test",
+            ColumnType::Integer | ColumnType::BigInteger | ColumnType::References => "1",
+            ColumnType::Float | ColumnType::Double | ColumnType::Decimal => "1",
+            ColumnType::Boolean => "true",
+            ColumnType::Timestamp => "2020-01-01T00:00:00",
+            ColumnType::Date => "2020-01-01",
+            ColumnType::Json => "null",
+            ColumnType::Uuid => "00000000-0000-0000-0000-000000000000",
+            ColumnType::Binary => return None,
+        })
+    }
+
+    /// `col=value` pair for a urlencoded request body, or `None` to omit.
+    pub fn sample_form_pair(&self) -> Option<String> {
+        self.sample_form_value()
+            .map(|v| format!("{}={}", self.column_name(), v))
+    }
 }
 
 #[cfg(test)]

@@ -80,10 +80,13 @@ impl MigrationTrait for Migration {
 // --- file-based defaults (scaffold + model), kept embedded as before ---
 const MODEL: &str = include_str!("../templates/models/model.rs.template");
 const MODEL_MIGRATION: &str = include_str!("../templates/models/migration.rs.template");
+const MODEL_TEST: &str = include_str!("../templates/models/model_test.rs.template");
 const SCAFFOLD_CONTROLLER_HTML: &str =
     include_str!("../templates/scaffold/controller_html.rs.template");
 const SCAFFOLD_CONTROLLER_API: &str =
     include_str!("../templates/scaffold/controller_api.rs.template");
+const SCAFFOLD_CONTROLLER_TEST: &str =
+    include_str!("../templates/scaffold/controller_test.rs.template");
 const VIEW_INDEX: &str = include_str!("../templates/scaffold/views/index.html.tera");
 const VIEW_SHOW: &str = include_str!("../templates/scaffold/views/show.html.tera");
 const VIEW_NEW: &str = include_str!("../templates/scaffold/views/new.html.tera");
@@ -100,6 +103,7 @@ const BUILTIN: &[(&str, &str)] = &[
     ("migration/migration.rs.template", MIGRATION),
     ("models/model.rs.template", MODEL),
     ("models/migration.rs.template", MODEL_MIGRATION),
+    ("models/model_test.rs.template", MODEL_TEST),
     (
         "scaffold/controller_html.rs.template",
         SCAFFOLD_CONTROLLER_HTML,
@@ -107,6 +111,10 @@ const BUILTIN: &[(&str, &str)] = &[
     (
         "scaffold/controller_api.rs.template",
         SCAFFOLD_CONTROLLER_API,
+    ),
+    (
+        "scaffold/controller_test.rs.template",
+        SCAFFOLD_CONTROLLER_TEST,
     ),
     ("scaffold/views/index.html.tera", VIEW_INDEX),
     ("scaffold/views/show.html.tera", VIEW_SHOW),

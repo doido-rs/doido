@@ -125,6 +125,60 @@ fn test_model_generator_rejects_bad_field_type() {
 }
 
 #[test]
+fn test_model_generator_emits_test_stub() {
+    let files = ModelGenerator.generate(&["User"]).unwrap();
+    let test = files
+        .iter()
+        .find(|f| f.path == "tests/user_model_test.rs")
+        .expect("model test stub emitted");
+    assert!(test.content.contains("TODO"));
+    assert!(test.content.contains("fn user_model_todo()"));
+}
+
+#[test]
+fn test_scaffold_emits_model_test_and_controller_request_tests() {
+    let files = ScaffoldGenerator
+        .generate(&["Post", "title:string"])
+        .unwrap();
+    let paths: Vec<&str> = files.iter().map(|f| f.path.as_str()).collect();
+
+    // Model test stub is emitted alongside the model.
+    assert!(paths.contains(&"tests/post_model_test.rs"));
+
+    // The controller file itself no longer carries an in-file test module.
+    let ctrl = files
+        .iter()
+        .find(|f| f.path == "app/controllers/posts_controller.rs")
+        .unwrap();
+    assert!(!ctrl.content.contains("#[cfg(test)]"));
+
+    // A separate tests/ file holds one test per controller action.
+    let test = files
+        .iter()
+        .find(|f| f.path == "tests/posts_controller_test.rs")
+        .expect("controller test file emitted");
+    assert!(test.content.contains("#[path = \"../config/routes.rs\"]")); // builds the router
+    assert!(test.content.contains("pool::test_lock()")); // serialized via shared lock
+    assert!(test.content.contains("title=Test")); // sample form body
+    for action in [
+        "index_request",
+        "new_request",
+        "create_request",
+        "show_request",
+        "edit_request",
+        "update_request",
+        "destroy_request",
+    ] {
+        assert!(
+            test.content.contains(&format!("async fn {action}()")),
+            "missing per-action test {action}"
+        );
+    }
+    assert!(test.content.contains("StatusCode::OK"));
+    assert!(test.content.contains("StatusCode::FOUND"));
+}
+
+#[test]
 fn test_migration_generator_has_timestamp_in_filename() {
     let files = MigrationGenerator.generate(&["create_users"]).unwrap();
     assert_eq!(files.len(), 1);

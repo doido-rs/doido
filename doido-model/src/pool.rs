@@ -66,6 +66,17 @@ pub fn try_pool() -> Option<&'static DatabaseConnection> {
     POOL.get()
 }
 
+/// A process-global lock for serializing tests that share the global pool.
+///
+/// The pool is process-global, so tests that install it and run requests must
+/// not execute concurrently. Generated scaffold controller tests hold this lock
+/// for their duration; hold it in any hand-written test that touches the global
+/// pool. Poisoning is ignored so one failing test doesn't cascade.
+pub fn test_lock() -> std::sync::MutexGuard<'static, ()> {
+    static LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+    LOCK.lock().unwrap_or_else(|e| e.into_inner())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

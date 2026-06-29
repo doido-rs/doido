@@ -1,6 +1,6 @@
 use crate::generator::{GeneratedFile, Generator};
 use crate::generators::field::Field;
-use crate::generators::{to_snake, to_table_name};
+use crate::generators::{to_pascal, to_snake, to_table_name};
 use chrono::Utc;
 use doido_core::Result;
 
@@ -61,6 +61,12 @@ impl Generator for ModelGenerator {
             .unwrap_or_else(|_| MODELS_MOD_BASE.to_string());
         let models_mod = register_model_module(&models_mod_existing, &snake);
 
+        // Model test stub (a standalone integration test target — a TODO
+        // placeholder needs no imports, so it compiles in the binary app crate).
+        let model_test = crate::templates::get("models/model_test.rs.template")
+            .replace("{Model}", &to_pascal(name))
+            .replace("{singular}", &snake);
+
         Ok(vec![
             GeneratedFile {
                 path: format!("app/models/{snake}.rs"),
@@ -77,6 +83,10 @@ impl Generator for ModelGenerator {
             GeneratedFile {
                 path: MODELS_MOD_PATH.to_string(),
                 content: models_mod,
+            },
+            GeneratedFile {
+                path: format!("tests/{snake}_model_test.rs"),
+                content: model_test,
             },
         ])
     }
