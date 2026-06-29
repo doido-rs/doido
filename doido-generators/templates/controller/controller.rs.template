@@ -1,0 +1,14 @@
+use doido_controller::{controller, Context, Response};
+use serde_json::json;
+
+/// Controller for `{pascal}`. Wire its actions up in `config/routes.rs`, e.g.
+/// `get!("/{snake}", {pascal}Controller::index);`.
+pub struct {pascal}Controller;
+
+#[controller]
+impl {pascal}Controller {
+    /// `GET` — the default action. Replace the body with your own response.
+    pub async fn index(ctx: Context) -> Response {
+        ctx.json(json!({ "controller": "{pascal}" }))
+    }
+}

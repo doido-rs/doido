@@ -1,0 +1,14 @@
+use doido_jobs::job;
+use serde_json::Value;
+
+/// Background job. Enqueue it with the generated `{snake}_job_enqueue` helper:
+///
+/// ```ignore
+/// {snake}_job_enqueue(&queue, serde_json::json!({ /* payload */ })).await?;
+/// ```
+#[job(max_retries = 3, queue = "default")]
+async fn {snake}_job(payload: Value) -> doido_core::Result<()> {
+    let _ = payload;
+    // TODO: implement the job using `payload`.
+    Ok(())
+}

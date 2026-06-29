@@ -17,9 +17,18 @@ impl Generator for ChannelGenerator {
         let pascal = to_pascal(name);
         let content =
             crate::templates::get("channel/channel.rs.template").replace("{pascal}", &pascal);
-        Ok(vec![GeneratedFile {
-            path: format!("app/channels/{}_channel.rs", snake),
-            content,
-        }])
+        let test = crate::templates::get("channel/channel_test.rs.template")
+            .replace("{pascal}", &pascal)
+            .replace("{snake}", &snake);
+        Ok(vec![
+            GeneratedFile {
+                path: format!("app/channels/{snake}_channel.rs"),
+                content,
+            },
+            GeneratedFile {
+                path: format!("tests/{snake}_channel_test.rs"),
+                content: test,
+            },
+        ])
     }
 }

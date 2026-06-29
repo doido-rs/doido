@@ -1,0 +1,19 @@
+use doido_mailer::{mailer, Mail};
+
+/// Mailer for `{pascal}`. Build a message and deliver it:
+///
+/// ```ignore
+/// {pascal}Mailer::welcome("user@example.com").deliver_now().await?;
+/// ```
+#[mailer]
+pub struct {pascal}Mailer;
+
+impl {pascal}Mailer {
+    /// Example message. Customize the subject and body, or add more builders.
+    pub fn welcome(to: &str) -> Mail {
+        Mail::new()
+            .to(to)
+            .subject("Welcome!")
+            .body_text("Welcome to the platform.")
+    }
+}

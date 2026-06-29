@@ -8,74 +8,20 @@
 
 use std::path::{Path, PathBuf};
 
-// --- token-form defaults for the generators that used to build content inline ---
+// --- generator templates, embedded from `templates/<generator>/` ---
 // Tokens (`{snake}`, `{pascal}`) are substituted by each generator after
-// resolution, so an override file uses the exact same tokens.
+// resolution, so a project override file uses the exact same tokens.
 
-const CONTROLLER: &str = r#"use doido_controller::controller;
-
-pub struct {pascal}Controller;
-
-#[controller]
-impl {pascal}Controller {
-    pub async fn index(ctx: doido_controller::Context) -> doido_controller::Response {
-        ctx.status(200)
-    }
-}
-"#;
-
-const JOB: &str = r#"use doido_jobs::job;
-
-#[job(max_retries = 3, queue = "default")]
-async fn {snake}_job(payload: serde_json::Value) -> doido_core::Result<()> {
-    // TODO: implement job
-    Ok(())
-}
-"#;
-
-const MAILER: &str = r#"use doido_mailer::{mailer, Mail};
-
-#[mailer]
-pub struct {pascal}Mailer;
-
-impl {pascal}Mailer {
-    pub fn welcome(to: &str) -> Mail {
-        Mail::new().to(to).subject("Welcome!").body_text("Welcome to the platform.")
-    }
-}
-"#;
-
-const CHANNEL: &str = r#"use doido_cable::{channel, Channel, ChannelContext};
-
-#[channel]
-pub struct {pascal}Channel;
-
-#[async_trait::async_trait]
-impl Channel for {pascal}Channel {
-    async fn subscribed(&self, _ctx: &ChannelContext) -> doido_core::Result<()> { Ok(()) }
-    async fn unsubscribed(&self, _ctx: &ChannelContext) -> doido_core::Result<()> { Ok(()) }
-    async fn received(&self, _ctx: &ChannelContext, _data: serde_json::Value) -> doido_core::Result<()> { Ok(()) }
-}
-"#;
-
-const MIGRATION: &str = r#"use sea_orm_migration::prelude::*;
-
-#[derive(DeriveMigrationName)]
-pub struct Migration;
-
-#[async_trait::async_trait]
-impl MigrationTrait for Migration {
-    async fn up(&self, manager: &SchemaManager<'_>) -> Result<(), DbErr> {
-        // TODO: implement migration
-        Ok(())
-    }
-
-    async fn down(&self, manager: &SchemaManager<'_>) -> Result<(), DbErr> {
-        // TODO: implement rollback
-        Ok(())
-    }
-}
-"#;
+const CONTROLLER: &str = include_str!("../templates/controller/controller.rs.template");
+const CONTROLLER_TEST: &str = include_str!("../templates/controller/controller_test.rs.template");
+const JOB: &str = include_str!("../templates/job/job.rs.template");
+const JOB_TEST: &str = include_str!("../templates/job/job_test.rs.template");
+const MAILER: &str = include_str!("../templates/mailer/mailer.rs.template");
+const MAILER_TEST: &str = include_str!("../templates/mailer/mailer_test.rs.template");
+const CHANNEL: &str = include_str!("../templates/channel/channel.rs.template");
+const CHANNEL_TEST: &str = include_str!("../templates/channel/channel_test.rs.template");
+const MIGRATION: &str = include_str!("../templates/migration/migration.rs.template");
+const MIGRATION_TEST: &str = include_str!("../templates/migration/migration_test.rs.template");
 
 // --- file-based defaults (scaffold + model), kept embedded as before ---
 const MODEL: &str = include_str!("../templates/models/model.rs.template");
@@ -97,10 +43,15 @@ const VIEW_FORM: &str = include_str!("../templates/scaffold/views/_form.html.ter
 /// rel path mirrors the project override layout under `templates/`.
 const BUILTIN: &[(&str, &str)] = &[
     ("controller/controller.rs.template", CONTROLLER),
+    ("controller/controller_test.rs.template", CONTROLLER_TEST),
     ("job/job.rs.template", JOB),
+    ("job/job_test.rs.template", JOB_TEST),
     ("mailer/mailer.rs.template", MAILER),
+    ("mailer/mailer_test.rs.template", MAILER_TEST),
     ("channel/channel.rs.template", CHANNEL),
+    ("channel/channel_test.rs.template", CHANNEL_TEST),
     ("migration/migration.rs.template", MIGRATION),
+    ("migration/migration_test.rs.template", MIGRATION_TEST),
     ("models/model.rs.template", MODEL),
     ("models/migration.rs.template", MODEL_MIGRATION),
     ("models/model_test.rs.template", MODEL_TEST),

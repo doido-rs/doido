@@ -15,11 +15,21 @@ impl Generator for ControllerGenerator {
         })?;
         let snake = to_snake(name);
         let pascal = to_pascal(name);
-        let content =
-            crate::templates::get("controller/controller.rs.template").replace("{pascal}", &pascal);
-        Ok(vec![GeneratedFile {
-            path: format!("src/controllers/{}_controller.rs", snake),
-            content,
-        }])
+        let content = crate::templates::get("controller/controller.rs.template")
+            .replace("{pascal}", &pascal)
+            .replace("{snake}", &snake);
+        let test = crate::templates::get("controller/controller_test.rs.template")
+            .replace("{pascal}", &pascal)
+            .replace("{snake}", &snake);
+        Ok(vec![
+            GeneratedFile {
+                path: format!("src/controllers/{snake}_controller.rs"),
+                content,
+            },
+            GeneratedFile {
+                path: format!("tests/{snake}_controller_test.rs"),
+                content: test,
+            },
+        ])
     }
 }

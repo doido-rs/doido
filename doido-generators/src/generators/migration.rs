@@ -16,9 +16,17 @@ impl Generator for MigrationGenerator {
         })?;
         let timestamp = Utc::now().format("%Y%m%d%H%M%S");
         let snake = to_snake(name);
-        Ok(vec![GeneratedFile {
-            path: format!("db/migrations/{}_{}.rs", timestamp, snake),
-            content: crate::templates::get("migration/migration.rs.template"),
-        }])
+        let test = crate::templates::get("migration/migration_test.rs.template")
+            .replace("{snake}", &snake);
+        Ok(vec![
+            GeneratedFile {
+                path: format!("db/migrations/{}_{}.rs", timestamp, snake),
+                content: crate::templates::get("migration/migration.rs.template"),
+            },
+            GeneratedFile {
+                path: format!("tests/{snake}_migration_test.rs"),
+                content: test,
+            },
+        ])
     }
 }

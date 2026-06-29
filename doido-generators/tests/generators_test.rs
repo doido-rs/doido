@@ -6,10 +6,18 @@ use doido_generators::{
 #[test]
 fn test_controller_generator_produces_correct_file() {
     let files = ControllerGenerator.generate(&["Posts"]).unwrap();
-    assert_eq!(files.len(), 1);
-    assert_eq!(files[0].path, "src/controllers/posts_controller.rs");
-    assert!(files[0].content.contains("PostsController"));
-    assert!(files[0].content.contains("#[controller]"));
+    let ctrl = files
+        .iter()
+        .find(|f| f.path == "src/controllers/posts_controller.rs")
+        .unwrap();
+    assert!(ctrl.content.contains("PostsController"));
+    assert!(ctrl.content.contains("#[controller]"));
+    // A TODO test stub is emitted alongside it.
+    let test = files
+        .iter()
+        .find(|f| f.path == "tests/posts_controller_test.rs")
+        .expect("controller test stub emitted");
+    assert!(test.content.contains("fn posts_controller_todo()"));
 }
 
 #[test]
@@ -181,33 +189,53 @@ fn test_scaffold_emits_model_test_and_controller_request_tests() {
 #[test]
 fn test_migration_generator_has_timestamp_in_filename() {
     let files = MigrationGenerator.generate(&["create_users"]).unwrap();
-    assert_eq!(files.len(), 1);
-    assert!(files[0].path.starts_with("db/migrations/"));
-    assert!(files[0].path.ends_with("_create_users.rs"));
+    let mig = files
+        .iter()
+        .find(|f| f.path.starts_with("db/migrations/"))
+        .unwrap();
+    assert!(mig.path.ends_with("_create_users.rs"));
+    assert!(files
+        .iter()
+        .any(|f| f.path == "tests/create_users_migration_test.rs"));
 }
 
 #[test]
 fn test_job_generator_produces_correct_file() {
     let files = JobGenerator.generate(&["SendEmail"]).unwrap();
-    assert_eq!(files.len(), 1);
-    assert_eq!(files[0].path, "app/jobs/send_email_job.rs");
-    assert!(files[0].content.contains("#[job"));
+    let job = files
+        .iter()
+        .find(|f| f.path == "app/jobs/send_email_job.rs")
+        .unwrap();
+    assert!(job.content.contains("#[job"));
+    let test = files
+        .iter()
+        .find(|f| f.path == "tests/send_email_job_test.rs")
+        .expect("job test stub emitted");
+    assert!(test.content.contains("fn send_email_job_todo()"));
 }
 
 #[test]
 fn test_mailer_generator_produces_correct_file() {
     let files = MailerGenerator.generate(&["Welcome"]).unwrap();
-    assert_eq!(files.len(), 1);
-    assert_eq!(files[0].path, "app/mailers/welcome_mailer.rs");
-    assert!(files[0].content.contains("WelcomeMailer"));
+    let mailer = files
+        .iter()
+        .find(|f| f.path == "app/mailers/welcome_mailer.rs")
+        .unwrap();
+    assert!(mailer.content.contains("WelcomeMailer"));
+    assert!(files
+        .iter()
+        .any(|f| f.path == "tests/welcome_mailer_test.rs"));
 }
 
 #[test]
 fn test_channel_generator_produces_correct_file() {
     let files = ChannelGenerator.generate(&["Chat"]).unwrap();
-    assert_eq!(files.len(), 1);
-    assert_eq!(files[0].path, "app/channels/chat_channel.rs");
-    assert!(files[0].content.contains("ChatChannel"));
+    let channel = files
+        .iter()
+        .find(|f| f.path == "app/channels/chat_channel.rs")
+        .unwrap();
+    assert!(channel.content.contains("ChatChannel"));
+    assert!(files.iter().any(|f| f.path == "tests/chat_channel_test.rs"));
 }
 
 #[test]

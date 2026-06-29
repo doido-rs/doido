@@ -17,9 +17,18 @@ impl Generator for MailerGenerator {
         let pascal = to_pascal(name);
         let content =
             crate::templates::get("mailer/mailer.rs.template").replace("{pascal}", &pascal);
-        Ok(vec![GeneratedFile {
-            path: format!("app/mailers/{}_mailer.rs", snake),
-            content,
-        }])
+        let test = crate::templates::get("mailer/mailer_test.rs.template")
+            .replace("{pascal}", &pascal)
+            .replace("{snake}", &snake);
+        Ok(vec![
+            GeneratedFile {
+                path: format!("app/mailers/{snake}_mailer.rs"),
+                content,
+            },
+            GeneratedFile {
+                path: format!("tests/{snake}_mailer_test.rs"),
+                content: test,
+            },
+        ])
     }
 }

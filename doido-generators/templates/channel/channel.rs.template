@@ -1,0 +1,26 @@
+use doido_cable::{channel, Channel, ChannelContext};
+use serde_json::Value;
+
+/// Channel for `{pascal}`. Clients subscribe to it and exchange messages.
+#[channel]
+pub struct {pascal}Channel;
+
+#[async_trait::async_trait]
+impl Channel for {pascal}Channel {
+    /// A client subscribed — authorize the connection and set up state here.
+    async fn subscribed(&self, _ctx: &ChannelContext) -> doido_core::Result<()> {
+        Ok(())
+    }
+
+    /// A client unsubscribed — clean up any state here.
+    async fn unsubscribed(&self, _ctx: &ChannelContext) -> doido_core::Result<()> {
+        Ok(())
+    }
+
+    /// Handle an incoming message from a subscribed client.
+    async fn received(&self, _ctx: &ChannelContext, data: Value) -> doido_core::Result<()> {
+        let _ = data;
+        // TODO: handle the incoming message `data`.
+        Ok(())
+    }
+}

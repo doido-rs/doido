@@ -1,0 +1,38 @@
+use sea_orm_migration::prelude::*;
+
+#[derive(DeriveMigrationName)]
+pub struct Migration;
+
+#[async_trait::async_trait]
+impl MigrationTrait for Migration {
+    /// Apply the migration. Build a table with the `manager`, e.g.:
+    ///
+    /// ```ignore
+    /// manager
+    ///     .create_table(
+    ///         Table::create()
+    ///             .table(Alias::new("things"))
+    ///             .col(
+    ///                 ColumnDef::new(Alias::new("id"))
+    ///                     .integer()
+    ///                     .not_null()
+    ///                     .auto_increment()
+    ///                     .primary_key(),
+    ///             )
+    ///             .to_owned(),
+    ///     )
+    ///     .await
+    /// ```
+    async fn up(&self, manager: &SchemaManager<'_>) -> Result<(), DbErr> {
+        let _ = manager;
+        // TODO: implement the migration.
+        Ok(())
+    }
+
+    /// Reverse the migration (drop what `up` created).
+    async fn down(&self, manager: &SchemaManager<'_>) -> Result<(), DbErr> {
+        let _ = manager;
+        // TODO: implement the rollback.
+        Ok(())
+    }
+}
