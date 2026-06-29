@@ -278,3 +278,86 @@ fn test_registry_unknown_generator_returns_error() {
     let reg = default_registry();
     assert!(reg.run("nonexistent", &[]).is_err());
 }
+
+// --- Template overrides + project generators ---
+
+use doido_generators::{project_generator, templates, GeneratorGenerator, TemplatesGenerator};
+use std::fs;
+use tempfile::tempdir;
+
+#[test]
+fn test_resolve_prefers_project_override() {
+    let dir = tempdir().unwrap();
+    let rel = "controller/controller.rs.template";
+    // No override file yet → built-in default is returned.
+    let default = templates::get_with_root(dir.path(), rel);
+    assert!(default.contains("{pascal}Controller"));
+
+    // Write a project override; now it wins.
+    fs::create_dir_all(dir.path().join("controller")).unwrap();
+    fs::write(dir.path().join(rel), "OVERRIDDEN {pascal}").unwrap();
+    let overridden = templates::get_with_root(dir.path(), rel);
+    assert_eq!(overridden, "OVERRIDDEN {pascal}");
+}
+
+#[test]
+fn test_templates_generator_ejects_all_and_filtered() {
+    // No arg → ejects everything under templates/.
+    let all = TemplatesGenerator.generate(&[]).unwrap();
+    assert!(all
+        .iter()
+        .any(|f| f.path == "templates/scaffold/views/index.html.tera"));
+    assert!(all
+        .iter()
+        .any(|f| f.path == "templates/controller/controller.rs.template"));
+
+    // Filtered by generator name → only that prefix.
+    let scaffold = TemplatesGenerator.generate(&["scaffold"]).unwrap();
+    assert!(scaffold
+        .iter()
+        .all(|f| f.path.starts_with("templates/scaffold/")));
+    assert!(scaffold.len() < all.len());
+
+    // Unknown generator name errors.
+    assert!(TemplatesGenerator.generate(&["bogus"]).is_err());
+}
+
+#[test]
+fn test_generator_generator_scaffolds_project_generator() {
+    let files = GeneratorGenerator.generate(&["Widget"]).unwrap();
+    assert!(files
+        .iter()
+        .any(|f| f.path == "lib/generators/widget/app/widgets/{snake}.rs.template"));
+    assert!(files
+        .iter()
+        .any(|f| f.path == "lib/generators/widget/README.md"));
+}
+
+#[test]
+fn test_project_generator_substitutes_path_and_content() {
+    let root = tempdir().unwrap();
+    let gen_dir = root.path().join("widget");
+    fs::create_dir_all(gen_dir.join("app/{plural}")).unwrap();
+    fs::write(
+        gen_dir.join("app/{plural}/{snake}.rs.template"),
+        "pub struct {pascal}; // {plural}\n",
+    )
+    .unwrap();
+    fs::write(gen_dir.join("README.md"), "ignored").unwrap();
+
+    // Listing finds the generator directory (and ignores stray files).
+    fs::write(root.path().join("notes.txt"), "x").unwrap();
+    assert_eq!(
+        project_generator::list_in(root.path()),
+        vec!["widget".to_string()]
+    );
+
+    // Discovered under the root, then processed with a name argument.
+    let dir = project_generator::find_in(root.path(), "widget").unwrap();
+    let files = project_generator::run(&dir, &["BlogPost"]).unwrap();
+
+    assert_eq!(files.len(), 1); // README.md skipped
+    let f = &files[0];
+    assert_eq!(f.path, "app/blog_posts/blog_post.rs"); // tokens + .template stripped
+    assert_eq!(f.content, "pub struct BlogPost; // blog_posts\n");
+}

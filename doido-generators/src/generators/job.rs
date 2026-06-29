@@ -15,11 +15,10 @@ impl Generator for JobGenerator {
             .copied()
             .ok_or_else(|| doido_core::anyhow::anyhow!("job generator requires a name argument"))?;
         let snake = to_snake(name);
+        let content = crate::templates::get("job/job.rs.template").replace("{snake}", &snake);
         Ok(vec![GeneratedFile {
             path: format!("app/jobs/{}_job.rs", snake),
-            content: format!(
-                "use doido_jobs::job;\n\n#[job(max_retries = 3, queue = \"default\")]\nasync fn {snake}_job(payload: serde_json::Value) -> doido_core::Result<()> {{\n    // TODO: implement job\n    Ok(())\n}}\n",
-            ),
+            content,
         }])
     }
 }

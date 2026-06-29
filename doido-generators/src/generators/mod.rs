@@ -1,12 +1,14 @@
 pub mod channel;
 pub mod controller;
 pub mod field;
+pub mod generator_gen;
 pub mod job;
 pub mod mailer;
 pub mod migration;
 pub mod model;
 pub mod new;
 pub mod scaffold;
+pub mod templates_gen;
 
 use doido_core::Inflector;
 

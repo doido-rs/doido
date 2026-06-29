@@ -1,4 +1,4 @@
-use crate::commands::{self, generate::run_generate, jobs::JobsCommand, new::run_new};
+use crate::commands::{self, jobs::JobsCommand, new::run_new};
 use clap::{Parser, Subcommand};
 use doido_controller::axum;
 
@@ -34,17 +34,23 @@ enum Commands {
         action: JobsCommand,
     },
     /// Start background worker
-    Worker,
+    Worker {
+        /// Drain the jobs currently ready, then exit (instead of running until Ctrl-C).
+        #[arg(long)]
+        once: bool,
+    },
     /// Manage credentials
     Credentials {
         #[command(subcommand)]
         action: commands::credentials::CredentialsCommand,
     },
-    /// Run a code generator
+    /// Run a code generator (omit the name, or pass --help, to list generators)
+    // `disable_help_flag` + `trailing_var_arg` let `--help` flow into `args` so
+    // we can render the dynamic generator list instead of clap's static help.
+    #[command(disable_help_flag = true)]
     Generate {
-        /// Generator name (controller, model, migration, scaffold, job, mailer, channel)
-        generator: String,
-        /// Generator arguments
+        /// Generator name followed by its arguments
+        #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
         args: Vec<String>,
     },
     /// Create a new Doido application
@@ -103,14 +109,11 @@ pub async fn run(routes: Option<axum::Router>) {
             }
         }
         Commands::Console => commands::console::run(),
-        Commands::Worker => commands::worker::run().await,
+        Commands::Worker { once } => commands::worker::run(once).await,
         Commands::Db { verbose, command } => commands::db::run(command, verbose).await,
         Commands::Jobs { action } => commands::jobs::run(action),
         Commands::Credentials { action } => commands::credentials::run(action),
-        Commands::Generate { generator, args } => {
-            let args_refs: Vec<&str> = args.iter().map(|s| s.as_str()).collect();
-            run_generate(&generator, &args_refs);
-        }
+        Commands::Generate { args } => commands::generate::run(&args),
         Commands::New { name, database } => {
             run_new(&name, database.as_deref());
         }

@@ -91,9 +91,33 @@ fn test_generate_unknown_generator() {
 }
 
 #[test]
-fn test_worker_command() {
+fn test_generate_empty_lists_generators() {
     cmd()
-        .arg("worker")
+        .arg("generate")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Available generators"))
+        .stdout(predicate::str::contains("controller"))
+        .stdout(predicate::str::contains("scaffold"));
+}
+
+#[test]
+fn test_generate_help_lists_generators() {
+    cmd()
+        .args(["generate", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Available generators"))
+        .stdout(predicate::str::contains("templates"));
+}
+
+#[test]
+fn test_worker_command() {
+    // `--once` drains ready jobs and exits, so the command terminates (the
+    // default mode runs until Ctrl-C).
+    cmd()
+        .args(["worker", "--once"])
+        .timeout(std::time::Duration::from_secs(30))
         .assert()
         .success()
         .stdout(predicate::str::contains("worker"));

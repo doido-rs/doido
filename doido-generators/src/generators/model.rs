@@ -4,10 +4,6 @@ use crate::generators::{to_snake, to_table_name};
 use chrono::Utc;
 use doido_core::Result;
 
-/// Model entity, written to `app/models/<name>.rs`.
-const MODEL_TEMPLATE: &str = include_str!("../../templates/models/model.rs.template");
-/// SeaORM migration, written to `db/migration/src/m<timestamp>_create_<table>_table.rs`.
-const MIGRATION_TEMPLATE: &str = include_str!("../../templates/models/migration.rs.template");
 /// Fallback migration `lib.rs` used when the app doesn't have one on disk yet;
 /// kept in sync with the generated-app template so injection markers line up.
 const MIGRATION_LIB_BASE: &str = include_str!("../../templates/new/db/migration/src/lib.rs");
@@ -39,7 +35,7 @@ impl Generator for ModelGenerator {
         let fields = Field::parse_all(&args[1..])?;
 
         // Model file — one struct field per declared column.
-        let model = MODEL_TEMPLATE
+        let model = crate::templates::get("models/model.rs.template")
             .replace("{table_name}", &table_name)
             .replace("{fields}", &model_fields(&fields));
 
@@ -47,7 +43,7 @@ impl Generator for ModelGenerator {
         // the module path, so the file/module name doubles as the migration id.
         let timestamp = Utc::now().format("%Y%m%d_%H%M%S");
         let migration_module = format!("m{timestamp}_create_{table_name}_table");
-        let migration = MIGRATION_TEMPLATE
+        let migration = crate::templates::get("models/migration.rs.template")
             .replace("{migration_imports}", &migration_imports(&fields))
             .replace("{up_body}", &migration_up_body(&table_name, &fields))
             .replace("{table_name}", &table_name);

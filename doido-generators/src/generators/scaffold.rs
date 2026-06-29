@@ -4,17 +4,6 @@ use crate::generators::model::ModelGenerator;
 use crate::generators::{to_pascal, to_snake, to_table_name};
 use doido_core::Result;
 
-/// Scaffold controller templates (HTML views vs JSON API), chosen by `--api`.
-const CONTROLLER_HTML: &str = include_str!("../../templates/scaffold/controller_html.rs.template");
-const CONTROLLER_API: &str = include_str!("../../templates/scaffold/controller_api.rs.template");
-
-/// View templates rendered into `app/views/<plural>/` (HTML mode only).
-const VIEW_INDEX: &str = include_str!("../../templates/scaffold/views/index.html.tera");
-const VIEW_SHOW: &str = include_str!("../../templates/scaffold/views/show.html.tera");
-const VIEW_NEW: &str = include_str!("../../templates/scaffold/views/new.html.tera");
-const VIEW_EDIT: &str = include_str!("../../templates/scaffold/views/edit.html.tera");
-const VIEW_FORM: &str = include_str!("../../templates/scaffold/views/_form.html.tera");
-
 /// Fallbacks used when the app doesn't have these files on disk yet, kept in
 /// sync with the generated-app templates so injection lines up.
 const CONTROLLERS_MOD_BASE: &str = include_str!("../../templates/new/app/controllers/mod.rs");
@@ -54,11 +43,15 @@ impl Generator for ScaffoldGenerator {
         files.extend(ModelGenerator.generate(&positional)?);
 
         // Controller (HTML or API variant).
-        let controller_template = if api { CONTROLLER_API } else { CONTROLLER_HTML };
+        let controller_template = if api {
+            crate::templates::get("scaffold/controller_api.rs.template")
+        } else {
+            crate::templates::get("scaffold/controller_html.rs.template")
+        };
         files.push(GeneratedFile {
             path: format!("app/controllers/{plural}_controller.rs"),
             content: render_controller(
-                controller_template,
+                &controller_template,
                 &singular,
                 &plural,
                 &model,
@@ -77,16 +70,17 @@ impl Generator for ScaffoldGenerator {
 
         // Views (HTML mode only).
         if !api {
-            for (file, template) in [
-                ("index", VIEW_INDEX),
-                ("show", VIEW_SHOW),
-                ("new", VIEW_NEW),
-                ("edit", VIEW_EDIT),
-                ("_form", VIEW_FORM),
+            for (file, rel) in [
+                ("index", "scaffold/views/index.html.tera"),
+                ("show", "scaffold/views/show.html.tera"),
+                ("new", "scaffold/views/new.html.tera"),
+                ("edit", "scaffold/views/edit.html.tera"),
+                ("_form", "scaffold/views/_form.html.tera"),
             ] {
+                let template = crate::templates::get(rel);
                 files.push(GeneratedFile {
                     path: format!("app/views/{plural}/{file}.html.tera"),
-                    content: render_view(template, &singular, &plural, &model, &fields),
+                    content: render_view(&template, &singular, &plural, &model, &fields),
                 });
             }
         }

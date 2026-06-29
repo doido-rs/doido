@@ -15,11 +15,11 @@ impl Generator for MailerGenerator {
         })?;
         let snake = to_snake(name);
         let pascal = to_pascal(name);
+        let content =
+            crate::templates::get("mailer/mailer.rs.template").replace("{pascal}", &pascal);
         Ok(vec![GeneratedFile {
             path: format!("app/mailers/{}_mailer.rs", snake),
-            content: format!(
-                "use doido_mailer::{{mailer, Mail}};\n\n#[mailer]\npub struct {pascal}Mailer;\n\nimpl {pascal}Mailer {{\n    pub fn welcome(to: &str) -> Mail {{\n        Mail::new().to(to).subject(\"Welcome!\").body_text(\"Welcome to the platform.\")\n    }}\n}}\n",
-            ),
+            content,
         }])
     }
 }

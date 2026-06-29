@@ -15,11 +15,11 @@ impl Generator for ControllerGenerator {
         })?;
         let snake = to_snake(name);
         let pascal = to_pascal(name);
+        let content =
+            crate::templates::get("controller/controller.rs.template").replace("{pascal}", &pascal);
         Ok(vec![GeneratedFile {
             path: format!("src/controllers/{}_controller.rs", snake),
-            content: format!(
-                "use doido_controller::controller;\n\npub struct {pascal}Controller;\n\n#[controller]\nimpl {pascal}Controller {{\n    pub async fn index(ctx: doido_controller::Context) -> doido_controller::Response {{\n        ctx.status(200)\n    }}\n}}\n",
-            ),
+            content,
         }])
     }
 }
