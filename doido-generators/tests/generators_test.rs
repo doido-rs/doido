@@ -207,6 +207,15 @@ fn test_job_generator_produces_correct_file() {
         .find(|f| f.path == "app/jobs/send_email_job.rs")
         .unwrap();
     assert!(job.content.contains("#[job"));
+    // The context the engine carries is the job's first parameter, followed by a
+    // typed payload.
+    assert!(job
+        .content
+        .contains("async fn send_email_job(ctx: &JobContext, payload: SendEmailPayload)"));
+    // The payload type is (de)serializable so the queue can persist it as JSON.
+    assert!(job.content.contains("pub struct SendEmailPayload"));
+    assert!(job.content.contains("Serialize"));
+    assert!(job.content.contains("Deserialize"));
     let test = files
         .iter()
         .find(|f| f.path == "tests/send_email_job_test.rs")

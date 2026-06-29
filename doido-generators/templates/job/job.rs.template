@@ -1,14 +1,24 @@
-use doido_jobs::job;
-use serde_json::Value;
+use doido_jobs::{job, JobContext};
+use serde::{Deserialize, Serialize};
 
-/// Background job. Enqueue it with the generated `{snake}_job_enqueue` helper:
+/// Typed payload for the `{snake}` job. Every field must be serializable and
+/// deserializable — the queue persists the payload as JSON between enqueue and
+/// perform.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct {pascal}Payload {
+    // TODO: add the job's fields, e.g. `pub user_id: i64,`.
+}
+
+/// Background job. The engine runs it with the application context (`ctx`)
+/// first — reach the database (`ctx.db()`) and app config through it — then the
+/// typed `payload`. Enqueue it with the generated `{snake}_job_enqueue` helper:
 ///
 /// ```ignore
-/// {snake}_job_enqueue(&queue, serde_json::json!({ /* payload */ })).await?;
+/// {snake}_job_enqueue(&queue, {pascal}Payload { /* fields */ }).await?;
 /// ```
 #[job(max_retries = 3, queue = "default")]
-async fn {snake}_job(payload: Value) -> doido_core::Result<()> {
-    let _ = payload;
-    // TODO: implement the job using `payload`.
+async fn {snake}_job(ctx: &JobContext, payload: {pascal}Payload) -> doido_core::Result<()> {
+    let _ = (ctx, payload);
+    // TODO: implement the job using `ctx` and `payload`.
     Ok(())
 }

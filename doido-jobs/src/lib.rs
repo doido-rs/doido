@@ -1,4 +1,5 @@
 pub mod config;
+pub mod context;
 #[cfg(feature = "jobs-db")]
 pub mod db;
 pub mod memory;
@@ -9,6 +10,7 @@ pub mod retry;
 pub mod worker;
 
 pub use config::{build_queue, Backend, JobsConfig};
+pub use context::JobContext;
 #[cfg(feature = "jobs-db")]
 pub use db::DbQueue;
 pub use doido_jobs_macros::job;

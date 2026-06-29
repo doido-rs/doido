@@ -31,11 +31,47 @@ async fn test_engine_run_once_acks() {
         .await
         .unwrap();
     let engine = WorkerEngine::new(queue.clone(), config(&["default"], 1));
-    let did = engine.run_once(&|_job| async { Ok(()) }).await.unwrap();
+    let did = engine
+        .run_once(&|_job, _ctx| async { Ok(()) })
+        .await
+        .unwrap();
     assert!(did);
     // acked → nothing left
-    let did2 = engine.run_once(&|_job| async { Ok(()) }).await.unwrap();
+    let did2 = engine
+        .run_once(&|_job, _ctx| async { Ok(()) })
+        .await
+        .unwrap();
     assert!(!did2);
+}
+
+#[tokio::test]
+async fn test_engine_passes_context_to_handler() {
+    // A stand-in for the application context (db pool + config) the engine carries.
+    struct AppCtx {
+        marker: usize,
+    }
+
+    let queue: Arc<dyn JobQueue> = Arc::new(MemoryQueue::new());
+    queue
+        .enqueue(JobPayload::new("default", json!({}), 3))
+        .await
+        .unwrap();
+    let engine =
+        WorkerEngine::with_context(queue.clone(), config(&["default"], 1), AppCtx { marker: 7 });
+
+    let seen = Arc::new(AtomicUsize::new(0));
+    let s = seen.clone();
+    let handler = move |_job: JobPayload, ctx: Arc<AppCtx>| {
+        let s = s.clone();
+        async move {
+            // The handler reads the app context the engine handed it.
+            s.store(ctx.marker, Ordering::SeqCst);
+            Ok(())
+        }
+    };
+    let did = engine.run_once(&handler).await.unwrap();
+    assert!(did);
+    assert_eq!(seen.load(Ordering::SeqCst), 7);
 }
 
 #[tokio::test]
@@ -46,7 +82,7 @@ async fn test_engine_timeout_is_a_failure() {
     queue.enqueue(job).await.unwrap();
     let engine = WorkerEngine::new(queue.clone(), config(&["default"], 1));
     engine
-        .run_once(&|_job| async {
+        .run_once(&|_job, _ctx| async {
             tokio::time::sleep(Duration::from_secs(5)).await;
             Ok(())
         })
@@ -70,7 +106,7 @@ async fn test_engine_processes_multiple_queues() {
 
     let count = Arc::new(AtomicUsize::new(0));
     let c = count.clone();
-    let handler = move |_job: JobPayload| {
+    let handler = move |_job: JobPayload, _ctx: Arc<()>| {
         let c = c.clone();
         async move {
             c.fetch_add(1, Ordering::SeqCst);
@@ -95,7 +131,7 @@ async fn test_engine_run_drains_on_shutdown() {
 
     let count = Arc::new(AtomicUsize::new(0));
     let c = count.clone();
-    let handler = move |_job: JobPayload| {
+    let handler = move |_job: JobPayload, _ctx: Arc<()>| {
         let c = c.clone();
         async move {
             tokio::time::sleep(Duration::from_millis(20)).await;

@@ -33,17 +33,23 @@ impl Default for EngineConfig {
 
 /// Run one job's handler under its timeout, then finalize via ack / nack / dead_letter.
 /// The retry-vs-dead-letter decision and backoff computation live here, so every
-/// backend behaves identically.
-async fn process<F, Fut>(queue: &Arc<dyn JobQueue>, reserved: Reserved, handler: &F) -> Result<()>
+/// backend behaves identically. The handler receives the job alongside the shared
+/// application context the engine carries.
+async fn process<C, F, Fut>(
+    queue: &Arc<dyn JobQueue>,
+    ctx: &Arc<C>,
+    reserved: Reserved,
+    handler: &F,
+) -> Result<()>
 where
-    F: Fn(JobPayload) -> Fut,
+    F: Fn(JobPayload, Arc<C>) -> Fut,
     Fut: Future<Output = Result<()>>,
 {
     let job = reserved.job;
     let id = job.id.clone();
     let timeout = Duration::from_secs(job.timeout);
 
-    let outcome = tokio::time::timeout(timeout, handler(job.clone())).await;
+    let outcome = tokio::time::timeout(timeout, handler(job.clone(), Arc::clone(ctx))).await;
 
     match outcome {
         Ok(Ok(())) => queue.ack(&id).await?,
@@ -69,14 +75,38 @@ async fn fail(queue: &Arc<dyn JobQueue>, job: &JobPayload, error: &str) -> Resul
 
 /// Backend-agnostic worker engine: run loop, concurrency, timeout, backoff,
 /// lease reclaim, and graceful shutdown.
-pub struct WorkerEngine {
+///
+/// The engine carries the application context `C` (database connection, app
+/// config, …) shared with every job handler invocation. Use [`new`](Self::new)
+/// for context-free workers (`C = ()`) or [`with_context`](Self::with_context)
+/// to inject an app context the handlers can read.
+pub struct WorkerEngine<C = ()> {
     queue: Arc<dyn JobQueue>,
     config: EngineConfig,
+    ctx: Arc<C>,
 }
 
-impl WorkerEngine {
+impl WorkerEngine<()> {
+    /// Build a context-free engine. Handlers receive `Arc<()>` they can ignore.
     pub fn new(queue: Arc<dyn JobQueue>, config: EngineConfig) -> Self {
-        Self { queue, config }
+        Self::with_context(queue, config, ())
+    }
+}
+
+impl<C: Send + Sync + 'static> WorkerEngine<C> {
+    /// Build an engine carrying `ctx` as the application context handed to every
+    /// job handler (cloned per job as `Arc<C>`).
+    pub fn with_context(queue: Arc<dyn JobQueue>, config: EngineConfig, ctx: C) -> Self {
+        Self {
+            queue,
+            config,
+            ctx: Arc::new(ctx),
+        }
+    }
+
+    /// The shared application context this engine hands to job handlers.
+    pub fn context(&self) -> &Arc<C> {
+        &self.ctx
     }
 
     fn queue_refs(&self) -> Vec<&str> {
@@ -87,12 +117,12 @@ impl WorkerEngine {
     /// The primitive used by tests and `TestQueue::drain`.
     pub async fn run_once<F, Fut>(&self, handler: &F) -> Result<bool>
     where
-        F: Fn(JobPayload) -> Fut,
+        F: Fn(JobPayload, Arc<C>) -> Fut,
         Fut: Future<Output = Result<()>>,
     {
         let queues = self.queue_refs();
         if let Some(reserved) = self.queue.reserve(&queues, self.config.poll_wait).await? {
-            process(&self.queue, reserved, handler).await?;
+            process(&self.queue, &self.ctx, reserved, handler).await?;
             return Ok(true);
         }
         Ok(false)
@@ -101,7 +131,7 @@ impl WorkerEngine {
     /// Run the engine until `shutdown` resolves, then drain in-flight jobs.
     pub async fn run<F, Fut>(&self, handler: F, shutdown: impl Future<Output = ()>) -> Result<()>
     where
-        F: Fn(JobPayload) -> Fut + Clone + Send + Sync + 'static,
+        F: Fn(JobPayload, Arc<C>) -> Fut + Clone + Send + Sync + 'static,
         Fut: Future<Output = Result<()>> + Send + 'static,
     {
         let semaphore = Arc::new(Semaphore::new(self.config.concurrency));
@@ -125,10 +155,11 @@ impl WorkerEngine {
             match reserved {
                 Ok(Some(reserved)) => {
                     let queue = Arc::clone(&self.queue);
+                    let ctx = Arc::clone(&self.ctx);
                     let handler = handler.clone();
                     tokio::spawn(async move {
                         let _permit = permit;
-                        if let Err(e) = process(&queue, reserved, &handler).await {
+                        if let Err(e) = process(&queue, &ctx, reserved, &handler).await {
                             doido_core::tracing::error!("worker process error: {e}");
                         }
                     });
@@ -165,8 +196,9 @@ impl WorkerEngine {
 }
 
 /// Single-queue convenience wrapper over `WorkerEngine` (back-compat).
+/// Context-free: its performer takes only the [`JobPayload`].
 pub struct Worker {
-    engine: WorkerEngine,
+    engine: WorkerEngine<()>,
 }
 
 impl Worker {
@@ -186,7 +218,8 @@ impl Worker {
         F: Fn(JobPayload) -> Fut,
         Fut: Future<Output = Result<()>>,
     {
-        self.engine.run_once(&performer).await?;
+        let handler = |job: JobPayload, _ctx: Arc<()>| performer(job);
+        self.engine.run_once(&handler).await?;
         Ok(())
     }
 }

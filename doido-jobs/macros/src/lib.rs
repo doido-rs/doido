@@ -89,13 +89,31 @@ pub fn job(attr: TokenStream, item: TokenStream) -> TokenStream {
         _ => quote! { doido_jobs::BackoffStrategy::Exponential },
     };
 
+    // The job's payload type — the last typed parameter (the application context,
+    // when present, comes first). The enqueue helper takes this type and
+    // serializes it into the `serde_json::Value` every backend persists, so the
+    // payload must be `Serialize`. Defaults to `serde_json::Value` for untyped,
+    // context-free jobs (back-compat).
+    let payload_ty: syn::Type = func
+        .sig
+        .inputs
+        .iter()
+        .filter_map(|arg| match arg {
+            syn::FnArg::Typed(pat_type) => Some((*pat_type.ty).clone()),
+            syn::FnArg::Receiver(_) => None,
+        })
+        .last()
+        .unwrap_or_else(|| syn::parse_quote!(serde_json::Value));
+
     let expanded = quote! {
         #func
 
         pub async fn #enqueue_fn_name(
             queue: &dyn doido_jobs::JobQueue,
-            payload: serde_json::Value,
+            payload: #payload_ty,
         ) -> doido_core::Result<doido_jobs::JobId> {
+            let payload = serde_json::to_value(payload)
+                .map_err(|e| doido_core::anyhow::anyhow!("failed to serialize job payload: {e}"))?;
             let job = doido_jobs::JobPayload::new(#queue_lit, payload, #max_retries_lit)
                 .with_priority(#priority_lit)
                 .with_backoff(#backoff_variant, #backoff_base_lit)
