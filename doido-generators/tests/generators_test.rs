@@ -221,6 +221,11 @@ fn test_scaffold_generator_produces_multiple_files() {
     assert!(index.content.contains("<th>title</th>"));
     assert!(index.content.contains("{% for post in posts %}"));
     assert!(index.content.contains("{{ post.title }}"));
+    // Delete button issues a DELETE to the destroy route for each row.
+    assert!(index.content.contains(">Delete</button>"));
+    assert!(index
+        .content
+        .contains("fetch('/posts/{{ post.id }}', { method: 'DELETE' })"));
 }
 
 #[test]

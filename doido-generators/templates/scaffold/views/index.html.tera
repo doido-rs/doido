@@ -14,6 +14,7 @@
 {table_cells}      <td>
         <a href="/{plural}/{{ {singular}.id }}">Show</a>
         <a href="/{plural}/{{ {singular}.id }}/edit">Edit</a>
+        <button type="button" onclick="if (confirm('Delete this {Model}?')) fetch('/{plural}/{{ {singular}.id }}', { method: 'DELETE' }).then(function () { location.reload(); })">Delete</button>
       </td>
     </tr>
     {% endfor %}
