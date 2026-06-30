@@ -19,6 +19,7 @@ doido-core.workspace = true
 doido-controller.workspace = true
 doido-model.workspace = true
 doido-view.workspace = true
+doido-cache.workspace = true
 doido-jobs.workspace = true
 chrono.workspace = true
 figlet-rs.workspace = true

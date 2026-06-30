@@ -1,6 +1,6 @@
 [package]
 name = "doido-cache"
-description = "Named cache stores, TTL — memory/Redis backends in ActiveSupport::Cache fashion for Doido."
+description = "Named cache stores, TTL — memory/Redis/Memcached backends in ActiveSupport::Cache fashion for Doido."
 version.workspace = true
 license.workspace = true
 edition = "2021"
@@ -8,9 +8,22 @@ edition = "2021"
 [dependencies]
 doido-core.workspace = true
 serde_json.workspace = true
+serde.workspace = true
+serde_norway = "0.9"
 async-trait.workspace = true
 
+# Optional backend dependencies, enabled by the matching feature.
+redis = { workspace = true, optional = true }
+memcache = { version = "0.17", optional = true }
+# Needed to offload the synchronous `memcache` client onto blocking tasks.
+tokio = { workspace = true, optional = true, features = ["rt"] }
+
+[features]
+default = []
+cache-redis = ["dep:redis"]
+cache-memcache = ["dep:memcache", "dep:tokio"]
+
 [dev-dependencies]
-tokio = { workspace = true, features = ["time"] }
+tokio = { workspace = true, features = ["macros", "rt", "time"] }
 doido-core.workspace = true
 async-trait.workspace = true

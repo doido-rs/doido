@@ -8,3 +8,6 @@ logger:
   # send them to a file so they don't clutter test runner output.
   level: warn
   file: log/test.log
+cache:
+  # Tests use the in-process memory store for isolation and speed.
+  type: memory

@@ -11,3 +11,23 @@ logger:
   # Output renderer: compact (default) | verbose (pretty, all fields) |
   # json_response (one JSON line per response, with latency_ms).
   format: verbose
+cache:
+  # Backend: memory (default) | redis | memcache.
+  # `endpoint` is the server address; `namespace` (optional) prefixes every key.
+  #
+  # To connect to Redis — add the feature to the `doido` dependency in Cargo.toml
+  #   doido = { ..., features = ["cache-redis"] }
+  # then:
+  #   type: redis
+  #   endpoint: redis://127.0.0.1:6379
+  #   namespace: {doido_name}
+  #
+  # To connect to Memcached — add the feature to the `doido` dependency
+  #   doido = { ..., features = ["cache-memcache"] }
+  # then:
+  #   type: memcache
+  #   endpoint: memcache://127.0.0.1:11211
+  #   namespace: {doido_name}
+  #
+  # `endpoint` can be overridden per-environment with the CACHE__ENDPOINT env var.
+  type: memory

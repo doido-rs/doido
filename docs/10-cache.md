@@ -36,26 +36,29 @@ cache.write("posts/all", &posts, Some(Duration::from_secs(300))).await?;
 
 | Backend | Feature flag | Description |
 |---------|-------------|-------------|
-| `MemoryStore` | default | `DashMap` + TTL, single-process, dev/test |
+| `MemoryStore` | default | `HashMap` + TTL, single-process, dev/test |
 | `RedisStore` | `feature = "cache-redis"` | Redis `GET`/`SET EX`, distributed |
-| `DbStore` | `feature = "cache-db"` | sea-orm `cache_entries` table, no extra infra |
+| `MemcacheStore` | `feature = "cache-memcache"` | Memcached, distributed |
 
-Selected via config:
+Selected via the `cache` section of `config/<env>.yml`:
 
-```toml
-[cache]
-backend = "memory"      # "memory" | "redis" | "db"
-ttl = 300               # default TTL in seconds (0 = no expiry)
-
-[cache.namespace]
-app = "myapp"           # app name prefix
-env = true              # include environment (myapp:production:key)
-custom = ""             # optional extra prefix segment
-
-[cache.redis]
-url = "${REDIS_URL}"
-pool_size = 5
+```yaml
+cache:
+  type: redis                       # memory (default) | redis | memcache
+  endpoint: redis://127.0.0.1:6379  # backend address (redis/memcache); memory ignores it
+  namespace: myapp                  # optional key prefix (via NamespacedStore)
 ```
+
+`endpoint` can be overridden per environment with the `CACHE__ENDPOINT` env var
+(the same `SECTION__KEY` convention used elsewhere). The Redis and Memcached
+backends compile only when the matching feature is enabled on `doido-cache`
+(forwarded by the `doido` facade as `cache-redis` / `cache-memcache`); selecting
+a backend whose feature is off returns a clear error at boot.
+
+`doido_cache::config::CacheConfig::build()` turns the config into an
+`Arc<dyn CacheStore>`, and `doido_cache::global::init()` installs it as the
+process-global default (read back with `doido_cache::global::store()`), mirroring
+the model connection pool.
 
 ## Key Namespacing
 
