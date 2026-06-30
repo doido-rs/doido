@@ -27,6 +27,21 @@ fn test_new_generates_all_expected_files() {
     assert!(paths.contains(&"my-app/db/migration/src/main.rs"));
     assert!(paths.contains(&"my-app/tests/integration_test.rs"));
     assert!(paths.contains(&"my-app/.gitignore"));
+    assert!(paths.contains(&"my-app/README.md"));
+}
+
+#[test]
+fn test_new_readme_is_titled_with_the_app_name() {
+    let files = ProjectGenerator
+        .generate(&["my-app", "--database=sqlite"])
+        .unwrap();
+    let readme = files
+        .iter()
+        .find(|f| f.path == "my-app/README.md")
+        .unwrap();
+    // The `{doido_name}` placeholder must be substituted, not left raw.
+    assert!(readme.content.contains("# my-app"));
+    assert!(!readme.content.contains("{doido_name}"));
 }
 
 #[test]
