@@ -10,3 +10,6 @@ database:
 logger:
   # Quieter logging in production. Override at deploy time with RUST_LOG.
   level: info
+  # Structured access logs: one JSON line per response (status, latency_ms,
+  # request_id). Override at deploy time with RUST_LOG if you need more.
+  format: json_response

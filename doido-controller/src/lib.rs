@@ -1,6 +1,7 @@
 pub mod config;
 pub mod context;
 pub mod environment;
+pub mod logging;
 pub mod response;
 pub mod route_table;
 pub mod server;

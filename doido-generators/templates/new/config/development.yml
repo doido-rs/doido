@@ -8,3 +8,6 @@ logger:
   # Set `directives` for a full tracing EnvFilter string instead, e.g.
   # `directives: info,{doido_name}=debug,sqlx=warn`. RUST_LOG overrides both.
   level: debug
+  # Output renderer: compact (default) | verbose (pretty, all fields) |
+  # json_response (one JSON line per response, with latency_ms).
+  format: verbose

@@ -137,6 +137,7 @@ logger:
   # directives: info,my_app=debug,sqlx=warn   # full EnvFilter override
   file: log/test.log    # redirect output to a file (appended, no ANSI); omit for stdout
   sql: true             # sea-orm SQL statement logging
+  format: compact       # compact | verbose | json_response
 ```
 
 `level` is combined with the framework's `NOISE_DIRECTIVES` (so SQL/HTTP
@@ -146,6 +147,17 @@ sea-orm logs through this same subscriber, setting `file` captures SQL too.
 when no config file is present, `logger::DEFAULT_DIRECTIVES` applies (`info` +
 `sqlx::query=info`, with pool and hyper/tower internals quieted).
 `init`/`init_with_config` are idempotent.
+
+`format` selects the renderer:
+
+- **`compact`** (default) — single-line human-readable events.
+- **`verbose`** — pretty, multi-line output with every field plus thread and
+  source location; for inspecting all the structured data in development.
+- **`json_response`** — one JSON object per HTTP **response** event (status,
+  `latency_ms`, `request_id`, …), suppressing everything else. The request line
+  and app logs are filtered out by isolating the `doido::response` target
+  (`RESPONSE_TARGET`); suited to access logs and latency metrics. An explicit
+  `directives` or `RUST_LOG` widens it if needed.
 
 ## Tracing Helpers
 
@@ -157,6 +169,13 @@ doido_core::trace::job(job_name, queue, attempt, result);
 doido_core::trace::query(sql, duration_ms);
 doido_core::trace::mail(to, subject, deliverer);
 ```
+
+HTTP logging proper is emitted by `doido-controller`'s `logging::log_requests`
+middleware, which assigns each request a `request_id` (UUID, or the inbound
+`x-request-id` header) shared by two lines: a `request` line (method, path,
+query, request headers) and a `response` line (status, latency, response
+headers). Sensitive headers are redacted, and the id is echoed back on the
+`x-request-id` response header.
 
 ## Known Requirements
 
