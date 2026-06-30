@@ -925,7 +925,7 @@ dependencies = [
 
 [[package]]
 name = "doido"
-version = "0.0.3"
+version = "0.0.6"
 dependencies = [
  "assert_cmd",
  "doido-cable",
@@ -943,7 +943,7 @@ dependencies = [
 
 [[package]]
 name = "doido-cable"
-version = "0.0.3"
+version = "0.0.6"
 dependencies = [
  "async-trait",
  "doido-cable-macros",
@@ -955,7 +955,7 @@ dependencies = [
 
 [[package]]
 name = "doido-cable-macros"
-version = "0.0.3"
+version = "0.0.6"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -964,17 +964,21 @@ dependencies = [
 
 [[package]]
 name = "doido-cache"
-version = "0.0.3"
+version = "0.0.6"
 dependencies = [
  "async-trait",
  "doido-core",
+ "memcache",
+ "redis",
+ "serde",
  "serde_json",
+ "serde_norway",
  "tokio",
 ]
 
 [[package]]
 name = "doido-controller"
-version = "0.0.3"
+version = "0.0.6"
 dependencies = [
  "async-trait",
  "axum",
@@ -998,7 +1002,7 @@ dependencies = [
 
 [[package]]
 name = "doido-controller-macros"
-version = "0.0.3"
+version = "0.0.6"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1007,7 +1011,7 @@ dependencies = [
 
 [[package]]
 name = "doido-core"
-version = "0.0.3"
+version = "0.0.6"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1022,11 +1026,12 @@ dependencies = [
 
 [[package]]
 name = "doido-generators"
-version = "0.0.3"
+version = "0.0.6"
 dependencies = [
  "assert_cmd",
  "chrono",
  "clap",
+ "doido-cache",
  "doido-controller",
  "doido-core",
  "doido-jobs",
@@ -1042,7 +1047,7 @@ dependencies = [
 
 [[package]]
 name = "doido-jobs"
-version = "0.0.3"
+version = "0.0.6"
 dependencies = [
  "async-trait",
  "chrono",
@@ -1058,7 +1063,7 @@ dependencies = [
 
 [[package]]
 name = "doido-jobs-macros"
-version = "0.0.3"
+version = "0.0.6"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1067,7 +1072,7 @@ dependencies = [
 
 [[package]]
 name = "doido-mailer"
-version = "0.0.3"
+version = "0.0.6"
 dependencies = [
  "async-trait",
  "doido-core",
@@ -1080,7 +1085,7 @@ dependencies = [
 
 [[package]]
 name = "doido-mailer-macros"
-version = "0.0.3"
+version = "0.0.6"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1089,7 +1094,7 @@ dependencies = [
 
 [[package]]
 name = "doido-model"
-version = "0.0.3"
+version = "0.0.6"
 dependencies = [
  "doido-core",
  "sea-orm",
@@ -1102,7 +1107,7 @@ dependencies = [
 
 [[package]]
 name = "doido-view"
-version = "0.0.3"
+version = "0.0.6"
 dependencies = [
  "doido-core",
  "serde_json",
@@ -1123,6 +1128,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "48c757948c5ede0e46177b7add2e67155f70e33c07fea8284df6576da70b3719"
 dependencies = [
  "serde",
+]
+
+[[package]]
+name = "enum_dispatch"
+version = "0.3.13"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "aa18ce2bc66555b3218614519ac839ddb759a7d6720732f979ef8d13be147ecd"
+dependencies = [
+ "once_cell",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.117",
 ]
 
 [[package]]
@@ -1217,6 +1234,21 @@ name = "foldhash"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "77ce24cb58228fbb8aa041425bb1050850ac19177686ea6e0f41a70416f56fdb"
+
+[[package]]
+name = "foreign-types"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f6f339eb8adc052cd2ca78910fda869aefa38d22d5cb648e6485e4d3fc06f3b1"
+dependencies = [
+ "foreign-types-shared",
+]
+
+[[package]]
+name = "foreign-types-shared"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "00b0228411908ca8685dba7fc2cdd70ec9990a6e753e89b6ac91a84c40fbaf4b"
 
 [[package]]
 name = "form_urlencoded"
@@ -1972,6 +2004,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "memcache"
+version = "0.17.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0396084c5d5e2ef2c480a51933b56e9673898f14657212eebbffcbcc12c7153a"
+dependencies = [
+ "byteorder",
+ "enum_dispatch",
+ "openssl",
+ "r2d2",
+ "rand 0.8.6",
+ "url",
+]
+
+[[package]]
 name = "memchr"
 version = "2.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2086,6 +2132,43 @@ name = "once_cell_polyfill"
 version = "1.70.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "384b8ab6d37215f3c5301a95a4accb5d64aa607f1fcb26a11b5303878451b4fe"
+
+[[package]]
+name = "openssl"
+version = "0.10.81"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "77823a27f0babb03091cb9ed9ef80af3b39dbc82f97e8fa530374b7dafd87a45"
+dependencies = [
+ "bitflags",
+ "cfg-if",
+ "foreign-types",
+ "libc",
+ "openssl-macros",
+ "openssl-sys",
+]
+
+[[package]]
+name = "openssl-macros"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a948666b637a0f465e8564c73e89d4dde00d72d4d473cc972f390fc3dcee7d9c"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.117",
+]
+
+[[package]]
+name = "openssl-sys"
+version = "0.9.117"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b47e7e6bb2c38cd930d25a23b40fa52e068c10e85f3e03a7f5ba5aaca5713695"
+dependencies = [
+ "cc",
+ "libc",
+ "pkg-config",
+ "vcpkg",
+]
 
 [[package]]
 name = "ordered-float"
@@ -2435,6 +2518,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f8dcc9c7d52a811697d2151c701e0d08956f92b0e24136cf4cf27b57a6a0d9bf"
 
 [[package]]
+name = "r2d2"
+version = "0.8.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "51de85fb3fb6524929c8a2eb85e6b6d363de4e8c48f9e2c2eac4944abc181c93"
+dependencies = [
+ "log",
+ "parking_lot",
+ "scheduled-thread-pool",
+]
+
+[[package]]
 name = "radium"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2693,6 +2787,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "93fc1dc3aaa9bfed95e02e6eadabb4baf7e3078b0bd1b4d7b6b0b68378900502"
 dependencies = [
  "winapi-util",
+]
+
+[[package]]
+name = "scheduled-thread-pool"
+version = "0.2.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3cbc66816425a074528352f5789333ecff06ca41b36b0b0efdfbb29edc391a19"
+dependencies = [
+ "parking_lot",
 ]
 
 [[package]]
@@ -3700,6 +3803,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "tracing-serde"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "704b1aeb7be0d0a84fc9828cae51dab5970fee5088f83d1dd7ee6f6246fc6ff1"
+dependencies = [
+ "serde",
+ "tracing-core",
+]
+
+[[package]]
 name = "tracing-subscriber"
 version = "0.3.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3709,12 +3822,15 @@ dependencies = [
  "nu-ansi-term",
  "once_cell",
  "regex-automata",
+ "serde",
+ "serde_json",
  "sharded-slab",
  "smallvec",
  "thread_local",
  "tracing",
  "tracing-core",
  "tracing-log",
+ "tracing-serde",
 ]
 
 [[package]]
