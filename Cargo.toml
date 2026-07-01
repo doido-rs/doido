@@ -18,26 +18,26 @@ members = [
 ]
 
 [workspace.package]
-version = "0.0.6"
+version = "0.0.7"
 license = "MIT"
 
 [workspace.dependencies]
 # First-party crates: every entry needs `path` *and* `version` so `cargo publish`
 # strips `path`, keeps the semver, and resolves from crates.io.
-doido = { path = "doido", version = "0.0.6" }
-doido-cable = { path = "doido-cable", version = "0.0.6" }
-doido-cable-macros = { path = "doido-cable/macros", version = "0.0.6" }
-doido-cache = { path = "doido-cache", version = "0.0.6" }
-doido-controller = { path = "doido-controller", version = "0.0.6" }
-doido-controller-macros = { path = "doido-controller/macros", version = "0.0.6" }
-doido-core = { path = "doido-core", version = "0.0.6" }
-doido-generators = { path = "doido-generators", version = "0.0.6" }
-doido-jobs = { path = "doido-jobs", version = "0.0.6" }
-doido-jobs-macros = { path = "doido-jobs/macros", version = "0.0.6" }
-doido-mailer = { path = "doido-mailer", version = "0.0.6" }
-doido-mailer-macros = { path = "doido-mailer/macros", version = "0.0.6" }
-doido-model = { path = "doido-model", version = "0.0.6" }
-doido-view = { path = "doido-view", version = "0.0.6" }
+doido = { path = "doido", version = "0.0.7" }
+doido-cable = { path = "doido-cable", version = "0.0.7" }
+doido-cable-macros = { path = "doido-cable/macros", version = "0.0.7" }
+doido-cache = { path = "doido-cache", version = "0.0.7" }
+doido-controller = { path = "doido-controller", version = "0.0.7" }
+doido-controller-macros = { path = "doido-controller/macros", version = "0.0.7" }
+doido-core = { path = "doido-core", version = "0.0.7" }
+doido-generators = { path = "doido-generators", version = "0.0.7" }
+doido-jobs = { path = "doido-jobs", version = "0.0.7" }
+doido-jobs-macros = { path = "doido-jobs/macros", version = "0.0.7" }
+doido-mailer = { path = "doido-mailer", version = "0.0.7" }
+doido-mailer-macros = { path = "doido-mailer/macros", version = "0.0.7" }
+doido-model = { path = "doido-model", version = "0.0.7" }
+doido-view = { path = "doido-view", version = "0.0.7" }
 
 # ORM
 sea-orm     = { version = "2.0.0-rc.38", features = ["sqlx-sqlite", "runtime-tokio-rustls", "macros"] }
