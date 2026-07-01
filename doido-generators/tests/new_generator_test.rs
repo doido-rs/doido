@@ -28,6 +28,20 @@ fn test_new_generates_all_expected_files() {
     assert!(paths.contains(&"my-app/tests/integration_test.rs"));
     assert!(paths.contains(&"my-app/.gitignore"));
     assert!(paths.contains(&"my-app/README.md"));
+    assert!(paths.contains(&"my-app/mise.toml"));
+}
+
+#[test]
+fn test_new_mise_toml_pins_the_rust_toolchain() {
+    let files = ProjectGenerator
+        .generate(&["my-app", "--database=sqlite"])
+        .unwrap();
+    let mise = files
+        .iter()
+        .find(|f| f.path == "my-app/mise.toml")
+        .unwrap();
+    assert!(mise.content.contains("[tools]"));
+    assert!(mise.content.contains("rust ="));
 }
 
 #[test]

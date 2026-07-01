@@ -5,7 +5,7 @@ Rails-inspired, Rust-powered (axum + sea-orm).
 
 ## Requirements
 
-- Rust (stable) — see `.tool-versions`
+- Rust — the pinned version is in `mise.toml` (run `mise install`)
 - The `doido` CLI
 
 ## Getting started
