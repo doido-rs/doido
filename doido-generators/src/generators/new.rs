@@ -1,7 +1,10 @@
 //! New application skeleton rendered from embedded files under `templates/new/`.
 //! Placeholders: `{doido_name}`, `{doido_db_url}`, `{doido_sqlx_feature}`,
 //! `{doido_path}` (absolute workspace root captured at compile time, used for
-//! local `doido-*` path dependencies).
+//! local `doido-*` path dependencies), and the per-crate dependency specs
+//! `{doido_dep}` / `{doido_controller_dep}` / `{doido_model_dep}` which render as
+//! a local `path` dep in a workspace build or a crates.io `version` dep once
+//! `doido-generators` is published (see [`doido_dependency`]).
 //!
 //! Template files carrying a trailing `.template` suffix (e.g. `Cargo.toml.template`)
 //! have the suffix stripped on output; the suffix keeps `cargo package` from treating
@@ -22,6 +25,33 @@ struct TemplateContext<'a> {
     sqlx_feature: &'a str,
 }
 
+/// Renders the Cargo dependency source for a first-party `doido-*` crate.
+///
+/// `subdir` is the crate's directory under the workspace root (e.g. `doido`,
+/// `doido-controller`). In a local workspace build this returns a `path`
+/// dependency so a freshly generated app compiles against the in-tree framework;
+/// in a published build (siblings absent) it returns a `version` dependency that
+/// resolves the matching release from crates.io.
+fn doido_dependency(subdir: &str) -> String {
+    dependency_spec(
+        crate::TEMPLATE_USE_PATH_DEPS,
+        crate::TEMPLATE_WORKSPACE_PATH,
+        crate::DOIDO_VERSION,
+        subdir,
+    )
+}
+
+/// Pure core of [`doido_dependency`]: builds a `path` or `version` dependency
+/// source string from the given inputs. Split out so both branches are unit
+/// testable without depending on how this crate was built.
+fn dependency_spec(use_path: bool, workspace_path: &str, version: &str, subdir: &str) -> String {
+    if use_path {
+        format!("{{ path = \"{workspace_path}/{subdir}\" }}")
+    } else {
+        format!("\"{version}\"")
+    }
+}
+
 fn substitute_template(template: &str, ctx: &TemplateContext<'_>) -> String {
     template
         .replace("{doido_name}", ctx.name)
@@ -29,6 +59,12 @@ fn substitute_template(template: &str, ctx: &TemplateContext<'_>) -> String {
         .replace("{doido_db_url_production}", &ctx.db_url_production)
         .replace("{doido_db_url}", &ctx.db_url)
         .replace("{doido_sqlx_feature}", ctx.sqlx_feature)
+        .replace("{doido_dep}", &doido_dependency("doido"))
+        .replace(
+            "{doido_controller_dep}",
+            &doido_dependency("doido-controller"),
+        )
+        .replace("{doido_model_dep}", &doido_dependency("doido-model"))
         .replace("{doido_path}", crate::TEMPLATE_WORKSPACE_PATH)
 }
 
@@ -183,7 +219,33 @@ impl Generator for ProjectGenerator {
 
 #[cfg(test)]
 mod tests {
-    use super::default_database_url;
+    use super::{default_database_url, dependency_spec};
+
+    #[test]
+    fn local_builds_emit_path_dependencies() {
+        assert_eq!(
+            dependency_spec(true, "/home/dev/doido", "0.0.6", "doido"),
+            "{ path = \"/home/dev/doido/doido\" }"
+        );
+        assert_eq!(
+            dependency_spec(true, "/home/dev/doido", "0.0.6", "doido-controller"),
+            "{ path = \"/home/dev/doido/doido-controller\" }"
+        );
+    }
+
+    #[test]
+    fn published_builds_emit_version_dependencies() {
+        // Once published, the sibling crates are gone, so apps resolve the
+        // matching release from crates.io — the workspace path is irrelevant.
+        assert_eq!(
+            dependency_spec(false, "/irrelevant", "0.0.6", "doido"),
+            "\"0.0.6\""
+        );
+        assert_eq!(
+            dependency_spec(false, "/irrelevant", "1.2.3", "doido-model"),
+            "\"1.2.3\""
+        );
+    }
 
     #[test]
     fn postgres_url_has_default_user_password_and_port() {
