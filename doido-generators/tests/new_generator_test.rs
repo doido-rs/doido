@@ -59,6 +59,55 @@ fn test_new_readme_is_titled_with_the_app_name() {
 }
 
 #[test]
+fn test_new_without_cable_flag_has_no_channels() {
+    let files = ProjectGenerator
+        .generate(&["my-app", "--database=sqlite"])
+        .unwrap();
+    assert!(!files
+        .iter()
+        .any(|f| f.path.starts_with("my-app/app/channels/")));
+    let cargo = files
+        .iter()
+        .find(|f| f.path == "my-app/Cargo.toml")
+        .unwrap();
+    assert!(!cargo.content.contains("doido-cable"));
+}
+
+#[test]
+fn test_new_cable_flag_adds_example_channel() {
+    let files = ProjectGenerator
+        .generate(&["my-app", "--database=sqlite", "--cable"])
+        .unwrap();
+    let paths: Vec<&str> = files.iter().map(|f| f.path.as_str()).collect();
+    assert!(paths.contains(&"my-app/app/channels/mod.rs"));
+    assert!(paths.contains(&"my-app/app/channels/chat_channel.rs"));
+}
+
+#[test]
+fn test_new_cable_flag_wires_dependency_and_module() {
+    let files = ProjectGenerator
+        .generate(&["my-app", "--database=sqlite", "--cable"])
+        .unwrap();
+    let find = |path: &str| {
+        files
+            .iter()
+            .find(|f| f.path == path)
+            .unwrap_or_else(|| panic!("missing {path}"))
+            .content
+            .clone()
+    };
+    // Dependency wiring: doido-cable + async-trait land in Cargo.toml.
+    let cargo = find("my-app/Cargo.toml");
+    assert!(cargo.contains("doido-cable ="));
+    assert!(cargo.contains("async-trait ="));
+    // Module wiring: main.rs pulls in app/channels.
+    let main_rs = find("my-app/src/main.rs");
+    assert!(main_rs.contains("mod channels;"));
+    // Setup docs land in the README.
+    assert!(find("my-app/README.md").contains("doido-cable"));
+}
+
+#[test]
 fn test_new_template_includes_json_hello_action() {
     let files = ProjectGenerator
         .generate(&["api", "--database=sqlite"])

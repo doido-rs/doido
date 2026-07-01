@@ -3,7 +3,7 @@ mod controllers;
 
 #[path = "../app/models/mod.rs"]
 mod models;
-
+{doido_channels_module}
 #[path = "../config/routes.rs"]
 mod routes;
 

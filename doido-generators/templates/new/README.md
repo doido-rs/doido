@@ -65,3 +65,4 @@ are git-ignored by default.
 ```bash
 cargo test
 ```
+{doido_cable_readme}

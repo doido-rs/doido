@@ -60,6 +60,9 @@ enum Commands {
         /// Database backend: sqlite, postgres, or mysql (prompted if omitted)
         #[arg(long)]
         database: Option<String>,
+        /// Include a doido-cable example channel and its wiring
+        #[arg(long)]
+        cable: bool,
     },
 }
 
@@ -117,8 +120,12 @@ pub async fn run(routes: Option<axum::Router>) {
         Commands::Jobs { action } => commands::jobs::run(action),
         Commands::Credentials { action } => commands::credentials::run(action),
         Commands::Generate { args } => commands::generate::run(&args),
-        Commands::New { name, database } => {
-            run_new(&name, database.as_deref());
+        Commands::New {
+            name,
+            database,
+            cable,
+        } => {
+            run_new(&name, database.as_deref(), cable);
         }
     }
 }
