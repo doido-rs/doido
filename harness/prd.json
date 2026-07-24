@@ -28,8 +28,8 @@
         "make verify passes"
       ],
       "priority": 2,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added server->client ActionCable frames: ServerFrame (welcome/ping/confirm_subscription/reject_subscription, type-tagged) + ServerMessage (untyped broadcast). Round-trips in doido-cable/tests/server_frame_test.rs. FOLLOW-UP: client CableFrame still uses `type` tag; real ActionCable uses `command` — migrating breaks protocol_test.rs and cable_test.rs, deferred."
     },
     {
       "id": "US-003",
