@@ -75,6 +75,17 @@ impl ColumnType {
         }
     }
 
+    /// The `ColumnDef` type method used inside `alter_table`'s `add_column`
+    /// closure (`c.string()`, `c.integer()`, …). Mirrors [`Self::builder_method`]
+    /// except `References`, which has no `ColumnDef` helper — there it is a plain
+    /// big-integer `<name>_id` column (kept NOT NULL by the field itself).
+    fn column_def_method(self) -> &'static str {
+        match self {
+            Self::References => "big_integer",
+            _ => self.builder_method(),
+        }
+    }
+
     /// The Rust type used for this column in the SeaORM model struct.
     fn rust_type(self) -> &'static str {
         match self {
@@ -229,6 +240,26 @@ impl Field {
         line
     }
 
+    /// Render an `alter_table` add-column line, e.g.
+    /// `t.add_column("email", |c| { c.string().not_null(); });`. References
+    /// become a NOT NULL `<name>_id` big integer.
+    pub fn alter_add_line(&self) -> String {
+        let col = self.column_name();
+        let mut body = format!("c.{}()", self.ty.column_def_method());
+        if self.is_required() {
+            body.push_str(".not_null()");
+        }
+        if self.unique {
+            body.push_str(".unique_key()");
+        }
+        format!("t.add_column(\"{col}\", |c| {{ {body}; }});")
+    }
+
+    /// Render an `alter_table` drop-column line, e.g. `t.drop_column("email");`.
+    pub fn alter_drop_line(&self) -> String {
+        format!("t.drop_column(\"{}\");", self.column_name())
+    }
+
     /// Render the SeaORM model struct field, e.g. `pub title: String,` or
     /// `pub age: Option<i32>,` for a nullable column.
     pub fn model_field(&self) -> String {
@@ -290,6 +321,30 @@ mod tests {
         assert_eq!(f.column_name(), "author_id");
         assert_eq!(f.migration_line(), "t.references(\"author\");");
         assert_eq!(f.model_field(), "pub author_id: i64,");
+    }
+
+    #[test]
+    fn alter_add_and_drop_lines() {
+        let f = Field::parse("email:string:not_null:unique").unwrap();
+        assert_eq!(
+            f.alter_add_line(),
+            "t.add_column(\"email\", |c| { c.string().not_null().unique_key(); });"
+        );
+        assert_eq!(f.alter_drop_line(), "t.drop_column(\"email\");");
+
+        let plain = Field::parse("note:text").unwrap();
+        assert_eq!(
+            plain.alter_add_line(),
+            "t.add_column(\"note\", |c| { c.text(); });"
+        );
+
+        // References become a NOT NULL big-integer `<name>_id`.
+        let r = Field::parse("author:references").unwrap();
+        assert_eq!(
+            r.alter_add_line(),
+            "t.add_column(\"author_id\", |c| { c.big_integer().not_null(); });"
+        );
+        assert_eq!(r.alter_drop_line(), "t.drop_column(\"author_id\");");
     }
 
     #[test]
