@@ -1,0 +1,31 @@
+# Dev backends for Doido's feature-gated tests — `make services-up` / `make test-backends`.
+#
+# Only Redis is exercised by the current suite (doido-jobs `jobs-redis`); the
+# `jobs-db` backend runs on in-memory SQLite and needs no service. Postgres and
+# Memcached are provided ahead of the redis/memcache/db tests that will use them.
+services:
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: doido
+      POSTGRES_PASSWORD: doido
+      POSTGRES_DB: doido_test
+    ports: ["5432:5432"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U doido"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+  memcache:
+    image: memcached:1.6-alpine
+    ports: ["11211:11211"]

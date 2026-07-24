@@ -13,7 +13,7 @@ async fn set_store_then_global_accessors_return_it() {
     assert!(global::try_store().is_none());
 
     let store: Arc<dyn CacheStore> = Arc::new(MemoryStore::new());
-    global::set_store(store).expect("first install succeeds");
+    assert!(global::set_store(store).is_ok(), "first install succeeds");
 
     // Both accessors now see the installed store.
     assert!(global::try_store().is_some());

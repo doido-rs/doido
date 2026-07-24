@@ -1,0 +1,7 @@
+# Canonical toolchain for the whole workspace — the single source of truth.
+# Keep this in sync with .tool-versions, .github/workflows/*, and the generated
+# app template (doido-generators/templates/new/mise.toml).
+[toolchain]
+channel = "1.95.0"
+components = ["rustfmt", "clippy"]
+profile = "minimal"

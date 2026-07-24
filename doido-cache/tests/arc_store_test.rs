@@ -27,7 +27,10 @@ async fn namespaced_store_wraps_a_boxed_backend() {
     let backend: Arc<dyn CacheStore> = Arc::new(MemoryStore::new());
     let namespaced = NamespacedStore::new(backend, "tenant42");
 
-    namespaced.set("profile", json!({"id": 42}), None).await.unwrap();
+    namespaced
+        .set("profile", json!({"id": 42}), None)
+        .await
+        .unwrap();
     let value = namespaced.get("profile").await.unwrap().unwrap();
     assert_eq!(value["id"], 42);
 }

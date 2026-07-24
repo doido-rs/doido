@@ -65,7 +65,8 @@ PUBLISH_CRATES ?= \
 	doido-generators \
 	doido
 
-.PHONY: help publish publish-dry-run clean-package check yank unyank
+.PHONY: help publish publish-dry-run clean-package check supply-chain yank unyank \
+        fmt test verify example services-up services-down test-backends
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -145,5 +146,54 @@ unyank: YANK_FLAGS += --undo
 unyank: ## Restore (un-yank) a previously yanked version (VERSION=x.y.z)
 unyank: yank
 
-check: ## Run cargo deny supply-chain checks
-	cargo deny check
+# ---------------------------------------------------------------------------
+# Development & harness targets.
+#
+# `make verify` is the single green gate the (autonomous) harness relies on: it
+# must exit 0 on a clean checkout. It chains the lint gate, the test suite, and
+# — once it exists — the end-to-end example app. Keep these mirrored with the CI
+# lint/test jobs in .github/workflows/ci.yml.
+# ---------------------------------------------------------------------------
+
+fmt: ## Format the whole workspace
+	cargo fmt --all
+
+check: ## Deterministic code gate: rustfmt + clippy (mirrors CI lint job)
+	cargo fmt --check --all
+	cargo clippy --workspace -- -D warnings
+
+# Supply-chain audit is deliberately kept OUT of `verify`: the RustSec advisory
+# database changes over time, so a newly published advisory in a transitive dep
+# could turn the harness gate red with no code change. Run it in CI and on demand.
+supply-chain: ## Supply-chain audit: cargo-deny + cargo-audit
+	@if command -v cargo-deny  >/dev/null 2>&1; then cargo deny check; else echo "  (skip) cargo-deny not installed"; fi
+	@if command -v cargo-audit >/dev/null 2>&1; then cargo audit;      else echo "  (skip) cargo-audit not installed"; fi
+
+test: ## Run the workspace test suite (in-memory backends only)
+	cargo test --workspace
+
+# The end-to-end example app is the framework's definition-of-done. It is built
+# and tested only when present so `verify` stays green before it is generated.
+example: ## Build & test the example app (examples/blog) if it exists
+	@if [ -f examples/blog/Cargo.toml ]; then \
+		echo "==> building & testing examples/blog"; \
+		cargo test --manifest-path examples/blog/Cargo.toml; \
+	else \
+		echo "  (skip) examples/blog not generated yet"; \
+	fi
+
+verify: check test example ## Green gate: lint + tests + example (harness relies on exit 0)
+	@echo "==> verify: OK"
+
+# ---------------------------------------------------------------------------
+# Backend services for feature-gated tests (postgres / redis / memcache).
+# ---------------------------------------------------------------------------
+services-up: ## Start dev backends (postgres, redis, memcache) via docker compose
+	docker compose up -d
+
+services-down: ## Stop and remove dev backends
+	docker compose down -v
+
+test-backends: ## Run feature-gated backend tests (needs `make services-up`)
+	REDIS_URL=$${REDIS_URL:-redis://127.0.0.1:6379/} cargo test -p doido-jobs --features jobs-db,jobs-redis
+	cargo test -p doido-cache --features cache-redis,cache-memcache

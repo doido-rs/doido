@@ -1,0 +1,131 @@
+{
+  "project": "Doido",
+  "branchName": "ralph/finish-doido",
+  "description": "Finish the Doido framework: complete the stubbed macros/crates and ship an end-to-end example app. Definition of done per story: the story's tests pass AND `make verify` exits 0. Backlog seeded from docs/ARCHITECTURE.md.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Implement the #[mailer] macro expansion",
+      "description": "As a Doido user, I want `#[mailer]` to generate mailer plumbing so mailers read like Rails, per docs/08-mailer.md.",
+      "acceptanceCriteria": [
+        "doido-mailer/macros/src/lib.rs generates code (no longer a pass-through) matching the API in docs/08-mailer.md",
+        "A new test in doido-mailer/tests exercises a `#[mailer]`-annotated type end to end (compose + TestDeliverer capture)",
+        "Test was written first and failed before the implementation (TDD)",
+        "make verify passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "Implement the ActionCable wire protocol frames",
+      "description": "As a Doido user, I want cable messages to speak the ActionCable JSON protocol, per docs/12-cable.md.",
+      "acceptanceCriteria": [
+        "doido-cable protocol frames (welcome/ping/subscribe/confirm/message) serialize and deserialize per ActionCable JSON",
+        "doido-cable/tests/protocol_test.rs asserts round-trips for each frame type",
+        "Tests written first and failing before implementation (TDD)",
+        "make verify passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Implement the #[channel] macro + Channel trait",
+      "description": "As a Doido user, I want `#[channel]` to wire a struct to the Channel lifecycle (subscribed/unsubscribed/receive), per docs/12-cable.md.",
+      "acceptanceCriteria": [
+        "doido-cable/macros generates code (no longer a pass-through)",
+        "doido-cable Channel trait exposes subscribed/unsubscribed/receive with a ChannelContext",
+        "doido-cable/tests/channel_test.rs drives a `#[channel]`-annotated type through subscribe -> broadcast -> receive",
+        "Tests written first and failing before implementation (TDD)",
+        "make verify passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Resolve the before/after_action inert attribute shells",
+      "description": "As a Doido maintainer, I want the standalone `#[before_action]`/`#[after_action]` attribute macros to either work or be removed, so there is no dead surface (docs/02-controller.md).",
+      "acceptanceCriteria": [
+        "The standalone attr macros are removed OR made functional and documented",
+        "Existing controller filter behaviour (codegen path in #[controller]) still works",
+        "doido-controller filter tests pass",
+        "make verify passes"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "Scaffold the examples/blog app and make it build",
+      "description": "As a Doido user, I want a real generated app that compiles, to prove the framework wires together (definition of done, docs/ARCHITECTURE.md boot sequence).",
+      "acceptanceCriteria": [
+        "examples/blog exists (generated via `doido new` + `doido generate scaffold Post title:string body:text`)",
+        "examples/blog/src/main.rs documents the boot sequence (logger -> config -> pool -> view -> cache -> server)",
+        "`cargo build --manifest-path examples/blog/Cargo.toml` succeeds",
+        "make verify passes (verify runs `make example`)"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "Add a system HTTP test to examples/blog",
+      "description": "As a Doido user, I want the example app covered by an in-memory HTTP test so the e2e path is a green gate.",
+      "acceptanceCriteria": [
+        "examples/blog/tests exercises GET /posts (index) and POST /posts (create) via an in-memory client",
+        "The test asserts a 2xx and rendered/JSON body",
+        "Test written first and failing before wiring (TDD)",
+        "make verify passes"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-007",
+      "title": "Wire a welcome mailer into examples/blog",
+      "description": "As a Doido user, I want the example to send a welcome email via the mailer so US-001 is exercised end to end.",
+      "acceptanceCriteria": [
+        "examples/blog defines a `#[mailer]` that composes a welcome email",
+        "A test uses TestDeliverer to assert the email is captured on the relevant action",
+        "make verify passes"
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-008",
+      "title": "Wire a background job into examples/blog",
+      "description": "As a Doido user, I want the example to enqueue a `#[job]` so the jobs path is exercised end to end.",
+      "acceptanceCriteria": [
+        "examples/blog defines a `#[job]` and enqueues it from an action",
+        "A test drains the in-memory queue and asserts the side effect",
+        "make verify passes"
+      ],
+      "priority": 8,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-009",
+      "title": "Wire a cable broadcast into examples/blog",
+      "description": "As a Doido user, I want the example to broadcast over a channel so US-002/US-003 are exercised end to end.",
+      "acceptanceCriteria": [
+        "examples/blog defines a `#[channel]` and broadcasts on post creation",
+        "A test connects a fake client, subscribes, triggers creation, and asserts the message is received",
+        "make verify passes"
+      ],
+      "priority": 9,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}

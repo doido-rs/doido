@@ -1,0 +1,3 @@
+# Ralph / loop progress log — Doido finishing harness
+# One line per completed story: US-XXX: <what changed>
+---

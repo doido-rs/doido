@@ -1,7 +1,7 @@
 //! Tests for the `cache` config section and the backend factory.
 
-use doido_cache::{CacheBackend, CacheConfig};
 use doido_cache::config::YamlConfig;
+use doido_cache::{CacheBackend, CacheConfig};
 use serde_json::json;
 
 #[test]
@@ -14,10 +14,14 @@ fn defaults_to_memory_backend() {
 
 #[test]
 fn parses_full_redis_section() {
-    let yaml = "cache:\n  type: redis\n  endpoint: redis://cache.internal:6379\n  namespace: shop\n";
+    let yaml =
+        "cache:\n  type: redis\n  endpoint: redis://cache.internal:6379\n  namespace: shop\n";
     let config = YamlConfig::from_yaml(yaml).unwrap().cache;
     assert_eq!(config.backend, CacheBackend::Redis);
-    assert_eq!(config.endpoint.as_deref(), Some("redis://cache.internal:6379"));
+    assert_eq!(
+        config.endpoint.as_deref(),
+        Some("redis://cache.internal:6379")
+    );
     assert_eq!(config.namespace.as_deref(), Some("shop"));
 }
 
@@ -69,7 +73,10 @@ async fn redis_without_feature_errors_clearly() {
         endpoint: Some("redis://127.0.0.1:6379".to_string()),
         namespace: None,
     };
-    let err = config.build().await.unwrap_err().to_string();
+    let err = match config.build().await {
+        Ok(_) => panic!("expected redis build to fail without the cache-redis feature"),
+        Err(e) => e.to_string(),
+    };
     assert!(err.contains("cache-redis"), "unexpected error: {err}");
 }
 
@@ -81,6 +88,9 @@ async fn memcache_without_feature_errors_clearly() {
         endpoint: Some("memcache://127.0.0.1:11211".to_string()),
         namespace: None,
     };
-    let err = config.build().await.unwrap_err().to_string();
+    let err = match config.build().await {
+        Ok(_) => panic!("expected memcache build to fail without the cache-memcache feature"),
+        Err(e) => e.to_string(),
+    };
     assert!(err.contains("cache-memcache"), "unexpected error: {err}");
 }
