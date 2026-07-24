@@ -72,7 +72,7 @@
       ],
       "priority": 5,
       "passes": false,
-      "notes": ""
+      "notes": "BLOCKED (needs decision + a user action). Proven: `doido new blog` + build works — examples/blog compiles (3m) and its tests pass, make verify green. Blockers: (a) generated Cargo.toml uses ABSOLUTE path deps (/home/fabiano/...) -> not committable/portable; (b) `git init` left examples/blog/.git and `rm -rf` is denied by the permission guard, so I cannot clean it; (c) the full-framework build is ~3min, too slow for the fast verify gate. Decision needed: commit example (relative-path rewrite + user removes .git) vs a generate-and-build integration test in a tempdir (portable/CI-able) vs keep e2e out of `verify` (like supply-chain)."
     },
     {
       "id": "US-006",
