@@ -1,3 +1,4 @@
 # Ralph / loop progress log — Doido finishing harness
 # One line per completed story: US-XXX: <what changed>
 ---
+US-001: #[mailer] macro expands to a Mailer trait impl (snake_case name + template_key); make verify green.

@@ -14,8 +14,8 @@
         "make verify passes"
       ],
       "priority": 1,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "#[mailer] now generates a doido_mailer::Mailer impl with snake_case mailer_name() + template_key() convention; covered by doido-mailer/tests/mailer_macro_test.rs. Trait path is doido_mailer::Mailer (revisit for the doido metacrate re-export path when the example app wires it)."
     },
     {
       "id": "US-002",
