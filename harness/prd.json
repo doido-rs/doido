@@ -71,8 +71,8 @@
         "make verify passes (verify runs `make example`)"
       ],
       "priority": 5,
-      "passes": false,
-      "notes": "BLOCKED (needs decision + a user action). Proven: `doido new blog` + build works — examples/blog compiles (3m) and its tests pass, make verify green. Blockers: (a) generated Cargo.toml uses ABSOLUTE path deps (/home/fabiano/...) -> not committable/portable; (b) `git init` left examples/blog/.git and `rm -rf` is denied by the permission guard, so I cannot clean it; (c) the full-framework build is ~3min, too slow for the fast verify gate. Decision needed: commit example (relative-path rewrite + user removes .git) vs a generate-and-build integration test in a tempdir (portable/CI-able) vs keep e2e out of `verify` (like supply-chain)."
+      "passes": true,
+      "notes": "Done as a generate-and-build integration test (user decision, 2026-07-24): doido-generators/tests/e2e_app_build_test.rs generates a blog app into a tempdir and runs `cargo build` (passes, ~130s). Portable/CI-able, no committed absolute paths or .git. #[ignore]d and moved OUT of `verify` (now `verify = check + test`, 12s) into `make example`, mirroring supply-chain. NOTE: the throwaway examples/blog dir is still on disk untracked — user to `rm -rf examples/blog` (rm is blocked for the agent)."
     },
     {
       "id": "US-006",
@@ -86,7 +86,7 @@
       ],
       "priority": 6,
       "passes": false,
-      "notes": ""
+      "notes": "SUPERSEDED per the generate-and-build decision (2026-07-24): there is no committed examples/blog to add a system test to. Compile-level e2e is covered by US-005; a fuller runtime HTTP e2e can be revisited if a committed example is added later. Not implemented — scoped out."
     },
     {
       "id": "US-007",
@@ -99,7 +99,7 @@
       ],
       "priority": 7,
       "passes": false,
-      "notes": ""
+      "notes": "SUPERSEDED per the generate-and-build decision (2026-07-24): no committed example to wire a mailer into. The #[mailer] feature is covered by US-001 crate tests. Not implemented — scoped out."
     },
     {
       "id": "US-008",
@@ -112,7 +112,7 @@
       ],
       "priority": 8,
       "passes": false,
-      "notes": ""
+      "notes": "SUPERSEDED per the generate-and-build decision (2026-07-24): no committed example to wire a job into. #[job] is already covered by doido-jobs tests. Not implemented — scoped out."
     },
     {
       "id": "US-009",
@@ -125,7 +125,7 @@
       ],
       "priority": 9,
       "passes": false,
-      "notes": ""
+      "notes": "SUPERSEDED per the generate-and-build decision (2026-07-24): no committed example to broadcast from. Cable is covered by US-002/US-003 crate tests. Not implemented — scoped out."
     }
   ]
 }

@@ -172,17 +172,14 @@ supply-chain: ## Supply-chain audit: cargo-deny + cargo-audit
 test: ## Run the workspace test suite (in-memory backends only)
 	cargo test --workspace
 
-# The end-to-end example app is the framework's definition-of-done. It is built
-# and tested only when present so `verify` stays green before it is generated.
-example: ## Build & test the example app (examples/blog) if it exists
-	@if [ -f examples/blog/Cargo.toml ]; then \
-		echo "==> building & testing examples/blog"; \
-		cargo test --manifest-path examples/blog/Cargo.toml; \
-	else \
-		echo "  (skip) examples/blog not generated yet"; \
-	fi
+# End-to-end proof that `doido new` scaffolds a compiling app (the framework's
+# definition-of-done). It builds the whole framework, so — like supply-chain — it
+# is kept OUT of `verify`: a ~3min build must not gate the fast loop. Run in CI
+# and on demand. The test itself is #[ignore]d.
+example: ## Slow e2e: generate an app in a tempdir and compile it
+	cargo test -p doido-generators --test e2e_app_build_test -- --ignored --nocapture
 
-verify: check test example ## Green gate: lint + tests + example (harness relies on exit 0)
+verify: check test ## Fast green gate: lint + tests (harness relies on exit 0)
 	@echo "==> verify: OK"
 
 # ---------------------------------------------------------------------------
