@@ -1,14 +1,28 @@
 # Doido workspace Makefile
 #
-# `make publish` releases the whole workspace to crates.io in a single
-# `cargo publish --workspace` run. Cargo computes the dependency order itself,
-# packages every crate up front, and resolves the inter-crate dependencies
-# within the batch — so it never blocks waiting for one crate to be indexed
-# before publishing the next.
+# `make publish` uploads the whole workspace to crates.io one crate at a time in
+# dependency order. It is resumable and rate-limit aware:
+#   * crates already on the registry at the current version are skipped, so a
+#     re-run continues where a previous one stopped — no version bump needed;
+#   * a crates.io "429 Too Many Requests" (the new-crate rate limit you hit when
+#     first-publishing many new crate names) is handled by sleeping until the
+#     server's "try again after" time and retrying, instead of failing.
+# So a first-time multi-crate publish that trips the rate limit just pauses and
+# continues. `make publish-dry-run` validates the workspace without uploading.
 
 # Extra flags forwarded to every `cargo publish` invocation
 # (e.g. `make publish PUBLISH_FLAGS=--no-verify`).
 PUBLISH_FLAGS ?=
+
+# Seconds to sleep between crate uploads. 62s keeps just over crates.io's
+# one-per-minute publish rate and gives the index time to propagate each crate
+# before its dependents are published. (Crates skipped because they're already
+# published don't incur this sleep.)
+PUBLISH_INTERVAL ?= 62
+
+# Extra seconds added on top of the server's "try again after" time when waiting
+# out a 429, to absorb clock skew and index propagation.
+PUBLISH_RETRY_BUFFER ?= 15
 
 # Isolated, always-wiped target dir for packaging + verification. Keeping it
 # separate from the normal `target/` guarantees cargo's verify step compiles the
@@ -29,7 +43,30 @@ list_crates = cargo metadata --no-deps --format-version 1 | tr '{' '\n' \
 	| grep -oE '"name":"[^"]+","version":"[^"]+"' \
 	| sed -E 's/"name":"([^"]+)".*/\1/' | sort -u
 
-.PHONY: help publish publish-dry-run clean-package check yank unyank
+# The single workspace version, read from [workspace.package] in this Cargo.toml.
+CRATE_VERSION := $(shell sed -nE 's/^version[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' Cargo.toml | head -1)
+
+# Crates listed in dependency order (dependencies before dependents) so each is
+# already on the registry when its dependents are published. Keep this in sync
+# when adding/removing workspace members.
+PUBLISH_CRATES ?= \
+	doido-core \
+	doido-controller-macros \
+	doido-jobs-macros \
+	doido-mailer-macros \
+	doido-cable-macros \
+	doido-view \
+	doido-model \
+	doido-cache \
+	doido-controller \
+	doido-mailer \
+	doido-jobs \
+	doido-cable \
+	doido-generators \
+	doido
+
+.PHONY: help publish publish-dry-run clean-package check supply-chain yank unyank \
+        fmt test verify example services-up services-down test-backends
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -39,12 +76,51 @@ help: ## Show this help
 clean-package: ## Remove the isolated packaging target dir
 	rm -rf "$(PUBLISH_TARGET_DIR)"
 
-publish: clean-package ## Publish the whole workspace to crates.io
+publish-dry-run: clean-package ## Validate the whole workspace without uploading
 	@command -v cargo >/dev/null || { echo "error: cargo not found in PATH" >&2; exit 1; }
-	CARGO_TARGET_DIR="$(PUBLISH_TARGET_DIR)" cargo publish --workspace $(PUBLISH_FLAGS)
-
-publish-dry-run: clean-package ## Package and verify the workspace without uploading
+	# Native workspace publish (cargo >= 1.90) packages every member up front and
+	# resolves inter-crate deps within the batch, so unpublished members are
+	# satisfied from the local package set instead of the live crates.io index.
 	CARGO_TARGET_DIR="$(PUBLISH_TARGET_DIR)" cargo publish --workspace --dry-run $(PUBLISH_FLAGS)
+
+publish: clean-package ## Upload the workspace to crates.io (resumable, rate-limit aware)
+	@command -v cargo >/dev/null || { echo "error: cargo not found in PATH" >&2; exit 1; }
+	@test -n "$(CRATE_VERSION)" || { echo "error: could not read workspace version from Cargo.toml" >&2; exit 1; }
+	@echo "==> publishing workspace at version $(CRATE_VERSION)"
+	@for crate in $(PUBLISH_CRATES); do \
+		pfx=$$(printf '%s' "$$crate" | cut -c1-2)/$$(printf '%s' "$$crate" | cut -c3-4); \
+		if command -v curl >/dev/null 2>&1 && \
+		   curl -sf "https://index.crates.io/$$pfx/$$crate" 2>/dev/null | grep -q '"vers":"$(CRATE_VERSION)"'; then \
+			echo "==> $$crate $(CRATE_VERSION): already published, skipping"; \
+			continue; \
+		fi; \
+		while :; do \
+			echo "==> publishing $$crate $(CRATE_VERSION)"; \
+			out=$$(CARGO_TARGET_DIR="$(PUBLISH_TARGET_DIR)" cargo publish -p "$$crate" $(PUBLISH_FLAGS) 2>&1); \
+			code=$$?; \
+			printf '%s\n' "$$out"; \
+			if [ $$code -eq 0 ]; then \
+				echo "    published; sleeping $(PUBLISH_INTERVAL)s before the next crate"; \
+				sleep $(PUBLISH_INTERVAL); \
+				break; \
+			fi; \
+			if printf '%s' "$$out" | grep -qiE 'already (uploaded|exists)'; then \
+				echo "    already published, skipping"; break; \
+			fi; \
+			if printf '%s' "$$out" | grep -qiE '429|too many requests'; then \
+				retry=$$(printf '%s' "$$out" | grep -oiE 'try again after .*GMT' | head -1 | sed -E 's/.*[Aa]fter[[:space:]]*//'); \
+				now=$$(date -u +%s); \
+				ready_ts=$$(date -u -d "$$retry" +%s 2>/dev/null || echo ""); \
+				if [ -n "$$ready_ts" ]; then delay=$$(( ready_ts - now + $(PUBLISH_RETRY_BUFFER) )); else delay=$(PUBLISH_RETRY_BUFFER); fi; \
+				if [ "$$delay" -lt "$(PUBLISH_RETRY_BUFFER)" ]; then delay=$(PUBLISH_RETRY_BUFFER); fi; \
+				echo "    crates.io rate limit hit; waiting $${delay}s (until $$retry) then retrying"; \
+				sleep "$$delay"; \
+				continue; \
+			fi; \
+			echo "    error: failed to publish $$crate" >&2; exit 1; \
+		done; \
+	done; \
+	echo "==> done: all crates published at $(CRATE_VERSION)"
 
 # crates.io has no hard delete for published versions; `cargo yank` is the
 # supported way to pull a version. Yanked versions can no longer be selected by
@@ -70,5 +146,51 @@ unyank: YANK_FLAGS += --undo
 unyank: ## Restore (un-yank) a previously yanked version (VERSION=x.y.z)
 unyank: yank
 
-check: ## Run cargo deny supply-chain checks
-	cargo deny check
+# ---------------------------------------------------------------------------
+# Development & harness targets.
+#
+# `make verify` is the single green gate the (autonomous) harness relies on: it
+# must exit 0 on a clean checkout. It chains the lint gate, the test suite, and
+# — once it exists — the end-to-end example app. Keep these mirrored with the CI
+# lint/test jobs in .github/workflows/ci.yml.
+# ---------------------------------------------------------------------------
+
+fmt: ## Format the whole workspace
+	cargo fmt --all
+
+check: ## Deterministic code gate: rustfmt + clippy (mirrors CI lint job)
+	cargo fmt --check --all
+	cargo clippy --workspace -- -D warnings
+
+# Supply-chain audit is deliberately kept OUT of `verify`: the RustSec advisory
+# database changes over time, so a newly published advisory in a transitive dep
+# could turn the harness gate red with no code change. Run it in CI and on demand.
+supply-chain: ## Supply-chain audit: cargo-deny + cargo-audit
+	@if command -v cargo-deny  >/dev/null 2>&1; then cargo deny check; else echo "  (skip) cargo-deny not installed"; fi
+	@if command -v cargo-audit >/dev/null 2>&1; then cargo audit;      else echo "  (skip) cargo-audit not installed"; fi
+
+test: ## Run the workspace test suite (in-memory backends only)
+	cargo test --workspace
+
+# End-to-end proof that `doido new` scaffolds a compiling app (the framework's
+# definition-of-done). It builds the whole framework, so — like supply-chain — it
+# is kept OUT of `verify`: a ~3min build must not gate the fast loop. Run in CI
+# and on demand. The test itself is #[ignore]d.
+example: ## Slow e2e: generate an app in a tempdir and compile it
+	cargo test -p doido-generators --test e2e_app_build_test -- --ignored --nocapture
+
+verify: check test ## Fast green gate: lint + tests (harness relies on exit 0)
+	@echo "==> verify: OK"
+
+# ---------------------------------------------------------------------------
+# Backend services for feature-gated tests (postgres / redis / memcache).
+# ---------------------------------------------------------------------------
+services-up: ## Start dev backends (postgres, redis, memcache) via docker compose
+	docker compose up -d
+
+services-down: ## Stop and remove dev backends
+	docker compose down -v
+
+test-backends: ## Run feature-gated backend tests (needs `make services-up`)
+	REDIS_URL=$${REDIS_URL:-redis://127.0.0.1:6379/} cargo test -p doido-jobs --features jobs-db,jobs-redis
+	cargo test -p doido-cache --features cache-redis,cache-memcache

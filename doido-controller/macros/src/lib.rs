@@ -14,25 +14,29 @@ pub fn routes(input: TokenStream) -> TokenStream {
 }
 
 /// Marks an impl block as a controller. Rewrites action methods into
-/// axum-compatible handlers with filter chain support.
+/// axum-compatible handlers, wiring in any filters.
+///
+/// Filters are declared with the `#[before_action(...)]` / `#[after_action(...)]`
+/// **helper attributes** on action methods; this macro parses and consumes them
+/// while expanding the impl block, so there are no standalone
+/// `before_action`/`after_action` macros to import:
+///
+/// ```ignore
+/// #[controller]
+/// impl PostsController {
+///     #[before_action(require_auth)]
+///     #[before_action(load_record, only = [show, edit])]
+///     #[after_action(log_response)]
+///     async fn show(ctx: &mut Context) -> Response { /* ... */ }
+/// }
+/// ```
+///
+/// `before_action` filters run in declaration order before the action and may
+/// short-circuit by returning `Err(response)`; `after_action` filters run after.
 #[proc_macro_attribute]
 pub fn controller(attr: TokenStream, item: TokenStream) -> TokenStream {
     match controller::expand_controller(attr.into(), item.into()) {
         Ok(ts) => ts.into(),
         Err(e) => e.to_compile_error().into(),
     }
-}
-
-/// Registers a before-action filter on the following action method.
-/// Usage: `#[before_action(fn_name)]` or `#[before_action(fn_name, only = [action1, action2])]`
-#[proc_macro_attribute]
-pub fn before_action(_attr: TokenStream, item: TokenStream) -> TokenStream {
-    item
-}
-
-/// Registers an after-action filter on the following action method.
-/// Usage: `#[after_action(fn_name)]`
-#[proc_macro_attribute]
-pub fn after_action(_attr: TokenStream, item: TokenStream) -> TokenStream {
-    item
 }

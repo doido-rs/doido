@@ -1,0 +1,9 @@
+# Ralph / loop progress log — Doido finishing harness
+# One line per completed story: US-XXX: <what changed>
+---
+US-001: #[mailer] macro expands to a Mailer trait impl (snake_case name + template_key); make verify green.
+US-002: ActionCable server->client frames (ServerFrame + ServerMessage) with round-trip tests; make verify green. Client `command`-tag migration deferred.
+US-003: #[channel] macro derives a ChannelName registration impl (struct name); make verify green. Full action-routing deferred.
+US-004: removed inert standalone before/after_action macros (now documented helper attributes of #[controller]); filter tests green; make verify green.
+US-005: e2e generate-and-build test (doido-generators/tests/e2e_app_build_test.rs, #[ignore]d) — generates blog app in a tempdir and compiles it; moved out of the fast verify gate into `make example`. make verify now 12s green.
+US-006..009: SUPERSEDED per the generate-and-build decision — committed-app runtime wiring dropped; features covered per-crate (US-001/002/003) + compile e2e (US-005). Loop reached its scoped end (5/9 done, 4 scoped out).

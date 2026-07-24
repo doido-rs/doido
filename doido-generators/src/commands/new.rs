@@ -21,7 +21,7 @@ fn prompt_database() -> String {
     }
 }
 
-pub fn run_new(name: &str, database: Option<&str>) {
+pub fn run_new(name: &str, database: Option<&str>, cable: bool) {
     let db = match database {
         Some(d) => d.to_string(),
         None => prompt_database(),
@@ -39,7 +39,11 @@ pub fn run_new(name: &str, database: Option<&str>) {
 
     let registry = default_registry();
     let db_arg = format!("--database={db}");
-    match registry.run("new", &[name, &db_arg]) {
+    let mut new_args = vec![name, &db_arg];
+    if cable {
+        new_args.push("--cable");
+    }
+    match registry.run("new", &new_args) {
         Ok(files) => {
             if let Err(e) = write_files(&files, Path::new(".")) {
                 doido_core::tracing::error!("error writing files: {e}");

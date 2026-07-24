@@ -8,6 +8,11 @@
 use crate::environment::Environment;
 use serde::Deserialize;
 
+/// Re-exported so `config::LoggerConfig` resolves; the logger config lives in
+/// `doido-core` alongside the logger it drives. The model layer reads it for the
+/// `sql` toggle (whether sea-orm logs each statement).
+pub use doido_core::logger::LoggerConfig;
+
 /// Database connection settings.
 #[derive(Debug, Clone, Deserialize)]
 pub struct DatabaseConfig {
@@ -29,19 +34,27 @@ impl Default for DatabaseConfig {
 pub trait Config: Send + Sync {
     /// Database connection settings.
     fn database(&self) -> &DatabaseConfig;
+    /// Logging settings; the model layer reads the `sql` toggle.
+    fn logger(&self) -> &LoggerConfig;
 }
 
-/// File-based [`Config`] deserialized from the `database` section of
-/// `config/<env>.yml`. Other sections (e.g. `server`) are ignored.
+/// File-based [`Config`] deserialized from the `database` and `logger` sections
+/// of `config/<env>.yml`. Other sections (e.g. `server`) are ignored.
 #[derive(Debug, Clone, Default, Deserialize)]
 pub struct YamlConfig {
     #[serde(default)]
     pub database: DatabaseConfig,
+    #[serde(default)]
+    pub logger: LoggerConfig,
 }
 
 impl Config for YamlConfig {
     fn database(&self) -> &DatabaseConfig {
         &self.database
+    }
+
+    fn logger(&self) -> &LoggerConfig {
+        &self.logger
     }
 }
 

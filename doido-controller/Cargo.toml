@@ -21,6 +21,7 @@ serde_json.workspace = true
 serde_norway = "0.9"
 http.workspace = true
 serde_urlencoded = "0.7"
+uuid.workspace = true
 
 [dev-dependencies]
 http-body-util.workspace = true

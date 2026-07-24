@@ -1,4 +1,8 @@
-/// Emit a structured event for an HTTP request
+/// Emit a structured event for an HTTP request.
+///
+/// `doido-controller`'s `logging::log_requests` middleware emits richer,
+/// header-aware request/response events directly; this stays as a lightweight
+/// helper for code that just wants a one-line structured request event.
 pub fn request(method: &str, path: &str, status: u16, latency_ms: u64) {
     tracing::info!(
         method = method,

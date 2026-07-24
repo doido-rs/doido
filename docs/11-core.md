@@ -118,18 +118,46 @@ doido-core/
 ## Logging (centralized)
 
 `doido_core::logger` owns the framework's `tracing_subscriber` setup — the single
-place logging is configured. `doido server` calls `logger::init()` at boot,
-after which everything flows through one subscriber:
+place logging is configured. `doido server` reads the `logger` section of
+`config/<env>.yml` into `logger::LoggerConfig` and calls
+`logger::init_with_config(&config.logger)` at boot, after which everything flows
+through one subscriber:
 
 - HTTP **requests & responses** — logged at `INFO` by the always-on `TraceLayer`
   in `doido-controller`'s middleware stack (method, path, status, latency).
-- **ORM queries** — sea-orm's SQL logging (enabled on the connection in
-  `doido-model`) emits under target `sqlx::query` at `INFO`.
+- **ORM queries** — sea-orm's SQL logging (toggled by `logger.sql`, enabled on
+  the connection in `doido-model`) emits under target `sqlx::query` at `INFO`.
 - Jobs, mail, custom events — the [Tracing Helpers](#tracing-helpers) below.
 
-Verbosity is controlled by `RUST_LOG` (`EnvFilter` syntax); when unset,
-`logger::DEFAULT_DIRECTIVES` applies (`info` + `sqlx::query=info`, with pool and
-hyper/tower internals quieted). `init()` is idempotent.
+The `logger` config section drives all of it:
+
+```yaml
+logger:
+  level: debug          # app log level → EnvFilter (info|debug|warn|…)
+  # directives: info,my_app=debug,sqlx=warn   # full EnvFilter override
+  file: log/test.log    # redirect output to a file (appended, no ANSI); omit for stdout
+  sql: true             # sea-orm SQL statement logging
+  format: compact       # compact | verbose | json_response
+```
+
+`level` is combined with the framework's `NOISE_DIRECTIVES` (so SQL/HTTP
+internals stay quiet); `directives`, when set, fully replaces it. Because
+sea-orm logs through this same subscriber, setting `file` captures SQL too.
+`RUST_LOG` (`EnvFilter` syntax), when set, overrides the configured verbosity;
+when no config file is present, `logger::DEFAULT_DIRECTIVES` applies (`info` +
+`sqlx::query=info`, with pool and hyper/tower internals quieted).
+`init`/`init_with_config` are idempotent.
+
+`format` selects the renderer:
+
+- **`compact`** (default) — single-line human-readable events.
+- **`verbose`** — pretty, multi-line output with every field plus thread and
+  source location; for inspecting all the structured data in development.
+- **`json_response`** — one JSON object per HTTP **response** event (status,
+  `latency_ms`, `request_id`, …), suppressing everything else. The request line
+  and app logs are filtered out by isolating the `doido::response` target
+  (`RESPONSE_TARGET`); suited to access logs and latency metrics. An explicit
+  `directives` or `RUST_LOG` widens it if needed.
 
 ## Tracing Helpers
 
@@ -141,6 +169,13 @@ doido_core::trace::job(job_name, queue, attempt, result);
 doido_core::trace::query(sql, duration_ms);
 doido_core::trace::mail(to, subject, deliverer);
 ```
+
+HTTP logging proper is emitted by `doido-controller`'s `logging::log_requests`
+middleware, which assigns each request a `request_id` (UUID, or the inbound
+`x-request-id` header) shared by two lines: a `request` line (method, path,
+query, request headers) and a `response` line (status, latency, response
+headers). Sensitive headers are redacted, and the id is echoed back on the
+`x-request-id` response header.
 
 ## Known Requirements
 

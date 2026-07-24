@@ -1,7 +1,27 @@
 use proc_macro::TokenStream;
+use quote::quote;
+use syn::{parse_macro_input, ItemStruct};
 
 /// Marks a struct as a WebSocket channel.
+///
+/// Generates a [`doido_cable::ChannelName`] impl carrying the channel's
+/// registration name — its struct name (`ChatChannel`), which ActionCable uses
+/// in the `identifier` to route messages. The struct's own `Channel` impl
+/// (lifecycle + `received`) is written by the user and re-emitted untouched.
 #[proc_macro_attribute]
 pub fn channel(_attr: TokenStream, item: TokenStream) -> TokenStream {
-    item
+    let input = parse_macro_input!(item as ItemStruct);
+    let ident = &input.ident;
+    let name = ident.to_string();
+
+    quote! {
+        #input
+
+        impl doido_cable::ChannelName for #ident {
+            fn channel_name() -> &'static str {
+                #name
+            }
+        }
+    }
+    .into()
 }

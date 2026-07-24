@@ -1,8 +1,10 @@
 # Doido Framework — Context Index
 
 Doido is a Rails-inspired web framework in Rust (axum + sea-orm).
-Implementation is TDD-first. No code exists yet — this CLAUDE.md is a pointer index
-to the spec documents that drive the interview and planning process.
+Implementation is TDD-first. The table below indexes the **spec** documents (design
+intent). For what is **actually built** — the crate ↔ spec status, reconciliation
+decisions (config/kafka/mcp), and the runtime boot sequence — see the authoritative
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Green gate: `make verify`.
 
 ## Spec Documents
 

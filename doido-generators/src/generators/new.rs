@@ -1,7 +1,17 @@
 //! New application skeleton rendered from embedded files under `templates/new/`.
 //! Placeholders: `{doido_name}`, `{doido_db_url}`, `{doido_sqlx_feature}`,
 //! `{doido_path}` (absolute workspace root captured at compile time, used for
-//! local `doido-*` path dependencies).
+//! local `doido-*` path dependencies), and the per-crate dependency specs
+//! `{doido_dep}` / `{doido_controller_dep}` / `{doido_model_dep}` which render as
+//! a local `path` dep in a workspace build or a crates.io `version` dep once
+//! `doido-generators` is published (see [`doido_dependency`]).
+//!
+//! The optional doido-cable example lives inside this same template. Its channel
+//! files sit under `templates/new/app/channels/` (skipped unless `--cable` is
+//! passed), and the `{doido_cable_deps}` / `{doido_channels_module}` /
+//! `{doido_cable_readme}` placeholders in `Cargo.toml`, `src/main.rs`, and
+//! `README.md` render to their wiring when `--cable` is set, or to nothing
+//! otherwise (see [`substitute_template`]).
 //!
 //! Template files carrying a trailing `.template` suffix (e.g. `Cargo.toml.template`)
 //! have the suffix stripped on output; the suffix keeps `cargo package` from treating
@@ -14,21 +24,104 @@ use include_dir::{include_dir, Dir, DirEntry};
 /// Embedded filesystem tree merged at compile time from `templates/new`.
 static APP_TEMPLATE_DIR: Dir<'static> = include_dir!("$CARGO_MANIFEST_DIR/templates/new");
 
+/// Template subtree holding the doido-cable example. Files here are skipped
+/// unless `--cable` is passed.
+const CABLE_TEMPLATE_PREFIX: &str = "app/channels/";
+
+/// `mod channels;` include spliced into `src/main.rs` when `--cable` is passed.
+const CABLE_MODULE_INCLUDE: &str = "\n#[path = \"../app/channels/mod.rs\"]\nmod channels;\n";
+
+/// README section explaining how the generated doido-cable example is wired.
+/// `{doido_name}` is substituted like any other template token.
+const CABLE_README_SECTION: &str = r#"
+## Real-time with doido-cable
+
+This app was generated with `--cable`, so it includes:
+
+- the `doido-cable` (and `async-trait`) dependencies in `Cargo.toml`;
+- an example channel at `app/channels/chat_channel.rs`, registered in
+  `app/channels/mod.rs` and wired into the crate via `mod channels;` in
+  `src/main.rs`.
+
+A channel implements the `Channel` trait — `subscribed`, `unsubscribed`, and
+`received` — and broadcasts to other clients through a shared `Cable` handle over
+a pub/sub backend (`MemoryPubSub` by default; Redis/DB are swappable). See the
+`#[tokio::test]` in `app/channels/chat_channel.rs` for a runnable
+subscribe → broadcast → receive round-trip:
+
+```sh
+cargo test --bin {doido_name} chat
+```
+"#;
+
 struct TemplateContext<'a> {
     name: &'a str,
     db_url: String,
     db_url_test: String,
     db_url_production: String,
     sqlx_feature: &'a str,
+    /// Whether to include the doido-cable example (the `--cable` flag).
+    cable: bool,
+}
+
+/// Renders the Cargo dependency source for a first-party `doido-*` crate.
+///
+/// `subdir` is the crate's directory under the workspace root (e.g. `doido`,
+/// `doido-controller`). In a local workspace build this returns a `path`
+/// dependency so a freshly generated app compiles against the in-tree framework;
+/// in a published build (siblings absent) it returns a `version` dependency that
+/// resolves the matching release from crates.io.
+fn doido_dependency(subdir: &str) -> String {
+    dependency_spec(
+        crate::TEMPLATE_USE_PATH_DEPS,
+        crate::TEMPLATE_WORKSPACE_PATH,
+        crate::DOIDO_VERSION,
+        subdir,
+    )
+}
+
+/// Pure core of [`doido_dependency`]: builds a `path` or `version` dependency
+/// source string from the given inputs. Split out so both branches are unit
+/// testable without depending on how this crate was built.
+fn dependency_spec(use_path: bool, workspace_path: &str, version: &str, subdir: &str) -> String {
+    if use_path {
+        format!("{{ path = \"{workspace_path}/{subdir}\" }}")
+    } else {
+        format!("\"{version}\"")
+    }
 }
 
 fn substitute_template(template: &str, ctx: &TemplateContext<'_>) -> String {
+    // doido-cable wiring: rendered when `--cable` is set, empty otherwise. The
+    // README section is name-substituted up front since it carries `{doido_name}`.
+    let (cable_deps, cable_module, cable_readme) = if ctx.cable {
+        (
+            format!(
+                "doido-cable = {}\nasync-trait = \"0.1\"\n",
+                doido_dependency("doido-cable")
+            ),
+            CABLE_MODULE_INCLUDE.to_string(),
+            CABLE_README_SECTION.replace("{doido_name}", ctx.name),
+        )
+    } else {
+        (String::new(), String::new(), String::new())
+    };
+
     template
         .replace("{doido_name}", ctx.name)
         .replace("{doido_db_url_test}", &ctx.db_url_test)
         .replace("{doido_db_url_production}", &ctx.db_url_production)
         .replace("{doido_db_url}", &ctx.db_url)
         .replace("{doido_sqlx_feature}", ctx.sqlx_feature)
+        .replace("{doido_dep}", &doido_dependency("doido"))
+        .replace(
+            "{doido_controller_dep}",
+            &doido_dependency("doido-controller"),
+        )
+        .replace("{doido_model_dep}", &doido_dependency("doido-model"))
+        .replace("{doido_cable_deps}", &cable_deps)
+        .replace("{doido_channels_module}", &cable_module)
+        .replace("{doido_cable_readme}", &cable_readme)
         .replace("{doido_path}", crate::TEMPLATE_WORKSPACE_PATH)
 }
 
@@ -45,6 +138,11 @@ fn collect_from_dir(
                 // `include_dir` stores paths relative to the embedded root (`templates/new/`)
                 // for every file, including nested paths like `src/main.rs`.
                 let relative = f.path();
+                // The doido-cable example lives under `app/channels/`; skip it
+                // unless `--cable` opted the app in.
+                if !ctx.cable && relative.starts_with(CABLE_TEMPLATE_PREFIX) {
+                    continue;
+                }
                 let raw = f.contents_utf8().ok_or_else(|| {
                     anyhow::anyhow!("template file '{}' is not valid UTF-8", relative.display())
                 })?;
@@ -166,12 +264,17 @@ impl Generator for ProjectGenerator {
             _ => "sqlite",
         };
 
+        // `--cable` opts the new app into the doido-cable example (channel files
+        // plus the dependency/module/README wiring it needs to compile).
+        let cable = args.contains(&"--cable");
+
         let ctx = TemplateContext {
             name,
             db_url,
             db_url_test,
             db_url_production,
             sqlx_feature,
+            cable,
         };
 
         let mut files = Vec::new();
@@ -183,7 +286,33 @@ impl Generator for ProjectGenerator {
 
 #[cfg(test)]
 mod tests {
-    use super::default_database_url;
+    use super::{default_database_url, dependency_spec};
+
+    #[test]
+    fn local_builds_emit_path_dependencies() {
+        assert_eq!(
+            dependency_spec(true, "/home/dev/doido", "0.0.6", "doido"),
+            "{ path = \"/home/dev/doido/doido\" }"
+        );
+        assert_eq!(
+            dependency_spec(true, "/home/dev/doido", "0.0.6", "doido-controller"),
+            "{ path = \"/home/dev/doido/doido-controller\" }"
+        );
+    }
+
+    #[test]
+    fn published_builds_emit_version_dependencies() {
+        // Once published, the sibling crates are gone, so apps resolve the
+        // matching release from crates.io — the workspace path is irrelevant.
+        assert_eq!(
+            dependency_spec(false, "/irrelevant", "0.0.6", "doido"),
+            "\"0.0.6\""
+        );
+        assert_eq!(
+            dependency_spec(false, "/irrelevant", "1.2.3", "doido-model"),
+            "\"1.2.3\""
+        );
+    }
 
     #[test]
     fn postgres_url_has_default_user_password_and_port() {

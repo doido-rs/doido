@@ -23,6 +23,12 @@ pub async fn run(routes: Option<axum::Router>) {
             if let Err(e) = doido_view::init("app/views") {
                 doido_core::tracing::warn!("failed to load views from app/views: {e}");
             }
+            // Install the global cache store from the `cache` config section
+            // (in-memory by default). Non-fatal: an app may not use the cache,
+            // and the memory backend never fails.
+            if let Err(e) = doido_cache::init_cache().await {
+                doido_core::tracing::warn!("failed to initialize cache: {e}");
+            }
             if let Err(e) = doido_controller::start_server(router).await {
                 doido_core::tracing::error!("server error: {e}");
             }

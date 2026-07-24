@@ -12,7 +12,7 @@ pub mod migration;
 pub mod pool;
 pub mod testing;
 
-pub use config::{Config, DatabaseConfig, YamlConfig};
+pub use config::{Config, DatabaseConfig, LoggerConfig, YamlConfig};
 pub use create::create_database;
 pub use environment::Environment;
 pub use pool::{connect, connect_with_url};

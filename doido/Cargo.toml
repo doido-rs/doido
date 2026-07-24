@@ -25,6 +25,12 @@ doido-cable.workspace = true
 doido-generators.workspace = true
 tokio = { workspace = true, features = ["full"] }
 
+[features]
+default = []
+# Distributed cache backends, selected at runtime via `config/<env>.yml`.
+cache-redis = ["doido-cache/cache-redis"]
+cache-memcache = ["doido-cache/cache-memcache"]
+
 [dev-dependencies]
 assert_cmd  = "2"
 predicates  = "3"
