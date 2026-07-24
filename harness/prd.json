@@ -43,8 +43,8 @@
         "make verify passes"
       ],
       "priority": 3,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "#[channel] now generates a doido_cable::ChannelName impl (registration name = struct name, e.g. \"RoomChannel\") without colliding with the user's manual Channel impl; covered by doido-cable/tests/channel_macro_test.rs (name + subscribe/broadcast/received flow). FOLLOW-UP: full action-routing (macro generating the Channel impl that dispatches `action` to inherent methods + receive(ctx, action, data)) is a breaking change vs the manual-impl tests, deferred."
     },
     {
       "id": "US-004",
