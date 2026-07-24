@@ -14,7 +14,9 @@ pub mod stack;
 pub use axum;
 pub use config::{Config, LoggerConfig, ServerConfig, YamlConfig};
 pub use context::{Context, IntoActionResponse};
-pub use doido_controller_macros::{after_action, before_action, controller, routes};
+// `before_action`/`after_action` are helper attributes consumed by `#[controller]`,
+// not standalone macros, so only `controller` and `routes` are re-exported.
+pub use doido_controller_macros::{controller, routes};
 pub use environment::Environment;
 pub use response::Response;
 pub use route_table::{all_routes, print_routes, register_routes, RouteEntry};

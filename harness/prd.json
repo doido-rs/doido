@@ -57,8 +57,8 @@
         "make verify passes"
       ],
       "priority": 4,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Removed the inert standalone #[before_action]/#[after_action] proc-macros (the filter logic lives entirely in #[controller], which consumes them as helper attributes). Documented them on the #[controller] doc; updated the doido-controller re-export. All controller filter tests (halt/order/only/after) still pass."
     },
     {
       "id": "US-005",

@@ -4,3 +4,4 @@
 US-001: #[mailer] macro expands to a Mailer trait impl (snake_case name + template_key); make verify green.
 US-002: ActionCable server->client frames (ServerFrame + ServerMessage) with round-trip tests; make verify green. Client `command`-tag migration deferred.
 US-003: #[channel] macro derives a ChannelName registration impl (struct name); make verify green. Full action-routing deferred.
+US-004: removed inert standalone before/after_action macros (now documented helper attributes of #[controller]); filter tests green; make verify green.
