@@ -5,19 +5,24 @@ the green baseline (`make verify`).
 
 ## Files
 
-- `prd.json` — the backlog: small, dependency-ordered stories seeded from
-  [`docs/ARCHITECTURE.md`](../docs/ARCHITECTURE.md). Each story's definition of done is
-  "its tests pass AND `make verify` exits 0". `passes` tracks completion.
+- `prd.json` — the backlog: one dependency-ordered story per gap-file checkbox, seeded
+  from [`docs/RAILS8-GAP-ANALYSIS.md`](../docs/RAILS8-GAP-ANALYSIS.md) (the Rails 8 gap
+  analysis). Each story's definition of done is "its tests pass AND `make verify` exits
+  0". `passes` tracks completion; completing a story also ticks its `[ ]`→`[x]` box in
+  the gap file.
 - `LOOP.md` — the contract for a single autonomous iteration (pick next story → TDD →
-  implement → `make verify` → commit → flip `passes`). Tool-agnostic.
+  implement → `make verify` → tick box → commit → flip `passes`). Tool-agnostic.
 - `progress.txt` — append-only log, one line per completed story.
+- `archive/` — the previous finishing run (a different US-001..009 backlog + its
+  progress log), kept for history.
 
 ## The gate
 
 Everything hinges on one deterministic command:
 
 ```sh
-make verify        # fmt + clippy + tests + example app; must exit 0
+make verify        # fmt + clippy + tests (~12s); must exit 0
+make example       # slow generate-and-build e2e (out of verify by design)
 ```
 
 Supply-chain audit is intentionally **out** of the loop gate (it depends on the
@@ -55,7 +60,7 @@ Ralph stops when an iteration emits `<promise>COMPLETE</promise>`.
 
 ## Guardrails
 
-- One story per iteration; branch `ralph/finish-doido`; one commit per story.
+- One story per iteration; branch `first_stable_project`; one commit per story.
 - Never end an iteration with `make verify` red.
 - Blocked stories (e.g. the config YAML-vs-TOML decision) stop and ask — they are not
   guessed. See `LOOP.md`.
