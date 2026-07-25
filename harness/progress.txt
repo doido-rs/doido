@@ -57,3 +57,4 @@ US-050: mailer macro codegen — inherent mailer_name/template_key on the struct
 US-051: SMTP deliverer — smtp::SmtpDeliverer async SMTP client (mock-server tested). clippy+test green.
 US-052: deliver_later — Mail::deliver_later enqueues on the mailers queue. clippy+test green.
 US-053: mailer MIME — mime::to_mime multipart assembly (html+text). clippy+test green.
+US-054: attachments — Mail::attach/attach_inline + multipart/mixed base64 parts. clippy+test green.

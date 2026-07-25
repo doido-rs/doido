@@ -127,7 +127,7 @@ Each line reads: `- [ ] `[tag]` **Feature** — note. *(state)*`
 - [x] `[core]` **SMTP deliverer** — only Log/Test deliverers. *(missing)*
 - [x] `[core]` **`deliver_later`** via `doido-jobs` — *(missing)*
 - [x] `[core]` **Mailer templates** (html+text via views) + MIME multipart assembly — body fields exist, no rendering/assembly. *(partial)*
-- [ ] `[core]` **Attachments / inline attachments** — *(missing)*
+- [x] `[core]` **Attachments / inline attachments** — *(missing)*
 - [ ] `[nice]` **Mailer layouts** — *(missing)*
 - [ ] `[nice]` **Sendmail deliverer** — *(missing)*
 - [ ] `[nice]` **Mailer previews** — *(missing)*

@@ -1120,6 +1120,7 @@ name = "doido-mailer"
 version = "0.0.7"
 dependencies = [
  "async-trait",
+ "base64",
  "doido-core",
  "doido-jobs",
  "doido-mailer-macros",

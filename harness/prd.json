@@ -864,8 +864,8 @@
       "crate": "doido-mailer",
       "id": "US-054",
       "priority": 54,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Mail gains Attachment + attach()/attach_inline(); mime::to_mime wraps in multipart/mixed with base64-encoded parts and attachment/inline Content-Disposition. base64 added. Covered by tests/attachment_test.rs."
     },
     {
       "title": "Mailer layouts",
