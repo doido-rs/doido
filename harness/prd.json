@@ -1328,8 +1328,8 @@
       "crate": "doido-controller",
       "id": "US-083",
       "priority": 83,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added env_override::apply_env_overrides (SECTION__KEY -> config[section][key], coercing bool/number/string) + from_process_env. Covered by tests/env_override_test.rs."
     },
     {
       "title": "Initializers",

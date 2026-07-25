@@ -156,7 +156,7 @@ Each line reads: `- [ ] `[tag]` **Feature** — note. *(state)*`
 
 - [ ] `[deferred]` **Encrypted credentials** (AES-256-GCM) + `doido credentials edit` — CLI + worktree crate are stubs. *(partial)*
 - [ ] `[deferred]` **Layered TOML config** (base→env→credentials→env vars) per spec 05 — only per-env YAML today. *(missing)*
-- [ ] `[nice]` **`SECTION__KEY` env-var overrides** — *(missing)*
+- [x] `[nice]` **`SECTION__KEY` env-var overrides** — *(missing)*
 - [ ] `[nice]` **Initializers** (`config/initializers/*`) — *(missing)*
 - [ ] `[nice]` **Resolve YAML-vs-TOML drift** (pick one) — decision open in ARCHITECTURE.md. *(partial)*
 
