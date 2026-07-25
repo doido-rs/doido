@@ -28,6 +28,26 @@ impl Default for ServerConfig {
     }
 }
 
+/// Opt-in CORS settings (spec 07 `[middleware.cors]`). Disabled unless
+/// `enabled: true`; an empty `allowed_origins`/`allowed_methods` leaves that
+/// dimension unset on the layer. Use `"*"` in `allowed_origins` for any origin.
+#[derive(Debug, Clone, Default, Deserialize)]
+pub struct CorsConfig {
+    #[serde(default)]
+    pub enabled: bool,
+    #[serde(default)]
+    pub allowed_origins: Vec<String>,
+    #[serde(default)]
+    pub allowed_methods: Vec<String>,
+}
+
+/// Opt-in middleware settings (spec 07 `[middleware]`).
+#[derive(Debug, Clone, Default, Deserialize)]
+pub struct MiddlewareConfig {
+    #[serde(default)]
+    pub cors: CorsConfig,
+}
+
 /// Application configuration. Used as a trait object (`Box<dyn Config>`) so the
 /// backing store can be swapped without touching call sites.
 pub trait Config: Send + Sync {
@@ -35,6 +55,8 @@ pub trait Config: Send + Sync {
     fn server(&self) -> &ServerConfig;
     /// Logging settings.
     fn logger(&self) -> &LoggerConfig;
+    /// Opt-in middleware settings (CORS, …).
+    fn middleware(&self) -> &MiddlewareConfig;
 }
 
 /// File-based [`Config`] deserialized from `config/<env>.yml`.
@@ -44,6 +66,8 @@ pub struct YamlConfig {
     pub server: ServerConfig,
     #[serde(default)]
     pub logger: LoggerConfig,
+    #[serde(default)]
+    pub middleware: MiddlewareConfig,
 }
 
 impl Config for YamlConfig {
@@ -53,6 +77,10 @@ impl Config for YamlConfig {
 
     fn logger(&self) -> &LoggerConfig {
         &self.logger
+    }
+
+    fn middleware(&self) -> &MiddlewareConfig {
+        &self.middleware
     }
 }
 

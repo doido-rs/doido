@@ -48,8 +48,8 @@
       "crate": "doido-controller",
       "id": "US-003",
       "priority": 3,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added CorsConfig/MiddlewareConfig to YamlConfig ([middleware.cors] with enabled/allowed_origins/allowed_methods) + Config::middleware(); MiddlewareStack::with_cors_config builds a CorsLayer from it (\"*\"->Any). Opt-in: off unless enabled. Covered by tests/cors_config_test.rs."
     },
     {
       "title": "Host authorization",
