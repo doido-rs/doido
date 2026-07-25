@@ -4,6 +4,7 @@ pub mod error;
 pub mod inflector;
 pub mod logger;
 pub mod notifications;
+pub mod test_time;
 pub mod time_ext;
 pub mod trace;
 

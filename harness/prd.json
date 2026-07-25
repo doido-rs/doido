@@ -1525,8 +1525,8 @@
       "crate": "doido-core",
       "id": "US-095",
       "priority": 95,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added test_time::TestClock: now()/travel_to(at)/travel(by) for controllable test time (Rails travel_to/travel); code under test reads clock.now(). Covered by tests/test_time_test.rs."
     },
     {
       "title": "Asset pipeline",

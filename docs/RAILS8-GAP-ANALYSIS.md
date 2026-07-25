@@ -150,7 +150,7 @@ Each line reads: `- [ ] `[tag]` **Feature** — note. *(state)*`
 - [x] `[nice]` **Core extensions** (`blank?`/`present?`, String/Array/Hash helpers) — *(missing)*
 - [x] `[nice]` **Time/Date helpers** (`2.days.ago`, `beginning_of_day`) — *(missing)*
 - [x] `[nice]` **Concerns/mixins pattern** — *(missing)*
-- [ ] `[nice]` **Test time helpers** (`travel_to`, durations) — *(missing)*
+- [x] `[nice]` **Test time helpers** (`travel_to`, durations) — *(missing)*
 
 ## Config & Credentials — `doido-config` (deferred crate)
 
