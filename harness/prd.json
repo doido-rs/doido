@@ -1136,8 +1136,8 @@
       "crate": "doido-jobs",
       "id": "US-071",
       "priority": 71,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added MemoryQueue::stats(queue) -> QueueStats { pending, dead } for job status introspection (bin/jobs dashboards). Covered by tests/stats_test.rs."
     },
     {
       "title": "Richer worker app-context",

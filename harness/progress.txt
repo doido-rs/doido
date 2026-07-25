@@ -74,3 +74,4 @@ US-067: retry_on/discard_on — retry::RetryPolicy typed decisions. clippy+test 
 US-068: job callbacks — JobCallbacks + run_perform lifecycle. clippy+test green.
 US-069: .set parity — JobPayload with_wait/with_queue. clippy+test green.
 US-070: job batches — batch::Batch tracking + completion. clippy+test green.
+US-071: job introspection — MemoryQueue::stats/QueueStats. clippy+test green.
