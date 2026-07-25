@@ -13,6 +13,7 @@ pub mod databases;
 pub mod enums;
 pub mod environment;
 pub mod factory;
+pub mod migrate;
 pub mod migration;
 pub mod normalization;
 pub mod password;

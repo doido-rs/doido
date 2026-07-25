@@ -1296,8 +1296,8 @@
       "crate": "doido-model",
       "id": "US-081",
       "priority": 81,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added migrate::rollback::<M>(conn, steps) and redo::<M>(conn, steps) over sea-orm MigratorTrait (db:rollback STEP / db:migrate:redo). Covered by tests/migrate_test.rs with a minimal in-test migrator."
     },
     {
       "title": "Connection pool size/timeout config knobs",
