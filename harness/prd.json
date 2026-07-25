@@ -1559,8 +1559,8 @@
       "crate": "doido-generators",
       "id": "US-097",
       "priority": 97,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added controller testing::send(router, method, uri, body) -> TestResponse{status, body} integration/system test helper (in-process oneshot), complementing doido_model factories + TestDb. Covered by tests/testing_helper_test.rs."
     },
     {
       "title": "Import maps / JS bundling",

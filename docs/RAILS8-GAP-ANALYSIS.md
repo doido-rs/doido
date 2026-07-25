@@ -171,7 +171,7 @@ Each line reads: `- [ ] `[tag]` **Feature** — note. *(state)*`
 ## Platform & Deployment (Rails 8 defaults)
 
 - [x] `[core]` **Asset pipeline** (Propshaft analogue) — *(missing)*
-- [ ] `[core]` **Built-in testing story** (fixtures, integration/system test helpers) — only `TestDb`. *(partial)*
+- [x] `[core]` **Built-in testing story** (fixtures, integration/system test helpers) — only `TestDb`. *(partial)*
 - [ ] `[nice]` **Import maps / JS bundling** — *(missing)*
 - [ ] `[nice]` **Hotwire** (Turbo + Stimulus) analogue — *(missing)*
 - [ ] `[nice]` **i18n framework + locale files** — *(missing)*

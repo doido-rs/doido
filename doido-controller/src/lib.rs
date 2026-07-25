@@ -19,6 +19,7 @@ pub mod signing;
 // Tower middleware stacks and sessions (the former `doido-middleware` crate).
 pub mod session;
 pub mod stack;
+pub mod testing;
 
 // Re-exported so `routes!`-generated code and application crates can reach axum
 // through doido-controller (the former `doido-router` crate lived here).

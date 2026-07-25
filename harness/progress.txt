@@ -100,3 +100,4 @@ US-093: time helpers — time_ext (days_ago/beginning_of_day/...). clippy+test g
 US-094: concerns — concerns::Sluggable example concern/mixin. clippy+test green.
 US-095: test time — test_time::TestClock travel/travel_to. clippy+test green (Core phase complete).
 US-096: asset pipeline — digested asset paths. clippy+test green.
+US-097: testing story — controller testing::send HTTP helper (+ factories/TestDb). clippy+test green.
