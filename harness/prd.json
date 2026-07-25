@@ -400,8 +400,8 @@
       "crate": "doido-model",
       "id": "US-025",
       "priority": 25,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added serialization module: as_json/as_json_only/as_json_except (top-level key filtering) + serialize_column/deserialize_column (struct <-> JSON text for serialized columns). serde_json added as a model dep. Covered by tests/serialization_test.rs."
     },
     {
       "title": "Polymorphic associations / STI",

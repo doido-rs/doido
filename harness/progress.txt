@@ -28,3 +28,4 @@ US-021: named scopes — scope::Scoped extension (.scope/.scope_if) for chainabl
 US-022: secure password/tokens — password module (bcrypt hash/verify, HasSecurePassword::authenticate, generate_token). make verify green.
 US-023: fixtures/factories — factory::{Factory, sequence} test-record builders. make verify green.
 US-024: normalizes — normalization::Normalizer chainable attribute normalization. make verify green.
+US-025: as_json/serialized columns — serialization module (as_json only/except + serialize/deserialize_column). make verify green.

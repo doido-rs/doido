@@ -90,7 +90,7 @@ Each line reads: `- [ ] `[tag]` **Feature** — note. *(state)*`
 - [x] `[core]` **Fixtures / factories for tests** — only in-memory `TestDb`. *(partial)*
 - [ ] `[nice]` **Attribute enums with helpers** — *(missing)*
 - [x] `[nice]` **`normalizes`** (attribute normalization) — *(missing)*
-- [ ] `[nice]` **`as_json` / serialized columns** — *(missing)*
+- [x] `[nice]` **`as_json` / serialized columns** — *(missing)*
 - [ ] `[nice]` **Polymorphic associations / STI** — *(missing)*
 - [ ] `[nice]` **Multiple databases / read-write splitting** — single global pool today. *(missing)*
 - [ ] `[nice]` **Transaction convenience wrapper** — raw sea-orm only. *(partial)*
