@@ -162,7 +162,7 @@ Each line reads: `- [ ] `[tag]` **Feature** — note. *(state)*`
 
 ## CLI & Generators — `doido-generators`
 
-- [ ] `[nice]` **Interactive console REPL** (`doido console`) — placeholder. *(partial)*
+- [x] `[nice]` **Interactive console REPL** (`doido console`) — placeholder. *(partial)*
 - [ ] `[nice]` **`generate resource` target** — *(missing)*
 - [ ] `[nice]` **`generate` destroy/undo** (`rails destroy`) — *(missing)*
 - [ ] `[nice]` **`runner` + `dbconsole` commands** — *(missing)*

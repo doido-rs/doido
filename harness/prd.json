@@ -1377,8 +1377,8 @@
       "crate": "doido-generators",
       "id": "US-086",
       "priority": 86,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "doido console now prints an env banner + guidance and launches evcxr (the Rust REPL) when on PATH (Rust has no built-in eval). banner() covered by tests/console_test.rs."
     },
     {
       "title": "generate resource target",

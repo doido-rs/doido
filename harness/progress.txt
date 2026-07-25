@@ -89,3 +89,4 @@ US-082: pool knobs — DatabaseConfig pool/connect_timeout + pool_options. clipp
 US-083: env overrides — env_override::apply_env_overrides (SECTION__KEY). clippy+test green.
 US-084: initializers — Initializers boot registry. clippy+test green.
 US-085: config drift resolved — standardize on per-env YAML (documented in ARCHITECTURE.md).
+US-086: console REPL — banner + evcxr launch. clippy+test green.
