@@ -928,8 +928,8 @@
       "crate": "doido-mailer",
       "id": "US-058",
       "priority": 58,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added interceptors::InterceptingDeliverer wrapping any Deliverer: intercept(fn) mutates mail before delivery, observe(fn) sees it after. i18n subjects/bodies use doido-view i18n helper (US-047). Covered by tests/interceptors_test.rs."
     },
     {
       "title": "#[channel] macro codegen",

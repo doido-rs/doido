@@ -131,7 +131,7 @@ Each line reads: `- [ ] `[tag]` **Feature** — note. *(state)*`
 - [x] `[nice]` **Mailer layouts** — *(missing)*
 - [x] `[nice]` **Sendmail deliverer** — *(missing)*
 - [x] `[nice]` **Mailer previews** — *(missing)*
-- [ ] `[nice]` **Interceptors / observers + i18n** — *(missing)*
+- [x] `[nice]` **Interceptors / observers + i18n** — *(missing)*
 
 ## Cable / Action Cable — `doido-cable`
 

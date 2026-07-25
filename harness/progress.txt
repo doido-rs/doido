@@ -61,3 +61,4 @@ US-054: attachments — Mail::attach/attach_inline + multipart/mixed base64 part
 US-055: mailer layouts — layout::apply_layout (yield). clippy+test green.
 US-056: sendmail deliverer — SendmailDeliverer pipes MIME to sendmail -t. clippy+test green.
 US-057: mailer previews — MailerPreviews registry (register/names/render). clippy+test green.
+US-058: interceptors/observers — InterceptingDeliverer wrapper. clippy+test green (Mailer phase complete).

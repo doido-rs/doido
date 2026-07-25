@@ -1,4 +1,5 @@
 pub mod deliverer;
+pub mod interceptors;
 pub mod layout;
 pub mod mail;
 pub mod mailer;
