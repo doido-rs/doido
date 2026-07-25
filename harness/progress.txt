@@ -37,3 +37,4 @@ US-029: generator e2e — every generator output compiles (CLI-driven make examp
 US-030: root route — root!(handler) in the routes! DSL maps GET /. clippy+test green.
 US-032: named route helpers — get!/post! accept `as: name` (parity with resources helpers). clippy+test green.
 US-033: member/collection — resources! member:/collection: extra routes. clippy+test green.
+US-034: route constraints — constraints module (format validators + Constraints matcher for filters). clippy+test green.

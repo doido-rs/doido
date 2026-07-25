@@ -544,8 +544,8 @@
       "crate": "doido-controller",
       "id": "US-034",
       "priority": 34,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added constraints module: numeric/alpha/alphanumeric/uuid_like validators + Constraints (param name->validator, matches(&[(k,v)])); enforce from a before_action that rejects malformed path params. Covered by tests/constraints_test.rs. NOTE: check-based (axum has no regex path matching), not macro-integrated."
     },
     {
       "title": "Singular resource",
