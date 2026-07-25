@@ -988,6 +988,7 @@ dependencies = [
  "async-trait",
  "doido-cable-macros",
  "doido-core",
+ "doido-model",
  "futures-util",
  "redis",
  "serde",

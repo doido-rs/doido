@@ -1056,8 +1056,8 @@
       "crate": "doido-cable",
       "id": "US-066",
       "priority": 66,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added db_pubsub::DbPubSub behind feature cable-db: durable cable_messages log via sea-orm raw SQL (execute_raw/query_all_raw), messages_since(stream, after_id) stream-scoped/ordered, + in-process fanout on publish. Hermetic sqlite test passes. Covered by tests/db_pubsub_test.rs."
     },
     {
       "title": "Conditional retry/discard by error type",

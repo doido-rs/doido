@@ -69,3 +69,4 @@ US-062: cable connection auth — CableConnection identifiers + authorize/reject
 US-063: stream naming — streams::stream_from/stream_for. clippy+test green.
 US-064: heartbeat — heartbeat::ping/ping_now server ping frames. clippy+test green.
 US-065: broadcast_to — Cable::broadcast structured ServerMessage + pubsub() accessor. clippy+test green.
+US-066: db pubsub — DbPubSub (feature cable-db) durable log + messages_since, sqlite-tested. clippy(feature) green (Cable phase complete).

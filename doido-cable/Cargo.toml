@@ -14,9 +14,11 @@ async-trait.workspace = true
 tokio = { workspace = true, features = ["sync", "rt", "macros"] }
 redis = { workspace = true, optional = true }
 futures-util = { version = "0.3", optional = true }
+doido-model = { workspace = true, optional = true }
 
 [features]
 cable-redis = ["dep:redis", "dep:futures-util"]
+cable-db = ["dep:doido-model"]
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["rt-multi-thread", "macros", "time"] }
