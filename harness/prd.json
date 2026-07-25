@@ -736,8 +736,8 @@
       "crate": "doido-view",
       "id": "US-046",
       "priority": 46,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added helpers::number: number_with_delimiter (thousands grouping), number_to_currency/_unit (2dp + delimiter), number_to_percentage(precision). Covered by tests/number_helpers_test.rs. NOTE: date/time formatting left as follow-up (no chrono dep in doido-view)."
     },
     {
       "title": "i18n view helpers",
