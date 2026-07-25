@@ -19,6 +19,7 @@ pub mod pool;
 pub mod scope;
 pub mod serialization;
 pub mod testing;
+pub mod transaction;
 pub mod validation;
 
 pub use config::{Config, DatabaseConfig, LoggerConfig, YamlConfig};

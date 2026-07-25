@@ -448,8 +448,8 @@
       "crate": "doido-model",
       "id": "US-028",
       "priority": 28,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added transaction module: transaction(conn, async |txn| {...}) begins a tx, commits on Ok, rolls back on Err, surfacing anyhow errors. Commit/rollback verified via PK-conflict. Covered by tests/transaction_test.rs."
     },
     {
       "title": "E2E: every generator's output compiles",
