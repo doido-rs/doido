@@ -160,8 +160,8 @@
       "crate": "doido-controller",
       "id": "US-010",
       "priority": 10,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added rescue::RescueHandlers: on::<E>(handler) registers a typed error->Response mapping; rescue(&anyhow::Error) downcasts in registration order and returns the first match, else None (falls back to default 500). Covered by tests/rescue_test.rs. FOLLOW-UP: #[controller] macro wiring to consult the registry on the Err path."
     },
     {
       "title": "skip_before_action",
