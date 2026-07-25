@@ -304,8 +304,8 @@
       "crate": "doido-model",
       "id": "US-019",
       "priority": 19,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added callbacks module: Callbacks trait (before/after validation/save/create/update/destroy, all default no-op) + run_create/run_update/run_destroy async runners that fire hooks in Rails order around a persist closure; a failing before-hook aborts persist. Covered by tests/callbacks_test.rs."
     },
     {
       "title": "Named scopes",
