@@ -1,4 +1,5 @@
 pub mod deliverer;
+pub mod layout;
 pub mod mail;
 pub mod mailer;
 pub mod mime;

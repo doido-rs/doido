@@ -880,8 +880,8 @@
       "crate": "doido-mailer",
       "id": "US-055",
       "priority": 55,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added layout::apply_layout(layout, body) wrapping the mailer body at the {{ yield }} marker (appends if absent). Covered by tests/layout_test.rs."
     },
     {
       "title": "Sendmail deliverer",

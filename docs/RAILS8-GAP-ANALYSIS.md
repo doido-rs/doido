@@ -128,7 +128,7 @@ Each line reads: `- [ ] `[tag]` **Feature** — note. *(state)*`
 - [x] `[core]` **`deliver_later`** via `doido-jobs` — *(missing)*
 - [x] `[core]` **Mailer templates** (html+text via views) + MIME multipart assembly — body fields exist, no rendering/assembly. *(partial)*
 - [x] `[core]` **Attachments / inline attachments** — *(missing)*
-- [ ] `[nice]` **Mailer layouts** — *(missing)*
+- [x] `[nice]` **Mailer layouts** — *(missing)*
 - [ ] `[nice]` **Sendmail deliverer** — *(missing)*
 - [ ] `[nice]` **Mailer previews** — *(missing)*
 - [ ] `[nice]` **Interceptors / observers + i18n** — *(missing)*
