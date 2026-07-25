@@ -320,8 +320,8 @@
       "crate": "doido-model",
       "id": "US-020",
       "priority": 20,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added association module: Association::{belongs_to,has_one,has_many,has_and_belongs_to_many} resolving Rails foreign-key/table conventions via Inflector, + join_table() for HABTM (sorted plural). Complements sea-orm's type-level relations. Covered by tests/association_test.rs."
     },
     {
       "title": "Secure password / tokens",

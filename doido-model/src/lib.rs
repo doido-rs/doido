@@ -5,6 +5,7 @@ pub use sea_orm::{
 pub use sea_orm_migration;
 pub use sea_orm_migration::SchemaManager;
 
+pub mod association;
 pub mod callbacks;
 pub mod config;
 pub mod create;
