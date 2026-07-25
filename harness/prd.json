@@ -1627,8 +1627,8 @@
       "crate": "doido-generators",
       "id": "US-101",
       "priority": 101,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added health::up handler (200 OK) + with_health(router) mounting GET /up (Rails 8 health check). Covered by tests/health_test.rs."
     },
     {
       "title": "Production Dockerfile + Kamal deploy + Thruster + Devcontainer",
