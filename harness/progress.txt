@@ -35,3 +35,4 @@ US-028: transaction wrapper — transaction(conn, work) commit-on-Ok/rollback-on
 US-023: attribute enums — enums::AttributeEnum (label/all/from_label/index/labels). make verify green.
 US-029: generator e2e — every generator output compiles (CLI-driven make example). Added job/mailer app wiring + deps; fixed doido_cable::channel macro export. make verify + make example green.
 US-030: root route — root!(handler) in the routes! DSL maps GET /. clippy+test green.
+US-032: named route helpers — get!/post! accept `as: name` (parity with resources helpers). clippy+test green.

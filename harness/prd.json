@@ -512,8 +512,8 @@
       "crate": "doido-controller",
       "id": "US-032",
       "priority": 32,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "get!/post!/... now accept `as: name`, generating a {name}_path() helper (parity with resources! helpers). Covered by tests/named_route_test.rs. NOTE: like resource helpers, generated path fns are currently block-local \u2014 exposing them app-wide is a shared follow-up."
     },
     {
       "title": "member / collection route blocks on resources",

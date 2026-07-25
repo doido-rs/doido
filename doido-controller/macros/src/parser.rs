@@ -116,13 +116,11 @@ impl Parse for RoutesInput {
                     let _comma: Token![,] = content.parse()?;
                     let handler: Expr = content.parse()?;
                     // Optional `, as: name` for a named `{name}_path()` helper.
+                    // `as` is a keyword, so match it as a token, not an ident.
                     let mut name = None;
                     if content.peek(Token![,]) {
                         let _comma: Token![,] = content.parse()?;
-                        let key: Ident = content.parse()?;
-                        if key != "as" {
-                            return Err(syn::Error::new(key.span(), "expected `as`"));
-                        }
+                        let _as: Token![as] = content.parse()?;
                         let _colon: Token![:] = content.parse()?;
                         name = Some(content.parse()?);
                     }
