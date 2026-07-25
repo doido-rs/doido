@@ -205,6 +205,50 @@ fn generate_inner(
                     fn #edit_fn() -> &'static str { #base_edit }
                 });
             }
+            RouteDecl::ShallowResources {
+                parent,
+                child,
+                controller,
+            } => {
+                let prefix = path_prefix.unwrap_or("");
+                let parent_s = parent.to_string();
+                let parent_singular = parent_s.trim_end_matches('s');
+                let child_s = child.to_string();
+                let ctrl = &controller;
+
+                // Collection routes stay nested under the parent.
+                let nested = format!(
+                    "{}/{}/{{{}_id}}/{}",
+                    prefix, parent_s, parent_singular, child_s
+                );
+                let nested_new = format!("{}/new", nested);
+                // Member routes drop the parent (the shallow part).
+                let member = format!("{}/{}/{{id}}", prefix, child_s);
+                let member_edit = format!("{}/edit", member);
+
+                descriptors.push(("GET".to_string(), nested.clone()));
+                descriptors.push(("POST".to_string(), nested.clone()));
+                descriptors.push(("GET".to_string(), nested_new.clone()));
+                descriptors.push(("GET".to_string(), member.clone()));
+                descriptors.push(("PUT|PATCH".to_string(), member.clone()));
+                descriptors.push(("DELETE".to_string(), member.clone()));
+                descriptors.push(("GET".to_string(), member_edit.clone()));
+
+                route_stmts.push(quote! {
+                    .route(#nested, axum::routing::MethodRouter::new()
+                        .get(#ctrl::index)
+                        .post(#ctrl::create))
+                });
+                route_stmts.push(quote! { .route(#nested_new, axum::routing::get(#ctrl::new)) });
+                route_stmts.push(quote! {
+                    .route(#member, axum::routing::MethodRouter::new()
+                        .get(#ctrl::show)
+                        .patch(#ctrl::update)
+                        .put(#ctrl::update)
+                        .delete(#ctrl::destroy))
+                });
+                route_stmts.push(quote! { .route(#member_edit, axum::routing::get(#ctrl::edit)) });
+            }
             RouteDecl::Namespace { name, body } => {
                 let ns_str = name.to_string();
                 let ns_path = match path_prefix {

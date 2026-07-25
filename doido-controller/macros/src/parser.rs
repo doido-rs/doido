@@ -28,6 +28,11 @@ pub enum RouteDecl {
         name: Ident,
         controller: Ident,
     },
+    ShallowResources {
+        parent: Ident,
+        child: Ident,
+        controller: Ident,
+    },
     Namespace {
         name: Ident,
         body: RoutesInput,
@@ -92,6 +97,18 @@ impl Parse for RoutesInput {
                     let _comma: Token![,] = content.parse()?;
                     let controller: Ident = content.parse()?;
                     decls.push(RouteDecl::Resource { name, controller });
+                }
+                "shallow_resources" => {
+                    let parent: Ident = content.parse()?;
+                    let _comma: Token![,] = content.parse()?;
+                    let child: Ident = content.parse()?;
+                    let _comma: Token![,] = content.parse()?;
+                    let controller: Ident = content.parse()?;
+                    decls.push(RouteDecl::ShallowResources {
+                        parent,
+                        child,
+                        controller,
+                    });
                 }
                 "resources" => {
                     let resource_name: Ident = content.parse()?;

@@ -39,3 +39,4 @@ US-032: named route helpers — get!/post! accept `as: name` (parity with resour
 US-033: member/collection — resources! member:/collection: extra routes. clippy+test green.
 US-034: route constraints — constraints module (format validators + Constraints matcher for filters). clippy+test green.
 US-035: singular resource — resource!(name, Ctrl) no-id routes. clippy+test green.
+US-036: shallow nesting — shallow_resources! nested collection + shallow member routes. clippy+test green.

@@ -39,7 +39,7 @@ Each line reads: `- [ ] `[tag]` **Feature** — note. *(state)*`
 - [x] `[core]` **`member` / `collection` route blocks on resources** — must add manual method routes today. *(partial)*
 - [x] `[nice]` **Route constraints** (regex / format / lambda) — *(missing)*
 - [x] `[nice]` **Singular resource** (`resource :profile`) — *(missing)*
-- [ ] `[nice]` **Shallow nesting** for nested resources — *(missing)*
+- [x] `[nice]` **Shallow nesting** for nested resources — *(missing)*
 - [ ] `[nice]` **Redirect routes** (`to: redirect("/x")`) — *(missing)*
 - [ ] `[nice]` **Glob / catch-all routes** (`/*path`) — *(missing)*
 - [ ] `[nice]` **`mount` engines / sub-apps** + `direct`/`resolve` custom helpers — *(missing)*

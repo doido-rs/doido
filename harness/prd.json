@@ -576,8 +576,8 @@
       "crate": "doido-controller",
       "id": "US-036",
       "priority": 36,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added shallow_resources!(parent, child, Controller): nested collection routes (/parent/{parent_id}/child index/new/create) + shallow member routes (/child/{id} show/edit/update/destroy). Covered by tests/shallow_nesting_test.rs."
     },
     {
       "title": "Redirect routes",
