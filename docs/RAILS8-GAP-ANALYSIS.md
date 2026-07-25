@@ -123,7 +123,7 @@ Each line reads: `- [ ] `[tag]` **Feature** — note. *(state)*`
 
 ## Mailer / Action Mailer — `doido-mailer`
 
-- [ ] `[core]` **`#[mailer]` macro codegen** — pass-through stub. *(partial)*
+- [x] `[core]` **`#[mailer]` macro codegen** — pass-through stub. *(partial)*
 - [ ] `[core]` **SMTP deliverer** — only Log/Test deliverers. *(missing)*
 - [ ] `[core]` **`deliver_later`** via `doido-jobs` — *(missing)*
 - [ ] `[core]` **Mailer templates** (html+text via views) + MIME multipart assembly — body fields exist, no rendering/assembly. *(partial)*

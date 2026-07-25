@@ -3,7 +3,7 @@
 //! resolution (`mailers/<mailer_name>/<action>`, per docs/08-mailer.md), while
 //! leaving the struct's own action methods untouched.
 
-use doido_mailer::{mailer, Deliverer, Mail, Mailer, TestDeliverer};
+use doido_mailer::{mailer, Mail, TestDeliverer};
 
 #[mailer]
 struct UserMailer;

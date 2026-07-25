@@ -800,8 +800,8 @@
       "crate": "doido-mailer",
       "id": "US-050",
       "priority": 50,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "#[mailer] now also emits inherent mailer_name()/template_key(action) on the struct (in addition to the Mailer trait impl), so mailers are self-describing without importing the trait. Covered by tests/mailer_codegen_test.rs."
     },
     {
       "title": "SMTP deliverer",
