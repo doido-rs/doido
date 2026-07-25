@@ -88,7 +88,7 @@ Each line reads: `- [ ] `[tag]` **Feature** — note. *(state)*`
 - [x] `[core]` **Named scopes** — *(missing)*
 - [x] `[core]` **Secure password / tokens** (`has_secure_password`, `generates_token_for`) — *(missing)*
 - [x] `[core]` **Fixtures / factories for tests** — only in-memory `TestDb`. *(partial)*
-- [ ] `[nice]` **Attribute enums with helpers** — *(missing)*
+- [x] `[nice]` **Attribute enums with helpers** — *(missing)*
 - [x] `[nice]` **`normalizes`** (attribute normalization) — *(missing)*
 - [x] `[nice]` **`as_json` / serialized columns** — *(missing)*
 - [x] `[nice]` **Polymorphic associations / STI** — *(missing)*

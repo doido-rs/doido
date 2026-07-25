@@ -368,8 +368,8 @@
       "crate": "doido-model",
       "id": "US-023",
       "priority": 23,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added enums module: AttributeEnum trait giving enum attributes all()/label()/from_label()/index()/labels() (Rails enum helpers); native == is the variant predicate. Covered by tests/enums_test.rs."
     },
     {
       "title": "normalizes",

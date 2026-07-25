@@ -32,3 +32,4 @@ US-025: as_json/serialized columns — serialization module (as_json only/except
 US-026: polymorphic/STI — PolymorphicAssociation ({name}_type/id) + sti_type_column conventions. make verify green.
 US-027: multiple databases — databases::Databases writing/reading role routing with writer fallback. make verify green.
 US-028: transaction wrapper — transaction(conn, work) commit-on-Ok/rollback-on-Err helper. make verify green.
+US-023: attribute enums — enums::AttributeEnum (label/all/from_label/index/labels). make verify green.
