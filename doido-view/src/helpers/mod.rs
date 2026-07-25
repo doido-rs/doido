@@ -2,6 +2,7 @@
 
 pub mod asset;
 pub mod form;
+pub mod hotwire;
 pub mod i18n;
 pub mod link;
 pub mod number;

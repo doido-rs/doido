@@ -1593,8 +1593,8 @@
       "crate": "doido-generators",
       "id": "US-099",
       "priority": 99,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added helpers::hotwire: turbo_frame, turbo_stream (action/target/template), stimulus_controller data attribute (Turbo + Stimulus). Covered by tests/hotwire_test.rs."
     },
     {
       "title": "i18n framework + locale files",

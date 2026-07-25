@@ -102,3 +102,4 @@ US-095: test time — test_time::TestClock travel/travel_to. clippy+test green (
 US-096: asset pipeline — digested asset paths. clippy+test green.
 US-097: testing story — controller testing::send HTTP helper (+ factories/TestDb). clippy+test green.
 US-098: import maps — helpers::asset::importmap. clippy+test green.
+US-099: hotwire — helpers::hotwire turbo/stimulus. clippy+test green.

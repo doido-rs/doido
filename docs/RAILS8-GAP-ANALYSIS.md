@@ -173,7 +173,7 @@ Each line reads: `- [ ] `[tag]` **Feature** — note. *(state)*`
 - [x] `[core]` **Asset pipeline** (Propshaft analogue) — *(missing)*
 - [x] `[core]` **Built-in testing story** (fixtures, integration/system test helpers) — only `TestDb`. *(partial)*
 - [x] `[nice]` **Import maps / JS bundling** — *(missing)*
-- [ ] `[nice]` **Hotwire** (Turbo + Stimulus) analogue — *(missing)*
+- [x] `[nice]` **Hotwire** (Turbo + Stimulus) analogue — *(missing)*
 - [ ] `[nice]` **i18n framework + locale files** — *(missing)*
 - [ ] `[nice]` **Health-check endpoint** (`/up`) — *(missing)*
 - [ ] `[nice]` **Production Dockerfile + Kamal deploy + Thruster + Devcontainer** — dev `docker-compose.yml` only. *(partial)*
