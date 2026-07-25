@@ -163,6 +163,48 @@ fn generate_inner(
                     }
                 });
             }
+            RouteDecl::Resource { name, controller } => {
+                let n = name.to_string();
+                let prefix = path_prefix.unwrap_or("");
+                let base = format!("{}/{}", prefix, n); // e.g. /profile — no {id}
+                let base_new = format!("{}/{}/new", prefix, n);
+                let base_edit = format!("{}/{}/edit", prefix, n);
+                let ctrl = &controller;
+
+                descriptors.push(("GET".to_string(), base.clone()));
+                descriptors.push(("POST".to_string(), base.clone()));
+                descriptors.push(("PUT|PATCH".to_string(), base.clone()));
+                descriptors.push(("DELETE".to_string(), base.clone()));
+                descriptors.push(("GET".to_string(), base_new.clone()));
+                descriptors.push(("GET".to_string(), base_edit.clone()));
+
+                route_stmts.push(quote! {
+                    .route(#base, axum::routing::MethodRouter::new()
+                        .get(#ctrl::show)
+                        .post(#ctrl::create)
+                        .patch(#ctrl::update)
+                        .put(#ctrl::update)
+                        .delete(#ctrl::destroy))
+                });
+                route_stmts.push(quote! { .route(#base_new, axum::routing::get(#ctrl::new)) });
+                route_stmts.push(quote! { .route(#base_edit, axum::routing::get(#ctrl::edit)) });
+
+                let helper_base = match helper_prefix {
+                    Some(pfx) => format!("{}_{}", pfx, n),
+                    None => n.clone(),
+                };
+                let show_fn = format_ident!("{}_path", helper_base);
+                let new_fn = format_ident!("new_{}_path", helper_base);
+                let edit_fn = format_ident!("edit_{}_path", helper_base);
+                helper_fns.push(quote! {
+                    #[allow(dead_code)]
+                    fn #show_fn() -> &'static str { #base }
+                    #[allow(dead_code)]
+                    fn #new_fn() -> &'static str { #base_new }
+                    #[allow(dead_code)]
+                    fn #edit_fn() -> &'static str { #base_edit }
+                });
+            }
             RouteDecl::Namespace { name, body } => {
                 let ns_str = name.to_string();
                 let ns_path = match path_prefix {

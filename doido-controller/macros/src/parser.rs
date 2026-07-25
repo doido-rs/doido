@@ -24,6 +24,10 @@ pub enum RouteDecl {
         /// Extra GET routes under `/<action>` (Rails `collection do … end`).
         collection: Vec<String>,
     },
+    Resource {
+        name: Ident,
+        controller: Ident,
+    },
     Namespace {
         name: Ident,
         body: RoutesInput,
@@ -82,6 +86,12 @@ impl Parse for RoutesInput {
                     braced!(inner in content);
                     let body: RoutesInput = inner.parse()?;
                     decls.push(RouteDecl::Scope { path_prefix, body });
+                }
+                "resource" => {
+                    let name: Ident = content.parse()?;
+                    let _comma: Token![,] = content.parse()?;
+                    let controller: Ident = content.parse()?;
+                    decls.push(RouteDecl::Resource { name, controller });
                 }
                 "resources" => {
                     let resource_name: Ident = content.parse()?;

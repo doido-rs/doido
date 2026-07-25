@@ -560,8 +560,8 @@
       "crate": "doido-controller",
       "id": "US-035",
       "priority": 35,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added resource!(name, Controller) singular-resource DSL: show/new/create/edit/update/destroy with no {id} and no index (Rails resource :profile) + block-local path helpers. Covered by tests/singular_resource_test.rs."
     },
     {
       "title": "Shallow nesting",
