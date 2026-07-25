@@ -2,6 +2,7 @@ pub mod config;
 pub mod context;
 pub mod environment;
 pub mod logging;
+pub mod params;
 pub mod response;
 pub mod route_table;
 pub mod server;
@@ -18,6 +19,7 @@ pub use context::{Context, IntoActionResponse};
 // not standalone macros, so only `controller` and `routes` are re-exported.
 pub use doido_controller_macros::{controller, routes};
 pub use environment::Environment;
+pub use params::Params;
 pub use response::Response;
 pub use route_table::{all_routes, print_routes, register_routes, RouteEntry};
 pub use server::start_server;

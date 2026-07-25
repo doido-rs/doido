@@ -96,8 +96,8 @@
       "crate": "doido-controller",
       "id": "US-006",
       "priority": 6,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added params::Params strong-params allowlist: require(key) (errors if missing), permit(&[keys]) (drops unlisted keys, blocking mass-assignment), get/deserialize/into_value; Context::query_params() exposes the query string as Params. Covered by tests/strong_params_test.rs."
     },
     {
       "title": "CSRF protection",

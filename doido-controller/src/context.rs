@@ -104,6 +104,18 @@ impl Context {
             .map_err(|e| doido_core::anyhow::anyhow!("params deserialization failed: {e}"))
     }
 
+    /// The query string as strong [`Params`](crate::params::Params), for
+    /// `require`/`permit` allowlisting before use.
+    pub fn query_params(&self) -> crate::params::Params {
+        let query = self.parts.uri.query().unwrap_or("");
+        let pairs: Vec<(String, String)> = serde_urlencoded::from_str(query).unwrap_or_default();
+        let mut map = serde_json::Map::new();
+        for (k, v) in pairs {
+            map.insert(k, serde_json::Value::String(v));
+        }
+        crate::params::Params::new(serde_json::Value::Object(map))
+    }
+
     /// Render a Tera view to an HTML 200 response.
     ///
     /// `template` is resolved by the global [`doido_view`] engine (installed at
