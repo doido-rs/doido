@@ -1232,8 +1232,8 @@
       "crate": "doido-cache",
       "id": "US-077",
       "priority": 77,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added codec::encode/decode: JSON serialization with optional gzip compression (flate2) for cache values; compression shrinks large/repetitive entries and round-trips. Covered by tests/codec_test.rs."
     },
     {
       "title": "db:seed",

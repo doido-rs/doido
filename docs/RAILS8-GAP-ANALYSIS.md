@@ -119,7 +119,7 @@ Each line reads: `- [ ] `[tag]` **Feature** — note. *(state)*`
 - [x] `[nice]` **Cache versioning** / recyclable versioned keys — *(missing)*
 - [x] `[nice]` **`read_multi` / `write_multi` / `fetch_multi`** — *(missing)*
 - [x] `[nice]` **Named/multi stores as first-class config** — registry exists but isn't config-wired. *(partial)*
-- [ ] `[nice]` **Compression / pluggable serializer options** — *(missing)*
+- [x] `[nice]` **Compression / pluggable serializer options** — *(missing)*
 
 ## Mailer / Action Mailer — `doido-mailer`
 

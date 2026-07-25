@@ -11,6 +11,7 @@ serde_json.workspace = true
 serde.workspace = true
 serde_norway = "0.9"
 async-trait.workspace = true
+flate2 = "1"
 
 # Optional backend dependencies, enabled by the matching feature.
 redis = { workspace = true, optional = true }

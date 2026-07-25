@@ -80,3 +80,4 @@ US-073: cache fetch — fetch::fetch read-through. clippy+test green.
 US-074: cache versioning — versioned_key + read/write_versioned. clippy+test green.
 US-075: multi cache ops — read/write/fetch_multi. clippy+test green.
 US-076: named stores config — MultiCacheConfig::build_registry. clippy+test green.
+US-077: cache compression — codec::encode/decode JSON+gzip. clippy+test green (Cache phase complete).

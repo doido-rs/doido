@@ -1,3 +1,4 @@
+pub mod codec;
 pub mod config;
 pub mod environment;
 pub mod fetch;
