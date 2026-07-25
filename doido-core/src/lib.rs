@@ -3,6 +3,7 @@ pub mod error;
 pub mod inflector;
 pub mod logger;
 pub mod notifications;
+pub mod time_ext;
 pub mod trace;
 
 // Convenience re-exports so downstream crates depend only on doido-core.

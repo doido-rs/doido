@@ -1493,8 +1493,8 @@
       "crate": "doido-core",
       "id": "US-093",
       "priority": 93,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added time_ext: days_ago/days_from_now/hours_ago + beginning_of_day/end_of_day (chrono). Covered by tests/time_ext_test.rs. chrono added to doido-core."
     },
     {
       "title": "Concerns/mixins pattern",

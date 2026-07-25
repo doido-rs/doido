@@ -96,3 +96,4 @@ US-089: runner + dbconsole — command resolvers. clippy+test green.
 US-090: locale generator — LocaleGenerator config/locales/<code>.yml. clippy+test green (CLI phase complete).
 US-091: notifications — notifications::Notifications instrumentation bus. clippy+test green.
 US-092: core extensions — core_ext::Blank + StringExt. clippy+test green.
+US-093: time helpers — time_ext (days_ago/beginning_of_day/...). clippy+test green.

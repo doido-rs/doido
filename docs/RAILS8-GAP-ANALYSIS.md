@@ -148,7 +148,7 @@ Each line reads: `- [ ] `[tag]` **Feature** — note. *(state)*`
 
 - [x] `[nice]` **`ActiveSupport::Notifications` instrumentation bus** — 4 fixed trace helpers only. *(partial)*
 - [x] `[nice]` **Core extensions** (`blank?`/`present?`, String/Array/Hash helpers) — *(missing)*
-- [ ] `[nice]` **Time/Date helpers** (`2.days.ago`, `beginning_of_day`) — *(missing)*
+- [x] `[nice]` **Time/Date helpers** (`2.days.ago`, `beginning_of_day`) — *(missing)*
 - [ ] `[nice]` **Concerns/mixins pattern** — *(missing)*
 - [ ] `[nice]` **Test time helpers** (`travel_to`, durations) — *(missing)*
 
