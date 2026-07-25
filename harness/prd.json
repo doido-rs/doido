@@ -1024,8 +1024,8 @@
       "crate": "doido-cable",
       "id": "US-064",
       "priority": 64,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added heartbeat::ping(epoch)/ping_now() producing ActionCable ServerFrame::Ping frames; apps send them on a periodic timer. Covered by tests/heartbeat_test.rs."
     },
     {
       "title": "Server-side broadcast_to from anywhere",

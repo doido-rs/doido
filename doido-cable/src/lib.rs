@@ -1,6 +1,7 @@
 pub mod cable;
 pub mod channel;
 pub mod connection;
+pub mod heartbeat;
 pub mod protocol;
 pub mod pubsub;
 #[cfg(feature = "cable-redis")]

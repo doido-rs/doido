@@ -140,7 +140,7 @@ Each line reads: `- [ ] `[tag]` **Feature** — note. *(state)*`
 - [x] `[core]` **Redis PubSub backend** (multi-process broadcast) — only MemoryPubSub. *(missing)*
 - [x] `[core]` **Connection identification / auth** (`identified_by`, current_user) — minimal. *(partial)*
 - [x] `[nice]` **`stream_from` / `stream_for` naming helpers** — *(partial)*
-- [ ] `[nice]` **Periodic timers / heartbeat pings** — *(missing)*
+- [x] `[nice]` **Periodic timers / heartbeat pings** — *(missing)*
 - [ ] `[nice]` **Server-side `broadcast_to` from anywhere** — *(partial)*
 - [ ] `[nice]` **DB PubSub backend** — *(missing)*
 
