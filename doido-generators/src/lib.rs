@@ -52,5 +52,6 @@ pub fn default_registry() -> GeneratorRegistry {
     reg.register(Box::new(ProjectGenerator));
     reg.register(Box::new(TemplatesGenerator));
     reg.register(Box::new(GeneratorGenerator));
+    reg.register(Box::new(crate::generators::locale::LocaleGenerator));
     reg
 }

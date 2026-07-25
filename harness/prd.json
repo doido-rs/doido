@@ -1445,8 +1445,8 @@
       "crate": "doido-generators",
       "id": "US-090",
       "priority": 90,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added LocaleGenerator (generate locale [code]): writes a starter config/locales/<code>.yml (default en). Registered in default_registry. Covered by tests/locale_generator_test.rs."
     },
     {
       "title": "ActiveSupport::Notifications instrumentation bus",

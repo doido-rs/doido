@@ -3,6 +3,7 @@ pub mod controller;
 pub mod field;
 pub mod generator_gen;
 pub mod job;
+pub mod locale;
 pub mod mailer;
 pub mod migration;
 pub mod migration_support;
