@@ -1461,8 +1461,8 @@
       "crate": "doido-core",
       "id": "US-091",
       "priority": 91,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added notifications::Notifications: subscribe(prefix, handler) + instrument(name, payload) firing matching subscribers by name prefix (ActiveSupport::Notifications). Covered by tests/notifications_test.rs."
     },
     {
       "title": "Core extensions",

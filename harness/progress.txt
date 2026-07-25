@@ -94,3 +94,4 @@ US-087: generate resource — ResourceGenerator (API scaffold, no views). clippy
 US-088: generate destroy — commands::destroy (destroyable_paths + run). clippy+test green.
 US-089: runner + dbconsole — command resolvers. clippy+test green.
 US-090: locale generator — LocaleGenerator config/locales/<code>.yml. clippy+test green (CLI phase complete).
+US-091: notifications — notifications::Notifications instrumentation bus. clippy+test green.
