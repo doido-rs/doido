@@ -688,8 +688,8 @@
       "crate": "doido-view",
       "id": "US-043",
       "priority": 43,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added helpers::link: link_to/link_to_class (escaped anchors) + button_to (form+button, method-tunneled). Covered by tests/link_helpers_test.rs."
     },
     {
       "title": "Asset helpers",

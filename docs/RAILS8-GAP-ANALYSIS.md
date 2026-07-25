@@ -72,7 +72,7 @@ Each line reads: `- [ ] `[tag]` **Feature** — note. *(state)*`
 - [x] `[core]` **Partial + collection render helpers** (`render "form"`, `render collection:`) — Tera `include` only, no Rails-style helper. *(partial)*
 - [x] `[core]` **`content_for` / named `yield` blocks** — only `content_for_layout` exists. *(partial)*
 - [x] `[core]` **Form builders** (`form_with`/`form_for` + field helpers) — *(missing)*
-- [ ] `[core]` **Link/URL helpers** (`link_to`, `button_to`) — *(missing)*
+- [x] `[core]` **Link/URL helpers** (`link_to`, `button_to`) — *(missing)*
 - [ ] `[core]` **Asset helpers** (`image_tag`, `stylesheet_link_tag`, `javascript_include_tag`) — *(missing)*
 - [ ] `[nice]` **Tag helpers** (`tag`, `content_tag`) — *(missing)*
 - [ ] `[nice]` **Number/date/currency formatting helpers** — *(missing)*
