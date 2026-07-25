@@ -114,10 +114,13 @@ fn substitute_template(template: &str, ctx: &TemplateContext<'_>) -> String {
         .replace("{doido_db_url}", &ctx.db_url)
         .replace("{doido_sqlx_feature}", ctx.sqlx_feature)
         .replace("{doido_dep}", &doido_dependency("doido"))
+        .replace("{doido_core_dep}", &doido_dependency("doido-core"))
         .replace(
             "{doido_controller_dep}",
             &doido_dependency("doido-controller"),
         )
+        .replace("{doido_jobs_dep}", &doido_dependency("doido-jobs"))
+        .replace("{doido_mailer_dep}", &doido_dependency("doido-mailer"))
         .replace("{doido_model_dep}", &doido_dependency("doido-model"))
         .replace("{doido_cable_deps}", &cable_deps)
         .replace("{doido_channels_module}", &cable_module)

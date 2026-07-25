@@ -1,74 +1,71 @@
-//! End-to-end proof that `doido new` scaffolds an app that actually compiles,
-//! and that the migration generator's `doido_model::migration` output compiles.
+//! End-to-end proof that `doido new` plus **every** generator produces an app
+//! that actually compiles — the framework's e2e definition-of-done.
 //!
-//! This is the framework's e2e definition-of-done: it generates a fresh app into
-//! a tempdir (so nothing machine-specific is committed) plus one migration per
-//! Rails pattern, and builds the whole app workspace against the in-tree
-//! framework crates via the generator's path dependencies.
+//! It drives the real `doido` CLI (so each generator reads/writes the on-disk
+//! app and its module/route injection accumulates, exactly as a user would),
+//! then builds the whole app workspace against the in-tree framework crates.
 //!
 //! It builds the whole framework, so it is `#[ignore]`d and kept OUT of the fast
 //! `make verify` gate — run it with `make example` (or
 //! `cargo test -p doido-generators -- --ignored`).
 
-use doido_generators::generators::migration::MigrationGenerator;
-use doido_generators::generators::migration_support::register_migration;
-use doido_generators::generators::new::ProjectGenerator;
-use doido_generators::Generator;
+use assert_cmd::Command;
 use std::path::Path;
-use std::process::Command;
+use std::process::Command as StdCommand;
+
+/// The `doido` CLI, run inside `dir`.
+fn doido(dir: &Path) -> Command {
+    let mut cmd = Command::cargo_bin("doido-generators").expect("doido-generators binary");
+    cmd.current_dir(dir);
+    cmd
+}
 
 #[test]
 #[ignore = "slow: builds the whole framework; run via `make example`"]
-fn generated_app_and_migrations_compile() {
-    let dir = tempfile::tempdir().expect("create tempdir");
-    let app = dir.path().join("blog");
+fn every_generator_output_compiles() {
+    let tmp = tempfile::tempdir().expect("create tempdir");
 
-    // `doido new blog --database=sqlite`, written straight to disk.
-    let files = ProjectGenerator
-        .generate(&["blog", "--database=sqlite"])
-        .expect("generate the blog app");
-    for f in &files {
-        let path = dir.path().join(&f.path);
-        std::fs::create_dir_all(path.parent().unwrap()).expect("create dirs");
-        std::fs::write(&path, &f.content).expect("write file");
-    }
+    // `doido new blog --database=sqlite --cable` (cable so channels are wired).
+    doido(tmp.path())
+        .args(["new", "blog", "--database=sqlite", "--cable"])
+        .assert()
+        .success();
+    let app = tmp.path().join("blog");
 
-    // Prove the migration generator's doido-model output compiles: one migration
-    // per Rails pattern (create / add columns / remove columns), each registered
-    // into the Migrator and built as part of the app workspace.
-    let patterns: [&[&str]; 3] = [
-        &["create_widgets", "name:string:unique", "note:text"],
-        &["add_price_to_widgets", "price:integer"],
-        &["remove_price_from_widgets", "price:integer"],
+    // Run one of each generator. Each reads/writes the on-disk app, so module and
+    // route injection accumulates across invocations.
+    let generators: [&[&str]; 8] = [
+        &["generate", "scaffold", "Post", "title:string", "body:text"],
+        &["generate", "model", "Comment", "body:text"],
+        &["generate", "controller", "Pages"],
+        &["generate", "job", "SendEmail"],
+        &["generate", "mailer", "UserMailer"],
+        &["generate", "channel", "ChatRoom"],
+        &[
+            "generate",
+            "migration",
+            "add_views_to_posts",
+            "views:integer",
+        ],
+        &[
+            "generate",
+            "migration",
+            "remove_views_from_posts",
+            "views:integer",
+        ],
     ];
-    let lib_path = app.join("db/migration/src/lib.rs");
-    let mut lib = std::fs::read_to_string(&lib_path).expect("read migration lib.rs");
-    for spec in patterns {
-        for f in &MigrationGenerator
-            .generate(spec)
-            .expect("generate migration")
-        {
-            // Take the migration module file; assemble lib.rs ourselves.
-            let is_migration = f.path.starts_with("db/migration/src/")
-                && f.path.ends_with(".rs")
-                && !f.path.ends_with("lib.rs");
-            if is_migration {
-                let module = Path::new(&f.path).file_stem().unwrap().to_str().unwrap();
-                std::fs::write(app.join(&f.path), &f.content).expect("write migration");
-                lib = register_migration(&lib, module);
-            }
-        }
+    for args in generators {
+        doido(&app).args(args).assert().success();
     }
-    std::fs::write(&lib_path, &lib).expect("write migration lib.rs");
 
-    // Build the app and its migration crate against the in-tree framework.
-    let status = Command::new(env!("CARGO"))
+    // Build the whole app workspace (app + db/migration) against the framework.
+    let status = StdCommand::new(env!("CARGO"))
         .args(["build", "--workspace", "--manifest-path"])
         .arg(app.join("Cargo.toml"))
         .status()
         .expect("run cargo build");
     assert!(
         status.success(),
-        "the generated app or its migrations failed to compile"
+        "a generated app or its migrations failed to compile"
     );
 }

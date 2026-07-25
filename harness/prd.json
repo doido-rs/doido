@@ -464,8 +464,8 @@
       "crate": "doido-generators",
       "id": "US-029",
       "priority": 29,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "e2e_app_build_test now drives the real CLI for every generator (new --cable, scaffold, model, controller, job, mailer, channel, 2x migration) then cargo builds the app. Required wiring so generated code compiles: app gains doido-core/doido-jobs/doido-mailer deps; app/jobs & app/mailers mod files wired into main.rs; job/mailer/channel generators register their module (shared register_module); fixed a latent doido-cable bug (channel module shadowed the #[channel] macro -> also export doido_cable::channel). make example green (~150s), make verify green."
     },
     {
       "title": "Root route",
