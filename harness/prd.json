@@ -848,8 +848,8 @@
       "crate": "doido-mailer",
       "id": "US-053",
       "priority": 53,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added mime::to_mime: multipart/alternative when both text+html bodies present, single-part otherwise; SMTP build_message delegates to it. Template rendering uses doido-view (render into body_html/body_text) per the mailer template_key convention. Covered by tests/mime_test.rs."
     },
     {
       "title": "Attachments / inline attachments",

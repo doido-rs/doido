@@ -22,20 +22,9 @@ impl SmtpDeliverer {
     }
 }
 
-/// Build the RFC 5322 message (headers + body) for `mail`.
+/// Build the RFC 5322 / MIME message for `mail` (delegates to [`crate::mime`]).
 pub fn build_message(mail: &Mail) -> String {
-    let from = mail.from.as_deref().unwrap_or("no-reply@localhost");
-    let (content_type, body) = match (&mail.body_text, &mail.body_html) {
-        (Some(text), _) => ("text/plain", text.clone()),
-        (None, Some(html)) => ("text/html", html.clone()),
-        (None, None) => ("text/plain", String::new()),
-    };
-    format!(
-        "From: {from}\r\nTo: {to}\r\nSubject: {subject}\r\nMIME-Version: 1.0\r\n\
-         Content-Type: {content_type}; charset=utf-8\r\n\r\n{body}",
-        to = mail.to,
-        subject = mail.subject,
-    )
+    crate::mime::to_mime(mail)
 }
 
 #[async_trait::async_trait]
