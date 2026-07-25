@@ -704,8 +704,8 @@
       "crate": "doido-view",
       "id": "US-044",
       "priority": 44,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added helpers::asset: image_tag/image_tag_alt/stylesheet_link_tag/javascript_include_tag serving bare names from /assets/ (rooted/absolute pass through), adding .css/.js extensions. Covered by tests/asset_helpers_test.rs."
     },
     {
       "title": "Tag helpers",

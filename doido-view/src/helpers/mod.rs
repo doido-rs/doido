@@ -1,5 +1,6 @@
 //! Action View-style HTML helpers (forms, links, assets, tags, formatting…).
 
+pub mod asset;
 pub mod form;
 pub mod link;
 
