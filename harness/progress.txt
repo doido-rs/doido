@@ -103,3 +103,4 @@ US-096: asset pipeline — digested asset paths. clippy+test green.
 US-097: testing story — controller testing::send HTTP helper (+ factories/TestDb). clippy+test green.
 US-098: import maps — helpers::asset::importmap. clippy+test green.
 US-099: hotwire — helpers::hotwire turbo/stimulus. clippy+test green.
+US-100: i18n framework — I18n::load_yaml locale loading. clippy+test green.

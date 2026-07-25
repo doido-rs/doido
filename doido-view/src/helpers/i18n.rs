@@ -49,3 +49,39 @@ impl I18n {
         out
     }
 }
+
+impl I18n {
+    /// Load a YAML locale file (`locale:\n  key: value\n  nested:\n    k: v`)
+    /// into the catalog, flattening nested keys with dots (`nested.k`).
+    pub fn load_yaml(&mut self, yaml: &str) -> doido_core::Result<&mut Self> {
+        let value: serde_json::Value = serde_norway::from_str(yaml)
+            .map_err(|e| doido_core::anyhow::anyhow!("locale parse failed: {e}"))?;
+        if let Some(root) = value.as_object() {
+            for subtree in root.values() {
+                flatten("", subtree, &mut self.translations);
+            }
+        }
+        Ok(self)
+    }
+}
+
+fn flatten(prefix: &str, value: &serde_json::Value, out: &mut BTreeMap<String, String>) {
+    match value {
+        serde_json::Value::Object(map) => {
+            for (key, child) in map {
+                let full = if prefix.is_empty() {
+                    key.clone()
+                } else {
+                    format!("{prefix}.{key}")
+                };
+                flatten(&full, child, out);
+            }
+        }
+        serde_json::Value::String(s) => {
+            out.insert(prefix.to_string(), s.clone());
+        }
+        other => {
+            out.insert(prefix.to_string(), other.to_string());
+        }
+    }
+}

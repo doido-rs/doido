@@ -1182,6 +1182,7 @@ dependencies = [
  "doido-cache",
  "doido-core",
  "serde_json",
+ "serde_norway",
  "tempfile",
  "tera",
  "tokio",

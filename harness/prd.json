@@ -1610,8 +1610,8 @@
       "crate": "doido-generators",
       "id": "US-100",
       "priority": 100,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "I18n::load_yaml parses a YAML locale file (via serde_norway) and flattens nested keys with dots (user.greeting), completing the i18n framework (I18n t/t_with US-047 + locale generator US-090). Covered by tests/i18n_load_test.rs."
     },
     {
       "title": "Health-check endpoint",

@@ -174,7 +174,7 @@ Each line reads: `- [ ] `[tag]` **Feature** — note. *(state)*`
 - [x] `[core]` **Built-in testing story** (fixtures, integration/system test helpers) — only `TestDb`. *(partial)*
 - [x] `[nice]` **Import maps / JS bundling** — *(missing)*
 - [x] `[nice]` **Hotwire** (Turbo + Stimulus) analogue — *(missing)*
-- [ ] `[nice]` **i18n framework + locale files** — *(missing)*
+- [x] `[nice]` **i18n framework + locale files** — *(missing)*
 - [ ] `[nice]` **Health-check endpoint** (`/up`) — *(missing)*
 - [ ] `[nice]` **Production Dockerfile + Kamal deploy + Thruster + Devcontainer** — dev `docker-compose.yml` only. *(partial)*
 - [ ] `[nice]` **Solid Queue/Cache/Cable parity** (DB-backed defaults) — db job backend exists; cable/cache db backends missing. *(partial)*
