@@ -61,7 +61,7 @@ Each line reads: `- [ ] `[tag]` **Feature** — note. *(state)*`
 
 ## Middleware & Sessions — `doido-controller`
 
-- [ ] `[core]` **Real cookie session store** (signed/encrypted values) — `CookieSessionStore` is a no-op stub. *(partial)*
+- [x] `[core]` **Real cookie session store** (signed/encrypted values) — `CookieSessionStore` is a no-op stub. *(partial)*
 - [ ] `[core]` **Server-side session backends** (cache/db-backed) — *(missing)*
 - [ ] `[nice]` **Config-driven CORS** (opt-in per spec) — permissive layer exists but isn't wired from config. *(partial)*
 - [ ] `[nice]` **Host authorization** (`config.hosts`) — *(missing)*

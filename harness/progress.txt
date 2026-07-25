@@ -4,3 +4,4 @@
 # The previous finishing run (a different US-001..009) is archived under
 # harness/archive/2026-07-24-finish-doido-progress.txt.
 ---
+US-001: CookieSessionStore signs sessions into an HMAC-SHA256 cookie (encode/decode, tamper+wrong-secret rejection); Session typed get/set. make verify green.

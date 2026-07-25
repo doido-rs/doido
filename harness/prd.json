@@ -16,8 +16,8 @@
       "crate": "doido-controller",
       "id": "US-001",
       "priority": 1,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "CookieSessionStore now signs the whole session into a base64url(payload).base64url(HMAC-SHA256) cookie via new()/encode()/decode(); decode rejects tampering + wrong secret (verify_slice, constant-time). Session gained new()/with_id()/typed set()+get(). hmac/sha2/base64 match versions already vendored via sea-orm. FOLLOW-UP: AES-256-GCM encryption on top of the signature (spec 07) still pending."
     },
     {
       "title": "Server-side session backends",
