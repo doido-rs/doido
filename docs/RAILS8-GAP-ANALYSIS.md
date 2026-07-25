@@ -49,7 +49,7 @@ Each line reads: `- [ ] `[tag]` **Feature** — note. *(state)*`
 - [x] `[core]` **Strong parameters** (`permit`/`require` allowlist) — `ctx.form/params` deserialize directly, no filtering. *(missing)*
 - [x] `[core]` **CSRF protection** (authenticity token) — *(missing)*
 - [x] `[core]` **Flash messages** — *(missing)*
-- [ ] `[core]` **Cookies API** (read/write, signed/encrypted) — *(missing)*
+- [x] `[core]` **Cookies API** (read/write, signed/encrypted) — *(missing)*
 - [ ] `[core]` **`rescue_from`** typed error handling — only panic→500 today. *(missing)*
 - [ ] `[core]` **`skip_before_action`** / filter skipping — *(missing)*
 - [ ] `[core]` **Real `#[before_action]` / `#[after_action]` attrs** — standalone attrs are inert shells (the codegen path in `#[controller]` works). *(partial)*

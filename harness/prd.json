@@ -144,8 +144,8 @@
       "crate": "doido-controller",
       "id": "US-009",
       "priority": 9,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added cookies::CookieJar (from_header parse, get/set plain, get_signed/set_signed HMAC-signed base64url(value).sig, to_set_cookie_headers with Path=/;HttpOnly) + shared signing module (sign/verify). Tamper/plain-as-signed rejected. Covered by tests/cookies_test.rs. FOLLOW-UP: AES-GCM encrypted variant; Context::cookies() wiring with app secret."
     },
     {
       "title": "rescue_from",

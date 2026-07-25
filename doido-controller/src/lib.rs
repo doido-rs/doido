@@ -1,5 +1,6 @@
 pub mod config;
 pub mod context;
+pub mod cookies;
 pub mod csrf;
 pub mod environment;
 pub mod flash;
@@ -8,6 +9,7 @@ pub mod params;
 pub mod response;
 pub mod route_table;
 pub mod server;
+pub mod signing;
 // Tower middleware stacks and sessions (the former `doido-middleware` crate).
 pub mod session;
 pub mod stack;
@@ -17,6 +19,7 @@ pub mod stack;
 pub use axum;
 pub use config::{Config, LoggerConfig, ServerConfig, YamlConfig};
 pub use context::{Context, IntoActionResponse};
+pub use cookies::CookieJar;
 // `before_action`/`after_action` are helper attributes consumed by `#[controller]`,
 // not standalone macros, so only `controller` and `routes` are re-exported.
 pub use doido_controller_macros::{controller, routes};
