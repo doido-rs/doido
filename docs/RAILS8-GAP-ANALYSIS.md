@@ -51,7 +51,7 @@ Each line reads: `- [ ] `[tag]` **Feature** — note. *(state)*`
 - [x] `[core]` **Flash messages** — *(missing)*
 - [x] `[core]` **Cookies API** (read/write, signed/encrypted) — *(missing)*
 - [x] `[core]` **`rescue_from`** typed error handling — only panic→500 today. *(missing)*
-- [ ] `[core]` **`skip_before_action`** / filter skipping — *(missing)*
+- [x] `[core]` **`skip_before_action`** / filter skipping — *(missing)*
 - [ ] `[core]` **Real `#[before_action]` / `#[after_action]` attrs** — standalone attrs are inert shells (the codegen path in `#[controller]` works). *(partial)*
 - [ ] `[nice]` **`around_action`** filters — *(missing)*
 - [ ] `[nice]` **HTTP caching** (`fresh_when` / `stale?` / ETag / Last-Modified) — *(missing)*

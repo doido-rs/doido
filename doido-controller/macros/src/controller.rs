@@ -16,8 +16,43 @@ fn is_action_method(method: &syn::ImplItemFn) -> bool {
     })
 }
 
-/// Parse `#[before_action(fn_name)]` or `#[before_action(fn_name, only = [a, b])]`
-fn parse_filter_attr(attr: &syn::Attribute) -> Option<(proc_macro2::Ident, Option<Vec<String>>)> {
+/// A parsed filter attribute: the filter fn plus optional `only`/`except` scopes.
+struct FilterAttr {
+    filter: proc_macro2::Ident,
+    only: Option<Vec<String>>,
+    except: Option<Vec<String>>,
+}
+
+impl FilterAttr {
+    /// Whether this filter should run for the action named `action`.
+    fn applies_to(&self, action: &str) -> bool {
+        if let Some(list) = &self.only {
+            list.iter().any(|a| a == action)
+        } else if let Some(list) = &self.except {
+            !list.iter().any(|a| a == action)
+        } else {
+            true
+        }
+    }
+}
+
+/// Extract the `[a, b]` action list following `keyword` in the attribute tokens.
+fn parse_action_list(tokens: &str, keyword: &str) -> Option<Vec<String>> {
+    let after = &tokens[tokens.find(keyword)? + keyword.len()..];
+    let start = after.find('[')? + 1;
+    let end = after.find(']')?;
+    Some(
+        after[start..end]
+            .split(',')
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty())
+            .collect(),
+    )
+}
+
+/// Parse `#[before_action(fn)]` / `#[after_action(fn)]` with an optional
+/// `only = [a, b]` or `except = [a, b]` scope.
+fn parse_filter_attr(attr: &syn::Attribute) -> Option<FilterAttr> {
     let path_ident = attr.meta.path().get_ident()?.to_string();
     if path_ident != "before_action" && path_ident != "after_action" {
         return None;
@@ -28,23 +63,43 @@ fn parse_filter_attr(attr: &syn::Attribute) -> Option<(proc_macro2::Ident, Optio
 
     let tokens_str = list.tokens.to_string();
     let filter_name = tokens_str.split(',').next()?.trim().to_string();
-    let filter_ident: proc_macro2::Ident = syn::parse_str(&filter_name).ok()?;
+    let filter: proc_macro2::Ident = syn::parse_str(&filter_name).ok()?;
 
     let only = if tokens_str.contains("only") {
-        let start = tokens_str.find('[')? + 1;
-        let end = tokens_str.find(']')?;
-        let inner = &tokens_str[start..end];
-        let actions: Vec<String> = inner
-            .split(',')
-            .map(|s| s.trim().to_string())
-            .filter(|s| !s.is_empty())
-            .collect();
-        Some(actions)
+        parse_action_list(&tokens_str, "only")
+    } else {
+        None
+    };
+    let except = if tokens_str.contains("except") {
+        parse_action_list(&tokens_str, "except")
     } else {
         None
     };
 
-    Some((filter_ident, only))
+    Some(FilterAttr {
+        filter,
+        only,
+        except,
+    })
+}
+
+/// Collect the filter names named by `#[skip_before_action(fn, ...)]` attributes.
+fn parse_skip_filters(method: &syn::ImplItemFn) -> Vec<String> {
+    method
+        .attrs
+        .iter()
+        .filter_map(|attr| {
+            let attr_name = attr.meta.path().get_ident()?.to_string();
+            if attr_name != "skip_before_action" {
+                return None;
+            }
+            let Meta::List(list) = &attr.meta else {
+                return None;
+            };
+            let name = list.tokens.to_string();
+            Some(name.split(',').next()?.trim().to_string())
+        })
+        .collect()
 }
 
 pub fn expand_controller(_attr: TokenStream, item: TokenStream) -> Result<TokenStream> {
@@ -82,6 +137,7 @@ pub fn expand_controller(_attr: TokenStream, item: TokenStream) -> Result<TokenS
 
         let mut before_chain: Vec<TokenStream> = Vec::new();
         let mut after_chain: Vec<TokenStream> = Vec::new();
+        let skipped = parse_skip_filters(method);
 
         for attr in &method.attrs {
             let path_name = attr
@@ -92,12 +148,10 @@ pub fn expand_controller(_attr: TokenStream, item: TokenStream) -> Result<TokenS
                 .unwrap_or_default();
 
             if path_name == "before_action" {
-                if let Some((filter_fn, only)) = parse_filter_attr(attr) {
-                    let should_apply = match &only {
-                        None => true,
-                        Some(list) => list.iter().any(|a| a == &fn_name_str),
-                    };
-                    if should_apply {
+                if let Some(filter) = parse_filter_attr(attr) {
+                    let filter_fn = &filter.filter;
+                    let is_skipped = skipped.iter().any(|s| filter_fn == s);
+                    if filter.applies_to(&fn_name_str) && !is_skipped {
                         before_chain.push(quote! {
                             if let Err(__early_response) = #filter_fn(&mut ctx).await {
                                 return __early_response;
@@ -106,10 +160,14 @@ pub fn expand_controller(_attr: TokenStream, item: TokenStream) -> Result<TokenS
                     }
                 }
             } else if path_name == "after_action" {
-                if let Some((filter_fn, _)) = parse_filter_attr(attr) {
-                    after_chain.push(quote! {
-                        #filter_fn(&mut ctx).await;
-                    });
+                if let Some(filter) = parse_filter_attr(attr) {
+                    let filter_fn = &filter.filter;
+                    let is_skipped = skipped.iter().any(|s| filter_fn == s);
+                    if filter.applies_to(&fn_name_str) && !is_skipped {
+                        after_chain.push(quote! {
+                            #filter_fn(&mut ctx).await;
+                        });
+                    }
                 }
             }
         }

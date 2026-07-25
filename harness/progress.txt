@@ -14,3 +14,4 @@ US-007: CSRF protection — csrf module + MiddlewareStack::with_csrf() double-su
 US-008: flash messages — flash::Flash carried in a signed cookie (set now / read next / then gone). make verify green.
 US-009: cookies API — cookies::CookieJar (plain + HMAC-signed) + shared signing module. make verify green.
 US-010: rescue_from — rescue::RescueHandlers maps typed errors to responses via downcast (else default 500). make verify green.
+US-011: filter skipping — #[controller] before/after_action gain except=[...] + #[skip_before_action(fn)]. make verify green.

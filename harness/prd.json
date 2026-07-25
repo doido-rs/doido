@@ -176,8 +176,8 @@
       "crate": "doido-controller",
       "id": "US-011",
       "priority": 11,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "#[controller] filter attrs now support except = [actions] (inverse of only) and a #[skip_before_action(fn)] attribute that cancels a named before/after filter for that action. FilterAttr::applies_to centralizes only/except; after_action now respects scopes too. Covered by tests/controller_skip_test.rs (+ existing filter tests still green)."
     },
     {
       "title": "around_action",
