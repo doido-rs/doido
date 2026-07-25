@@ -1344,8 +1344,8 @@
       "crate": "doido-controller",
       "id": "US-084",
       "priority": 84,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added initializers::Initializers: register(name, fn)/names()/run_all() running boot-time init functions in order, stopping at the first error (Rails config/initializers). Covered by tests/initializers_test.rs."
     },
     {
       "title": "Resolve YAML-vs-TOML drift",

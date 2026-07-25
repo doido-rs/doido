@@ -87,3 +87,4 @@ US-080: db:reset/setup/prepare — tasks module orchestration. clippy+test green
 US-081: db:rollback/redo — migrate::rollback/redo over MigratorTrait. clippy+test green.
 US-082: pool knobs — DatabaseConfig pool/connect_timeout + pool_options. clippy+test green (Migrations/DB phase complete).
 US-083: env overrides — env_override::apply_env_overrides (SECTION__KEY). clippy+test green.
+US-084: initializers — Initializers boot registry. clippy+test green.

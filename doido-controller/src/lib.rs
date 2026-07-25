@@ -6,6 +6,7 @@ pub mod csrf;
 pub mod env_override;
 pub mod environment;
 pub mod flash;
+pub mod initializers;
 pub mod logging;
 pub mod params;
 pub mod rate_limit;
