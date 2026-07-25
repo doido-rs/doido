@@ -17,6 +17,7 @@ pub mod migration;
 pub mod normalization;
 pub mod password;
 pub mod pool;
+pub mod schema;
 pub mod scope;
 pub mod seeds;
 pub mod serialization;

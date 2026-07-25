@@ -1264,8 +1264,8 @@
       "crate": "doido-model",
       "id": "US-079",
       "priority": 79,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added schema::dump(conn) (SQLite CREATE TABLE statements from sqlite_master) and schema::load(conn, schema) replaying them; dump->load recreates the schema. Covered by tests/schema_test.rs."
     },
     {
       "title": "db:reset / db:prepare / db:setup",

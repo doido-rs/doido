@@ -99,7 +99,7 @@ Each line reads: `- [ ] `[tag]` **Feature** — note. *(state)*`
 ## Migrations & DB tooling — `doido-model` + `doido db`
 
 - [x] `[core]` **`db:seed`** (`db/seeds` + runner) — *(missing)*
-- [ ] `[nice]` **`db:schema` dump/load** (schema.rb / structure.sql) — *(missing)*
+- [x] `[nice]` **`db:schema` dump/load** (schema.rb / structure.sql) — *(missing)*
 - [ ] `[nice]` **`db:reset` / `db:prepare` / `db:setup`** — *(missing)*
 - [ ] `[nice]` **`db:rollback STEP=n` / redo wrappers** — sea-orm supports it, CLI wrapper is thin. *(partial)*
 - [ ] `[nice]` **Connection pool size/timeout config knobs** — *(missing)*
