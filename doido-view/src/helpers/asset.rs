@@ -63,3 +63,16 @@ pub fn digested_path(name: &str, content: &[u8]) -> String {
         None => format!("/assets/{name}-{d}"),
     }
 }
+
+/// An `<script type="importmap">` tag pinning module names to URLs
+/// (importmap-rails). `importmap(&[("app", "/assets/app.js")])`.
+pub fn importmap(pins: &[(&str, &str)]) -> String {
+    let imports: Vec<String> = pins
+        .iter()
+        .map(|(name, url)| format!("\"{}\":\"{}\"", escape(name), escape(url)))
+        .collect();
+    format!(
+        "<script type=\"importmap\">{{\"imports\":{{{}}}}}</script>",
+        imports.join(",")
+    )
+}

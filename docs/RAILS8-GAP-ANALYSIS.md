@@ -172,7 +172,7 @@ Each line reads: `- [ ] `[tag]` **Feature** — note. *(state)*`
 
 - [x] `[core]` **Asset pipeline** (Propshaft analogue) — *(missing)*
 - [x] `[core]` **Built-in testing story** (fixtures, integration/system test helpers) — only `TestDb`. *(partial)*
-- [ ] `[nice]` **Import maps / JS bundling** — *(missing)*
+- [x] `[nice]` **Import maps / JS bundling** — *(missing)*
 - [ ] `[nice]` **Hotwire** (Turbo + Stimulus) analogue — *(missing)*
 - [ ] `[nice]` **i18n framework + locale files** — *(missing)*
 - [ ] `[nice]` **Health-check endpoint** (`/up`) — *(missing)*

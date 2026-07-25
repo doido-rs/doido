@@ -1576,8 +1576,8 @@
       "crate": "doido-generators",
       "id": "US-098",
       "priority": 98,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added helpers::asset::importmap(pins) producing an <script type=importmap> tag mapping module names to URLs (importmap-rails). Covered by tests/importmap_test.rs."
     },
     {
       "title": "Hotwire",
