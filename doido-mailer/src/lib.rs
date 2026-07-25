@@ -3,6 +3,7 @@ pub mod layout;
 pub mod mail;
 pub mod mailer;
 pub mod mime;
+pub mod sendmail;
 pub mod smtp;
 
 pub use deliverer::{Deliverer, LogDeliverer, TestDeliverer};

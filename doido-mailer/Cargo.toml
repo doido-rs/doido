@@ -14,7 +14,7 @@ serde_json.workspace = true
 base64 = "0.22"
 async-trait.workspace = true
 tracing.workspace = true
-tokio = { workspace = true, features = ["sync", "net", "io-util"] }
+tokio = { workspace = true, features = ["sync", "net", "io-util", "process"] }
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["full"] }

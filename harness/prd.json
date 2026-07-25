@@ -896,8 +896,8 @@
       "crate": "doido-mailer",
       "id": "US-056",
       "priority": 56,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added sendmail::SendmailDeliverer: pipes the MIME message to a sendmail-compatible binary (-t) via stdin; missing binary / nonzero exit errors. Covered by tests/sendmail_test.rs (cat as a stand-in)."
     },
     {
       "title": "Mailer previews",
