@@ -224,8 +224,8 @@
       "crate": "doido-controller",
       "id": "US-014",
       "priority": 14,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Context::fresh_when(etag, last_modified) returns 304 (echoing validators) when If-None-Match matches the etag (or *) or If-Modified-Since equals last_modified, else None; Context::etag_matches() exposed. Covered by tests/http_caching_test.rs. FOLLOW-UP: timestamp comparison for If-Modified-Since (currently exact string match)."
     },
     {
       "title": "force_ssl",

@@ -203,6 +203,51 @@ impl Context {
     pub fn respond_to(&self) -> crate::respond::RespondTo {
         crate::respond::RespondTo::new(self.negotiated_format())
     }
+
+    /// Whether the request's `If-None-Match` matches `etag` (or is `*`).
+    pub fn etag_matches(&self, etag: &str) -> bool {
+        match self
+            .parts
+            .headers
+            .get(header::IF_NONE_MATCH)
+            .and_then(|v| v.to_str().ok())
+        {
+            Some("*") => true,
+            Some(inm) => inm.split(',').map(str::trim).any(|t| t == etag),
+            None => false,
+        }
+    }
+
+    fn if_modified_since_matches(&self, last_modified: &str) -> bool {
+        self.parts
+            .headers
+            .get(header::IF_MODIFIED_SINCE)
+            .and_then(|v| v.to_str().ok())
+            .map(|v| v == last_modified)
+            .unwrap_or(false)
+    }
+
+    /// HTTP conditional-GET check (Rails `fresh_when`): if the request's
+    /// validators match `etag` (`If-None-Match`) or `last_modified`
+    /// (`If-Modified-Since`), return a `304 Not Modified` echoing the validators;
+    /// otherwise return `None` and render normally (setting the same validators).
+    pub fn fresh_when(&self, etag: Option<&str>, last_modified: Option<&str>) -> Option<Response> {
+        let fresh = etag.map(|e| self.etag_matches(e)).unwrap_or(false)
+            || last_modified
+                .map(|lm| self.if_modified_since_matches(lm))
+                .unwrap_or(false);
+        if !fresh {
+            return None;
+        }
+        let mut builder = Response::builder().status(StatusCode::NOT_MODIFIED);
+        if let Some(e) = etag {
+            builder = builder.header(header::ETAG, e);
+        }
+        if let Some(lm) = last_modified {
+            builder = builder.header(header::LAST_MODIFIED, lm);
+        }
+        Some(builder.body(Body::empty()).expect("valid 304 response"))
+    }
 }
 
 /// Lets a `#[controller]` action body evaluate to either a [`Response`] or a
