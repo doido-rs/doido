@@ -752,8 +752,8 @@
       "crate": "doido-view",
       "id": "US-047",
       "priority": 47,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added helpers::i18n::I18n: add(key,value), t(key) (missing marker if absent), t_with(key, vars) interpolating %{var}. Covered by tests/i18n_helper_test.rs. NOTE: l (localize date/time) is a follow-up."
     },
     {
       "title": "HTML sanitization helpers",

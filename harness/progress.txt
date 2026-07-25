@@ -50,3 +50,4 @@ US-043: link helpers — helpers::link (link_to/link_to_class/button_to). clippy
 US-044: asset helpers — image_tag/stylesheet_link_tag/javascript_include_tag. clippy+test green.
 US-045: tag helpers — helpers::tag (tag/content_tag). clippy+test green.
 US-046: number formatting — helpers::number (delimiter/currency/percentage). clippy+test green.
+US-047: i18n helpers — helpers::i18n::I18n (t/t_with). clippy+test green.
