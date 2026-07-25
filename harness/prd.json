@@ -656,8 +656,8 @@
       "crate": "doido-view",
       "id": "US-041",
       "priority": 41,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added content_for::ContentFor: set(key, html) appends a named block, get(key) yields it (empty if unset), has(key) = content_for?. Layout reads captured blocks. Covered by tests/content_for_test.rs."
     },
     {
       "title": "Form builders",
