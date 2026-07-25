@@ -1644,8 +1644,8 @@
       "crate": "doido-generators",
       "id": "US-102",
       "priority": 102,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Generated apps now ship a production Dockerfile (release build + Thruster note), config/deploy.yml (Kamal), and .devcontainer/devcontainer.json. Covered by tests/deploy_files_test.rs; validated at build by make example (US-104)."
     },
     {
       "title": "Solid Queue/Cache/Cable parity",
