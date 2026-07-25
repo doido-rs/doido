@@ -1280,8 +1280,8 @@
       "crate": "doido-model",
       "id": "US-080",
       "priority": 80,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added tasks module: drop_all_tables + reset (drop then load schema), setup (load schema then seed), prepare (load only if empty, idempotent). Covered by tests/tasks_test.rs."
     },
     {
       "title": "db:rollback STEP=n / redo wrappers",

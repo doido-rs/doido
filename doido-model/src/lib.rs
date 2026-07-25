@@ -21,6 +21,7 @@ pub mod schema;
 pub mod scope;
 pub mod seeds;
 pub mod serialization;
+pub mod tasks;
 pub mod testing;
 pub mod transaction;
 pub mod validation;

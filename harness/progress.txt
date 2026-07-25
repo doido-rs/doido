@@ -83,3 +83,4 @@ US-076: named stores config — MultiCacheConfig::build_registry. clippy+test gr
 US-077: cache compression — codec::encode/decode JSON+gzip. clippy+test green (Cache phase complete).
 US-078: db:seed — seeds::run_seeds runner. clippy+test green.
 US-079: db:schema — schema::dump/load. clippy+test green.
+US-080: db:reset/setup/prepare — tasks module orchestration. clippy+test green.

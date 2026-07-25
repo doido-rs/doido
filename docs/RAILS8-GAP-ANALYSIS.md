@@ -100,7 +100,7 @@ Each line reads: `- [ ] `[tag]` **Feature** — note. *(state)*`
 
 - [x] `[core]` **`db:seed`** (`db/seeds` + runner) — *(missing)*
 - [x] `[nice]` **`db:schema` dump/load** (schema.rb / structure.sql) — *(missing)*
-- [ ] `[nice]` **`db:reset` / `db:prepare` / `db:setup`** — *(missing)*
+- [x] `[nice]` **`db:reset` / `db:prepare` / `db:setup`** — *(missing)*
 - [ ] `[nice]` **`db:rollback STEP=n` / redo wrappers** — sea-orm supports it, CLI wrapper is thin. *(partial)*
 - [ ] `[nice]` **Connection pool size/timeout config knobs** — *(missing)*
 
