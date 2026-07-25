@@ -135,7 +135,7 @@ Each line reads: `- [ ] `[tag]` **Feature** — note. *(state)*`
 
 ## Cable / Action Cable — `doido-cable`
 
-- [ ] `[core]` **`#[channel]` macro codegen** — pass-through stub. *(partial)*
+- [x] `[core]` **`#[channel]` macro codegen** — pass-through stub. *(partial)*
 - [ ] `[core]` **Full ActionCable wire-protocol compliance** — client frames use `type` not `command`. *(partial)*
 - [ ] `[core]` **Redis PubSub backend** (multi-process broadcast) — only MemoryPubSub. *(missing)*
 - [ ] `[core]` **Connection identification / auth** (`identified_by`, current_user) — minimal. *(partial)*

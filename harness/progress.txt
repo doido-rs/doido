@@ -62,3 +62,4 @@ US-055: mailer layouts — layout::apply_layout (yield). clippy+test green.
 US-056: sendmail deliverer — SendmailDeliverer pipes MIME to sendmail -t. clippy+test green.
 US-057: mailer previews — MailerPreviews registry (register/names/render). clippy+test green.
 US-058: interceptors/observers — InterceptingDeliverer wrapper. clippy+test green (Mailer phase complete).
+US-059: channel macro codegen — inherent channel_name/stream_name. clippy+test green.

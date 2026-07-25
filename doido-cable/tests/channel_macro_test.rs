@@ -3,7 +3,7 @@
 //! `identifier` messages, per docs/12-cable.md), while leaving the user's own
 //! `Channel` impl untouched.
 
-use doido_cable::{Cable, Channel, ChannelContext, ChannelName, MemoryPubSub, PubSub};
+use doido_cable::{Cable, Channel, ChannelContext, MemoryPubSub, PubSub};
 use doido_cable_macros::channel;
 use std::sync::Arc;
 

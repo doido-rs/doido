@@ -944,8 +944,8 @@
       "crate": "doido-cable",
       "id": "US-059",
       "priority": 59,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "#[channel] now also emits inherent channel_name()/stream_name() on the struct (alongside the ChannelName trait impl), so channels are self-describing without importing the trait. Covered by tests/channel_codegen_test.rs."
     },
     {
       "title": "Full ActionCable wire-protocol compliance",
