@@ -6,6 +6,7 @@ pub mod memory;
 pub mod namespaced;
 pub mod registry;
 pub mod store;
+pub mod versioning;
 
 #[cfg(feature = "cache-memcache")]
 pub mod memcache_store;

@@ -1184,8 +1184,8 @@
       "crate": "doido-cache",
       "id": "US-074",
       "priority": 74,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added versioning: versioned_key(key, version) + write_versioned/read_versioned where a stored version mismatch is a miss (recyclable cache keys). Covered by tests/versioning_test.rs."
     },
     {
       "title": "read_multi / write_multi / fetch_multi",
