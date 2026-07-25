@@ -30,10 +30,13 @@ pub fn uuid_like(s: &str) -> bool {
             .all(|(p, n)| p.len() == n && p.bytes().all(|b| b.is_ascii_hexdigit()))
 }
 
+/// A path-param validator: returns whether the value satisfies the constraint.
+pub type Validator = fn(&str) -> bool;
+
 /// A set of `param name → validator` rules.
 #[derive(Default)]
 pub struct Constraints {
-    rules: Vec<(String, fn(&str) -> bool)>,
+    rules: Vec<(String, Validator)>,
 }
 
 impl Constraints {
@@ -42,7 +45,7 @@ impl Constraints {
     }
 
     /// Require `name` to satisfy `validator`.
-    pub fn param(mut self, name: &str, validator: fn(&str) -> bool) -> Self {
+    pub fn param(mut self, name: &str, validator: Validator) -> Self {
         self.rules.push((name.to_string(), validator));
         self
     }
