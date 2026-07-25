@@ -1088,8 +1088,8 @@
       "crate": "doido-jobs",
       "id": "US-068",
       "priority": 68,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added callbacks::JobCallbacks (before/after_perform, on_failure) + run_perform runner firing hooks around the work (after on success, on_failure on error). Covered by tests/job_callbacks_test.rs."
     },
     {
       "title": ".set(wait:/wait_until:/queue:/priority:) fluent parity",

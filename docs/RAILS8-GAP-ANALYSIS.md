@@ -107,7 +107,7 @@ Each line reads: `- [ ] `[tag]` **Feature** — note. *(state)*`
 ## Jobs / Active Job — `doido-jobs`
 
 - [x] `[core]` **Conditional retry/discard by error type** (`retry_on` / `discard_on`) — blanket retry + dead-letter only. *(partial)*
-- [ ] `[nice]` **Job lifecycle callbacks** (before/after/around perform, on-failure) — *(missing)*
+- [x] `[nice]` **Job lifecycle callbacks** (before/after/around perform, on-failure) — *(missing)*
 - [ ] `[nice]` **`.set(wait:/wait_until:/queue:/priority:)` fluent parity** — `enqueue_at` exists. *(partial)*
 - [ ] `[nice]` **Job batches / workflows** — *(missing)*
 - [ ] `[nice]` **Job status introspection** (`doido jobs` dispatch) — listing only, dispatch is TODO. *(partial)*

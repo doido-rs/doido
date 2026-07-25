@@ -1,3 +1,4 @@
+pub mod callbacks;
 pub mod config;
 pub mod context;
 #[cfg(feature = "jobs-db")]
