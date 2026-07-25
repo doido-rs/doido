@@ -25,3 +25,4 @@ US-018: validations — validation::{Errors, Validate} with presence/length vali
 US-019: model callbacks — callbacks::Callbacks trait + run_create/update/destroy runners (Rails ordering, abort on before-hook error). make verify green.
 US-020: association ergonomics — association::Association conventions (fk/table) + HABTM join_table via Inflector. make verify green.
 US-021: named scopes — scope::Scoped extension (.scope/.scope_if) for chainable sea-orm query fragments. make verify green.
+US-022: secure password/tokens — password module (bcrypt hash/verify, HasSecurePassword::authenticate, generate_token). make verify green.

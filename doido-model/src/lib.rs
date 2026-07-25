@@ -11,6 +11,7 @@ pub mod config;
 pub mod create;
 pub mod environment;
 pub mod migration;
+pub mod password;
 pub mod pool;
 pub mod scope;
 pub mod testing;

@@ -86,7 +86,7 @@ Each line reads: `- [ ] `[tag]` **Feature** — note. *(state)*`
 - [x] `[core]` **Callbacks** (before/after save/create/update/destroy/validation) — *(missing)*
 - [x] `[core]` **Declarative associations ergonomics** (has_many/belongs_to/through) — raw sea-orm relations only. *(partial)*
 - [x] `[core]` **Named scopes** — *(missing)*
-- [ ] `[core]` **Secure password / tokens** (`has_secure_password`, `generates_token_for`) — *(missing)*
+- [x] `[core]` **Secure password / tokens** (`has_secure_password`, `generates_token_for`) — *(missing)*
 - [ ] `[core]` **Fixtures / factories for tests** — only in-memory `TestDb`. *(partial)*
 - [ ] `[nice]` **Attribute enums with helpers** — *(missing)*
 - [ ] `[nice]` **`normalizes`** (attribute normalization) — *(missing)*

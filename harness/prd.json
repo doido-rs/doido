@@ -352,8 +352,8 @@
       "crate": "doido-model",
       "id": "US-022",
       "priority": 22,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added password module: bcrypt hash_password/hash_password_with_cost + verify_password, HasSecurePassword trait (authenticate) for has_secure_password, and generate_token() (256-bit) for has_secure_token. New deps bcrypt+uuid. Covered by tests/password_test.rs. FOLLOW-UP: signed purpose+expiry tokens (generates_token_for)."
     },
     {
       "title": "Attribute enums with helpers",
