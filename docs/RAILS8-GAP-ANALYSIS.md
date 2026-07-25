@@ -115,7 +115,7 @@ Each line reads: `- [ ] `[tag]` **Feature** — note. *(state)*`
 
 ## Cache / Active Support Cache — `doido-cache`
 
-- [ ] `[core]` **Read-through `fetch(key){ compute }` on miss** — no `fetch` fn in `doido-cache/src`. *(missing)*
+- [x] `[core]` **Read-through `fetch(key){ compute }` on miss** — no `fetch` fn in `doido-cache/src`. *(missing)*
 - [ ] `[nice]` **Cache versioning** / recyclable versioned keys — *(missing)*
 - [ ] `[nice]` **`read_multi` / `write_multi` / `fetch_multi`** — *(missing)*
 - [ ] `[nice]` **Named/multi stores as first-class config** — registry exists but isn't config-wired. *(partial)*

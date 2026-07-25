@@ -1,5 +1,6 @@
 pub mod config;
 pub mod environment;
+pub mod fetch;
 pub mod global;
 pub mod memory;
 pub mod namespaced;

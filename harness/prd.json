@@ -1168,8 +1168,8 @@
       "crate": "doido-cache",
       "id": "US-073",
       "priority": 73,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added fetch::fetch(store, key, ttl, render): returns the cached value or computes it (render runs only on a miss), stores it, and returns it. Covered by tests/fetch_test.rs."
     },
     {
       "title": "Cache versioning",
