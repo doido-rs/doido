@@ -12,6 +12,7 @@ pub mod create;
 pub mod environment;
 pub mod migration;
 pub mod pool;
+pub mod scope;
 pub mod testing;
 pub mod validation;
 

@@ -336,8 +336,8 @@
       "crate": "doido-model",
       "id": "US-021",
       "priority": 21,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added scope::Scoped extension trait for sea-orm Select<E>: .scope(fn) applies a query transformation and .scope_if(cond, fn) applies conditionally, so named scopes chain (Entity::find().scope(published)...). Verified by building SQL. Covered by tests/scope_test.rs."
     },
     {
       "title": "Fixtures / factories for tests",
