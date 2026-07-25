@@ -1,3 +1,4 @@
+pub mod batch;
 pub mod callbacks;
 pub mod config;
 pub mod context;

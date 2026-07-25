@@ -1120,8 +1120,8 @@
       "crate": "doido-jobs",
       "id": "US-070",
       "priority": 70,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added batch::Batch: add(job_id)/complete(job_id)/is_complete()/progress() to track a job set and know when all finished (Sidekiq-style batches). Covered by tests/batch_test.rs."
     },
     {
       "title": "Job status introspection",
