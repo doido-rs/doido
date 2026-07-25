@@ -1040,8 +1040,8 @@
       "crate": "doido-cable",
       "id": "US-065",
       "priority": 65,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Cable::broadcast(stream, identifier, message) publishes a structured ActionCable ServerMessage to a stream from anywhere; Cable::pubsub() exposes the backend to subscribe. Covered by tests/broadcast_test.rs."
     },
     {
       "title": "DB PubSub backend",

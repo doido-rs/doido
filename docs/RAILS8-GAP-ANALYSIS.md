@@ -141,7 +141,7 @@ Each line reads: `- [ ] `[tag]` **Feature** — note. *(state)*`
 - [x] `[core]` **Connection identification / auth** (`identified_by`, current_user) — minimal. *(partial)*
 - [x] `[nice]` **`stream_from` / `stream_for` naming helpers** — *(partial)*
 - [x] `[nice]` **Periodic timers / heartbeat pings** — *(missing)*
-- [ ] `[nice]` **Server-side `broadcast_to` from anywhere** — *(partial)*
+- [x] `[nice]` **Server-side `broadcast_to` from anywhere** — *(partial)*
 - [ ] `[nice]` **DB PubSub backend** — *(missing)*
 
 ## Core / Active Support — `doido-core`
