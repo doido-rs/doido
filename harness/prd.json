@@ -209,7 +209,7 @@
       "id": "US-013",
       "priority": 13,
       "passes": true,
-      "notes": "Added respond::Format + Context::negotiated_format() (.json/.html path ext wins, else Accept header) and Context::respond_to() -> RespondTo builder with .html()/.json() branches; unmatched requested format -> 406. Covered by tests/respond_to_test.rs."
+      "notes": "Context::fresh_when(etag, last_modified) returns 304 (echoing validators) when If-None-Match matches the etag (or *) or If-Modified-Since equals last_modified, else None; Context::etag_matches() exposed. Covered by tests/http_caching_test.rs. FOLLOW-UP: timestamp comparison for If-Modified-Since (currently exact string match)."
     },
     {
       "title": "Rate limiting",
@@ -225,7 +225,7 @@
       "id": "US-014",
       "priority": 14,
       "passes": true,
-      "notes": "Context::fresh_when(etag, last_modified) returns 304 (echoing validators) when If-None-Match matches the etag (or *) or If-Modified-Since equals last_modified, else None; Context::etag_matches() exposed. Covered by tests/http_caching_test.rs. FOLLOW-UP: timestamp comparison for If-Modified-Since (currently exact string match)."
+      "notes": "rate_limit::RateLimiter (cache-backed fixed window): check(key) counts hits per key within window_secs, storing (count, window_start) so the window resets by time regardless of cache TTL; over-limit returns false; per-key isolation. Covered by tests/rate_limit_test.rs. FOLLOW-UP: Tower middleware + 429 wiring."
     },
     {
       "title": "force_ssl",
@@ -241,7 +241,7 @@
       "id": "US-015",
       "priority": 15,
       "passes": true,
-      "notes": "rate_limit::RateLimiter (cache-backed fixed window): check(key) counts hits per key within window_secs, storing (count, window_start) so the window resets by time regardless of cache TTL; over-limit returns false; per-key isolation. Covered by tests/rate_limit_test.rs. FOLLOW-UP: Tower middleware + 429 wiring."
+      "notes": "MiddlewareStack::with_force_ssl() adds a guard that 301-redirects insecure requests to their https:// URL (secure = X-Forwarded-Proto https or https scheme). Covered by tests/force_ssl_test.rs."
     },
     {
       "title": "Response streaming",
@@ -257,7 +257,7 @@
       "id": "US-016",
       "priority": 16,
       "passes": true,
-      "notes": "MiddlewareStack::with_force_ssl() adds a guard that 301-redirects insecure requests to their https:// URL (secure = X-Forwarded-Proto https or https scheme). Covered by tests/force_ssl_test.rs."
+      "notes": "Context::send_data(bytes, content_type, filename) -> Response (Content-Disposition attachment) and async send_file(path, content_type) reading the file (errors on missing path). Covered by tests/send_data_test.rs. FOLLOW-UP: true chunked streaming body for large files."
     },
     {
       "title": "Validations",
@@ -273,7 +273,7 @@
       "id": "US-017",
       "priority": 17,
       "passes": true,
-      "notes": "Context::send_data(bytes, content_type, filename) -> Response (Content-Disposition attachment) and async send_file(path, content_type) reading the file (errors on missing path). Covered by tests/send_data_test.rs. FOLLOW-UP: true chunked streaming body for large files."
+      "notes": "Added validation module: Errors collector (add/on/len/is_empty/full_messages) + presence/length validators + Validate trait (validate()/is_valid()). Models opt in by impl Validate. Covered by tests/validation_test.rs. FOLLOW-UP: uniqueness (needs db), format/numericality, and a derive macro."
     },
     {
       "title": "Callbacks",
@@ -289,7 +289,7 @@
       "id": "US-018",
       "priority": 18,
       "passes": true,
-      "notes": "Added validation module: Errors collector (add/on/len/is_empty/full_messages) + presence/length validators + Validate trait (validate()/is_valid()). Models opt in by impl Validate. Covered by tests/validation_test.rs. FOLLOW-UP: uniqueness (needs db), format/numericality, and a derive macro."
+      "notes": "Added callbacks module: Callbacks trait (before/after validation/save/create/update/destroy, all default no-op) + run_create/run_update/run_destroy async runners that fire hooks in Rails order around a persist closure; a failing before-hook aborts persist. Covered by tests/callbacks_test.rs."
     },
     {
       "title": "Declarative associations ergonomics",
@@ -305,7 +305,7 @@
       "id": "US-019",
       "priority": 19,
       "passes": true,
-      "notes": "Added callbacks module: Callbacks trait (before/after validation/save/create/update/destroy, all default no-op) + run_create/run_update/run_destroy async runners that fire hooks in Rails order around a persist closure; a failing before-hook aborts persist. Covered by tests/callbacks_test.rs."
+      "notes": "Added association module: Association::{belongs_to,has_one,has_many,has_and_belongs_to_many} resolving Rails foreign-key/table conventions via Inflector, + join_table() for HABTM (sorted plural). Complements sea-orm's type-level relations. Covered by tests/association_test.rs."
     },
     {
       "title": "Named scopes",
@@ -321,7 +321,7 @@
       "id": "US-020",
       "priority": 20,
       "passes": true,
-      "notes": "Added association module: Association::{belongs_to,has_one,has_many,has_and_belongs_to_many} resolving Rails foreign-key/table conventions via Inflector, + join_table() for HABTM (sorted plural). Complements sea-orm's type-level relations. Covered by tests/association_test.rs."
+      "notes": "Added scope::Scoped extension trait for sea-orm Select<E>: .scope(fn) applies a query transformation and .scope_if(cond, fn) applies conditionally, so named scopes chain (Entity::find().scope(published)...). Verified by building SQL. Covered by tests/scope_test.rs."
     },
     {
       "title": "Secure password / tokens",
@@ -337,7 +337,7 @@
       "id": "US-021",
       "priority": 21,
       "passes": true,
-      "notes": "Added scope::Scoped extension trait for sea-orm Select<E>: .scope(fn) applies a query transformation and .scope_if(cond, fn) applies conditionally, so named scopes chain (Entity::find().scope(published)...). Verified by building SQL. Covered by tests/scope_test.rs."
+      "notes": "Added password module: bcrypt hash_password/hash_password_with_cost + verify_password, HasSecurePassword trait (authenticate) for has_secure_password, and generate_token() (256-bit) for has_secure_token. New deps bcrypt+uuid. Covered by tests/password_test.rs. FOLLOW-UP: signed purpose+expiry tokens (generates_token_for)."
     },
     {
       "title": "Fixtures / factories for tests",
@@ -353,7 +353,7 @@
       "id": "US-022",
       "priority": 22,
       "passes": true,
-      "notes": "Added password module: bcrypt hash_password/hash_password_with_cost + verify_password, HasSecurePassword trait (authenticate) for has_secure_password, and generate_token() (256-bit) for has_secure_token. New deps bcrypt+uuid. Covered by tests/password_test.rs. FOLLOW-UP: signed purpose+expiry tokens (generates_token_for)."
+      "notes": "Added factory module: Factory trait (build()/build_list(n)) + global monotonic sequence() for unique test values (FactoryBot-style), pairs with TestDb. Covered by tests/factory_test.rs."
     },
     {
       "title": "Attribute enums with helpers",
@@ -368,8 +368,8 @@
       "crate": "doido-model",
       "id": "US-023",
       "priority": 23,
-      "passes": true,
-      "notes": "Added factory module: Factory trait (build()/build_list(n)) + global monotonic sequence() for unique test values (FactoryBot-style), pairs with TestDb. Covered by tests/factory_test.rs."
+      "passes": false,
+      "notes": ""
     },
     {
       "title": "normalizes",
@@ -496,8 +496,8 @@
       "crate": "doido-controller",
       "id": "US-031",
       "priority": 31,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added respond::Format + Context::negotiated_format() (.json/.html path ext wins, else Accept header) and Context::respond_to() -> RespondTo builder with .html()/.json() branches; unmatched requested format -> 406. Covered by tests/respond_to_test.rs."
     },
     {
       "title": "Named path/URL helpers for custom routes",
