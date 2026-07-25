@@ -9,6 +9,11 @@ pub enum RouteDecl {
         method: String,
         path: LitStr,
         handler: Expr,
+        /// Optional route name for a generated `{name}_path()` helper (`as: name`).
+        name: Option<Ident>,
+    },
+    Root {
+        handler: Expr,
     },
     Resources {
         resource_name: Ident,
@@ -102,14 +107,30 @@ impl Parse for RoutesInput {
                         filter,
                     });
                 }
+                "root" => {
+                    let handler: Expr = content.parse()?;
+                    decls.push(RouteDecl::Root { handler });
+                }
                 method @ ("get" | "post" | "put" | "patch" | "delete") => {
                     let path: LitStr = content.parse()?;
                     let _comma: Token![,] = content.parse()?;
                     let handler: Expr = content.parse()?;
+                    // Optional `, as: name` for a named `{name}_path()` helper.
+                    let mut name = None;
+                    if content.peek(Token![,]) {
+                        let _comma: Token![,] = content.parse()?;
+                        let key: Ident = content.parse()?;
+                        if key != "as" {
+                            return Err(syn::Error::new(key.span(), "expected `as`"));
+                        }
+                        let _colon: Token![:] = content.parse()?;
+                        name = Some(content.parse()?);
+                    }
                     decls.push(RouteDecl::Method {
                         method: method.to_string(),
                         path,
                         handler,
+                        name,
                     });
                 }
                 other => {

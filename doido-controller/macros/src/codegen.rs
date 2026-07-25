@@ -25,6 +25,7 @@ fn generate_inner(
                 method,
                 path,
                 handler,
+                name,
             } => {
                 let axum_method = syn::Ident::new(&method, Span::call_site());
                 let full_path = match path_prefix {
@@ -35,8 +36,31 @@ fn generate_inner(
                     None => path,
                 };
                 descriptors.push((method.to_uppercase(), full_path.value()));
+                let path_value = full_path.value();
                 route_stmts.push(quote! {
                     .route(#full_path, axum::routing::#axum_method(#handler))
+                });
+                // `as: name` → a `{name}_path()` helper returning the full path.
+                if let Some(name) = name {
+                    let helper_fn = format_ident!("{}_path", name);
+                    helper_fns.push(quote! {
+                        #[allow(dead_code)]
+                        fn #helper_fn() -> &'static str { #path_value }
+                    });
+                }
+            }
+            RouteDecl::Root { handler } => {
+                let full_path = match path_prefix {
+                    Some(pfx) if !pfx.is_empty() => pfx.to_string(),
+                    _ => "/".to_string(),
+                };
+                descriptors.push(("GET".to_string(), full_path.clone()));
+                route_stmts.push(quote! {
+                    .route(#full_path, axum::routing::get(#handler))
+                });
+                helper_fns.push(quote! {
+                    #[allow(dead_code)]
+                    fn root_path() -> &'static str { #full_path }
                 });
             }
             RouteDecl::Resources {

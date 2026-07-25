@@ -480,8 +480,8 @@
       "crate": "doido-controller",
       "id": "US-030",
       "priority": 30,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added root!(handler) to the routes! DSL: maps GET / to the handler (+ block-local root_path() helper). Covered by tests/root_route_test.rs. (The named-route as: helper machinery also landed here, used by US-032.)"
     },
     {
       "title": "respond_to / format-based content negotiation",

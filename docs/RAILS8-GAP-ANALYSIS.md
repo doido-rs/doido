@@ -33,7 +33,7 @@ Each line reads: `- [ ] `[tag]` **Feature** — note. *(state)*`
 
 ## Router / Action Dispatch — `doido-controller` (macros)
 
-- [ ] `[core]` **Root route** (`root "home#index"`) — *(missing)*
+- [x] `[core]` **Root route** (`root "home#index"`) — *(missing)*
 - [x] `[core]` **`respond_to` / format-based content negotiation** — *(missing)*
 - [ ] `[core]` **Named path/URL helpers for custom routes** — only `resources!` generates `_path` helpers; plain `get!/post!` routes get none. *(partial)*
 - [ ] `[core]` **`member` / `collection` route blocks on resources** — must add manual method routes today. *(partial)*
