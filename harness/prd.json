@@ -80,8 +80,8 @@
       "crate": "doido-controller",
       "id": "US-005",
       "priority": 5,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "MiddlewareStack::insert_before/insert_after take router transforms (Box<dyn FnOnce(Router)->Router>) applied inside/outside the always-on layers (Rails config.middleware.insert_*). Covered by tests/middleware_insert_test.rs."
     },
     {
       "title": "Strong parameters",

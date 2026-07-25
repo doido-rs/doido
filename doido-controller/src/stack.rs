@@ -13,10 +13,16 @@ use tower_http::{
     cors::{Any, CorsLayer},
 };
 
+/// A router transformation registered by the app to insert its own middleware
+/// relative to doido's always-on stack (Rails `config.middleware.insert_*`).
+type RouterTransform = Box<dyn FnOnce(Router) -> Router + Send>;
+
 pub struct MiddlewareStack {
     cors: bool,
     cors_config: Option<CorsConfig>,
     allowed_hosts: Vec<String>,
+    before: Vec<RouterTransform>,
+    after: Vec<RouterTransform>,
 }
 
 impl MiddlewareStack {
@@ -25,7 +31,30 @@ impl MiddlewareStack {
             cors: false,
             cors_config: None,
             allowed_hosts: Vec::new(),
+            before: Vec::new(),
+            after: Vec::new(),
         }
+    }
+
+    /// Insert custom middleware **inside** the always-on layers (closer to the
+    /// router), i.e. it runs after logging/panic-recovery on the way in. The
+    /// closure receives the router and returns it with its `.layer(...)` added.
+    pub fn insert_before(
+        mut self,
+        transform: impl FnOnce(Router) -> Router + Send + 'static,
+    ) -> Self {
+        self.before.push(Box::new(transform));
+        self
+    }
+
+    /// Insert custom middleware **outside** the always-on layers (outermost), so
+    /// it wraps the whole stack.
+    pub fn insert_after(
+        mut self,
+        transform: impl FnOnce(Router) -> Router + Send + 'static,
+    ) -> Self {
+        self.after.push(Box::new(transform));
+        self
     }
 
     /// Enable permissive CORS (any origin/method/header). For fine-grained,
@@ -51,10 +80,15 @@ impl MiddlewareStack {
     }
 
     pub fn apply(self, router: Router) -> Router {
+        // App-registered "before" middleware sits innermost (closest to routes).
+        let mut r = router;
+        for transform in self.before {
+            r = transform(r);
+        }
         // Log every request and its response (method, path, status, latency)
         // through doido's centralized logger. Added after `CatchPanicLayer` so
         // it sits outermost and logs panic-recovered `500`s too.
-        let mut r = router
+        r = r
             .layer(CatchPanicLayer::new())
             .layer(from_fn(crate::logging::log_requests));
         match &self.cors_config {
@@ -64,6 +98,10 @@ impl MiddlewareStack {
         }
         if !self.allowed_hosts.is_empty() {
             r = r.layer(from_fn_with_state(Arc::new(self.allowed_hosts), host_guard));
+        }
+        // App-registered "after" middleware wraps everything (outermost).
+        for transform in self.after {
+            r = transform(r);
         }
         r
     }

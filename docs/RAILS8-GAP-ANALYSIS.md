@@ -65,7 +65,7 @@ Each line reads: `- [ ] `[tag]` **Feature** — note. *(state)*`
 - [x] `[core]` **Server-side session backends** (cache/db-backed) — *(missing)*
 - [x] `[nice]` **Config-driven CORS** (opt-in per spec) — permissive layer exists but isn't wired from config. *(partial)*
 - [x] `[nice]` **Host authorization** (`config.hosts`) — *(missing)*
-- [ ] `[nice]` **Configurable middleware insertion** (insert before/after) — *(missing)*
+- [x] `[nice]` **Configurable middleware insertion** (insert before/after) — *(missing)*
 
 ## View / Action View — `doido-view`
 
