@@ -1,13 +1,11 @@
 use serde::{Deserialize, Serialize};
 
-// NOTE: client→server frames below are tagged with `type`. Real ActionCable
-// tags client commands with `command` (subscribe/unsubscribe/message) and
-// reserves `type` for server→client frames. Migrating `CableFrame` to `command`
-// is a breaking change (protocol_test.rs and cable_test.rs assert the current
-// `type` form), so it is tracked as a follow-up; see harness/prd.json US-002.
+// Client→server frames are tagged with `command` per the ActionCable wire
+// protocol (subscribe/unsubscribe/message); `type` is reserved for the
+// server→client frames modelled by `ServerFrame`/`ServerMessage`.
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[serde(tag = "type", rename_all = "lowercase")]
+#[serde(tag = "command", rename_all = "lowercase")]
 pub enum CableFrame {
     Subscribe {
         identifier: String,

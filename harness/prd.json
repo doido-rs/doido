@@ -960,8 +960,8 @@
       "crate": "doido-cable",
       "id": "US-060",
       "priority": 60,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Migrated CableFrame client frames from serde tag=type to tag=command per ActionCable (subscribe/unsubscribe/message); ServerFrame keeps type. Updated protocol/cable tests + wire_command_test locks the command tag."
     },
     {
       "title": "Redis PubSub backend",

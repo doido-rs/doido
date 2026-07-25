@@ -2,7 +2,7 @@ use doido_cable::CableFrame;
 
 #[test]
 fn test_parse_subscribe_frame() {
-    let json = r#"{"type":"subscribe","identifier":"PostsChannel"}"#;
+    let json = r#"{"command":"subscribe","identifier":"PostsChannel"}"#;
     let frame = CableFrame::parse(json).unwrap();
     assert_eq!(
         frame,
@@ -14,7 +14,7 @@ fn test_parse_subscribe_frame() {
 
 #[test]
 fn test_parse_message_frame() {
-    let json = r#"{"type":"message","identifier":"PostsChannel","data":{"action":"follow"}}"#;
+    let json = r#"{"command":"message","identifier":"PostsChannel","data":{"action":"follow"}}"#;
     let frame = CableFrame::parse(json).unwrap();
     match frame {
         CableFrame::Message { identifier, data } => {
