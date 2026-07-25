@@ -1,10 +1,12 @@
 pub mod console;
 pub mod credentials;
 pub mod db;
+pub mod dbconsole;
 pub mod destroy;
 pub mod generate;
 pub mod jobs;
 pub mod new;
+pub mod runner;
 pub mod server;
 pub mod worker;
 

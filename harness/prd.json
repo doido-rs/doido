@@ -1428,8 +1428,8 @@
       "crate": "doido-generators",
       "id": "US-089",
       "priority": 89,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added commands::dbconsole (client_command maps a db URL to sqlite3/psql/mysql + run) and commands::runner (runner_command -> cargo run -- <args>, since Rust cannot eval). Covered by tests/db_runner_cmd_test.rs."
     },
     {
       "title": "i18n locale-files generator",

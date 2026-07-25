@@ -165,7 +165,7 @@ Each line reads: `- [ ] `[tag]` **Feature** — note. *(state)*`
 - [x] `[nice]` **Interactive console REPL** (`doido console`) — placeholder. *(partial)*
 - [x] `[nice]` **`generate resource` target** — *(missing)*
 - [x] `[nice]` **`generate` destroy/undo** (`rails destroy`) — *(missing)*
-- [ ] `[nice]` **`runner` + `dbconsole` commands** — *(missing)*
+- [x] `[nice]` **`runner` + `dbconsole` commands** — *(missing)*
 - [ ] `[nice]` **i18n locale-files generator** — *(missing)*
 
 ## Platform & Deployment (Rails 8 defaults)

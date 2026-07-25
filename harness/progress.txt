@@ -92,3 +92,4 @@ US-085: config drift resolved — standardize on per-env YAML (documented in ARC
 US-086: console REPL — banner + evcxr launch. clippy+test green.
 US-087: generate resource — ResourceGenerator (API scaffold, no views). clippy+test green.
 US-088: generate destroy — commands::destroy (destroyable_paths + run). clippy+test green.
+US-089: runner + dbconsole — command resolvers. clippy+test green.
