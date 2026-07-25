@@ -17,17 +17,43 @@ static POOL: OnceLock<DatabaseConnection> = OnceLock::new();
 /// level `INFO`) when `sql_logging` is on. The flag comes from the `logger.sql`
 /// config key; tune visibility further with `RUST_LOG` (see `doido_core::logger`).
 fn options(url: &str, sql_logging: bool) -> ConnectOptions {
+    pool_options(url, sql_logging, None, None)
+}
+
+/// Builds [`ConnectOptions`] with SQL logging plus optional pool tuning:
+/// `max_connections` (config `database.pool`) and `connect_timeout` in seconds
+/// (config `database.connect_timeout`).
+pub fn pool_options(
+    url: &str,
+    sql_logging: bool,
+    max_connections: Option<u32>,
+    connect_timeout_secs: Option<u64>,
+) -> ConnectOptions {
     let mut opts = ConnectOptions::new(url.to_owned());
     // Statements log at the default `INFO` level under target `sqlx::query`.
     opts.sqlx_logging(sql_logging);
+    if let Some(max) = max_connections {
+        opts.max_connections(max);
+    }
+    if let Some(secs) = connect_timeout_secs {
+        opts.connect_timeout(std::time::Duration::from_secs(secs));
+    }
     opts
 }
 
 /// Connects to the database named by the current environment's
-/// `config/<env>.yml` `database.url`, honouring its `logger.sql` toggle.
+/// `config/<env>.yml` `database.url`, honouring its `logger.sql` toggle and any
+/// `database.pool` / `database.connect_timeout` knobs.
 pub async fn connect() -> Result<DatabaseConnection, DbErr> {
     let config = config::load();
-    Database::connect(options(config.database().url.as_str(), config.logger().sql)).await
+    let db = config.database();
+    Database::connect(pool_options(
+        db.url.as_str(),
+        config.logger().sql,
+        db.pool,
+        db.connect_timeout,
+    ))
+    .await
 }
 
 /// Connects using an explicit database URL, bypassing the config file. SQL

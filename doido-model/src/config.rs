@@ -19,12 +19,20 @@ pub struct DatabaseConfig {
     /// Connection URL, e.g. `postgres://localhost/my_app_development` or
     /// `sqlite://db/development.db`.
     pub url: String,
+    /// Maximum pooled connections (`config/database.yml` `pool:`).
+    #[serde(default)]
+    pub pool: Option<u32>,
+    /// Connection acquire timeout, in seconds (`checkout_timeout:`).
+    #[serde(default)]
+    pub connect_timeout: Option<u64>,
 }
 
 impl Default for DatabaseConfig {
     fn default() -> Self {
         Self {
             url: "sqlite://db/development.db".to_string(),
+            pool: None,
+            connect_timeout: None,
         }
     }
 }

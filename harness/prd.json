@@ -1312,8 +1312,8 @@
       "crate": "doido-model",
       "id": "US-082",
       "priority": 82,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "DatabaseConfig gains pool (max_connections) and connect_timeout knobs; pool::pool_options applies them to sea-orm ConnectOptions and connect() reads them from config. Covered by tests/pool_options_test.rs."
     },
     {
       "title": "SECTION__KEY env-var overrides",

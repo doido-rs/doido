@@ -102,7 +102,7 @@ Each line reads: `- [ ] `[tag]` **Feature** — note. *(state)*`
 - [x] `[nice]` **`db:schema` dump/load** (schema.rb / structure.sql) — *(missing)*
 - [x] `[nice]` **`db:reset` / `db:prepare` / `db:setup`** — *(missing)*
 - [x] `[nice]` **`db:rollback STEP=n` / redo wrappers** — sea-orm supports it, CLI wrapper is thin. *(partial)*
-- [ ] `[nice]` **Connection pool size/timeout config knobs** — *(missing)*
+- [x] `[nice]` **Connection pool size/timeout config knobs** — *(missing)*
 
 ## Jobs / Active Job — `doido-jobs`
 
