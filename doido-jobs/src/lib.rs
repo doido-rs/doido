@@ -18,4 +18,5 @@ pub use memory::MemoryQueue;
 pub use queue::{BackoffStrategy, JobId, JobPayload, JobQueue, JobStatus, Reserved};
 #[cfg(feature = "jobs-redis")]
 pub use redis::RedisQueue;
+pub use retry::{Decision, RetryPolicy};
 pub use worker::{EngineConfig, Worker, WorkerEngine};

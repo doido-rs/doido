@@ -1072,8 +1072,8 @@
       "crate": "doido-jobs",
       "id": "US-067",
       "priority": 67,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added retry::RetryPolicy: retry_on::<E>()/discard_on::<E>() register typed error rules; decide(&err) downcasts in order returning Retry/Discard (default Retry). Covered by tests/retry_policy_test.rs."
     },
     {
       "title": "Job lifecycle callbacks",
