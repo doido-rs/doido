@@ -784,8 +784,8 @@
       "crate": "doido-view",
       "id": "US-049",
       "priority": 49,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added fragment::cache_fragment(store, key, render): returns cached HTML, running render only on a miss then storing it, against any doido_cache::CacheStore. doido-cache added as a view dep. Covered by tests/fragment_test.rs."
     },
     {
       "title": "#[mailer] macro codegen",

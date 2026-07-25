@@ -1157,10 +1157,12 @@ dependencies = [
 name = "doido-view"
 version = "0.0.7"
 dependencies = [
+ "doido-cache",
  "doido-core",
  "serde_json",
  "tempfile",
  "tera",
+ "tokio",
 ]
 
 [[package]]

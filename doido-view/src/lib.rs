@@ -1,5 +1,6 @@
 pub mod content_for;
 pub mod engine;
+pub mod fragment;
 pub mod global;
 pub mod helpers;
 pub mod partials;

@@ -52,3 +52,4 @@ US-045: tag helpers — helpers::tag (tag/content_tag). clippy+test green.
 US-046: number formatting — helpers::number (delimiter/currency/percentage). clippy+test green.
 US-047: i18n helpers — helpers::i18n::I18n (t/t_with). clippy+test green.
 US-048: sanitization — helpers::sanitize (strip_tags/html_escape/sanitize). clippy+test green.
+US-049: fragment caching — fragment::cache_fragment over CacheStore. clippy+test green (View phase complete).
