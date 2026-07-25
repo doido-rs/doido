@@ -77,7 +77,7 @@ Each line reads: `- [ ] `[tag]` **Feature** — note. *(state)*`
 - [x] `[nice]` **Tag helpers** (`tag`, `content_tag`) — *(missing)*
 - [x] `[nice]` **Number/date/currency formatting helpers** — *(missing)*
 - [x] `[nice]` **i18n view helpers** (`t`, `l`) — *(missing)*
-- [ ] `[nice]` **HTML sanitization helpers** (`sanitize`, `strip_tags`) — *(missing)*
+- [x] `[nice]` **HTML sanitization helpers** (`sanitize`, `strip_tags`) — *(missing)*
 - [ ] `[nice]` **Fragment caching** (`cache` in views) — *(missing)*
 
 ## Model / Active Record — `doido-model`

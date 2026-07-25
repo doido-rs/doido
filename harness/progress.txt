@@ -51,3 +51,4 @@ US-044: asset helpers — image_tag/stylesheet_link_tag/javascript_include_tag. 
 US-045: tag helpers — helpers::tag (tag/content_tag). clippy+test green.
 US-046: number formatting — helpers::number (delimiter/currency/percentage). clippy+test green.
 US-047: i18n helpers — helpers::i18n::I18n (t/t_with). clippy+test green.
+US-048: sanitization — helpers::sanitize (strip_tags/html_escape/sanitize). clippy+test green.

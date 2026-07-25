@@ -768,8 +768,8 @@
       "crate": "doido-view",
       "id": "US-048",
       "priority": 48,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added helpers::sanitize: strip_tags (remove tag markup), html_escape (h), sanitize (strip then escape). Covered by tests/sanitize_helpers_test.rs. NOTE: allowlist-based sanitize is a follow-up."
     },
     {
       "title": "Fragment caching",
