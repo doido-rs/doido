@@ -147,7 +147,7 @@ Each line reads: `- [ ] `[tag]` **Feature** — note. *(state)*`
 ## Core / Active Support — `doido-core`
 
 - [x] `[nice]` **`ActiveSupport::Notifications` instrumentation bus** — 4 fixed trace helpers only. *(partial)*
-- [ ] `[nice]` **Core extensions** (`blank?`/`present?`, String/Array/Hash helpers) — *(missing)*
+- [x] `[nice]` **Core extensions** (`blank?`/`present?`, String/Array/Hash helpers) — *(missing)*
 - [ ] `[nice]` **Time/Date helpers** (`2.days.ago`, `beginning_of_day`) — *(missing)*
 - [ ] `[nice]` **Concerns/mixins pattern** — *(missing)*
 - [ ] `[nice]` **Test time helpers** (`travel_to`, durations) — *(missing)*

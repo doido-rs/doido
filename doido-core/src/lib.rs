@@ -1,3 +1,4 @@
+pub mod core_ext;
 pub mod error;
 pub mod inflector;
 pub mod logger;

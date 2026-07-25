@@ -1477,8 +1477,8 @@
       "crate": "doido-core",
       "id": "US-092",
       "priority": 92,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added core_ext: Blank trait (is_blank/is_present) for str/String/&T/Option/Vec + StringExt::truncate_chars (Rails blank?/present?/truncate). Covered by tests/core_ext_test.rs."
     },
     {
       "title": "Time/Date helpers",
