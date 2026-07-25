@@ -106,3 +106,4 @@ US-099: hotwire — helpers::hotwire turbo/stimulus. clippy+test green.
 US-100: i18n framework — I18n::load_yaml locale loading. clippy+test green.
 US-101: health check — health::up + with_health (GET /up). clippy+test green.
 US-102: deploy files — Dockerfile + Kamal deploy.yml + devcontainer in app template. clippy+test green.
+US-103: solid parity — DbCacheStore (cache-db) completes db-backed queue/cache/cable. clippy(feature)+test green.

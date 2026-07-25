@@ -1661,8 +1661,8 @@
       "crate": "doido-generators",
       "id": "US-103",
       "priority": 103,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Completed DB-backed defaults (Solid parity): added db_store::DbCacheStore (feature cache-db) \u2014 a cache_entries-table CacheStore with expiry + increment/decrement, joining jobs-db (queue) and cable-db (pubsub). Hermetic sqlite test. Covered by tests/db_store_test.rs."
     },
     {
       "title": "E2E: runtime CRUD over a generated app via the CLI",
