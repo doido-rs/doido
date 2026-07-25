@@ -15,6 +15,10 @@ pub enum RouteDecl {
     Root {
         handler: Expr,
     },
+    Redirect {
+        from: LitStr,
+        to: LitStr,
+    },
     Resources {
         resource_name: Ident,
         controller: Ident,
@@ -147,6 +151,12 @@ impl Parse for RoutesInput {
                 "root" => {
                     let handler: Expr = content.parse()?;
                     decls.push(RouteDecl::Root { handler });
+                }
+                "redirect" => {
+                    let from: LitStr = content.parse()?;
+                    let _comma: Token![,] = content.parse()?;
+                    let to: LitStr = content.parse()?;
+                    decls.push(RouteDecl::Redirect { from, to });
                 }
                 method @ ("get" | "post" | "put" | "patch" | "delete") => {
                     let path: LitStr = content.parse()?;

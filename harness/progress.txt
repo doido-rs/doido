@@ -40,3 +40,4 @@ US-033: member/collection — resources! member:/collection: extra routes. clipp
 US-034: route constraints — constraints module (format validators + Constraints matcher for filters). clippy+test green.
 US-035: singular resource — resource!(name, Ctrl) no-id routes. clippy+test green.
 US-036: shallow nesting — shallow_resources! nested collection + shallow member routes. clippy+test green.
+US-037: redirect routes — redirect!(from, to) 301 in the DSL. clippy+test green.

@@ -163,6 +163,22 @@ fn generate_inner(
                     }
                 });
             }
+            RouteDecl::Redirect { from, to } => {
+                let full_from = match path_prefix {
+                    Some(pfx) => syn::LitStr::new(&format!("{}{}", pfx, from.value()), from.span()),
+                    None => from,
+                };
+                descriptors.push(("GET".to_string(), full_from.value()));
+                route_stmts.push(quote! {
+                    .route(#full_from, axum::routing::get(|| async move {
+                        axum::response::Response::builder()
+                            .status(301)
+                            .header(axum::http::header::LOCATION, #to)
+                            .body(axum::body::Body::empty())
+                            .expect("valid redirect response")
+                    }))
+                });
+            }
             RouteDecl::Resource { name, controller } => {
                 let n = name.to_string();
                 let prefix = path_prefix.unwrap_or("");

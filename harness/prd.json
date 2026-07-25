@@ -592,8 +592,8 @@
       "crate": "doido-controller",
       "id": "US-037",
       "priority": 37,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added redirect!(\"/from\", \"/to\") to the routes! DSL: GET /from -> 301 with Location /to. Covered by tests/redirect_route_test.rs."
     },
     {
       "title": "Glob / catch-all routes",
