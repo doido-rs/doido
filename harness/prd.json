@@ -64,8 +64,8 @@
       "crate": "doido-controller",
       "id": "US-004",
       "priority": 4,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "MiddlewareStack::with_allowed_hosts adds a Tower guard that 403s any request whose Host header (port stripped) isn't in the allowlist; empty allowlist permits any host. Covered by tests/host_auth_test.rs."
     },
     {
       "title": "Configurable middleware insertion",

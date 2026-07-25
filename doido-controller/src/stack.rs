@@ -1,6 +1,13 @@
 use crate::config::CorsConfig;
-use axum::{middleware::from_fn, Router};
-use http::{HeaderValue, Method};
+use axum::{
+    body::Body,
+    extract::{Request, State},
+    middleware::{from_fn, from_fn_with_state, Next},
+    response::Response,
+    Router,
+};
+use http::{header, HeaderValue, Method, StatusCode};
+use std::sync::Arc;
 use tower_http::{
     catch_panic::CatchPanicLayer,
     cors::{Any, CorsLayer},
@@ -9,6 +16,7 @@ use tower_http::{
 pub struct MiddlewareStack {
     cors: bool,
     cors_config: Option<CorsConfig>,
+    allowed_hosts: Vec<String>,
 }
 
 impl MiddlewareStack {
@@ -16,6 +24,7 @@ impl MiddlewareStack {
         Self {
             cors: false,
             cors_config: None,
+            allowed_hosts: Vec::new(),
         }
     }
 
@@ -33,6 +42,14 @@ impl MiddlewareStack {
         self
     }
 
+    /// Restrict requests to an allowlist of `Host` header values (Rails
+    /// `config.hosts` / `ActionDispatch::HostAuthorization`). An empty list
+    /// permits any host; a request whose host is not listed gets a `403`.
+    pub fn with_allowed_hosts(mut self, hosts: Vec<String>) -> Self {
+        self.allowed_hosts = hosts;
+        self
+    }
+
     pub fn apply(self, router: Router) -> Router {
         // Log every request and its response (method, path, status, latency)
         // through doido's centralized logger. Added after `CatchPanicLayer` so
@@ -45,7 +62,30 @@ impl MiddlewareStack {
             _ if self.cors => r = r.layer(CorsLayer::permissive()),
             _ => {}
         }
+        if !self.allowed_hosts.is_empty() {
+            r = r.layer(from_fn_with_state(Arc::new(self.allowed_hosts), host_guard));
+        }
         r
+    }
+}
+
+/// Reject requests whose `Host` header (port stripped) is not in the allowlist.
+async fn host_guard(
+    State(allowed): State<Arc<Vec<String>>>,
+    request: Request,
+    next: Next,
+) -> Response {
+    let host = request
+        .headers()
+        .get(header::HOST)
+        .and_then(|h| h.to_str().ok())
+        .map(|h| h.split(':').next().unwrap_or(h).to_string());
+    match host {
+        Some(h) if allowed.iter().any(|a| a == &h) => next.run(request).await,
+        _ => Response::builder()
+            .status(StatusCode::FORBIDDEN)
+            .body(Body::from("Forbidden host"))
+            .expect("valid 403 response"),
     }
 }
 
