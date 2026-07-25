@@ -3,6 +3,7 @@
 pub mod asset;
 pub mod form;
 pub mod link;
+pub mod tag;
 
 /// Minimal HTML text/attribute escaping, shared by the helpers.
 pub(crate) fn escape(s: &str) -> String {

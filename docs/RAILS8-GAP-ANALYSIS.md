@@ -74,7 +74,7 @@ Each line reads: `- [ ] `[tag]` **Feature** — note. *(state)*`
 - [x] `[core]` **Form builders** (`form_with`/`form_for` + field helpers) — *(missing)*
 - [x] `[core]` **Link/URL helpers** (`link_to`, `button_to`) — *(missing)*
 - [x] `[core]` **Asset helpers** (`image_tag`, `stylesheet_link_tag`, `javascript_include_tag`) — *(missing)*
-- [ ] `[nice]` **Tag helpers** (`tag`, `content_tag`) — *(missing)*
+- [x] `[nice]` **Tag helpers** (`tag`, `content_tag`) — *(missing)*
 - [ ] `[nice]` **Number/date/currency formatting helpers** — *(missing)*
 - [ ] `[nice]` **i18n view helpers** (`t`, `l`) — *(missing)*
 - [ ] `[nice]` **HTML sanitization helpers** (`sanitize`, `strip_tags`) — *(missing)*

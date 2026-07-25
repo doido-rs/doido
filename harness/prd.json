@@ -720,8 +720,8 @@
       "crate": "doido-view",
       "id": "US-045",
       "priority": 45,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added helpers::tag: tag(name, attrs) void tags + content_tag(name, content, attrs) with escaped content/attrs. Covered by tests/tag_helpers_test.rs."
     },
     {
       "title": "Number/date/currency formatting helpers",

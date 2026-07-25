@@ -48,3 +48,4 @@ US-041: content_for — ContentFor named-block capture/yield store. clippy+test 
 US-042: form builders — helpers::form (form_tag + field helpers, escaped). clippy+test green.
 US-043: link helpers — helpers::link (link_to/link_to_class/button_to). clippy+test green.
 US-044: asset helpers — image_tag/stylesheet_link_tag/javascript_include_tag. clippy+test green.
+US-045: tag helpers — helpers::tag (tag/content_tag). clippy+test green.
