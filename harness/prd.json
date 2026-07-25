@@ -32,8 +32,8 @@
       "crate": "doido-controller",
       "id": "US-002",
       "priority": 2,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "CacheSessionStore stores sessions server-side in any doido_cache::CacheStore (id in cookie, data in cache), with optional TTL; round-trip/destroy/missing covered against MemoryStore. doido-cache added as a controller dep (no cycle). DbSessionStore/RedisSessionStore specializations are follow-ups."
     },
     {
       "title": "Config-driven CORS",

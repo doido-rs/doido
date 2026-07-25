@@ -5,3 +5,4 @@
 # harness/archive/2026-07-24-finish-doido-progress.txt.
 ---
 US-001: CookieSessionStore signs sessions into an HMAC-SHA256 cookie (encode/decode, tamper+wrong-secret rejection); Session typed get/set. make verify green.
+US-002: CacheSessionStore — server-side sessions backed by any doido_cache::CacheStore (id in cookie, data in cache, optional TTL). make verify green.

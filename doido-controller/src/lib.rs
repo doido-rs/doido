@@ -21,5 +21,5 @@ pub use environment::Environment;
 pub use response::Response;
 pub use route_table::{all_routes, print_routes, register_routes, RouteEntry};
 pub use server::start_server;
-pub use session::{CookieSessionStore, Session, SessionStore};
+pub use session::{CacheSessionStore, CookieSessionStore, Session, SessionStore};
 pub use stack::MiddlewareStack;

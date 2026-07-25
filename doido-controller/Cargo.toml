@@ -10,6 +10,7 @@ doido-core.workspace = true
 doido-controller-macros.workspace = true
 doido-model.workspace = true
 doido-view.workspace = true
+doido-cache.workspace = true
 async-trait.workspace = true
 axum.workspace = true
 tokio = { workspace = true, features = ["full"] }

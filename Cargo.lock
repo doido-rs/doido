@@ -990,6 +990,7 @@ dependencies = [
  "async-trait",
  "axum",
  "base64",
+ "doido-cache",
  "doido-controller-macros",
  "doido-core",
  "doido-model",

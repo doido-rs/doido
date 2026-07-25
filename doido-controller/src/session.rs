@@ -1,10 +1,12 @@
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
+use doido_cache::CacheStore;
 use doido_core::Result;
 use hmac::{Hmac, KeyInit, Mac};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sha2::Sha256;
+use std::sync::Arc;
 
 type HmacSha256 = Hmac<Sha256>;
 
@@ -141,5 +143,55 @@ impl SessionStore for CookieSessionStore {
 
     async fn destroy(&self, _id: &str) -> Result<()> {
         Ok(())
+    }
+}
+
+/// A server-side session store backed by any [`doido_cache::CacheStore`]: only
+/// the session id travels in the cookie, while the data lives in the cache
+/// (memory/redis/memcache). This is the generic backend the spec's
+/// `DbSessionStore`/`RedisSessionStore` specialize.
+pub struct CacheSessionStore {
+    store: Arc<dyn CacheStore>,
+    ttl_secs: Option<u64>,
+}
+
+impl CacheSessionStore {
+    /// Persist sessions in `store` with no expiry.
+    pub fn new(store: Arc<dyn CacheStore>) -> Self {
+        Self {
+            store,
+            ttl_secs: None,
+        }
+    }
+
+    /// Expire stored sessions after `secs` seconds of inactivity.
+    pub fn with_ttl(mut self, secs: u64) -> Self {
+        self.ttl_secs = Some(secs);
+        self
+    }
+
+    fn key(id: &str) -> String {
+        format!("session:{id}")
+    }
+}
+
+#[async_trait::async_trait]
+impl SessionStore for CacheSessionStore {
+    async fn load(&self, id: &str) -> Result<Option<Session>> {
+        match self.store.get(&Self::key(id)).await? {
+            Some(value) => Ok(serde_json::from_value(value).ok()),
+            None => Ok(None),
+        }
+    }
+
+    async fn save(&self, session: &Session) -> Result<()> {
+        let value = serde_json::to_value(session)?;
+        self.store
+            .set(&Self::key(&session.id), value, self.ttl_secs)
+            .await
+    }
+
+    async fn destroy(&self, id: &str) -> Result<()> {
+        self.store.delete(&Self::key(id)).await
     }
 }
