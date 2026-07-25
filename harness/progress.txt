@@ -72,3 +72,4 @@ US-065: broadcast_to — Cable::broadcast structured ServerMessage + pubsub() ac
 US-066: db pubsub — DbPubSub (feature cable-db) durable log + messages_since, sqlite-tested. clippy(feature) green (Cable phase complete).
 US-067: retry_on/discard_on — retry::RetryPolicy typed decisions. clippy+test green.
 US-068: job callbacks — JobCallbacks + run_perform lifecycle. clippy+test green.
+US-069: .set parity — JobPayload with_wait/with_queue. clippy+test green.

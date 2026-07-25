@@ -1104,8 +1104,8 @@
       "crate": "doido-jobs",
       "id": "US-069",
       "priority": 69,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "JobPayload gains with_wait(secs) (run_at = now+secs) and with_queue(name), complementing with_priority/with_run_at for Rails set(wait:/queue:/priority:) parity. Covered by tests/set_options_test.rs."
     },
     {
       "title": "Job batches / workflows",
