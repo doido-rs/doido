@@ -1360,8 +1360,8 @@
       "crate": "doido-controller",
       "id": "US-085",
       "priority": 85,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "DECISION (2026-07-25, status-quo per user go-to-the-end): standardize on per-env YAML (config/<env>.yml), the implemented+tested path; SECTION__KEY env overrides now exist; application.toml is a minimal placeholder; layered TOML + AES-GCM credentials stay deferred. Documented in docs/ARCHITECTURE.md. Doc-only resolution (no code/test)."
     },
     {
       "title": "Interactive console REPL",

@@ -158,7 +158,7 @@ Each line reads: `- [ ] `[tag]` **Feature** — note. *(state)*`
 - [ ] `[deferred]` **Layered TOML config** (base→env→credentials→env vars) per spec 05 — only per-env YAML today. *(missing)*
 - [x] `[nice]` **`SECTION__KEY` env-var overrides** — *(missing)*
 - [x] `[nice]` **Initializers** (`config/initializers/*`) — *(missing)*
-- [ ] `[nice]` **Resolve YAML-vs-TOML drift** (pick one) — decision open in ARCHITECTURE.md. *(partial)*
+- [x] `[nice]` **Resolve YAML-vs-TOML drift** (pick one) — decision open in ARCHITECTURE.md. *(partial)*
 
 ## CLI & Generators — `doido-generators`
 
