@@ -10,3 +10,4 @@ US-003: config-driven CORS — [middleware.cors] in YamlConfig + MiddlewareStack
 US-004: host authorization — MiddlewareStack::with_allowed_hosts 403s unlisted Host headers (port-stripped); empty=allow-any. make verify green.
 US-005: configurable middleware insertion — MiddlewareStack::insert_before/insert_after router transforms around the always-on stack. make verify green.
 US-006: strong parameters — params::Params with require/permit/deserialize + Context::query_params(). make verify green.
+US-007: CSRF protection — csrf module + MiddlewareStack::with_csrf() double-submit-cookie guard (constant-time compare). make verify green.

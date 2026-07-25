@@ -47,7 +47,7 @@ Each line reads: `- [ ] `[tag]` **Feature** — note. *(state)*`
 ## Controller / Action Controller — `doido-controller`
 
 - [x] `[core]` **Strong parameters** (`permit`/`require` allowlist) — `ctx.form/params` deserialize directly, no filtering. *(missing)*
-- [ ] `[core]` **CSRF protection** (authenticity token) — *(missing)*
+- [x] `[core]` **CSRF protection** (authenticity token) — *(missing)*
 - [ ] `[core]` **Flash messages** — *(missing)*
 - [ ] `[core]` **Cookies API** (read/write, signed/encrypted) — *(missing)*
 - [ ] `[core]` **`rescue_from`** typed error handling — only panic→500 today. *(missing)*

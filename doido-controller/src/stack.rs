@@ -21,6 +21,7 @@ pub struct MiddlewareStack {
     cors: bool,
     cors_config: Option<CorsConfig>,
     allowed_hosts: Vec<String>,
+    csrf: bool,
     before: Vec<RouterTransform>,
     after: Vec<RouterTransform>,
 }
@@ -31,9 +32,17 @@ impl MiddlewareStack {
             cors: false,
             cors_config: None,
             allowed_hosts: Vec::new(),
+            csrf: false,
             before: Vec::new(),
             after: Vec::new(),
         }
+    }
+
+    /// Enable CSRF protection (double-submit cookie): state-changing requests
+    /// must send an `X-CSRF-Token` header matching the `csrf_token` cookie.
+    pub fn with_csrf(mut self) -> Self {
+        self.csrf = true;
+        self
     }
 
     /// Insert custom middleware **inside** the always-on layers (closer to the
@@ -99,11 +108,49 @@ impl MiddlewareStack {
         if !self.allowed_hosts.is_empty() {
             r = r.layer(from_fn_with_state(Arc::new(self.allowed_hosts), host_guard));
         }
+        if self.csrf {
+            r = r.layer(from_fn(csrf_guard));
+        }
         // App-registered "after" middleware wraps everything (outermost).
         for transform in self.after {
             r = transform(r);
         }
         r
+    }
+}
+
+/// Enforce the double-submit CSRF check on state-changing methods. Safe methods
+/// (GET/HEAD/OPTIONS/TRACE) always pass; others require the `csrf_token` cookie
+/// and the `X-CSRF-Token` header to be present and equal.
+async fn csrf_guard(request: Request, next: Next) -> Response {
+    let method = request.method();
+    let is_safe = matches!(
+        *method,
+        Method::GET | Method::HEAD | Method::OPTIONS | Method::TRACE
+    );
+    if is_safe {
+        return next.run(request).await;
+    }
+
+    let cookie_token = request
+        .headers()
+        .get(header::COOKIE)
+        .and_then(|c| c.to_str().ok())
+        .and_then(crate::csrf::token_from_cookie_header);
+    let header_token = request
+        .headers()
+        .get("x-csrf-token")
+        .and_then(|h| h.to_str().ok())
+        .map(str::to_string);
+
+    match (cookie_token, header_token) {
+        (Some(cookie), Some(header)) if crate::csrf::tokens_match(&cookie, &header) => {
+            next.run(request).await
+        }
+        _ => Response::builder()
+            .status(StatusCode::FORBIDDEN)
+            .body(Body::from("CSRF token mismatch"))
+            .expect("valid 403 response"),
     }
 }
 

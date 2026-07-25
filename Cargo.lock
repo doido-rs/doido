@@ -1003,6 +1003,7 @@ dependencies = [
  "serde_norway",
  "serde_urlencoded",
  "sha2 0.11.0",
+ "subtle",
  "tempfile",
  "tokio",
  "tower",

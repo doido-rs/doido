@@ -28,6 +28,7 @@ uuid.workspace = true
 hmac = "0.13"
 sha2 = "0.11"
 base64 = "0.22"
+subtle = "2"
 
 [dev-dependencies]
 http-body-util.workspace = true

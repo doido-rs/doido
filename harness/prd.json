@@ -112,8 +112,8 @@
       "crate": "doido-controller",
       "id": "US-007",
       "priority": 7,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added csrf module (generate_token 256-bit, constant-time tokens_match via subtle) + MiddlewareStack::with_csrf() double-submit-cookie guard: safe methods pass; state-changing requests need csrf_token cookie == X-CSRF-Token header else 403. Covered by tests/csrf_test.rs."
     },
     {
       "title": "Flash messages",
