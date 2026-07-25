@@ -1216,8 +1216,8 @@
       "crate": "doido-cache",
       "id": "US-076",
       "priority": 76,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added MultiCacheConfig (stores: name -> CacheConfig) + build_registry() building each into a CacheRegistry, wiring named/multi stores from config. Covered by tests/multi_store_config_test.rs."
     },
     {
       "title": "Compression / pluggable serializer options",

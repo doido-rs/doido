@@ -14,7 +14,7 @@ pub mod memcache_store;
 #[cfg(feature = "cache-redis")]
 pub mod redis_store;
 
-pub use config::{CacheBackend, CacheConfig};
+pub use config::{CacheBackend, CacheConfig, MultiCacheConfig};
 pub use environment::Environment;
 pub use global::init as init_cache;
 pub use memory::MemoryStore;
