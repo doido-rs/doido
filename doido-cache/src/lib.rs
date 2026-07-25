@@ -1,17 +1,25 @@
+pub mod codec;
 pub mod config;
+#[cfg(feature = "cache-db")]
+pub mod db_store;
 pub mod environment;
+pub mod fetch;
 pub mod global;
 pub mod memory;
+pub mod multi;
 pub mod namespaced;
 pub mod registry;
 pub mod store;
+pub mod versioning;
 
 #[cfg(feature = "cache-memcache")]
 pub mod memcache_store;
 #[cfg(feature = "cache-redis")]
 pub mod redis_store;
 
-pub use config::{CacheBackend, CacheConfig};
+pub use config::{CacheBackend, CacheConfig, MultiCacheConfig};
+#[cfg(feature = "cache-db")]
+pub use db_store::DbCacheStore;
 pub use environment::Environment;
 pub use global::init as init_cache;
 pub use memory::MemoryStore;

@@ -1,3 +1,5 @@
+pub mod batch;
+pub mod callbacks;
 pub mod config;
 pub mod context;
 #[cfg(feature = "jobs-db")]
@@ -14,8 +16,9 @@ pub use context::JobContext;
 #[cfg(feature = "jobs-db")]
 pub use db::DbQueue;
 pub use doido_jobs_macros::job;
-pub use memory::MemoryQueue;
+pub use memory::{MemoryQueue, QueueStats};
 pub use queue::{BackoffStrategy, JobId, JobPayload, JobQueue, JobStatus, Reserved};
 #[cfg(feature = "jobs-redis")]
 pub use redis::RedisQueue;
+pub use retry::{Decision, RetryPolicy};
 pub use worker::{EngineConfig, Worker, WorkerEngine};

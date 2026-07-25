@@ -34,8 +34,8 @@ pub use generator::{GeneratedFile, Generator};
 pub use generators::{
     channel::ChannelGenerator, controller::ControllerGenerator, generator_gen::GeneratorGenerator,
     job::JobGenerator, mailer::MailerGenerator, migration::MigrationGenerator,
-    model::ModelGenerator, new::ProjectGenerator, scaffold::ScaffoldGenerator,
-    templates_gen::TemplatesGenerator,
+    model::ModelGenerator, new::ProjectGenerator, resource::ResourceGenerator,
+    scaffold::ScaffoldGenerator, templates_gen::TemplatesGenerator,
 };
 pub use registry::GeneratorRegistry;
 
@@ -48,8 +48,10 @@ pub fn default_registry() -> GeneratorRegistry {
     reg.register(Box::new(MailerGenerator));
     reg.register(Box::new(ChannelGenerator));
     reg.register(Box::new(ScaffoldGenerator));
+    reg.register(Box::new(ResourceGenerator));
     reg.register(Box::new(ProjectGenerator));
     reg.register(Box::new(TemplatesGenerator));
     reg.register(Box::new(GeneratorGenerator));
+    reg.register(Box::new(crate::generators::locale::LocaleGenerator));
     reg
 }

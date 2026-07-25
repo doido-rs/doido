@@ -187,16 +187,88 @@ fn test_scaffold_emits_model_test_and_controller_request_tests() {
 }
 
 #[test]
-fn test_migration_generator_has_timestamp_in_filename() {
-    let files = MigrationGenerator.generate(&["create_users"]).unwrap();
+fn test_migration_generator_create_pattern_uses_doido_model() {
+    let files = MigrationGenerator
+        .generate(&["create_users", "email:string:unique"])
+        .unwrap();
+    // Written into the migration crate (not the old `db/migrations/` dir).
     let mig = files
         .iter()
-        .find(|f| f.path.starts_with("db/migrations/"))
+        .find(|f| f.path.starts_with("db/migration/src/") && f.path.ends_with("_create_users.rs"))
         .unwrap();
-    assert!(mig.path.ends_with("_create_users.rs"));
+    // Uses the doido-model builders, not raw sea-orm.
+    assert!(mig
+        .content
+        .contains("create_table(manager, \"users\", |t| {"));
+    assert!(mig.content.contains("t.string(\"email\").unique_key();"));
+    assert!(mig.content.contains("drop_table(manager, \"users\").await"));
+    assert!(mig
+        .content
+        .contains("use doido_model::migration::{create_table, drop_table};"));
+    assert!(!mig.content.contains("Table::create()"));
+    assert!(!mig.content.contains("ColumnDef"));
+    // Registered in the Migrator's lib.rs, and a test stub is scaffolded.
+    let lib = files
+        .iter()
+        .find(|f| f.path == "db/migration/src/lib.rs")
+        .unwrap();
+    assert!(lib.content.contains("_create_users::Migration)"));
     assert!(files
         .iter()
         .any(|f| f.path == "tests/create_users_migration_test.rs"));
+}
+
+#[test]
+fn test_migration_generator_add_columns_pattern() {
+    let files = MigrationGenerator
+        .generate(&["add_slug_to_posts", "slug:string:unique"])
+        .unwrap();
+    let mig = files
+        .iter()
+        .find(|f| f.path.ends_with("_add_slug_to_posts.rs"))
+        .unwrap();
+    assert!(mig
+        .content
+        .contains("use doido_model::migration::alter_table;"));
+    assert!(mig
+        .content
+        .contains("alter_table(manager, \"posts\", |t| {"));
+    assert!(mig
+        .content
+        .contains("t.add_column(\"slug\", |c| { c.string().unique_key(); });"));
+    // `down` reverses the change by dropping the column.
+    assert!(mig.content.contains("t.drop_column(\"slug\");"));
+}
+
+#[test]
+fn test_migration_generator_remove_columns_pattern() {
+    let files = MigrationGenerator
+        .generate(&["remove_slug_from_posts", "slug:string"])
+        .unwrap();
+    let mig = files
+        .iter()
+        .find(|f| f.path.ends_with("_remove_slug_from_posts.rs"))
+        .unwrap();
+    // up drops, down re-adds.
+    assert!(mig.content.contains("t.drop_column(\"slug\");"));
+    assert!(mig
+        .content
+        .contains("t.add_column(\"slug\", |c| { c.string(); });"));
+}
+
+#[test]
+fn test_migration_generator_generic_name_uses_doido_model_skeleton() {
+    let files = MigrationGenerator.generate(&["backfill_stuff"]).unwrap();
+    let mig = files
+        .iter()
+        .find(|f| f.path.ends_with("_backfill_stuff.rs"))
+        .unwrap();
+    assert!(mig
+        .content
+        .contains("create_table(manager, \"backfill_stuff\", |_t| {})"));
+    assert!(!mig.content.contains("Table::create()"));
+    assert!(!mig.content.contains("ColumnDef"));
+    assert!(!mig.content.contains("Alias::new"));
 }
 
 #[test]
@@ -336,6 +408,13 @@ fn test_scaffold_api_emits_json_controller_and_no_views() {
     assert!(ctrl.content.contains("ctx.json("));
     assert!(ctrl.content.contains("ctx.body_json()"));
     assert!(!ctrl.content.contains("ctx.render("));
+
+    // API controllers have no new/edit form actions, so the injected route must
+    // exclude them — otherwise `resources!` references methods that don't exist.
+    let routes = files.iter().find(|f| f.path == "config/routes.rs").unwrap();
+    assert!(routes
+        .content
+        .contains("resources!(posts, PostsController, except: [new, edit]);"));
 }
 
 #[test]

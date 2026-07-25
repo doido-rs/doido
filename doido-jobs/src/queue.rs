@@ -113,6 +113,18 @@ impl JobPayload {
         self
     }
 
+    /// Delay eligibility by `secs` from now (Rails `set(wait: n.seconds)`).
+    pub fn with_wait(mut self, secs: i64) -> Self {
+        self.run_at = Utc::now() + chrono::Duration::seconds(secs);
+        self
+    }
+
+    /// Route the job to a different queue (Rails `set(queue:)`).
+    pub fn with_queue(mut self, queue: impl Into<String>) -> Self {
+        self.queue = queue.into();
+        self
+    }
+
     /// Whether the job is eligible to be reserved at `now`.
     pub fn is_ready(&self, now: DateTime<Utc>) -> bool {
         self.run_at <= now

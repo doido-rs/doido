@@ -53,7 +53,7 @@ async fn test_channel_macro_compiles() {
 
 #[test]
 fn test_cable_frame_protocol_parsing() {
-    let frame = CableFrame::parse(r#"{"type":"subscribe","identifier":"ChatChannel"}"#).unwrap();
+    let frame = CableFrame::parse(r#"{"command":"subscribe","identifier":"ChatChannel"}"#).unwrap();
     assert_eq!(
         frame,
         CableFrame::Subscribe {

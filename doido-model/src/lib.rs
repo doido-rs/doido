@@ -5,12 +5,27 @@ pub use sea_orm::{
 pub use sea_orm_migration;
 pub use sea_orm_migration::SchemaManager;
 
+pub mod association;
+pub mod callbacks;
 pub mod config;
 pub mod create;
+pub mod databases;
+pub mod enums;
 pub mod environment;
+pub mod factory;
+pub mod migrate;
 pub mod migration;
+pub mod normalization;
+pub mod password;
 pub mod pool;
+pub mod schema;
+pub mod scope;
+pub mod seeds;
+pub mod serialization;
+pub mod tasks;
 pub mod testing;
+pub mod transaction;
+pub mod validation;
 
 pub use config::{Config, DatabaseConfig, LoggerConfig, YamlConfig};
 pub use create::create_database;

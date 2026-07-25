@@ -74,12 +74,13 @@ async fn test_logging_middleware_preserves_inbound_request_id() {
 
 #[tokio::test]
 async fn test_cookie_session_store_load_returns_none() {
-    let store = CookieSessionStore;
+    let store = CookieSessionStore::default();
+    // A bare, unsigned id is not a valid signed cookie, so it does not decode.
     assert!(store.load("any-id").await.unwrap().is_none());
 }
 
 #[tokio::test]
 async fn test_session_store_is_object_safe() {
-    let store: Box<dyn SessionStore> = Box::new(CookieSessionStore);
+    let store: Box<dyn SessionStore> = Box::new(CookieSessionStore::default());
     assert!(store.load("x").await.unwrap().is_none());
 }

@@ -66,7 +66,34 @@ impl CacheConfig {
             _ => base,
         })
     }
+}
 
+/// Multiple named cache stores (Rails' several cache stores), deserialized from
+/// a `stores` map of name → [`CacheConfig`], e.g.:
+///
+/// ```yaml
+/// stores:
+///   primary:  { type: memory }
+///   sessions: { type: redis, namespace: sess }
+/// ```
+#[derive(Debug, Clone, Default, Deserialize)]
+pub struct MultiCacheConfig {
+    #[serde(default)]
+    pub stores: std::collections::HashMap<String, CacheConfig>,
+}
+
+impl MultiCacheConfig {
+    /// Build every configured store into a [`CacheRegistry`](crate::CacheRegistry).
+    pub async fn build_registry(&self) -> Result<crate::CacheRegistry> {
+        let mut registry = crate::CacheRegistry::new();
+        for (name, config) in &self.stores {
+            registry.add(name.clone(), config.build().await?);
+        }
+        Ok(registry)
+    }
+}
+
+impl CacheConfig {
     #[cfg(feature = "cache-redis")]
     async fn build_redis(&self) -> Result<Arc<dyn CacheStore>> {
         let endpoint = self

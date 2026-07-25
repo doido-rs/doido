@@ -1,9 +1,110 @@
-# Ralph / loop progress log — Doido finishing harness
+# Ralph / loop progress log — Doido "close the Rails 8 gap" backlog
 # One line per completed story: US-XXX: <what changed>
+# Backlog: harness/prd.json (seeded from docs/RAILS8-GAP-ANALYSIS.md, 2026-07-24).
+# The previous finishing run (a different US-001..009) is archived under
+# harness/archive/2026-07-24-finish-doido-progress.txt.
 ---
-US-001: #[mailer] macro expands to a Mailer trait impl (snake_case name + template_key); make verify green.
-US-002: ActionCable server->client frames (ServerFrame + ServerMessage) with round-trip tests; make verify green. Client `command`-tag migration deferred.
-US-003: #[channel] macro derives a ChannelName registration impl (struct name); make verify green. Full action-routing deferred.
-US-004: removed inert standalone before/after_action macros (now documented helper attributes of #[controller]); filter tests green; make verify green.
-US-005: e2e generate-and-build test (doido-generators/tests/e2e_app_build_test.rs, #[ignore]d) — generates blog app in a tempdir and compiles it; moved out of the fast verify gate into `make example`. make verify now 12s green.
-US-006..009: SUPERSEDED per the generate-and-build decision — committed-app runtime wiring dropped; features covered per-crate (US-001/002/003) + compile e2e (US-005). Loop reached its scoped end (5/9 done, 4 scoped out).
+US-001: CookieSessionStore signs sessions into an HMAC-SHA256 cookie (encode/decode, tamper+wrong-secret rejection); Session typed get/set. make verify green.
+US-002: CacheSessionStore — server-side sessions backed by any doido_cache::CacheStore (id in cookie, data in cache, optional TTL). make verify green.
+US-003: config-driven CORS — [middleware.cors] in YamlConfig + MiddlewareStack::with_cors_config builds a CorsLayer (opt-in). make verify green.
+US-004: host authorization — MiddlewareStack::with_allowed_hosts 403s unlisted Host headers (port-stripped); empty=allow-any. make verify green.
+US-005: configurable middleware insertion — MiddlewareStack::insert_before/insert_after router transforms around the always-on stack. make verify green.
+US-006: strong parameters — params::Params with require/permit/deserialize + Context::query_params(). make verify green.
+US-007: CSRF protection — csrf module + MiddlewareStack::with_csrf() double-submit-cookie guard (constant-time compare). make verify green.
+US-008: flash messages — flash::Flash carried in a signed cookie (set now / read next / then gone). make verify green.
+US-009: cookies API — cookies::CookieJar (plain + HMAC-signed) + shared signing module. make verify green.
+US-010: rescue_from — rescue::RescueHandlers maps typed errors to responses via downcast (else default 500). make verify green.
+US-011: filter skipping — #[controller] before/after_action gain except=[...] + #[skip_before_action(fn)]. make verify green.
+US-012: around_action — #[around_action(fn)] wraps the action via an async closure (fn brackets + owns the response). make verify green.
+US-013: respond_to — Context::negotiated_format()/respond_to() format negotiation (Accept + .json/.html), RespondTo html/json branches, 406 fallback. make verify green.
+US-014: HTTP caching — Context::fresh_when(etag, last_modified) conditional-GET 304 via If-None-Match/If-Modified-Since. make verify green.
+US-015: rate limiting — rate_limit::RateLimiter cache-backed fixed-window check(key). make verify green.
+US-016: force_ssl — MiddlewareStack::with_force_ssl() 301-redirects insecure requests to https. make verify green.
+US-017: send_data/send_file — Context::send_data + async send_file downloads. make verify green.
+US-018: validations — validation::{Errors, Validate} with presence/length validators (Active Record style). make verify green.
+US-019: model callbacks — callbacks::Callbacks trait + run_create/update/destroy runners (Rails ordering, abort on before-hook error). make verify green.
+US-020: association ergonomics — association::Association conventions (fk/table) + HABTM join_table via Inflector. make verify green.
+US-021: named scopes — scope::Scoped extension (.scope/.scope_if) for chainable sea-orm query fragments. make verify green.
+US-022: secure password/tokens — password module (bcrypt hash/verify, HasSecurePassword::authenticate, generate_token). make verify green.
+US-023: fixtures/factories — factory::{Factory, sequence} test-record builders. make verify green.
+US-024: normalizes — normalization::Normalizer chainable attribute normalization. make verify green.
+US-025: as_json/serialized columns — serialization module (as_json only/except + serialize/deserialize_column). make verify green.
+US-026: polymorphic/STI — PolymorphicAssociation ({name}_type/id) + sti_type_column conventions. make verify green.
+US-027: multiple databases — databases::Databases writing/reading role routing with writer fallback. make verify green.
+US-028: transaction wrapper — transaction(conn, work) commit-on-Ok/rollback-on-Err helper. make verify green.
+US-023: attribute enums — enums::AttributeEnum (label/all/from_label/index/labels). make verify green.
+US-029: generator e2e — every generator output compiles (CLI-driven make example). Added job/mailer app wiring + deps; fixed doido_cable::channel macro export. make verify + make example green.
+US-030: root route — root!(handler) in the routes! DSL maps GET /. clippy+test green.
+US-032: named route helpers — get!/post! accept `as: name` (parity with resources helpers). clippy+test green.
+US-033: member/collection — resources! member:/collection: extra routes. clippy+test green.
+US-034: route constraints — constraints module (format validators + Constraints matcher for filters). clippy+test green.
+US-035: singular resource — resource!(name, Ctrl) no-id routes. clippy+test green.
+US-036: shallow nesting — shallow_resources! nested collection + shallow member routes. clippy+test green.
+US-037: redirect routes — redirect!(from, to) 301 in the DSL. clippy+test green.
+US-038: glob routes — axum {*name} catch-all via get! passthrough (test). test green.
+US-039: mount — mount!(path, router) nests a sub-router. make verify green (router phase complete).
+US-040: partials — render_partial + render_collection helpers. clippy+test green.
+US-041: content_for — ContentFor named-block capture/yield store. clippy+test green.
+US-042: form builders — helpers::form (form_tag + field helpers, escaped). clippy+test green.
+US-043: link helpers — helpers::link (link_to/link_to_class/button_to). clippy+test green.
+US-044: asset helpers — image_tag/stylesheet_link_tag/javascript_include_tag. clippy+test green.
+US-045: tag helpers — helpers::tag (tag/content_tag). clippy+test green.
+US-046: number formatting — helpers::number (delimiter/currency/percentage). clippy+test green.
+US-047: i18n helpers — helpers::i18n::I18n (t/t_with). clippy+test green.
+US-048: sanitization — helpers::sanitize (strip_tags/html_escape/sanitize). clippy+test green.
+US-049: fragment caching — fragment::cache_fragment over CacheStore. clippy+test green (View phase complete).
+US-050: mailer macro codegen — inherent mailer_name/template_key on the struct. clippy+test green.
+US-051: SMTP deliverer — smtp::SmtpDeliverer async SMTP client (mock-server tested). clippy+test green.
+US-052: deliver_later — Mail::deliver_later enqueues on the mailers queue. clippy+test green.
+US-053: mailer MIME — mime::to_mime multipart assembly (html+text). clippy+test green.
+US-054: attachments — Mail::attach/attach_inline + multipart/mixed base64 parts. clippy+test green.
+US-055: mailer layouts — layout::apply_layout (yield). clippy+test green.
+US-056: sendmail deliverer — SendmailDeliverer pipes MIME to sendmail -t. clippy+test green.
+US-057: mailer previews — MailerPreviews registry (register/names/render). clippy+test green.
+US-058: interceptors/observers — InterceptingDeliverer wrapper. clippy+test green (Mailer phase complete).
+US-059: channel macro codegen — inherent channel_name/stream_name. clippy+test green.
+US-060: cable wire protocol — CableFrame client frames now tagged command (ActionCable). clippy+test green.
+US-061: redis pubsub — RedisPubSub (feature cable-redis), integration-tested via test-backends. verify (feature off) green.
+US-062: cable connection auth — CableConnection identifiers + authorize/reject. clippy+test green.
+US-063: stream naming — streams::stream_from/stream_for. clippy+test green.
+US-064: heartbeat — heartbeat::ping/ping_now server ping frames. clippy+test green.
+US-065: broadcast_to — Cable::broadcast structured ServerMessage + pubsub() accessor. clippy+test green.
+US-066: db pubsub — DbPubSub (feature cable-db) durable log + messages_since, sqlite-tested. clippy(feature) green (Cable phase complete).
+US-067: retry_on/discard_on — retry::RetryPolicy typed decisions. clippy+test green.
+US-068: job callbacks — JobCallbacks + run_perform lifecycle. clippy+test green.
+US-069: .set parity — JobPayload with_wait/with_queue. clippy+test green.
+US-070: job batches — batch::Batch tracking + completion. clippy+test green.
+US-071: job introspection — MemoryQueue::stats/QueueStats. clippy+test green.
+US-072: richer job context — JobContext typed extension store. clippy+test green (Jobs phase complete).
+US-073: cache fetch — fetch::fetch read-through. clippy+test green.
+US-074: cache versioning — versioned_key + read/write_versioned. clippy+test green.
+US-075: multi cache ops — read/write/fetch_multi. clippy+test green.
+US-076: named stores config — MultiCacheConfig::build_registry. clippy+test green.
+US-077: cache compression — codec::encode/decode JSON+gzip. clippy+test green (Cache phase complete).
+US-078: db:seed — seeds::run_seeds runner. clippy+test green.
+US-079: db:schema — schema::dump/load. clippy+test green.
+US-080: db:reset/setup/prepare — tasks module orchestration. clippy+test green.
+US-081: db:rollback/redo — migrate::rollback/redo over MigratorTrait. clippy+test green.
+US-082: pool knobs — DatabaseConfig pool/connect_timeout + pool_options. clippy+test green (Migrations/DB phase complete).
+US-083: env overrides — env_override::apply_env_overrides (SECTION__KEY). clippy+test green.
+US-084: initializers — Initializers boot registry. clippy+test green.
+US-085: config drift resolved — standardize on per-env YAML (documented in ARCHITECTURE.md).
+US-086: console REPL — banner + evcxr launch. clippy+test green.
+US-087: generate resource — ResourceGenerator (API scaffold, no views). clippy+test green.
+US-088: generate destroy — commands::destroy (destroyable_paths + run). clippy+test green.
+US-089: runner + dbconsole — command resolvers. clippy+test green.
+US-090: locale generator — LocaleGenerator config/locales/<code>.yml. clippy+test green (CLI phase complete).
+US-091: notifications — notifications::Notifications instrumentation bus. clippy+test green.
+US-092: core extensions — core_ext::Blank + StringExt. clippy+test green.
+US-093: time helpers — time_ext (days_ago/beginning_of_day/...). clippy+test green.
+US-094: concerns — concerns::Sluggable example concern/mixin. clippy+test green.
+US-095: test time — test_time::TestClock travel/travel_to. clippy+test green (Core phase complete).
+US-096: asset pipeline — digested asset paths. clippy+test green.
+US-097: testing story — controller testing::send HTTP helper (+ factories/TestDb). clippy+test green.
+US-098: import maps — helpers::asset::importmap. clippy+test green.
+US-099: hotwire — helpers::hotwire turbo/stimulus. clippy+test green.
+US-100: i18n framework — I18n::load_yaml locale loading. clippy+test green.
+US-101: health check — health::up + with_health (GET /up). clippy+test green.
+US-102: deploy files — Dockerfile + Kamal deploy.yml + devcontainer in app template. clippy+test green.
+US-103: solid parity — DbCacheStore (cache-db) completes db-backed queue/cache/cable. clippy(feature)+test green.
+US-104: runtime CRUD e2e — `make example` scaffolds `blog` (--api), builds, `db create`/`db migrate` on temp sqlite, boots the app's own server, HTTP POST/GET/PATCH/DELETE /posts all green. Fixed --api route injection (resources! except: [new, edit]); moved e2e scaffold off /tmp tmpfs onto workspace target/. 104/104 stories done.

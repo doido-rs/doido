@@ -104,6 +104,18 @@ impl Context {
             .map_err(|e| doido_core::anyhow::anyhow!("params deserialization failed: {e}"))
     }
 
+    /// The query string as strong [`Params`](crate::params::Params), for
+    /// `require`/`permit` allowlisting before use.
+    pub fn query_params(&self) -> crate::params::Params {
+        let query = self.parts.uri.query().unwrap_or("");
+        let pairs: Vec<(String, String)> = serde_urlencoded::from_str(query).unwrap_or_default();
+        let mut map = serde_json::Map::new();
+        for (k, v) in pairs {
+            map.insert(k, serde_json::Value::String(v));
+        }
+        crate::params::Params::new(serde_json::Value::Object(map))
+    }
+
     /// Render a Tera view to an HTML 200 response.
     ///
     /// `template` is resolved by the global [`doido_view`] engine (installed at
@@ -161,6 +173,114 @@ impl Context {
     /// Get a request header by name (lowercase).
     pub fn header(&self, name: &str) -> Option<&http::HeaderValue> {
         self.parts.headers.get(name)
+    }
+
+    /// Send raw bytes as a response (Rails `send_data`). When `filename` is set,
+    /// a `Content-Disposition: attachment` header prompts a download.
+    pub fn send_data(&self, data: Vec<u8>, content_type: &str, filename: Option<&str>) -> Response {
+        let mut builder = Response::builder()
+            .status(StatusCode::OK)
+            .header(header::CONTENT_TYPE, content_type);
+        if let Some(name) = filename {
+            builder = builder.header(
+                header::CONTENT_DISPOSITION,
+                format!("attachment; filename=\"{name}\""),
+            );
+        }
+        builder
+            .body(Body::from(data))
+            .expect("valid send_data response")
+    }
+
+    /// Send a file's contents as a response (Rails `send_file`). `content_type`
+    /// defaults to `application/octet-stream`; the file name is used for the
+    /// download disposition.
+    pub async fn send_file(
+        &self,
+        path: impl AsRef<std::path::Path>,
+        content_type: Option<&str>,
+    ) -> doido_core::Result<Response> {
+        let path = path.as_ref();
+        let data = tokio::fs::read(path)
+            .await
+            .map_err(|e| doido_core::anyhow::anyhow!("send_file failed to read {path:?}: {e}"))?;
+        let content_type = content_type.unwrap_or("application/octet-stream");
+        let filename = path.file_name().and_then(|n| n.to_str());
+        Ok(self.send_data(data, content_type, filename))
+    }
+
+    /// The negotiated response [`Format`](crate::respond::Format): a `.json` or
+    /// `.html` path extension wins, otherwise the `Accept` header is inspected;
+    /// anything else is `Any`.
+    pub fn negotiated_format(&self) -> crate::respond::Format {
+        use crate::respond::Format;
+        let path = self.parts.uri.path();
+        if path.ends_with(".json") {
+            return Format::Json;
+        }
+        if path.ends_with(".html") {
+            return Format::Html;
+        }
+        match self
+            .parts
+            .headers
+            .get(header::ACCEPT)
+            .and_then(|a| a.to_str().ok())
+        {
+            Some(accept) if accept.contains("application/json") => Format::Json,
+            Some(accept) if accept.contains("text/html") => Format::Html,
+            _ => Format::Any,
+        }
+    }
+
+    /// Begin format-based content negotiation (Rails `respond_to`).
+    pub fn respond_to(&self) -> crate::respond::RespondTo {
+        crate::respond::RespondTo::new(self.negotiated_format())
+    }
+
+    /// Whether the request's `If-None-Match` matches `etag` (or is `*`).
+    pub fn etag_matches(&self, etag: &str) -> bool {
+        match self
+            .parts
+            .headers
+            .get(header::IF_NONE_MATCH)
+            .and_then(|v| v.to_str().ok())
+        {
+            Some("*") => true,
+            Some(inm) => inm.split(',').map(str::trim).any(|t| t == etag),
+            None => false,
+        }
+    }
+
+    fn if_modified_since_matches(&self, last_modified: &str) -> bool {
+        self.parts
+            .headers
+            .get(header::IF_MODIFIED_SINCE)
+            .and_then(|v| v.to_str().ok())
+            .map(|v| v == last_modified)
+            .unwrap_or(false)
+    }
+
+    /// HTTP conditional-GET check (Rails `fresh_when`): if the request's
+    /// validators match `etag` (`If-None-Match`) or `last_modified`
+    /// (`If-Modified-Since`), return a `304 Not Modified` echoing the validators;
+    /// otherwise return `None` and render normally (setting the same validators).
+    pub fn fresh_when(&self, etag: Option<&str>, last_modified: Option<&str>) -> Option<Response> {
+        let fresh = etag.map(|e| self.etag_matches(e)).unwrap_or(false)
+            || last_modified
+                .map(|lm| self.if_modified_since_matches(lm))
+                .unwrap_or(false);
+        if !fresh {
+            return None;
+        }
+        let mut builder = Response::builder().status(StatusCode::NOT_MODIFIED);
+        if let Some(e) = etag {
+            builder = builder.header(header::ETAG, e);
+        }
+        if let Some(lm) = last_modified {
+            builder = builder.header(header::LAST_MODIFIED, lm);
+        }
+        Some(builder.body(Body::empty()).expect("valid 304 response"))
     }
 }
 

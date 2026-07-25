@@ -10,6 +10,7 @@ doido-core.workspace = true
 doido-controller-macros.workspace = true
 doido-model.workspace = true
 doido-view.workspace = true
+doido-cache.workspace = true
 async-trait.workspace = true
 axum.workspace = true
 tokio = { workspace = true, features = ["full"] }
@@ -22,6 +23,12 @@ serde_norway = "0.9"
 http.workspace = true
 serde_urlencoded = "0.7"
 uuid.workspace = true
+# Cookie session signing (HMAC-SHA256). Versions match crates already in the tree
+# (pulled by sea-orm/sqlx), so this adds no new dependency versions.
+hmac = "0.13"
+sha2 = "0.11"
+base64 = "0.22"
+subtle = "2"
 
 [dev-dependencies]
 http-body-util.workspace = true

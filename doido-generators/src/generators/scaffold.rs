@@ -104,7 +104,7 @@ impl Generator for ScaffoldGenerator {
             std::fs::read_to_string(ROUTES_PATH).unwrap_or_else(|_| ROUTES_BASE.to_string());
         files.push(GeneratedFile {
             path: ROUTES_PATH.to_string(),
-            content: inject_route(&routes_existing, &plural, &controller),
+            content: inject_route(&routes_existing, &plural, &controller, api),
         });
 
         Ok(files)
@@ -213,8 +213,16 @@ fn register_controller(controllers_mod: &str, plural: &str, controller: &str) ->
 /// Injects `use crate::controllers::<Controller>;` and a
 /// `resources!(<plural>, <Controller>);` line into `config/routes.rs`,
 /// preserving existing routes. Idempotent on the resources line.
-fn inject_route(routes: &str, plural: &str, controller: &str) -> String {
-    let resources = format!("resources!({plural}, {controller});");
+///
+/// API scaffolds omit the `new`/`edit` form actions (their controller has no
+/// such methods), so the injected route excludes them — mirroring Rails, where
+/// an API-only resource routes to only index/create/show/update/destroy.
+fn inject_route(routes: &str, plural: &str, controller: &str, api: bool) -> String {
+    let resources = if api {
+        format!("resources!({plural}, {controller}, except: [new, edit]);")
+    } else {
+        format!("resources!({plural}, {controller});")
+    };
     if routes.contains(&resources) {
         return routes.to_string();
     }

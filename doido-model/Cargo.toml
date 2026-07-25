@@ -11,8 +11,11 @@ sea-orm.workspace = true
 sea-orm-migration.workspace = true
 tokio.workspace = true
 serde.workspace = true
+serde_json.workspace = true
 serde_norway = "0.9"
 url = "2"
+bcrypt = "0.16"
+uuid = { workspace = true }
 
 [dev-dependencies]
 tokio.workspace = true

@@ -11,10 +11,12 @@ serde_json.workspace = true
 serde.workspace = true
 serde_norway = "0.9"
 async-trait.workspace = true
+flate2 = "1"
 
 # Optional backend dependencies, enabled by the matching feature.
 redis = { workspace = true, optional = true }
 memcache = { version = "0.17", optional = true }
+doido-model = { workspace = true, optional = true }
 # Needed to offload the synchronous `memcache` client onto blocking tasks.
 tokio = { workspace = true, optional = true, features = ["rt"] }
 
@@ -22,6 +24,7 @@ tokio = { workspace = true, optional = true, features = ["rt"] }
 default = []
 cache-redis = ["dep:redis"]
 cache-memcache = ["dep:memcache", "dep:tokio"]
+cache-db = ["dep:doido-model"]
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["macros", "rt", "time"] }

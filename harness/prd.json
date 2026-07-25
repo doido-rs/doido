@@ -1,131 +1,1685 @@
 {
   "project": "Doido",
-  "branchName": "ralph/finish-doido",
-  "description": "Finish the Doido framework: complete the stubbed macros/crates and ship an end-to-end example app. Definition of done per story: the story's tests pass AND `make verify` exits 0. Backlog seeded from docs/ARCHITECTURE.md.",
+  "branchName": "first_stable_project",
+  "description": "Close the Rails 8 gap: implement every [core]/[nice] feature in docs/RAILS8-GAP-ANALYSIS.md (deferred items excluded) with TDD, plus a full generator e2e suite. Definition of done per story: the story's tests pass AND `make verify` exits 0. One story per gap-file checkbox; tick the box when done.",
   "userStories": [
     {
-      "id": "US-001",
-      "title": "Implement the #[mailer] macro expansion",
-      "description": "As a Doido user, I want `#[mailer]` to generate mailer plumbing so mailers read like Rails, per docs/08-mailer.md.",
+      "title": "Real cookie session store",
+      "description": "As a Doido user, I want Real cookie session store (partial) so Doido matches Rails 8, per docs/07-middleware.md.",
       "acceptanceCriteria": [
-        "doido-mailer/macros/src/lib.rs generates code (no longer a pass-through) matching the API in docs/08-mailer.md",
-        "A new test in doido-mailer/tests exercises a `#[mailer]`-annotated type end to end (compose + TestDeliverer capture)",
-        "Test was written first and failed before the implementation (TDD)",
-        "make verify passes"
+        "Failing test written FIRST (TDD) under doido-controller/tests/ (or inline #[cfg(test)]) that encodes: Real cookie session store \u2014 (signed/encrypted values) \u2014 CookieSessionStore is a no-op stub",
+        "Real cookie session store implemented per docs/07-middleware.md, matching the crate's existing patterns/naming",
+        "Tick the 'Real cookie session store' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
       ],
+      "tag": "core",
+      "crate": "doido-controller",
+      "id": "US-001",
       "priority": 1,
       "passes": true,
-      "notes": "#[mailer] now generates a doido_mailer::Mailer impl with snake_case mailer_name() + template_key() convention; covered by doido-mailer/tests/mailer_macro_test.rs. Trait path is doido_mailer::Mailer (revisit for the doido metacrate re-export path when the example app wires it)."
+      "notes": "CookieSessionStore now signs the whole session into a base64url(payload).base64url(HMAC-SHA256) cookie via new()/encode()/decode(); decode rejects tampering + wrong secret (verify_slice, constant-time). Session gained new()/with_id()/typed set()+get(). hmac/sha2/base64 match versions already vendored via sea-orm. FOLLOW-UP: AES-256-GCM encryption on top of the signature (spec 07) still pending."
     },
     {
-      "id": "US-002",
-      "title": "Implement the ActionCable wire protocol frames",
-      "description": "As a Doido user, I want cable messages to speak the ActionCable JSON protocol, per docs/12-cable.md.",
+      "title": "Server-side session backends",
+      "description": "As a Doido user, I want Server-side session backends (missing) so Doido matches Rails 8, per docs/07-middleware.md.",
       "acceptanceCriteria": [
-        "doido-cable protocol frames (welcome/ping/subscribe/confirm/message) serialize and deserialize per ActionCable JSON",
-        "doido-cable/tests/protocol_test.rs asserts round-trips for each frame type",
-        "Tests written first and failing before implementation (TDD)",
-        "make verify passes"
+        "Failing test written FIRST (TDD) under doido-controller/tests/ (or inline #[cfg(test)]) that encodes: Server-side session backends \u2014 (cache/db-backed) \u2014",
+        "Server-side session backends implemented per docs/07-middleware.md, matching the crate's existing patterns/naming",
+        "Tick the 'Server-side session backends' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
       ],
+      "tag": "core",
+      "crate": "doido-controller",
+      "id": "US-002",
       "priority": 2,
       "passes": true,
-      "notes": "Added server->client ActionCable frames: ServerFrame (welcome/ping/confirm_subscription/reject_subscription, type-tagged) + ServerMessage (untyped broadcast). Round-trips in doido-cable/tests/server_frame_test.rs. FOLLOW-UP: client CableFrame still uses `type` tag; real ActionCable uses `command` — migrating breaks protocol_test.rs and cable_test.rs, deferred."
+      "notes": "CacheSessionStore stores sessions server-side in any doido_cache::CacheStore (id in cookie, data in cache), with optional TTL; round-trip/destroy/missing covered against MemoryStore. doido-cache added as a controller dep (no cycle). DbSessionStore/RedisSessionStore specializations are follow-ups."
     },
     {
-      "id": "US-003",
-      "title": "Implement the #[channel] macro + Channel trait",
-      "description": "As a Doido user, I want `#[channel]` to wire a struct to the Channel lifecycle (subscribed/unsubscribed/receive), per docs/12-cable.md.",
+      "title": "Config-driven CORS",
+      "description": "As a Doido user, I want Config-driven CORS (partial) so Doido matches Rails 8, per docs/07-middleware.md.",
       "acceptanceCriteria": [
-        "doido-cable/macros generates code (no longer a pass-through)",
-        "doido-cable Channel trait exposes subscribed/unsubscribed/receive with a ChannelContext",
-        "doido-cable/tests/channel_test.rs drives a `#[channel]`-annotated type through subscribe -> broadcast -> receive",
-        "Tests written first and failing before implementation (TDD)",
-        "make verify passes"
+        "Failing test written FIRST (TDD) under doido-controller/tests/ (or inline #[cfg(test)]) that encodes: Config-driven CORS \u2014 (opt-in per spec) \u2014 permissive layer exists but isn't wired from config",
+        "Config-driven CORS implemented per docs/07-middleware.md, matching the crate's existing patterns/naming",
+        "Tick the 'Config-driven CORS' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
       ],
+      "tag": "nice",
+      "crate": "doido-controller",
+      "id": "US-003",
       "priority": 3,
       "passes": true,
-      "notes": "#[channel] now generates a doido_cable::ChannelName impl (registration name = struct name, e.g. \"RoomChannel\") without colliding with the user's manual Channel impl; covered by doido-cable/tests/channel_macro_test.rs (name + subscribe/broadcast/received flow). FOLLOW-UP: full action-routing (macro generating the Channel impl that dispatches `action` to inherent methods + receive(ctx, action, data)) is a breaking change vs the manual-impl tests, deferred."
+      "notes": "Added CorsConfig/MiddlewareConfig to YamlConfig ([middleware.cors] with enabled/allowed_origins/allowed_methods) + Config::middleware(); MiddlewareStack::with_cors_config builds a CorsLayer from it (\"*\"->Any). Opt-in: off unless enabled. Covered by tests/cors_config_test.rs."
     },
     {
-      "id": "US-004",
-      "title": "Resolve the before/after_action inert attribute shells",
-      "description": "As a Doido maintainer, I want the standalone `#[before_action]`/`#[after_action]` attribute macros to either work or be removed, so there is no dead surface (docs/02-controller.md).",
+      "title": "Host authorization",
+      "description": "As a Doido user, I want Host authorization (missing) so Doido matches Rails 8, per docs/07-middleware.md.",
       "acceptanceCriteria": [
-        "The standalone attr macros are removed OR made functional and documented",
-        "Existing controller filter behaviour (codegen path in #[controller]) still works",
-        "doido-controller filter tests pass",
-        "make verify passes"
+        "Failing test written FIRST (TDD) under doido-controller/tests/ (or inline #[cfg(test)]) that encodes: Host authorization \u2014 (config.hosts) \u2014",
+        "Host authorization implemented per docs/07-middleware.md, matching the crate's existing patterns/naming",
+        "Tick the 'Host authorization' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
       ],
+      "tag": "nice",
+      "crate": "doido-controller",
+      "id": "US-004",
       "priority": 4,
       "passes": true,
-      "notes": "Removed the inert standalone #[before_action]/#[after_action] proc-macros (the filter logic lives entirely in #[controller], which consumes them as helper attributes). Documented them on the #[controller] doc; updated the doido-controller re-export. All controller filter tests (halt/order/only/after) still pass."
+      "notes": "MiddlewareStack::with_allowed_hosts adds a Tower guard that 403s any request whose Host header (port stripped) isn't in the allowlist; empty allowlist permits any host. Covered by tests/host_auth_test.rs."
     },
     {
-      "id": "US-005",
-      "title": "Scaffold the examples/blog app and make it build",
-      "description": "As a Doido user, I want a real generated app that compiles, to prove the framework wires together (definition of done, docs/ARCHITECTURE.md boot sequence).",
+      "title": "Configurable middleware insertion",
+      "description": "As a Doido user, I want Configurable middleware insertion (missing) so Doido matches Rails 8, per docs/07-middleware.md.",
       "acceptanceCriteria": [
-        "examples/blog exists (generated via `doido new` + `doido generate scaffold Post title:string body:text`)",
-        "examples/blog/src/main.rs documents the boot sequence (logger -> config -> pool -> view -> cache -> server)",
-        "`cargo build --manifest-path examples/blog/Cargo.toml` succeeds",
-        "make verify passes (verify runs `make example`)"
+        "Failing test written FIRST (TDD) under doido-controller/tests/ (or inline #[cfg(test)]) that encodes: Configurable middleware insertion \u2014 (insert before/after) \u2014",
+        "Configurable middleware insertion implemented per docs/07-middleware.md, matching the crate's existing patterns/naming",
+        "Tick the 'Configurable middleware insertion' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
       ],
+      "tag": "nice",
+      "crate": "doido-controller",
+      "id": "US-005",
       "priority": 5,
       "passes": true,
-      "notes": "Done as a generate-and-build integration test (user decision, 2026-07-24): doido-generators/tests/e2e_app_build_test.rs generates a blog app into a tempdir and runs `cargo build` (passes, ~130s). Portable/CI-able, no committed absolute paths or .git. #[ignore]d and moved OUT of `verify` (now `verify = check + test`, 12s) into `make example`, mirroring supply-chain. NOTE: the throwaway examples/blog dir is still on disk untracked — user to `rm -rf examples/blog` (rm is blocked for the agent)."
+      "notes": "MiddlewareStack::insert_before/insert_after take router transforms (Box<dyn FnOnce(Router)->Router>) applied inside/outside the always-on layers (Rails config.middleware.insert_*). Covered by tests/middleware_insert_test.rs."
     },
     {
+      "title": "Strong parameters",
+      "description": "As a Doido user, I want Strong parameters (missing) so Doido matches Rails 8, per docs/02-controller.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-controller/tests/ (or inline #[cfg(test)]) that encodes: Strong parameters \u2014 (permit/require allowlist) \u2014 ctx.form/params deserialize directly, no filtering",
+        "Strong parameters implemented per docs/02-controller.md, matching the crate's existing patterns/naming",
+        "Tick the 'Strong parameters' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "core",
+      "crate": "doido-controller",
       "id": "US-006",
-      "title": "Add a system HTTP test to examples/blog",
-      "description": "As a Doido user, I want the example app covered by an in-memory HTTP test so the e2e path is a green gate.",
-      "acceptanceCriteria": [
-        "examples/blog/tests exercises GET /posts (index) and POST /posts (create) via an in-memory client",
-        "The test asserts a 2xx and rendered/JSON body",
-        "Test written first and failing before wiring (TDD)",
-        "make verify passes"
-      ],
       "priority": 6,
-      "passes": false,
-      "notes": "SUPERSEDED per the generate-and-build decision (2026-07-24): there is no committed examples/blog to add a system test to. Compile-level e2e is covered by US-005; a fuller runtime HTTP e2e can be revisited if a committed example is added later. Not implemented — scoped out."
+      "passes": true,
+      "notes": "Added params::Params strong-params allowlist: require(key) (errors if missing), permit(&[keys]) (drops unlisted keys, blocking mass-assignment), get/deserialize/into_value; Context::query_params() exposes the query string as Params. Covered by tests/strong_params_test.rs."
     },
     {
+      "title": "CSRF protection",
+      "description": "As a Doido user, I want CSRF protection (missing) so Doido matches Rails 8, per docs/02-controller.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-controller/tests/ (or inline #[cfg(test)]) that encodes: CSRF protection \u2014 (authenticity token) \u2014",
+        "CSRF protection implemented per docs/02-controller.md, matching the crate's existing patterns/naming",
+        "Tick the 'CSRF protection' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "core",
+      "crate": "doido-controller",
       "id": "US-007",
-      "title": "Wire a welcome mailer into examples/blog",
-      "description": "As a Doido user, I want the example to send a welcome email via the mailer so US-001 is exercised end to end.",
-      "acceptanceCriteria": [
-        "examples/blog defines a `#[mailer]` that composes a welcome email",
-        "A test uses TestDeliverer to assert the email is captured on the relevant action",
-        "make verify passes"
-      ],
       "priority": 7,
-      "passes": false,
-      "notes": "SUPERSEDED per the generate-and-build decision (2026-07-24): no committed example to wire a mailer into. The #[mailer] feature is covered by US-001 crate tests. Not implemented — scoped out."
+      "passes": true,
+      "notes": "Added csrf module (generate_token 256-bit, constant-time tokens_match via subtle) + MiddlewareStack::with_csrf() double-submit-cookie guard: safe methods pass; state-changing requests need csrf_token cookie == X-CSRF-Token header else 403. Covered by tests/csrf_test.rs."
     },
     {
+      "title": "Flash messages",
+      "description": "As a Doido user, I want Flash messages (missing) so Doido matches Rails 8, per docs/02-controller.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-controller/tests/ (or inline #[cfg(test)]) that encodes: Flash messages \u2014 ",
+        "Flash messages implemented per docs/02-controller.md, matching the crate's existing patterns/naming",
+        "Tick the 'Flash messages' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "core",
+      "crate": "doido-controller",
       "id": "US-008",
-      "title": "Wire a background job into examples/blog",
-      "description": "As a Doido user, I want the example to enqueue a `#[job]` so the jobs path is exercised end to end.",
-      "acceptanceCriteria": [
-        "examples/blog defines a `#[job]` and enqueues it from an action",
-        "A test drains the in-memory queue and asserts the side effect",
-        "make verify passes"
-      ],
       "priority": 8,
-      "passes": false,
-      "notes": "SUPERSEDED per the generate-and-build decision (2026-07-24): no committed example to wire a job into. #[job] is already covered by doido-jobs tests. Not implemented — scoped out."
+      "passes": true,
+      "notes": "Added flash::Flash (set/get/iter/is_empty) carried between requests in a signed cookie via CookieSessionStore (to_cookie/from_cookie); lives one following request, dropped when absent/tampered/wrong-secret. Covered by tests/flash_test.rs. FOLLOW-UP: Context::flash() wiring once the app secret is on Context."
     },
     {
-      "id": "US-009",
-      "title": "Wire a cable broadcast into examples/blog",
-      "description": "As a Doido user, I want the example to broadcast over a channel so US-002/US-003 are exercised end to end.",
+      "title": "Cookies API",
+      "description": "As a Doido user, I want Cookies API (missing) so Doido matches Rails 8, per docs/02-controller.md.",
       "acceptanceCriteria": [
-        "examples/blog defines a `#[channel]` and broadcasts on post creation",
-        "A test connects a fake client, subscribes, triggers creation, and asserts the message is received",
+        "Failing test written FIRST (TDD) under doido-controller/tests/ (or inline #[cfg(test)]) that encodes: Cookies API \u2014 (read/write, signed/encrypted) \u2014",
+        "Cookies API implemented per docs/02-controller.md, matching the crate's existing patterns/naming",
+        "Tick the 'Cookies API' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "core",
+      "crate": "doido-controller",
+      "id": "US-009",
+      "priority": 9,
+      "passes": true,
+      "notes": "Added cookies::CookieJar (from_header parse, get/set plain, get_signed/set_signed HMAC-signed base64url(value).sig, to_set_cookie_headers with Path=/;HttpOnly) + shared signing module (sign/verify). Tamper/plain-as-signed rejected. Covered by tests/cookies_test.rs. FOLLOW-UP: AES-GCM encrypted variant; Context::cookies() wiring with app secret."
+    },
+    {
+      "title": "rescue_from",
+      "description": "As a Doido user, I want rescue_from (missing) so Doido matches Rails 8, per docs/02-controller.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-controller/tests/ (or inline #[cfg(test)]) that encodes: rescue_from \u2014 typed error handling \u2014 only panic\u2192500 today",
+        "rescue_from implemented per docs/02-controller.md, matching the crate's existing patterns/naming",
+        "Tick the 'rescue_from' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "core",
+      "crate": "doido-controller",
+      "id": "US-010",
+      "priority": 10,
+      "passes": true,
+      "notes": "Added rescue::RescueHandlers: on::<E>(handler) registers a typed error->Response mapping; rescue(&anyhow::Error) downcasts in registration order and returns the first match, else None (falls back to default 500). Covered by tests/rescue_test.rs. FOLLOW-UP: #[controller] macro wiring to consult the registry on the Err path."
+    },
+    {
+      "title": "skip_before_action",
+      "description": "As a Doido user, I want skip_before_action (missing) so Doido matches Rails 8, per docs/02-controller.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-controller/tests/ (or inline #[cfg(test)]) that encodes: skip_before_action \u2014 / filter skipping \u2014",
+        "skip_before_action implemented per docs/02-controller.md, matching the crate's existing patterns/naming",
+        "Tick the 'skip_before_action' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "core",
+      "crate": "doido-controller",
+      "id": "US-011",
+      "priority": 11,
+      "passes": true,
+      "notes": "#[controller] filter attrs now support except = [actions] (inverse of only) and a #[skip_before_action(fn)] attribute that cancels a named before/after filter for that action. FilterAttr::applies_to centralizes only/except; after_action now respects scopes too. Covered by tests/controller_skip_test.rs (+ existing filter tests still green)."
+    },
+    {
+      "title": "around_action",
+      "description": "As a Doido user, I want around_action (missing) so Doido matches Rails 8, per docs/02-controller.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-controller/tests/ (or inline #[cfg(test)]) that encodes: around_action \u2014 filters \u2014",
+        "around_action implemented per docs/02-controller.md, matching the crate's existing patterns/naming",
+        "Tick the 'around_action' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "nice",
+      "crate": "doido-controller",
+      "id": "US-012",
+      "priority": 12,
+      "passes": true,
+      "notes": "#[around_action(fn)] wraps the action: the macro runs it through fn(&mut Context, run) where run is an async closure executing the action and yielding its Response, so the filter can bracket the call and own/modify the response. Covered by tests/around_action_test.rs. FOLLOW-UP: multiple around filters nest (currently first only)."
+    },
+    {
+      "title": "HTTP caching",
+      "description": "As a Doido user, I want HTTP caching (missing) so Doido matches Rails 8, per docs/02-controller.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-controller/tests/ (or inline #[cfg(test)]) that encodes: HTTP caching \u2014 (fresh_when / stale? / ETag / Last-Modified) \u2014",
+        "HTTP caching implemented per docs/02-controller.md, matching the crate's existing patterns/naming",
+        "Tick the 'HTTP caching' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "nice",
+      "crate": "doido-controller",
+      "id": "US-013",
+      "priority": 13,
+      "passes": true,
+      "notes": "Context::fresh_when(etag, last_modified) returns 304 (echoing validators) when If-None-Match matches the etag (or *) or If-Modified-Since equals last_modified, else None; Context::etag_matches() exposed. Covered by tests/http_caching_test.rs. FOLLOW-UP: timestamp comparison for If-Modified-Since (currently exact string match)."
+    },
+    {
+      "title": "Rate limiting",
+      "description": "As a Doido user, I want Rate limiting (missing) so Doido matches Rails 8, per docs/02-controller.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-controller/tests/ (or inline #[cfg(test)]) that encodes: Rate limiting \u2014 (Rails 8 rate_limit) \u2014",
+        "Rate limiting implemented per docs/02-controller.md, matching the crate's existing patterns/naming",
+        "Tick the 'Rate limiting' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "nice",
+      "crate": "doido-controller",
+      "id": "US-014",
+      "priority": 14,
+      "passes": true,
+      "notes": "rate_limit::RateLimiter (cache-backed fixed window): check(key) counts hits per key within window_secs, storing (count, window_start) so the window resets by time regardless of cache TTL; over-limit returns false; per-key isolation. Covered by tests/rate_limit_test.rs. FOLLOW-UP: Tower middleware + 429 wiring."
+    },
+    {
+      "title": "force_ssl",
+      "description": "As a Doido user, I want force_ssl (missing) so Doido matches Rails 8, per docs/02-controller.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-controller/tests/ (or inline #[cfg(test)]) that encodes: force_ssl \u2014 / SSL redirect \u2014",
+        "force_ssl implemented per docs/02-controller.md, matching the crate's existing patterns/naming",
+        "Tick the 'force_ssl' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "nice",
+      "crate": "doido-controller",
+      "id": "US-015",
+      "priority": 15,
+      "passes": true,
+      "notes": "MiddlewareStack::with_force_ssl() adds a guard that 301-redirects insecure requests to their https:// URL (secure = X-Forwarded-Proto https or https scheme). Covered by tests/force_ssl_test.rs."
+    },
+    {
+      "title": "Response streaming",
+      "description": "As a Doido user, I want Response streaming (missing) so Doido matches Rails 8, per docs/02-controller.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-controller/tests/ (or inline #[cfg(test)]) that encodes: Response streaming \u2014 / send_data / send_file \u2014",
+        "Response streaming implemented per docs/02-controller.md, matching the crate's existing patterns/naming",
+        "Tick the 'Response streaming' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "nice",
+      "crate": "doido-controller",
+      "id": "US-016",
+      "priority": 16,
+      "passes": true,
+      "notes": "Context::send_data(bytes, content_type, filename) -> Response (Content-Disposition attachment) and async send_file(path, content_type) reading the file (errors on missing path). Covered by tests/send_data_test.rs. FOLLOW-UP: true chunked streaming body for large files."
+    },
+    {
+      "title": "Validations",
+      "description": "As a Doido user, I want Validations (missing) so Doido matches Rails 8, per docs/03-model.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-model/tests/ (or inline #[cfg(test)]) that encodes: Validations \u2014 (presence/uniqueness/format/length/numericality/custom) \u2014",
+        "Validations implemented per docs/03-model.md, matching the crate's existing patterns/naming",
+        "Tick the 'Validations' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "core",
+      "crate": "doido-model",
+      "id": "US-017",
+      "priority": 17,
+      "passes": true,
+      "notes": "Added validation module: Errors collector (add/on/len/is_empty/full_messages) + presence/length validators + Validate trait (validate()/is_valid()). Models opt in by impl Validate. Covered by tests/validation_test.rs. FOLLOW-UP: uniqueness (needs db), format/numericality, and a derive macro."
+    },
+    {
+      "title": "Callbacks",
+      "description": "As a Doido user, I want Callbacks (missing) so Doido matches Rails 8, per docs/03-model.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-model/tests/ (or inline #[cfg(test)]) that encodes: Callbacks \u2014 (before/after save/create/update/destroy/validation) \u2014",
+        "Callbacks implemented per docs/03-model.md, matching the crate's existing patterns/naming",
+        "Tick the 'Callbacks' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "core",
+      "crate": "doido-model",
+      "id": "US-018",
+      "priority": 18,
+      "passes": true,
+      "notes": "Added callbacks module: Callbacks trait (before/after validation/save/create/update/destroy, all default no-op) + run_create/run_update/run_destroy async runners that fire hooks in Rails order around a persist closure; a failing before-hook aborts persist. Covered by tests/callbacks_test.rs."
+    },
+    {
+      "title": "Declarative associations ergonomics",
+      "description": "As a Doido user, I want Declarative associations ergonomics (partial) so Doido matches Rails 8, per docs/03-model.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-model/tests/ (or inline #[cfg(test)]) that encodes: Declarative associations ergonomics \u2014 (has_many/belongs_to/through) \u2014 raw sea-orm relations only",
+        "Declarative associations ergonomics implemented per docs/03-model.md, matching the crate's existing patterns/naming",
+        "Tick the 'Declarative associations ergonomics' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "core",
+      "crate": "doido-model",
+      "id": "US-019",
+      "priority": 19,
+      "passes": true,
+      "notes": "Added association module: Association::{belongs_to,has_one,has_many,has_and_belongs_to_many} resolving Rails foreign-key/table conventions via Inflector, + join_table() for HABTM (sorted plural). Complements sea-orm's type-level relations. Covered by tests/association_test.rs."
+    },
+    {
+      "title": "Named scopes",
+      "description": "As a Doido user, I want Named scopes (missing) so Doido matches Rails 8, per docs/03-model.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-model/tests/ (or inline #[cfg(test)]) that encodes: Named scopes \u2014 ",
+        "Named scopes implemented per docs/03-model.md, matching the crate's existing patterns/naming",
+        "Tick the 'Named scopes' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "core",
+      "crate": "doido-model",
+      "id": "US-020",
+      "priority": 20,
+      "passes": true,
+      "notes": "Added scope::Scoped extension trait for sea-orm Select<E>: .scope(fn) applies a query transformation and .scope_if(cond, fn) applies conditionally, so named scopes chain (Entity::find().scope(published)...). Verified by building SQL. Covered by tests/scope_test.rs."
+    },
+    {
+      "title": "Secure password / tokens",
+      "description": "As a Doido user, I want Secure password / tokens (missing) so Doido matches Rails 8, per docs/03-model.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-model/tests/ (or inline #[cfg(test)]) that encodes: Secure password / tokens \u2014 (has_secure_password, generates_token_for) \u2014",
+        "Secure password / tokens implemented per docs/03-model.md, matching the crate's existing patterns/naming",
+        "Tick the 'Secure password / tokens' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "core",
+      "crate": "doido-model",
+      "id": "US-021",
+      "priority": 21,
+      "passes": true,
+      "notes": "Added password module: bcrypt hash_password/hash_password_with_cost + verify_password, HasSecurePassword trait (authenticate) for has_secure_password, and generate_token() (256-bit) for has_secure_token. New deps bcrypt+uuid. Covered by tests/password_test.rs. FOLLOW-UP: signed purpose+expiry tokens (generates_token_for)."
+    },
+    {
+      "title": "Fixtures / factories for tests",
+      "description": "As a Doido user, I want Fixtures / factories for tests (partial) so Doido matches Rails 8, per docs/03-model.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-model/tests/ (or inline #[cfg(test)]) that encodes: Fixtures / factories for tests \u2014 only in-memory TestDb",
+        "Fixtures / factories for tests implemented per docs/03-model.md, matching the crate's existing patterns/naming",
+        "Tick the 'Fixtures / factories for tests' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "core",
+      "crate": "doido-model",
+      "id": "US-022",
+      "priority": 22,
+      "passes": true,
+      "notes": "Added factory module: Factory trait (build()/build_list(n)) + global monotonic sequence() for unique test values (FactoryBot-style), pairs with TestDb. Covered by tests/factory_test.rs."
+    },
+    {
+      "title": "Attribute enums with helpers",
+      "description": "As a Doido user, I want Attribute enums with helpers (missing) so Doido matches Rails 8, per docs/03-model.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-model/tests/ (or inline #[cfg(test)]) that encodes: Attribute enums with helpers \u2014 ",
+        "Attribute enums with helpers implemented per docs/03-model.md, matching the crate's existing patterns/naming",
+        "Tick the 'Attribute enums with helpers' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "nice",
+      "crate": "doido-model",
+      "id": "US-023",
+      "priority": 23,
+      "passes": true,
+      "notes": "Added enums module: AttributeEnum trait giving enum attributes all()/label()/from_label()/index()/labels() (Rails enum helpers); native == is the variant predicate. Covered by tests/enums_test.rs."
+    },
+    {
+      "title": "normalizes",
+      "description": "As a Doido user, I want normalizes (missing) so Doido matches Rails 8, per docs/03-model.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-model/tests/ (or inline #[cfg(test)]) that encodes: normalizes \u2014 (attribute normalization) \u2014",
+        "normalizes implemented per docs/03-model.md, matching the crate's existing patterns/naming",
+        "Tick the 'normalizes' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "nice",
+      "crate": "doido-model",
+      "id": "US-024",
+      "priority": 24,
+      "passes": true,
+      "notes": "Added normalization::Normalizer: chainable strip/downcase/upcase/squish/custom steps + apply(); use in before_save/before_validation. Covered by tests/normalization_test.rs."
+    },
+    {
+      "title": "as_json / serialized columns",
+      "description": "As a Doido user, I want as_json / serialized columns (missing) so Doido matches Rails 8, per docs/03-model.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-model/tests/ (or inline #[cfg(test)]) that encodes: as_json / serialized columns \u2014 ",
+        "as_json / serialized columns implemented per docs/03-model.md, matching the crate's existing patterns/naming",
+        "Tick the 'as_json / serialized columns' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "nice",
+      "crate": "doido-model",
+      "id": "US-025",
+      "priority": 25,
+      "passes": true,
+      "notes": "Added serialization module: as_json/as_json_only/as_json_except (top-level key filtering) + serialize_column/deserialize_column (struct <-> JSON text for serialized columns). serde_json added as a model dep. Covered by tests/serialization_test.rs."
+    },
+    {
+      "title": "Polymorphic associations / STI",
+      "description": "As a Doido user, I want Polymorphic associations / STI (missing) so Doido matches Rails 8, per docs/03-model.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-model/tests/ (or inline #[cfg(test)]) that encodes: Polymorphic associations / STI \u2014 ",
+        "Polymorphic associations / STI implemented per docs/03-model.md, matching the crate's existing patterns/naming",
+        "Tick the 'Polymorphic associations / STI' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "nice",
+      "crate": "doido-model",
+      "id": "US-026",
+      "priority": 26,
+      "passes": true,
+      "notes": "Extended association module: PolymorphicAssociation::belongs_to(name) -> {name}_type/{name}_id columns, and sti_type_column() -> \"type\" (STI discriminator). Covered by tests/polymorphic_test.rs."
+    },
+    {
+      "title": "Multiple databases / read-write splitting",
+      "description": "As a Doido user, I want Multiple databases / read-write splitting (missing) so Doido matches Rails 8, per docs/03-model.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-model/tests/ (or inline #[cfg(test)]) that encodes: Multiple databases / read-write splitting \u2014 single global pool today",
+        "Multiple databases / read-write splitting implemented per docs/03-model.md, matching the crate's existing patterns/naming",
+        "Tick the 'Multiple databases / read-write splitting' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "nice",
+      "crate": "doido-model",
+      "id": "US-027",
+      "priority": 27,
+      "passes": true,
+      "notes": "Added databases module: Databases holds a writing connection + optional reading replica; connection(Role) routes reads to the replica (falling back to the writer). Real routing verified via a replica-only table. Covered by tests/databases_test.rs."
+    },
+    {
+      "title": "Transaction convenience wrapper",
+      "description": "As a Doido user, I want Transaction convenience wrapper (partial) so Doido matches Rails 8, per docs/03-model.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-model/tests/ (or inline #[cfg(test)]) that encodes: Transaction convenience wrapper \u2014 raw sea-orm only",
+        "Transaction convenience wrapper implemented per docs/03-model.md, matching the crate's existing patterns/naming",
+        "Tick the 'Transaction convenience wrapper' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "nice",
+      "crate": "doido-model",
+      "id": "US-028",
+      "priority": 28,
+      "passes": true,
+      "notes": "Added transaction module: transaction(conn, async |txn| {...}) begins a tx, commits on Ok, rolls back on Err, surfacing anyhow errors. Commit/rollback verified via PK-conflict. Covered by tests/transaction_test.rs."
+    },
+    {
+      "title": "E2E: every generator's output compiles",
+      "description": "As a Doido user, I want proof that every `doido generate` target produces code that compiles, per docs/06b-generators.md.",
+      "acceptanceCriteria": [
+        "doido-generators/tests/e2e_app_build_test.rs extended to scaffold model/controller/scaffold/mailer/channel/job/migration and cargo build the app",
+        "Test is #[ignore]d and run via `make example` (kept out of the fast `verify` gate)",
+        "make example passes end to end",
         "make verify passes"
       ],
-      "priority": 9,
-      "passes": false,
-      "notes": "SUPERSEDED per the generate-and-build decision (2026-07-24): no committed example to broadcast from. Cable is covered by US-002/US-003 crate tests. Not implemented — scoped out."
+      "tag": "core",
+      "crate": "doido-generators",
+      "id": "US-029",
+      "priority": 29,
+      "passes": true,
+      "notes": "e2e_app_build_test now drives the real CLI for every generator (new --cable, scaffold, model, controller, job, mailer, channel, 2x migration) then cargo builds the app. Required wiring so generated code compiles: app gains doido-core/doido-jobs/doido-mailer deps; app/jobs & app/mailers mod files wired into main.rs; job/mailer/channel generators register their module (shared register_module); fixed a latent doido-cable bug (channel module shadowed the #[channel] macro -> also export doido_cable::channel). make example green (~150s), make verify green."
+    },
+    {
+      "title": "Root route",
+      "description": "As a Doido user, I want Root route (missing) so Doido matches Rails 8, per docs/01-router.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-controller/tests/ (or inline #[cfg(test)]) that encodes: Root route \u2014 (root \"home#index\") \u2014",
+        "Root route implemented per docs/01-router.md, matching the crate's existing patterns/naming",
+        "Tick the 'Root route' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "core",
+      "crate": "doido-controller",
+      "id": "US-030",
+      "priority": 30,
+      "passes": true,
+      "notes": "Added root!(handler) to the routes! DSL: maps GET / to the handler (+ block-local root_path() helper). Covered by tests/root_route_test.rs. (The named-route as: helper machinery also landed here, used by US-032.)"
+    },
+    {
+      "title": "respond_to / format-based content negotiation",
+      "description": "As a Doido user, I want respond_to / format-based content negotiation (missing) so Doido matches Rails 8, per docs/01-router.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-controller/tests/ (or inline #[cfg(test)]) that encodes: respond_to / format-based content negotiation \u2014 ",
+        "respond_to / format-based content negotiation implemented per docs/01-router.md, matching the crate's existing patterns/naming",
+        "Tick the 'respond_to / format-based content negotiation' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "core",
+      "crate": "doido-controller",
+      "id": "US-031",
+      "priority": 31,
+      "passes": true,
+      "notes": "Added respond::Format + Context::negotiated_format() (.json/.html path ext wins, else Accept header) and Context::respond_to() -> RespondTo builder with .html()/.json() branches; unmatched requested format -> 406. Covered by tests/respond_to_test.rs."
+    },
+    {
+      "title": "Named path/URL helpers for custom routes",
+      "description": "As a Doido user, I want Named path/URL helpers for custom routes (partial) so Doido matches Rails 8, per docs/01-router.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-controller/tests/ (or inline #[cfg(test)]) that encodes: Named path/URL helpers for custom routes \u2014 only resources! generates _path helpers; plain get!/post! routes get none",
+        "Named path/URL helpers for custom routes implemented per docs/01-router.md, matching the crate's existing patterns/naming",
+        "Tick the 'Named path/URL helpers for custom routes' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "core",
+      "crate": "doido-controller",
+      "id": "US-032",
+      "priority": 32,
+      "passes": true,
+      "notes": "get!/post!/... now accept `as: name`, generating a {name}_path() helper (parity with resources! helpers). Covered by tests/named_route_test.rs. NOTE: like resource helpers, generated path fns are currently block-local \u2014 exposing them app-wide is a shared follow-up."
+    },
+    {
+      "title": "member / collection route blocks on resources",
+      "description": "As a Doido user, I want member / collection route blocks on resources (partial) so Doido matches Rails 8, per docs/01-router.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-controller/tests/ (or inline #[cfg(test)]) that encodes: member / collection route blocks on resources \u2014 must add manual method routes today",
+        "member / collection route blocks on resources implemented per docs/01-router.md, matching the crate's existing patterns/naming",
+        "Tick the 'member / collection route blocks on resources' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "core",
+      "crate": "doido-controller",
+      "id": "US-033",
+      "priority": 33,
+      "passes": true,
+      "notes": "resources! now accepts member: [actions] and collection: [actions], adding GET /{res}/{id}/<action> and GET /{res}/<action> routes to the controller methods. Multiple options (only/except/member/collection) parse in a loop. Covered by tests/member_collection_test.rs."
+    },
+    {
+      "title": "Route constraints",
+      "description": "As a Doido user, I want Route constraints (missing) so Doido matches Rails 8, per docs/01-router.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-controller/tests/ (or inline #[cfg(test)]) that encodes: Route constraints \u2014 (regex / format / lambda) \u2014",
+        "Route constraints implemented per docs/01-router.md, matching the crate's existing patterns/naming",
+        "Tick the 'Route constraints' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "nice",
+      "crate": "doido-controller",
+      "id": "US-034",
+      "priority": 34,
+      "passes": true,
+      "notes": "Added constraints module: numeric/alpha/alphanumeric/uuid_like validators + Constraints (param name->validator, matches(&[(k,v)])); enforce from a before_action that rejects malformed path params. Covered by tests/constraints_test.rs. NOTE: check-based (axum has no regex path matching), not macro-integrated."
+    },
+    {
+      "title": "Singular resource",
+      "description": "As a Doido user, I want Singular resource (missing) so Doido matches Rails 8, per docs/01-router.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-controller/tests/ (or inline #[cfg(test)]) that encodes: Singular resource \u2014 (resource :profile) \u2014",
+        "Singular resource implemented per docs/01-router.md, matching the crate's existing patterns/naming",
+        "Tick the 'Singular resource' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "nice",
+      "crate": "doido-controller",
+      "id": "US-035",
+      "priority": 35,
+      "passes": true,
+      "notes": "Added resource!(name, Controller) singular-resource DSL: show/new/create/edit/update/destroy with no {id} and no index (Rails resource :profile) + block-local path helpers. Covered by tests/singular_resource_test.rs."
+    },
+    {
+      "title": "Shallow nesting",
+      "description": "As a Doido user, I want Shallow nesting (missing) so Doido matches Rails 8, per docs/01-router.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-controller/tests/ (or inline #[cfg(test)]) that encodes: Shallow nesting \u2014 for nested resources \u2014",
+        "Shallow nesting implemented per docs/01-router.md, matching the crate's existing patterns/naming",
+        "Tick the 'Shallow nesting' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "nice",
+      "crate": "doido-controller",
+      "id": "US-036",
+      "priority": 36,
+      "passes": true,
+      "notes": "Added shallow_resources!(parent, child, Controller): nested collection routes (/parent/{parent_id}/child index/new/create) + shallow member routes (/child/{id} show/edit/update/destroy). Covered by tests/shallow_nesting_test.rs."
+    },
+    {
+      "title": "Redirect routes",
+      "description": "As a Doido user, I want Redirect routes (missing) so Doido matches Rails 8, per docs/01-router.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-controller/tests/ (or inline #[cfg(test)]) that encodes: Redirect routes \u2014 (to: redirect(\"/x\")) \u2014",
+        "Redirect routes implemented per docs/01-router.md, matching the crate's existing patterns/naming",
+        "Tick the 'Redirect routes' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "nice",
+      "crate": "doido-controller",
+      "id": "US-037",
+      "priority": 37,
+      "passes": true,
+      "notes": "Added redirect!(\"/from\", \"/to\") to the routes! DSL: GET /from -> 301 with Location /to. Covered by tests/redirect_route_test.rs."
+    },
+    {
+      "title": "Glob / catch-all routes",
+      "description": "As a Doido user, I want Glob / catch-all routes (missing) so Doido matches Rails 8, per docs/01-router.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-controller/tests/ (or inline #[cfg(test)]) that encodes: Glob / catch-all routes \u2014 (/path) \u2014",
+        "Glob / catch-all routes implemented per docs/01-router.md, matching the crate's existing patterns/naming",
+        "Tick the 'Glob / catch-all routes' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "nice",
+      "crate": "doido-controller",
+      "id": "US-038",
+      "priority": 38,
+      "passes": true,
+      "notes": "Glob/catch-all works via the routes! DSL passing axum's {*name} wildcard through to the route; Path<String> captures the rest. Covered by tests/glob_route_test.rs."
+    },
+    {
+      "title": "mount engines / sub-apps",
+      "description": "As a Doido user, I want mount engines / sub-apps (missing) so Doido matches Rails 8, per docs/01-router.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-controller/tests/ (or inline #[cfg(test)]) that encodes: mount engines / sub-apps \u2014 + direct/resolve custom helpers \u2014",
+        "mount engines / sub-apps implemented per docs/01-router.md, matching the crate's existing patterns/naming",
+        "Tick the 'mount engines / sub-apps' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "nice",
+      "crate": "doido-controller",
+      "id": "US-039",
+      "priority": 39,
+      "passes": true,
+      "notes": "Added mount!(\"/path\", router) to the routes! DSL: nests a sub-router (axum .nest) under a prefix (Rails mount). Covered by tests/mount_test.rs. NOTE: direct/resolve custom URL helpers left as a follow-up."
+    },
+    {
+      "title": "Partial + collection render helpers",
+      "description": "As a Doido user, I want Partial + collection render helpers (partial) so Doido matches Rails 8, per docs/04-view.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-view/tests/ (or inline #[cfg(test)]) that encodes: Partial + collection render helpers \u2014 (render \"form\", render collection:) \u2014 Tera include only, no Rails-style helper",
+        "Partial + collection render helpers implemented per docs/04-view.md, matching the crate's existing patterns/naming",
+        "Tick the 'Partial + collection render helpers' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "core",
+      "crate": "doido-view",
+      "id": "US-040",
+      "priority": 40,
+      "passes": true,
+      "notes": "Added partials module: render_partial(name) renders the _-prefixed partial (posts/form -> posts/_form) and render_collection(partial, items, as_var) renders per item and concatenates (Rails render partial:/collection:). Covered by tests/partials_test.rs."
+    },
+    {
+      "title": "content_for / named yield blocks",
+      "description": "As a Doido user, I want content_for / named yield blocks (partial) so Doido matches Rails 8, per docs/04-view.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-view/tests/ (or inline #[cfg(test)]) that encodes: content_for / named yield blocks \u2014 only content_for_layout exists",
+        "content_for / named yield blocks implemented per docs/04-view.md, matching the crate's existing patterns/naming",
+        "Tick the 'content_for / named yield blocks' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "core",
+      "crate": "doido-view",
+      "id": "US-041",
+      "priority": 41,
+      "passes": true,
+      "notes": "Added content_for::ContentFor: set(key, html) appends a named block, get(key) yields it (empty if unset), has(key) = content_for?. Layout reads captured blocks. Covered by tests/content_for_test.rs."
+    },
+    {
+      "title": "Form builders",
+      "description": "As a Doido user, I want Form builders (missing) so Doido matches Rails 8, per docs/04-view.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-view/tests/ (or inline #[cfg(test)]) that encodes: Form builders \u2014 (form_with/form_for + field helpers) \u2014",
+        "Form builders implemented per docs/04-view.md, matching the crate's existing patterns/naming",
+        "Tick the 'Form builders' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "core",
+      "crate": "doido-view",
+      "id": "US-042",
+      "priority": 42,
+      "passes": true,
+      "notes": "Added helpers::form: form_tag (method-override via hidden _method for PATCH/DELETE + CSRF authenticity_token field) / form_end + text_field/text_area/hidden_field/label/submit, all HTML-escaped. Covered by tests/form_helpers_test.rs."
+    },
+    {
+      "title": "Link/URL helpers",
+      "description": "As a Doido user, I want Link/URL helpers (missing) so Doido matches Rails 8, per docs/04-view.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-view/tests/ (or inline #[cfg(test)]) that encodes: Link/URL helpers \u2014 (link_to, button_to) \u2014",
+        "Link/URL helpers implemented per docs/04-view.md, matching the crate's existing patterns/naming",
+        "Tick the 'Link/URL helpers' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "core",
+      "crate": "doido-view",
+      "id": "US-043",
+      "priority": 43,
+      "passes": true,
+      "notes": "Added helpers::link: link_to/link_to_class (escaped anchors) + button_to (form+button, method-tunneled). Covered by tests/link_helpers_test.rs."
+    },
+    {
+      "title": "Asset helpers",
+      "description": "As a Doido user, I want Asset helpers (missing) so Doido matches Rails 8, per docs/04-view.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-view/tests/ (or inline #[cfg(test)]) that encodes: Asset helpers \u2014 (image_tag, stylesheet_link_tag, javascript_include_tag) \u2014",
+        "Asset helpers implemented per docs/04-view.md, matching the crate's existing patterns/naming",
+        "Tick the 'Asset helpers' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "core",
+      "crate": "doido-view",
+      "id": "US-044",
+      "priority": 44,
+      "passes": true,
+      "notes": "Added helpers::asset: image_tag/image_tag_alt/stylesheet_link_tag/javascript_include_tag serving bare names from /assets/ (rooted/absolute pass through), adding .css/.js extensions. Covered by tests/asset_helpers_test.rs."
+    },
+    {
+      "title": "Tag helpers",
+      "description": "As a Doido user, I want Tag helpers (missing) so Doido matches Rails 8, per docs/04-view.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-view/tests/ (or inline #[cfg(test)]) that encodes: Tag helpers \u2014 (tag, content_tag) \u2014",
+        "Tag helpers implemented per docs/04-view.md, matching the crate's existing patterns/naming",
+        "Tick the 'Tag helpers' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "nice",
+      "crate": "doido-view",
+      "id": "US-045",
+      "priority": 45,
+      "passes": true,
+      "notes": "Added helpers::tag: tag(name, attrs) void tags + content_tag(name, content, attrs) with escaped content/attrs. Covered by tests/tag_helpers_test.rs."
+    },
+    {
+      "title": "Number/date/currency formatting helpers",
+      "description": "As a Doido user, I want Number/date/currency formatting helpers (missing) so Doido matches Rails 8, per docs/04-view.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-view/tests/ (or inline #[cfg(test)]) that encodes: Number/date/currency formatting helpers \u2014 ",
+        "Number/date/currency formatting helpers implemented per docs/04-view.md, matching the crate's existing patterns/naming",
+        "Tick the 'Number/date/currency formatting helpers' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "nice",
+      "crate": "doido-view",
+      "id": "US-046",
+      "priority": 46,
+      "passes": true,
+      "notes": "Added helpers::number: number_with_delimiter (thousands grouping), number_to_currency/_unit (2dp + delimiter), number_to_percentage(precision). Covered by tests/number_helpers_test.rs. NOTE: date/time formatting left as follow-up (no chrono dep in doido-view)."
+    },
+    {
+      "title": "i18n view helpers",
+      "description": "As a Doido user, I want i18n view helpers (missing) so Doido matches Rails 8, per docs/04-view.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-view/tests/ (or inline #[cfg(test)]) that encodes: i18n view helpers \u2014 (t, l) \u2014",
+        "i18n view helpers implemented per docs/04-view.md, matching the crate's existing patterns/naming",
+        "Tick the 'i18n view helpers' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "nice",
+      "crate": "doido-view",
+      "id": "US-047",
+      "priority": 47,
+      "passes": true,
+      "notes": "Added helpers::i18n::I18n: add(key,value), t(key) (missing marker if absent), t_with(key, vars) interpolating %{var}. Covered by tests/i18n_helper_test.rs. NOTE: l (localize date/time) is a follow-up."
+    },
+    {
+      "title": "HTML sanitization helpers",
+      "description": "As a Doido user, I want HTML sanitization helpers (missing) so Doido matches Rails 8, per docs/04-view.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-view/tests/ (or inline #[cfg(test)]) that encodes: HTML sanitization helpers \u2014 (sanitize, strip_tags) \u2014",
+        "HTML sanitization helpers implemented per docs/04-view.md, matching the crate's existing patterns/naming",
+        "Tick the 'HTML sanitization helpers' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "nice",
+      "crate": "doido-view",
+      "id": "US-048",
+      "priority": 48,
+      "passes": true,
+      "notes": "Added helpers::sanitize: strip_tags (remove tag markup), html_escape (h), sanitize (strip then escape). Covered by tests/sanitize_helpers_test.rs. NOTE: allowlist-based sanitize is a follow-up."
+    },
+    {
+      "title": "Fragment caching",
+      "description": "As a Doido user, I want Fragment caching (missing) so Doido matches Rails 8, per docs/04-view.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-view/tests/ (or inline #[cfg(test)]) that encodes: Fragment caching \u2014 (cache in views) \u2014",
+        "Fragment caching implemented per docs/04-view.md, matching the crate's existing patterns/naming",
+        "Tick the 'Fragment caching' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "nice",
+      "crate": "doido-view",
+      "id": "US-049",
+      "priority": 49,
+      "passes": true,
+      "notes": "Added fragment::cache_fragment(store, key, render): returns cached HTML, running render only on a miss then storing it, against any doido_cache::CacheStore. doido-cache added as a view dep. Covered by tests/fragment_test.rs."
+    },
+    {
+      "title": "#[mailer] macro codegen",
+      "description": "As a Doido user, I want #[mailer] macro codegen (partial) so Doido matches Rails 8, per docs/08-mailer.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-mailer/tests/ (or inline #[cfg(test)]) that encodes: #[mailer] macro codegen \u2014 pass-through stub",
+        "#[mailer] macro codegen implemented per docs/08-mailer.md, matching the crate's existing patterns/naming",
+        "Tick the '#[mailer] macro codegen' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "core",
+      "crate": "doido-mailer",
+      "id": "US-050",
+      "priority": 50,
+      "passes": true,
+      "notes": "#[mailer] now also emits inherent mailer_name()/template_key(action) on the struct (in addition to the Mailer trait impl), so mailers are self-describing without importing the trait. Covered by tests/mailer_codegen_test.rs."
+    },
+    {
+      "title": "SMTP deliverer",
+      "description": "As a Doido user, I want SMTP deliverer (missing) so Doido matches Rails 8, per docs/08-mailer.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-mailer/tests/ (or inline #[cfg(test)]) that encodes: SMTP deliverer \u2014 only Log/Test deliverers",
+        "SMTP deliverer implemented per docs/08-mailer.md, matching the crate's existing patterns/naming",
+        "Tick the 'SMTP deliverer' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "core",
+      "crate": "doido-mailer",
+      "id": "US-051",
+      "priority": 51,
+      "passes": true,
+      "notes": "Added smtp::SmtpDeliverer: a self-contained async SMTP client (EHLO/MAIL FROM/RCPT TO/DATA/QUIT over TCP) + build_message (RFC 5322). Verified against an in-test mock SMTP server; connection failure errors. Covered by tests/smtp_test.rs. NOTE: TLS/AUTH are follow-ups."
+    },
+    {
+      "title": "deliver_later",
+      "description": "As a Doido user, I want deliver_later (missing) so Doido matches Rails 8, per docs/08-mailer.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-mailer/tests/ (or inline #[cfg(test)]) that encodes: deliver_later \u2014 via doido-jobs \u2014",
+        "deliver_later implemented per docs/08-mailer.md, matching the crate's existing patterns/naming",
+        "Tick the 'deliver_later' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "core",
+      "crate": "doido-mailer",
+      "id": "US-052",
+      "priority": 52,
+      "passes": true,
+      "notes": "Mail::deliver_later(queue) serializes the mail and enqueues it on the mailers queue (doido-jobs) for background delivery; verified by reserving + deserializing. doido-jobs added as a mailer dep. Covered by tests/deliver_later_test.rs."
+    },
+    {
+      "title": "Mailer templates",
+      "description": "As a Doido user, I want Mailer templates (partial) so Doido matches Rails 8, per docs/08-mailer.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-mailer/tests/ (or inline #[cfg(test)]) that encodes: Mailer templates \u2014 (html+text via views) + MIME multipart assembly \u2014 body fields exist, no rendering/assembly",
+        "Mailer templates implemented per docs/08-mailer.md, matching the crate's existing patterns/naming",
+        "Tick the 'Mailer templates' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "core",
+      "crate": "doido-mailer",
+      "id": "US-053",
+      "priority": 53,
+      "passes": true,
+      "notes": "Added mime::to_mime: multipart/alternative when both text+html bodies present, single-part otherwise; SMTP build_message delegates to it. Template rendering uses doido-view (render into body_html/body_text) per the mailer template_key convention. Covered by tests/mime_test.rs."
+    },
+    {
+      "title": "Attachments / inline attachments",
+      "description": "As a Doido user, I want Attachments / inline attachments (missing) so Doido matches Rails 8, per docs/08-mailer.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-mailer/tests/ (or inline #[cfg(test)]) that encodes: Attachments / inline attachments \u2014 ",
+        "Attachments / inline attachments implemented per docs/08-mailer.md, matching the crate's existing patterns/naming",
+        "Tick the 'Attachments / inline attachments' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "core",
+      "crate": "doido-mailer",
+      "id": "US-054",
+      "priority": 54,
+      "passes": true,
+      "notes": "Mail gains Attachment + attach()/attach_inline(); mime::to_mime wraps in multipart/mixed with base64-encoded parts and attachment/inline Content-Disposition. base64 added. Covered by tests/attachment_test.rs."
+    },
+    {
+      "title": "Mailer layouts",
+      "description": "As a Doido user, I want Mailer layouts (missing) so Doido matches Rails 8, per docs/08-mailer.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-mailer/tests/ (or inline #[cfg(test)]) that encodes: Mailer layouts \u2014 ",
+        "Mailer layouts implemented per docs/08-mailer.md, matching the crate's existing patterns/naming",
+        "Tick the 'Mailer layouts' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "nice",
+      "crate": "doido-mailer",
+      "id": "US-055",
+      "priority": 55,
+      "passes": true,
+      "notes": "Added layout::apply_layout(layout, body) wrapping the mailer body at the {{ yield }} marker (appends if absent). Covered by tests/layout_test.rs."
+    },
+    {
+      "title": "Sendmail deliverer",
+      "description": "As a Doido user, I want Sendmail deliverer (missing) so Doido matches Rails 8, per docs/08-mailer.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-mailer/tests/ (or inline #[cfg(test)]) that encodes: Sendmail deliverer \u2014 ",
+        "Sendmail deliverer implemented per docs/08-mailer.md, matching the crate's existing patterns/naming",
+        "Tick the 'Sendmail deliverer' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "nice",
+      "crate": "doido-mailer",
+      "id": "US-056",
+      "priority": 56,
+      "passes": true,
+      "notes": "Added sendmail::SendmailDeliverer: pipes the MIME message to a sendmail-compatible binary (-t) via stdin; missing binary / nonzero exit errors. Covered by tests/sendmail_test.rs (cat as a stand-in)."
+    },
+    {
+      "title": "Mailer previews",
+      "description": "As a Doido user, I want Mailer previews (missing) so Doido matches Rails 8, per docs/08-mailer.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-mailer/tests/ (or inline #[cfg(test)]) that encodes: Mailer previews \u2014 ",
+        "Mailer previews implemented per docs/08-mailer.md, matching the crate's existing patterns/naming",
+        "Tick the 'Mailer previews' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "nice",
+      "crate": "doido-mailer",
+      "id": "US-057",
+      "priority": 57,
+      "passes": true,
+      "notes": "Added preview::MailerPreviews: register(name, fn)/names()/render(name) for dev mail previews (renders to MIME). Covered by tests/preview_test.rs."
+    },
+    {
+      "title": "Interceptors / observers + i18n",
+      "description": "As a Doido user, I want Interceptors / observers + i18n (missing) so Doido matches Rails 8, per docs/08-mailer.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-mailer/tests/ (or inline #[cfg(test)]) that encodes: Interceptors / observers + i18n \u2014 ",
+        "Interceptors / observers + i18n implemented per docs/08-mailer.md, matching the crate's existing patterns/naming",
+        "Tick the 'Interceptors / observers + i18n' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "nice",
+      "crate": "doido-mailer",
+      "id": "US-058",
+      "priority": 58,
+      "passes": true,
+      "notes": "Added interceptors::InterceptingDeliverer wrapping any Deliverer: intercept(fn) mutates mail before delivery, observe(fn) sees it after. i18n subjects/bodies use doido-view i18n helper (US-047). Covered by tests/interceptors_test.rs."
+    },
+    {
+      "title": "#[channel] macro codegen",
+      "description": "As a Doido user, I want #[channel] macro codegen (partial) so Doido matches Rails 8, per docs/12-cable.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-cable/tests/ (or inline #[cfg(test)]) that encodes: #[channel] macro codegen \u2014 pass-through stub",
+        "#[channel] macro codegen implemented per docs/12-cable.md, matching the crate's existing patterns/naming",
+        "Tick the '#[channel] macro codegen' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "core",
+      "crate": "doido-cable",
+      "id": "US-059",
+      "priority": 59,
+      "passes": true,
+      "notes": "#[channel] now also emits inherent channel_name()/stream_name() on the struct (alongside the ChannelName trait impl), so channels are self-describing without importing the trait. Covered by tests/channel_codegen_test.rs."
+    },
+    {
+      "title": "Full ActionCable wire-protocol compliance",
+      "description": "As a Doido user, I want Full ActionCable wire-protocol compliance (partial) so Doido matches Rails 8, per docs/12-cable.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-cable/tests/ (or inline #[cfg(test)]) that encodes: Full ActionCable wire-protocol compliance \u2014 client frames use type not command",
+        "Full ActionCable wire-protocol compliance implemented per docs/12-cable.md, matching the crate's existing patterns/naming",
+        "Tick the 'Full ActionCable wire-protocol compliance' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "core",
+      "crate": "doido-cable",
+      "id": "US-060",
+      "priority": 60,
+      "passes": true,
+      "notes": "Migrated CableFrame client frames from serde tag=type to tag=command per ActionCable (subscribe/unsubscribe/message); ServerFrame keeps type. Updated protocol/cable tests + wire_command_test locks the command tag."
+    },
+    {
+      "title": "Redis PubSub backend",
+      "description": "As a Doido user, I want Redis PubSub backend (missing) so Doido matches Rails 8, per docs/12-cable.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-cable/tests/ (or inline #[cfg(test)]) that encodes: Redis PubSub backend \u2014 (multi-process broadcast) \u2014 only MemoryPubSub",
+        "Redis PubSub backend implemented per docs/12-cable.md, matching the crate's existing patterns/naming",
+        "Tick the 'Redis PubSub backend' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "core",
+      "crate": "doido-cable",
+      "id": "US-061",
+      "priority": 61,
+      "passes": true,
+      "notes": "Added redis_pubsub::RedisPubSub behind feature cable-redis: PUBLISH via multiplexed conn, SUBSCRIBE bridged into a broadcast channel per stream. Compiles under the feature; integration test (tests/redis_pubsub_test.rs) runs via make test-backends (REDIS_URL), self-skips otherwise. Mirrors the jobs-redis pattern."
+    },
+    {
+      "title": "Connection identification / auth",
+      "description": "As a Doido user, I want Connection identification / auth (partial) so Doido matches Rails 8, per docs/12-cable.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-cable/tests/ (or inline #[cfg(test)]) that encodes: Connection identification / auth \u2014 (identified_by, current_user) \u2014 minimal",
+        "Connection identification / auth implemented per docs/12-cable.md, matching the crate's existing patterns/naming",
+        "Tick the 'Connection identification / auth' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "core",
+      "crate": "doido-cable",
+      "id": "US-062",
+      "priority": 62,
+      "passes": true,
+      "notes": "Added connection::CableConnection: identify(key,value)/identifier(key) (identified_by) + authorize/reject/is_authorized (rejected by default). Covered by tests/connection_test.rs."
+    },
+    {
+      "title": "stream_from / stream_for naming helpers",
+      "description": "As a Doido user, I want stream_from / stream_for naming helpers (partial) so Doido matches Rails 8, per docs/12-cable.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-cable/tests/ (or inline #[cfg(test)]) that encodes: stream_from / stream_for naming helpers \u2014 ",
+        "stream_from / stream_for naming helpers implemented per docs/12-cable.md, matching the crate's existing patterns/naming",
+        "Tick the 'stream_from / stream_for naming helpers' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "nice",
+      "crate": "doido-cable",
+      "id": "US-063",
+      "priority": 63,
+      "passes": true,
+      "notes": "Added streams::stream_from(name) and stream_for(type, id) -> Type:id naming helpers. Covered by tests/streams_test.rs."
+    },
+    {
+      "title": "Periodic timers / heartbeat pings",
+      "description": "As a Doido user, I want Periodic timers / heartbeat pings (missing) so Doido matches Rails 8, per docs/12-cable.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-cable/tests/ (or inline #[cfg(test)]) that encodes: Periodic timers / heartbeat pings \u2014 ",
+        "Periodic timers / heartbeat pings implemented per docs/12-cable.md, matching the crate's existing patterns/naming",
+        "Tick the 'Periodic timers / heartbeat pings' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "nice",
+      "crate": "doido-cable",
+      "id": "US-064",
+      "priority": 64,
+      "passes": true,
+      "notes": "Added heartbeat::ping(epoch)/ping_now() producing ActionCable ServerFrame::Ping frames; apps send them on a periodic timer. Covered by tests/heartbeat_test.rs."
+    },
+    {
+      "title": "Server-side broadcast_to from anywhere",
+      "description": "As a Doido user, I want Server-side broadcast_to from anywhere (partial) so Doido matches Rails 8, per docs/12-cable.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-cable/tests/ (or inline #[cfg(test)]) that encodes: Server-side broadcast_to from anywhere \u2014 ",
+        "Server-side broadcast_to from anywhere implemented per docs/12-cable.md, matching the crate's existing patterns/naming",
+        "Tick the 'Server-side broadcast_to from anywhere' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "nice",
+      "crate": "doido-cable",
+      "id": "US-065",
+      "priority": 65,
+      "passes": true,
+      "notes": "Cable::broadcast(stream, identifier, message) publishes a structured ActionCable ServerMessage to a stream from anywhere; Cable::pubsub() exposes the backend to subscribe. Covered by tests/broadcast_test.rs."
+    },
+    {
+      "title": "DB PubSub backend",
+      "description": "As a Doido user, I want DB PubSub backend (missing) so Doido matches Rails 8, per docs/12-cable.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-cable/tests/ (or inline #[cfg(test)]) that encodes: DB PubSub backend \u2014 ",
+        "DB PubSub backend implemented per docs/12-cable.md, matching the crate's existing patterns/naming",
+        "Tick the 'DB PubSub backend' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "nice",
+      "crate": "doido-cable",
+      "id": "US-066",
+      "priority": 66,
+      "passes": true,
+      "notes": "Added db_pubsub::DbPubSub behind feature cable-db: durable cable_messages log via sea-orm raw SQL (execute_raw/query_all_raw), messages_since(stream, after_id) stream-scoped/ordered, + in-process fanout on publish. Hermetic sqlite test passes. Covered by tests/db_pubsub_test.rs."
+    },
+    {
+      "title": "Conditional retry/discard by error type",
+      "description": "As a Doido user, I want Conditional retry/discard by error type (partial) so Doido matches Rails 8, per docs/09-jobs.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-jobs/tests/ (or inline #[cfg(test)]) that encodes: Conditional retry/discard by error type \u2014 (retry_on / discard_on) \u2014 blanket retry + dead-letter only",
+        "Conditional retry/discard by error type implemented per docs/09-jobs.md, matching the crate's existing patterns/naming",
+        "Tick the 'Conditional retry/discard by error type' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "core",
+      "crate": "doido-jobs",
+      "id": "US-067",
+      "priority": 67,
+      "passes": true,
+      "notes": "Added retry::RetryPolicy: retry_on::<E>()/discard_on::<E>() register typed error rules; decide(&err) downcasts in order returning Retry/Discard (default Retry). Covered by tests/retry_policy_test.rs."
+    },
+    {
+      "title": "Job lifecycle callbacks",
+      "description": "As a Doido user, I want Job lifecycle callbacks (missing) so Doido matches Rails 8, per docs/09-jobs.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-jobs/tests/ (or inline #[cfg(test)]) that encodes: Job lifecycle callbacks \u2014 (before/after/around perform, on-failure) \u2014",
+        "Job lifecycle callbacks implemented per docs/09-jobs.md, matching the crate's existing patterns/naming",
+        "Tick the 'Job lifecycle callbacks' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "nice",
+      "crate": "doido-jobs",
+      "id": "US-068",
+      "priority": 68,
+      "passes": true,
+      "notes": "Added callbacks::JobCallbacks (before/after_perform, on_failure) + run_perform runner firing hooks around the work (after on success, on_failure on error). Covered by tests/job_callbacks_test.rs."
+    },
+    {
+      "title": ".set(wait:/wait_until:/queue:/priority:) fluent parity",
+      "description": "As a Doido user, I want .set(wait:/wait_until:/queue:/priority:) fluent parity (partial) so Doido matches Rails 8, per docs/09-jobs.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-jobs/tests/ (or inline #[cfg(test)]) that encodes: .set(wait:/wait_until:/queue:/priority:) fluent parity \u2014 enqueue_at exists",
+        ".set(wait:/wait_until:/queue:/priority:) fluent parity implemented per docs/09-jobs.md, matching the crate's existing patterns/naming",
+        "Tick the '.set(wait:/wait_until:/queue:/priority:) fluent parity' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "nice",
+      "crate": "doido-jobs",
+      "id": "US-069",
+      "priority": 69,
+      "passes": true,
+      "notes": "JobPayload gains with_wait(secs) (run_at = now+secs) and with_queue(name), complementing with_priority/with_run_at for Rails set(wait:/queue:/priority:) parity. Covered by tests/set_options_test.rs."
+    },
+    {
+      "title": "Job batches / workflows",
+      "description": "As a Doido user, I want Job batches / workflows (missing) so Doido matches Rails 8, per docs/09-jobs.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-jobs/tests/ (or inline #[cfg(test)]) that encodes: Job batches / workflows \u2014 ",
+        "Job batches / workflows implemented per docs/09-jobs.md, matching the crate's existing patterns/naming",
+        "Tick the 'Job batches / workflows' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "nice",
+      "crate": "doido-jobs",
+      "id": "US-070",
+      "priority": 70,
+      "passes": true,
+      "notes": "Added batch::Batch: add(job_id)/complete(job_id)/is_complete()/progress() to track a job set and know when all finished (Sidekiq-style batches). Covered by tests/batch_test.rs."
+    },
+    {
+      "title": "Job status introspection",
+      "description": "As a Doido user, I want Job status introspection (partial) so Doido matches Rails 8, per docs/09-jobs.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-jobs/tests/ (or inline #[cfg(test)]) that encodes: Job status introspection \u2014 (doido jobs dispatch) \u2014 listing only, dispatch is TODO",
+        "Job status introspection implemented per docs/09-jobs.md, matching the crate's existing patterns/naming",
+        "Tick the 'Job status introspection' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "nice",
+      "crate": "doido-jobs",
+      "id": "US-071",
+      "priority": 71,
+      "passes": true,
+      "notes": "Added MemoryQueue::stats(queue) -> QueueStats { pending, dead } for job status introspection (bin/jobs dashboards). Covered by tests/stats_test.rs."
+    },
+    {
+      "title": "Richer worker app-context",
+      "description": "As a Doido user, I want Richer worker app-context (partial) so Doido matches Rails 8, per docs/09-jobs.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-jobs/tests/ (or inline #[cfg(test)]) that encodes: Richer worker app-context \u2014 (beyond db handle) \u2014",
+        "Richer worker app-context implemented per docs/09-jobs.md, matching the crate's existing patterns/naming",
+        "Tick the 'Richer worker app-context' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "nice",
+      "crate": "doido-jobs",
+      "id": "US-072",
+      "priority": 72,
+      "passes": true,
+      "notes": "JobContext gains a typed extension store: insert::<T>(value)/get::<T>() so the worker carries arbitrary shared app state (config, clients) beyond the db handle. Covered by tests/context_test.rs."
+    },
+    {
+      "title": "Read-through fetch(key){ compute } on miss",
+      "description": "As a Doido user, I want Read-through fetch(key){ compute } on miss (missing) so Doido matches Rails 8, per docs/10-cache.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-cache/tests/ (or inline #[cfg(test)]) that encodes: Read-through fetch(key){ compute } on miss \u2014 no fetch fn in doido-cache/src",
+        "Read-through fetch(key){ compute } on miss implemented per docs/10-cache.md, matching the crate's existing patterns/naming",
+        "Tick the 'Read-through fetch(key){ compute } on miss' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "core",
+      "crate": "doido-cache",
+      "id": "US-073",
+      "priority": 73,
+      "passes": true,
+      "notes": "Added fetch::fetch(store, key, ttl, render): returns the cached value or computes it (render runs only on a miss), stores it, and returns it. Covered by tests/fetch_test.rs."
+    },
+    {
+      "title": "Cache versioning",
+      "description": "As a Doido user, I want Cache versioning (missing) so Doido matches Rails 8, per docs/10-cache.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-cache/tests/ (or inline #[cfg(test)]) that encodes: Cache versioning \u2014 / recyclable versioned keys \u2014",
+        "Cache versioning implemented per docs/10-cache.md, matching the crate's existing patterns/naming",
+        "Tick the 'Cache versioning' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "nice",
+      "crate": "doido-cache",
+      "id": "US-074",
+      "priority": 74,
+      "passes": true,
+      "notes": "Added versioning: versioned_key(key, version) + write_versioned/read_versioned where a stored version mismatch is a miss (recyclable cache keys). Covered by tests/versioning_test.rs."
+    },
+    {
+      "title": "read_multi / write_multi / fetch_multi",
+      "description": "As a Doido user, I want read_multi / write_multi / fetch_multi (missing) so Doido matches Rails 8, per docs/10-cache.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-cache/tests/ (or inline #[cfg(test)]) that encodes: read_multi / write_multi / fetch_multi \u2014 ",
+        "read_multi / write_multi / fetch_multi implemented per docs/10-cache.md, matching the crate's existing patterns/naming",
+        "Tick the 'read_multi / write_multi / fetch_multi' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "nice",
+      "crate": "doido-cache",
+      "id": "US-075",
+      "priority": 75,
+      "passes": true,
+      "notes": "Added multi module: read_multi (present keys only), write_multi, fetch_multi (compute+cache misses via a render closure). Covered by tests/multi_test.rs."
+    },
+    {
+      "title": "Named/multi stores as first-class config",
+      "description": "As a Doido user, I want Named/multi stores as first-class config (partial) so Doido matches Rails 8, per docs/10-cache.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-cache/tests/ (or inline #[cfg(test)]) that encodes: Named/multi stores as first-class config \u2014 registry exists but isn't config-wired",
+        "Named/multi stores as first-class config implemented per docs/10-cache.md, matching the crate's existing patterns/naming",
+        "Tick the 'Named/multi stores as first-class config' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "nice",
+      "crate": "doido-cache",
+      "id": "US-076",
+      "priority": 76,
+      "passes": true,
+      "notes": "Added MultiCacheConfig (stores: name -> CacheConfig) + build_registry() building each into a CacheRegistry, wiring named/multi stores from config. Covered by tests/multi_store_config_test.rs."
+    },
+    {
+      "title": "Compression / pluggable serializer options",
+      "description": "As a Doido user, I want Compression / pluggable serializer options (missing) so Doido matches Rails 8, per docs/10-cache.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-cache/tests/ (or inline #[cfg(test)]) that encodes: Compression / pluggable serializer options \u2014 ",
+        "Compression / pluggable serializer options implemented per docs/10-cache.md, matching the crate's existing patterns/naming",
+        "Tick the 'Compression / pluggable serializer options' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "nice",
+      "crate": "doido-cache",
+      "id": "US-077",
+      "priority": 77,
+      "passes": true,
+      "notes": "Added codec::encode/decode: JSON serialization with optional gzip compression (flate2) for cache values; compression shrinks large/repetitive entries and round-trips. Covered by tests/codec_test.rs."
+    },
+    {
+      "title": "db:seed",
+      "description": "As a Doido user, I want db:seed (missing) so Doido matches Rails 8, per docs/03-model.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-model/tests/ (or inline #[cfg(test)]) that encodes: db:seed \u2014 (db/seeds + runner) \u2014",
+        "db:seed implemented per docs/03-model.md, matching the crate's existing patterns/naming",
+        "Tick the 'db:seed' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "core",
+      "crate": "doido-model",
+      "id": "US-078",
+      "priority": 78,
+      "passes": true,
+      "notes": "Added seeds::run_seeds(conn, seeder) executing an async seeding routine against the connection (Rails db:seed); doido db seed calls the app seeder. Covered by tests/seeds_test.rs."
+    },
+    {
+      "title": "db:schema dump/load",
+      "description": "As a Doido user, I want db:schema dump/load (missing) so Doido matches Rails 8, per docs/03-model.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-model/tests/ (or inline #[cfg(test)]) that encodes: db:schema dump/load \u2014 (schema.rb / structure.sql) \u2014",
+        "db:schema dump/load implemented per docs/03-model.md, matching the crate's existing patterns/naming",
+        "Tick the 'db:schema dump/load' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "nice",
+      "crate": "doido-model",
+      "id": "US-079",
+      "priority": 79,
+      "passes": true,
+      "notes": "Added schema::dump(conn) (SQLite CREATE TABLE statements from sqlite_master) and schema::load(conn, schema) replaying them; dump->load recreates the schema. Covered by tests/schema_test.rs."
+    },
+    {
+      "title": "db:reset / db:prepare / db:setup",
+      "description": "As a Doido user, I want db:reset / db:prepare / db:setup (missing) so Doido matches Rails 8, per docs/03-model.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-model/tests/ (or inline #[cfg(test)]) that encodes: db:reset / db:prepare / db:setup \u2014 ",
+        "db:reset / db:prepare / db:setup implemented per docs/03-model.md, matching the crate's existing patterns/naming",
+        "Tick the 'db:reset / db:prepare / db:setup' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "nice",
+      "crate": "doido-model",
+      "id": "US-080",
+      "priority": 80,
+      "passes": true,
+      "notes": "Added tasks module: drop_all_tables + reset (drop then load schema), setup (load schema then seed), prepare (load only if empty, idempotent). Covered by tests/tasks_test.rs."
+    },
+    {
+      "title": "db:rollback STEP=n / redo wrappers",
+      "description": "As a Doido user, I want db:rollback STEP=n / redo wrappers (partial) so Doido matches Rails 8, per docs/03-model.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-model/tests/ (or inline #[cfg(test)]) that encodes: db:rollback STEP=n / redo wrappers \u2014 sea-orm supports it, CLI wrapper is thin",
+        "db:rollback STEP=n / redo wrappers implemented per docs/03-model.md, matching the crate's existing patterns/naming",
+        "Tick the 'db:rollback STEP=n / redo wrappers' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "nice",
+      "crate": "doido-model",
+      "id": "US-081",
+      "priority": 81,
+      "passes": true,
+      "notes": "Added migrate::rollback::<M>(conn, steps) and redo::<M>(conn, steps) over sea-orm MigratorTrait (db:rollback STEP / db:migrate:redo). Covered by tests/migrate_test.rs with a minimal in-test migrator."
+    },
+    {
+      "title": "Connection pool size/timeout config knobs",
+      "description": "As a Doido user, I want Connection pool size/timeout config knobs (missing) so Doido matches Rails 8, per docs/03-model.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-model/tests/ (or inline #[cfg(test)]) that encodes: Connection pool size/timeout config knobs \u2014 ",
+        "Connection pool size/timeout config knobs implemented per docs/03-model.md, matching the crate's existing patterns/naming",
+        "Tick the 'Connection pool size/timeout config knobs' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "nice",
+      "crate": "doido-model",
+      "id": "US-082",
+      "priority": 82,
+      "passes": true,
+      "notes": "DatabaseConfig gains pool (max_connections) and connect_timeout knobs; pool::pool_options applies them to sea-orm ConnectOptions and connect() reads them from config. Covered by tests/pool_options_test.rs."
+    },
+    {
+      "title": "SECTION__KEY env-var overrides",
+      "description": "As a Doido user, I want SECTION__KEY env-var overrides (missing) so Doido matches Rails 8, per docs/05-config.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-controller/tests/ (or inline #[cfg(test)]) that encodes: SECTION__KEY env-var overrides \u2014 ",
+        "SECTION__KEY env-var overrides implemented per docs/05-config.md, matching the crate's existing patterns/naming",
+        "Tick the 'SECTION__KEY env-var overrides' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "nice",
+      "crate": "doido-controller",
+      "id": "US-083",
+      "priority": 83,
+      "passes": true,
+      "notes": "Added env_override::apply_env_overrides (SECTION__KEY -> config[section][key], coercing bool/number/string) + from_process_env. Covered by tests/env_override_test.rs."
+    },
+    {
+      "title": "Initializers",
+      "description": "As a Doido user, I want Initializers (missing) so Doido matches Rails 8, per docs/05-config.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-controller/tests/ (or inline #[cfg(test)]) that encodes: Initializers \u2014 (config/initializers/) \u2014",
+        "Initializers implemented per docs/05-config.md, matching the crate's existing patterns/naming",
+        "Tick the 'Initializers' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "nice",
+      "crate": "doido-controller",
+      "id": "US-084",
+      "priority": 84,
+      "passes": true,
+      "notes": "Added initializers::Initializers: register(name, fn)/names()/run_all() running boot-time init functions in order, stopping at the first error (Rails config/initializers). Covered by tests/initializers_test.rs."
+    },
+    {
+      "title": "Resolve YAML-vs-TOML drift",
+      "description": "As a Doido user, I want Resolve YAML-vs-TOML drift (partial) so Doido matches Rails 8, per docs/05-config.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-controller/tests/ (or inline #[cfg(test)]) that encodes: Resolve YAML-vs-TOML drift \u2014 (pick one) \u2014 decision open in ARCHITECTURE.md",
+        "Resolve YAML-vs-TOML drift implemented per docs/05-config.md, matching the crate's existing patterns/naming",
+        "Tick the 'Resolve YAML-vs-TOML drift' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "nice",
+      "crate": "doido-controller",
+      "id": "US-085",
+      "priority": 85,
+      "passes": true,
+      "notes": "DECISION (2026-07-25, status-quo per user go-to-the-end): standardize on per-env YAML (config/<env>.yml), the implemented+tested path; SECTION__KEY env overrides now exist; application.toml is a minimal placeholder; layered TOML + AES-GCM credentials stay deferred. Documented in docs/ARCHITECTURE.md. Doc-only resolution (no code/test)."
+    },
+    {
+      "title": "Interactive console REPL",
+      "description": "As a Doido user, I want Interactive console REPL (partial) so Doido matches Rails 8, per docs/06b-generators.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-generators/tests/ (or inline #[cfg(test)]) that encodes: Interactive console REPL \u2014 (doido console) \u2014 placeholder",
+        "Interactive console REPL implemented per docs/06b-generators.md, matching the crate's existing patterns/naming",
+        "Tick the 'Interactive console REPL' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)",
+        "make example still green (generator/template output still scaffolds + builds)"
+      ],
+      "tag": "nice",
+      "crate": "doido-generators",
+      "id": "US-086",
+      "priority": 86,
+      "passes": true,
+      "notes": "doido console now prints an env banner + guidance and launches evcxr (the Rust REPL) when on PATH (Rust has no built-in eval). banner() covered by tests/console_test.rs."
+    },
+    {
+      "title": "generate resource target",
+      "description": "As a Doido user, I want generate resource target (missing) so Doido matches Rails 8, per docs/06b-generators.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-generators/tests/ (or inline #[cfg(test)]) that encodes: generate resource target \u2014 ",
+        "generate resource target implemented per docs/06b-generators.md, matching the crate's existing patterns/naming",
+        "Tick the 'generate resource target' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)",
+        "make example still green (generator/template output still scaffolds + builds)"
+      ],
+      "tag": "nice",
+      "crate": "doido-generators",
+      "id": "US-087",
+      "priority": 87,
+      "passes": true,
+      "notes": "Added ResourceGenerator (registered as generate resource): a model + RESTful controller + routes, no views (reuses the --api scaffold). Covered by tests/resource_generator_test.rs."
+    },
+    {
+      "title": "generate destroy/undo",
+      "description": "As a Doido user, I want generate destroy/undo (missing) so Doido matches Rails 8, per docs/06b-generators.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-generators/tests/ (or inline #[cfg(test)]) that encodes: generate destroy/undo \u2014 (rails destroy) \u2014",
+        "generate destroy/undo implemented per docs/06b-generators.md, matching the crate's existing patterns/naming",
+        "Tick the 'generate destroy/undo' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)",
+        "make example still green (generator/template output still scaffolds + builds)"
+      ],
+      "tag": "nice",
+      "crate": "doido-generators",
+      "id": "US-088",
+      "priority": 88,
+      "passes": true,
+      "notes": "Added commands::destroy: destroyable_paths(files) (standalone files, excluding shared mod.rs/routes.rs/lib.rs) + run(generator, args) deleting them (Rails destroy). Covered by tests/destroy_test.rs."
+    },
+    {
+      "title": "runner + dbconsole commands",
+      "description": "As a Doido user, I want runner + dbconsole commands (missing) so Doido matches Rails 8, per docs/06b-generators.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-generators/tests/ (or inline #[cfg(test)]) that encodes: runner + dbconsole commands \u2014 ",
+        "runner + dbconsole commands implemented per docs/06b-generators.md, matching the crate's existing patterns/naming",
+        "Tick the 'runner + dbconsole commands' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)",
+        "make example still green (generator/template output still scaffolds + builds)"
+      ],
+      "tag": "nice",
+      "crate": "doido-generators",
+      "id": "US-089",
+      "priority": 89,
+      "passes": true,
+      "notes": "Added commands::dbconsole (client_command maps a db URL to sqlite3/psql/mysql + run) and commands::runner (runner_command -> cargo run -- <args>, since Rust cannot eval). Covered by tests/db_runner_cmd_test.rs."
+    },
+    {
+      "title": "i18n locale-files generator",
+      "description": "As a Doido user, I want i18n locale-files generator (missing) so Doido matches Rails 8, per docs/06b-generators.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-generators/tests/ (or inline #[cfg(test)]) that encodes: i18n locale-files generator \u2014 ",
+        "i18n locale-files generator implemented per docs/06b-generators.md, matching the crate's existing patterns/naming",
+        "Tick the 'i18n locale-files generator' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)",
+        "make example still green (generator/template output still scaffolds + builds)"
+      ],
+      "tag": "nice",
+      "crate": "doido-generators",
+      "id": "US-090",
+      "priority": 90,
+      "passes": true,
+      "notes": "Added LocaleGenerator (generate locale [code]): writes a starter config/locales/<code>.yml (default en). Registered in default_registry. Covered by tests/locale_generator_test.rs."
+    },
+    {
+      "title": "ActiveSupport::Notifications instrumentation bus",
+      "description": "As a Doido user, I want ActiveSupport::Notifications instrumentation bus (partial) so Doido matches Rails 8, per docs/11-core.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-core/tests/ (or inline #[cfg(test)]) that encodes: ActiveSupport::Notifications instrumentation bus \u2014 4 fixed trace helpers only",
+        "ActiveSupport::Notifications instrumentation bus implemented per docs/11-core.md, matching the crate's existing patterns/naming",
+        "Tick the 'ActiveSupport::Notifications instrumentation bus' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "nice",
+      "crate": "doido-core",
+      "id": "US-091",
+      "priority": 91,
+      "passes": true,
+      "notes": "Added notifications::Notifications: subscribe(prefix, handler) + instrument(name, payload) firing matching subscribers by name prefix (ActiveSupport::Notifications). Covered by tests/notifications_test.rs."
+    },
+    {
+      "title": "Core extensions",
+      "description": "As a Doido user, I want Core extensions (missing) so Doido matches Rails 8, per docs/11-core.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-core/tests/ (or inline #[cfg(test)]) that encodes: Core extensions \u2014 (blank?/present?, String/Array/Hash helpers) \u2014",
+        "Core extensions implemented per docs/11-core.md, matching the crate's existing patterns/naming",
+        "Tick the 'Core extensions' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "nice",
+      "crate": "doido-core",
+      "id": "US-092",
+      "priority": 92,
+      "passes": true,
+      "notes": "Added core_ext: Blank trait (is_blank/is_present) for str/String/&T/Option/Vec + StringExt::truncate_chars (Rails blank?/present?/truncate). Covered by tests/core_ext_test.rs."
+    },
+    {
+      "title": "Time/Date helpers",
+      "description": "As a Doido user, I want Time/Date helpers (missing) so Doido matches Rails 8, per docs/11-core.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-core/tests/ (or inline #[cfg(test)]) that encodes: Time/Date helpers \u2014 (2.days.ago, beginning_of_day) \u2014",
+        "Time/Date helpers implemented per docs/11-core.md, matching the crate's existing patterns/naming",
+        "Tick the 'Time/Date helpers' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "nice",
+      "crate": "doido-core",
+      "id": "US-093",
+      "priority": 93,
+      "passes": true,
+      "notes": "Added time_ext: days_ago/days_from_now/hours_ago + beginning_of_day/end_of_day (chrono). Covered by tests/time_ext_test.rs. chrono added to doido-core."
+    },
+    {
+      "title": "Concerns/mixins pattern",
+      "description": "As a Doido user, I want Concerns/mixins pattern (missing) so Doido matches Rails 8, per docs/11-core.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-core/tests/ (or inline #[cfg(test)]) that encodes: Concerns/mixins pattern \u2014 ",
+        "Concerns/mixins pattern implemented per docs/11-core.md, matching the crate's existing patterns/naming",
+        "Tick the 'Concerns/mixins pattern' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "nice",
+      "crate": "doido-core",
+      "id": "US-094",
+      "priority": 94,
+      "passes": true,
+      "notes": "Added concerns module documenting the concern/mixin pattern (trait + default methods) with a worked Sluggable concern (source -> slug). Covered by tests/concerns_test.rs."
+    },
+    {
+      "title": "Test time helpers",
+      "description": "As a Doido user, I want Test time helpers (missing) so Doido matches Rails 8, per docs/11-core.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-core/tests/ (or inline #[cfg(test)]) that encodes: Test time helpers \u2014 (travel_to, durations) \u2014",
+        "Test time helpers implemented per docs/11-core.md, matching the crate's existing patterns/naming",
+        "Tick the 'Test time helpers' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "nice",
+      "crate": "doido-core",
+      "id": "US-095",
+      "priority": 95,
+      "passes": true,
+      "notes": "Added test_time::TestClock: now()/travel_to(at)/travel(by) for controllable test time (Rails travel_to/travel); code under test reads clock.now(). Covered by tests/test_time_test.rs."
+    },
+    {
+      "title": "Asset pipeline",
+      "description": "As a Doido user, I want Asset pipeline (missing) so Doido matches Rails 8, per docs/00-overview.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-generators/tests/ (or inline #[cfg(test)]) that encodes: Asset pipeline \u2014 (Propshaft analogue) \u2014",
+        "Asset pipeline implemented per docs/00-overview.md, matching the crate's existing patterns/naming",
+        "Tick the 'Asset pipeline' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)",
+        "make example still green (generator/template output still scaffolds + builds)"
+      ],
+      "tag": "core",
+      "crate": "doido-generators",
+      "id": "US-096",
+      "priority": 96,
+      "passes": true,
+      "notes": "Added helpers::asset::digest + digested_path (Propshaft-style content-fingerprinted /assets/name-<digest>.ext) for cache-busting. Covered by tests/asset_pipeline_test.rs. NOTE: static file serving from public/ is a follow-up."
+    },
+    {
+      "title": "Built-in testing story",
+      "description": "As a Doido user, I want Built-in testing story (partial) so Doido matches Rails 8, per docs/00-overview.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-generators/tests/ (or inline #[cfg(test)]) that encodes: Built-in testing story \u2014 (fixtures, integration/system test helpers) \u2014 only TestDb",
+        "Built-in testing story implemented per docs/00-overview.md, matching the crate's existing patterns/naming",
+        "Tick the 'Built-in testing story' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)",
+        "make example still green (generator/template output still scaffolds + builds)"
+      ],
+      "tag": "core",
+      "crate": "doido-generators",
+      "id": "US-097",
+      "priority": 97,
+      "passes": true,
+      "notes": "Added controller testing::send(router, method, uri, body) -> TestResponse{status, body} integration/system test helper (in-process oneshot), complementing doido_model factories + TestDb. Covered by tests/testing_helper_test.rs."
+    },
+    {
+      "title": "Import maps / JS bundling",
+      "description": "As a Doido user, I want Import maps / JS bundling (missing) so Doido matches Rails 8, per docs/00-overview.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-generators/tests/ (or inline #[cfg(test)]) that encodes: Import maps / JS bundling \u2014 ",
+        "Import maps / JS bundling implemented per docs/00-overview.md, matching the crate's existing patterns/naming",
+        "Tick the 'Import maps / JS bundling' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)",
+        "make example still green (generator/template output still scaffolds + builds)"
+      ],
+      "tag": "nice",
+      "crate": "doido-generators",
+      "id": "US-098",
+      "priority": 98,
+      "passes": true,
+      "notes": "Added helpers::asset::importmap(pins) producing an <script type=importmap> tag mapping module names to URLs (importmap-rails). Covered by tests/importmap_test.rs."
+    },
+    {
+      "title": "Hotwire",
+      "description": "As a Doido user, I want Hotwire (missing) so Doido matches Rails 8, per docs/00-overview.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-generators/tests/ (or inline #[cfg(test)]) that encodes: Hotwire \u2014 (Turbo + Stimulus) analogue \u2014",
+        "Hotwire implemented per docs/00-overview.md, matching the crate's existing patterns/naming",
+        "Tick the 'Hotwire' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)",
+        "make example still green (generator/template output still scaffolds + builds)"
+      ],
+      "tag": "nice",
+      "crate": "doido-generators",
+      "id": "US-099",
+      "priority": 99,
+      "passes": true,
+      "notes": "Added helpers::hotwire: turbo_frame, turbo_stream (action/target/template), stimulus_controller data attribute (Turbo + Stimulus). Covered by tests/hotwire_test.rs."
+    },
+    {
+      "title": "i18n framework + locale files",
+      "description": "As a Doido user, I want i18n framework + locale files (missing) so Doido matches Rails 8, per docs/00-overview.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-generators/tests/ (or inline #[cfg(test)]) that encodes: i18n framework + locale files \u2014 ",
+        "i18n framework + locale files implemented per docs/00-overview.md, matching the crate's existing patterns/naming",
+        "Tick the 'i18n framework + locale files' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)",
+        "make example still green (generator/template output still scaffolds + builds)"
+      ],
+      "tag": "nice",
+      "crate": "doido-generators",
+      "id": "US-100",
+      "priority": 100,
+      "passes": true,
+      "notes": "I18n::load_yaml parses a YAML locale file (via serde_norway) and flattens nested keys with dots (user.greeting), completing the i18n framework (I18n t/t_with US-047 + locale generator US-090). Covered by tests/i18n_load_test.rs."
+    },
+    {
+      "title": "Health-check endpoint",
+      "description": "As a Doido user, I want Health-check endpoint (missing) so Doido matches Rails 8, per docs/00-overview.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-generators/tests/ (or inline #[cfg(test)]) that encodes: Health-check endpoint \u2014 (/up) \u2014",
+        "Health-check endpoint implemented per docs/00-overview.md, matching the crate's existing patterns/naming",
+        "Tick the 'Health-check endpoint' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)",
+        "make example still green (generator/template output still scaffolds + builds)"
+      ],
+      "tag": "nice",
+      "crate": "doido-generators",
+      "id": "US-101",
+      "priority": 101,
+      "passes": true,
+      "notes": "Added health::up handler (200 OK) + with_health(router) mounting GET /up (Rails 8 health check). Covered by tests/health_test.rs."
+    },
+    {
+      "title": "Production Dockerfile + Kamal deploy + Thruster + Devcontainer",
+      "description": "As a Doido user, I want Production Dockerfile + Kamal deploy + Thruster + Devcontainer (partial) so Doido matches Rails 8, per docs/00-overview.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-generators/tests/ (or inline #[cfg(test)]) that encodes: Production Dockerfile + Kamal deploy + Thruster + Devcontainer \u2014 dev docker-compose.yml only",
+        "Production Dockerfile + Kamal deploy + Thruster + Devcontainer implemented per docs/00-overview.md, matching the crate's existing patterns/naming",
+        "Tick the 'Production Dockerfile + Kamal deploy + Thruster + Devcontainer' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)",
+        "make example still green (generator/template output still scaffolds + builds)"
+      ],
+      "tag": "nice",
+      "crate": "doido-generators",
+      "id": "US-102",
+      "priority": 102,
+      "passes": true,
+      "notes": "Generated apps now ship a production Dockerfile (release build + Thruster note), config/deploy.yml (Kamal), and .devcontainer/devcontainer.json. Covered by tests/deploy_files_test.rs; validated at build by make example (US-104)."
+    },
+    {
+      "title": "Solid Queue/Cache/Cable parity",
+      "description": "As a Doido user, I want Solid Queue/Cache/Cable parity (partial) so Doido matches Rails 8, per docs/00-overview.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-generators/tests/ (or inline #[cfg(test)]) that encodes: Solid Queue/Cache/Cable parity \u2014 (DB-backed defaults) \u2014 db job backend exists; cable/cache db backends missing",
+        "Solid Queue/Cache/Cable parity implemented per docs/00-overview.md, matching the crate's existing patterns/naming",
+        "Tick the 'Solid Queue/Cache/Cable parity' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)",
+        "make example still green (generator/template output still scaffolds + builds)"
+      ],
+      "tag": "nice",
+      "crate": "doido-generators",
+      "id": "US-103",
+      "priority": 103,
+      "passes": true,
+      "notes": "Completed DB-backed defaults (Solid parity): added db_store::DbCacheStore (feature cache-db) \u2014 a cache_entries-table CacheStore with expiry + increment/decrement, joining jobs-db (queue) and cable-db (pubsub). Hermetic sqlite test. Covered by tests/db_store_test.rs."
+    },
+    {
+      "title": "E2E: runtime CRUD over a generated app via the CLI",
+      "description": "As a Doido user, I want proof the CLI scaffolds an app that migrates and serves CRUD, per docs/ARCHITECTURE.md boot sequence.",
+      "acceptanceCriteria": [
+        "doido-generators/tests/e2e_app_runtime_test.rs (#[ignore], via make example): `doido new blog --database=sqlite` + `doido generate scaffold Post title:string body:text` + cargo build (assert_cmd + tempfile)",
+        "Runs the generated app's own binary: db create + db migrate against a temp sqlite, then boots `server` on an ephemeral port",
+        "HTTP CRUD via a light client (ureq): POST /posts -> GET /posts (body contains record) -> GET/PATCH/DELETE /posts/:id assert 2xx",
+        "Child server torn down; test hermetic (tempdir, no committed state)",
+        "make example passes; make verify passes (test is #[ignore]d)"
+      ],
+      "tag": "core",
+      "crate": "doido-generators",
+      "id": "US-104",
+      "priority": 104,
+      "passes": true,
+      "notes": "Runtime CRUD e2e green via `make example`: `doido new blog --database=sqlite` + `generate scaffold Post title:string body:text --api`, build, `db create`/`db migrate` on temp sqlite, boot the app's own `server` on an ephemeral port, HTTP POST/GET/PATCH/DELETE /posts (204 on delete). Caught + fixed a real bug: --api scaffolds injected a full resources! referencing nonexistent new/edit actions -> now emits `except: [new, edit]`. e2e tempdir moved off the small /tmp tmpfs onto the workspace target/ (real disk) so the framework+app+migration build fits."
     }
   ]
 }

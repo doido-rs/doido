@@ -53,8 +53,13 @@ product decisions — override here and the backlog follows.
    **AES-256-GCM credentials** + `SECTION__KEY` env overrides — none of that exists yet.
    *Decision (default):* ship the current YAML config for first stable; extract a
    dedicated `doido-config` crate later (seeding from the worktree WIP) and track
-   layering + credentials + env overrides as backlog items. **Open drift to confirm:**
-   standardize on YAML (current) or migrate to the spec's TOML.
+   layering + credentials + env overrides as backlog items.
+   **Drift resolved (2026-07-25):** standardize on per-env **YAML**
+   (`config/<env>.yml`), the implemented and tested path. `SECTION__KEY` env
+   overrides now exist (`doido_controller::env_override`). The template's
+   `config/application.toml` is a minimal placeholder only; layered TOML +
+   AES-256-GCM credentials stay deferred (opt-in, vNext) and can be revisited if
+   an app needs them.
 2. **Kafka — Deferred (opt-in, vNext).** Not part of first stable; promote the worktree
    crate when scheduled.
 3. **MCP — Deferred (opt-in, vNext).** Same as kafka.

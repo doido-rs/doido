@@ -7,9 +7,12 @@ edition = "2021"
 
 [dependencies]
 doido-core.workspace = true
+doido-cache.workspace = true
 tera = "1"
 serde_json.workspace = true
+serde_norway = "0.9"
 
 [dev-dependencies]
 doido-core.workspace = true
 tempfile = "3"
+tokio = { workspace = true, features = ["macros", "rt"] }

@@ -14,6 +14,13 @@ struct Leased {
 /// Default visibility timeout for reserved jobs.
 const VISIBILITY_TIMEOUT: Duration = Duration::from_secs(300);
 
+/// Introspection counts for a queue.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct QueueStats {
+    pub pending: usize,
+    pub dead: usize,
+}
+
 pub struct MemoryQueue {
     /// Pending jobs per queue name (includes scheduled jobs not yet due).
     queues: Mutex<HashMap<String, Vec<JobPayload>>>,
@@ -41,6 +48,20 @@ impl MemoryQueue {
     pub fn with_visibility_timeout(mut self, timeout: Duration) -> Self {
         self.visibility_timeout = timeout;
         self
+    }
+
+    /// Introspection: pending and dead-letter job counts for `queue` (Rails
+    /// `bin/jobs` / job dashboards).
+    pub async fn stats(&self, queue: &str) -> QueueStats {
+        let pending = self
+            .queues
+            .lock()
+            .await
+            .get(queue)
+            .map(Vec::len)
+            .unwrap_or(0);
+        let dead = self.dead.lock().await.get(queue).map(Vec::len).unwrap_or(0);
+        QueueStats { pending, dead }
     }
 
     async fn push(&self, job: JobPayload) {
