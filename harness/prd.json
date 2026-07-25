@@ -816,8 +816,8 @@
       "crate": "doido-mailer",
       "id": "US-051",
       "priority": 51,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added smtp::SmtpDeliverer: a self-contained async SMTP client (EHLO/MAIL FROM/RCPT TO/DATA/QUIT over TCP) + build_message (RFC 5322). Verified against an in-test mock SMTP server; connection failure errors. Covered by tests/smtp_test.rs. NOTE: TLS/AUTH are follow-ups."
     },
     {
       "title": "deliver_later",
