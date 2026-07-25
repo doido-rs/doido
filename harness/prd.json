@@ -992,8 +992,8 @@
       "crate": "doido-cable",
       "id": "US-062",
       "priority": 62,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added connection::CableConnection: identify(key,value)/identifier(key) (identified_by) + authorize/reject/is_authorized (rejected by default). Covered by tests/connection_test.rs."
     },
     {
       "title": "stream_from / stream_for naming helpers",
