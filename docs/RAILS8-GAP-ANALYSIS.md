@@ -149,7 +149,7 @@ Each line reads: `- [ ] `[tag]` **Feature** — note. *(state)*`
 - [x] `[nice]` **`ActiveSupport::Notifications` instrumentation bus** — 4 fixed trace helpers only. *(partial)*
 - [x] `[nice]` **Core extensions** (`blank?`/`present?`, String/Array/Hash helpers) — *(missing)*
 - [x] `[nice]` **Time/Date helpers** (`2.days.ago`, `beginning_of_day`) — *(missing)*
-- [ ] `[nice]` **Concerns/mixins pattern** — *(missing)*
+- [x] `[nice]` **Concerns/mixins pattern** — *(missing)*
 - [ ] `[nice]` **Test time helpers** (`travel_to`, durations) — *(missing)*
 
 ## Config & Credentials — `doido-config` (deferred crate)

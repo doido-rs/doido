@@ -1509,8 +1509,8 @@
       "crate": "doido-core",
       "id": "US-094",
       "priority": 94,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added concerns module documenting the concern/mixin pattern (trait + default methods) with a worked Sluggable concern (source -> slug). Covered by tests/concerns_test.rs."
     },
     {
       "title": "Test time helpers",

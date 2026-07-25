@@ -1,3 +1,4 @@
+pub mod concerns;
 pub mod core_ext;
 pub mod error;
 pub mod inflector;
