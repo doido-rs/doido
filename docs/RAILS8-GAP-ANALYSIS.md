@@ -82,7 +82,7 @@ Each line reads: `- [ ] `[tag]` **Feature** — note. *(state)*`
 
 ## Model / Active Record — `doido-model`
 
-- [ ] `[core]` **Validations** (presence/uniqueness/format/length/numericality/custom) — *(missing)*
+- [x] `[core]` **Validations** (presence/uniqueness/format/length/numericality/custom) — *(missing)*
 - [ ] `[core]` **Callbacks** (before/after save/create/update/destroy/validation) — *(missing)*
 - [ ] `[core]` **Declarative associations ergonomics** (has_many/belongs_to/through) — raw sea-orm relations only. *(partial)*
 - [ ] `[core]` **Named scopes** — *(missing)*

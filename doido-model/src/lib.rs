@@ -11,6 +11,7 @@ pub mod environment;
 pub mod migration;
 pub mod pool;
 pub mod testing;
+pub mod validation;
 
 pub use config::{Config, DatabaseConfig, LoggerConfig, YamlConfig};
 pub use create::create_database;

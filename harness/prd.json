@@ -288,8 +288,8 @@
       "crate": "doido-model",
       "id": "US-018",
       "priority": 18,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added validation module: Errors collector (add/on/len/is_empty/full_messages) + presence/length validators + Validate trait (validate()/is_valid()). Models opt in by impl Validate. Covered by tests/validation_test.rs. FOLLOW-UP: uniqueness (needs db), format/numericality, and a derive macro."
     },
     {
       "title": "Declarative associations ergonomics",
