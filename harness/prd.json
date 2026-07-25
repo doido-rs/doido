@@ -672,8 +672,8 @@
       "crate": "doido-view",
       "id": "US-042",
       "priority": 42,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added helpers::form: form_tag (method-override via hidden _method for PATCH/DELETE + CSRF authenticity_token field) / form_end + text_field/text_area/hidden_field/label/submit, all HTML-escaped. Covered by tests/form_helpers_test.rs."
     },
     {
       "title": "Link/URL helpers",

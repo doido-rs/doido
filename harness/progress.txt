@@ -45,3 +45,4 @@ US-038: glob routes — axum {*name} catch-all via get! passthrough (test). test
 US-039: mount — mount!(path, router) nests a sub-router. make verify green (router phase complete).
 US-040: partials — render_partial + render_collection helpers. clippy+test green.
 US-041: content_for — ContentFor named-block capture/yield store. clippy+test green.
+US-042: form builders — helpers::form (form_tag + field helpers, escaped). clippy+test green.

@@ -1,6 +1,7 @@
 pub mod content_for;
 pub mod engine;
 pub mod global;
+pub mod helpers;
 pub mod partials;
 pub mod renderer;
 pub mod response;
