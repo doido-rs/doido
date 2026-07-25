@@ -64,3 +64,4 @@ US-057: mailer previews — MailerPreviews registry (register/names/render). cli
 US-058: interceptors/observers — InterceptingDeliverer wrapper. clippy+test green (Mailer phase complete).
 US-059: channel macro codegen — inherent channel_name/stream_name. clippy+test green.
 US-060: cable wire protocol — CableFrame client frames now tagged command (ActionCable). clippy+test green.
+US-061: redis pubsub — RedisPubSub (feature cable-redis), integration-tested via test-backends. verify (feature off) green.

@@ -976,8 +976,8 @@
       "crate": "doido-cable",
       "id": "US-061",
       "priority": 61,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added redis_pubsub::RedisPubSub behind feature cable-redis: PUBLISH via multiplexed conn, SUBSCRIBE bridged into a broadcast channel per stream. Compiles under the feature; integration test (tests/redis_pubsub_test.rs) runs via make test-backends (REDIS_URL), self-skips otherwise. Mirrors the jobs-redis pattern."
     },
     {
       "title": "Connection identification / auth",
