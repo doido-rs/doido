@@ -416,8 +416,8 @@
       "crate": "doido-model",
       "id": "US-026",
       "priority": 26,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Extended association module: PolymorphicAssociation::belongs_to(name) -> {name}_type/{name}_id columns, and sti_type_column() -> \"type\" (STI discriminator). Covered by tests/polymorphic_test.rs."
     },
     {
       "title": "Multiple databases / read-write splitting",

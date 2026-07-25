@@ -74,3 +74,27 @@ pub fn join_table(a: &str, b: &str) -> String {
     tables.sort();
     format!("{}_{}", tables[0], tables[1])
 }
+
+/// A polymorphic `belongs_to` (Rails `belongs_to :commentable, polymorphic: true`),
+/// which stores the target's class name in `{name}_type` and its id in `{name}_id`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PolymorphicAssociation {
+    pub name: String,
+    pub type_column: String,
+    pub id_column: String,
+}
+
+impl PolymorphicAssociation {
+    pub fn belongs_to(name: &str) -> Self {
+        Self {
+            name: name.to_string(),
+            type_column: format!("{name}_type"),
+            id_column: format!("{name}_id"),
+        }
+    }
+}
+
+/// The default single-table-inheritance discriminator column (Rails `type`).
+pub fn sti_type_column() -> &'static str {
+    "type"
+}
