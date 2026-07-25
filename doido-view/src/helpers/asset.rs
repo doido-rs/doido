@@ -45,3 +45,21 @@ pub fn javascript_include_tag(name: &str) -> String {
     };
     format!("<script src=\"{}\"></script>", escape(&src))
 }
+
+/// A content digest for cache-busting (Propshaft-style fingerprint).
+pub fn digest(content: &[u8]) -> String {
+    use std::hash::{Hash, Hasher};
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    content.hash(&mut hasher);
+    format!("{:016x}", hasher.finish())
+}
+
+/// A digested asset path: `digested_path("app.css", b"...")` →
+/// `/assets/app-<digest>.css`, so changed assets get a fresh URL.
+pub fn digested_path(name: &str, content: &[u8]) -> String {
+    let d = digest(content);
+    match name.rsplit_once('.') {
+        Some((stem, ext)) => format!("/assets/{stem}-{d}.{ext}"),
+        None => format!("/assets/{name}-{d}"),
+    }
+}

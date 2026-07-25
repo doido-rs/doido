@@ -99,3 +99,4 @@ US-092: core extensions — core_ext::Blank + StringExt. clippy+test green.
 US-093: time helpers — time_ext (days_ago/beginning_of_day/...). clippy+test green.
 US-094: concerns — concerns::Sluggable example concern/mixin. clippy+test green.
 US-095: test time — test_time::TestClock travel/travel_to. clippy+test green (Core phase complete).
+US-096: asset pipeline — digested asset paths. clippy+test green.

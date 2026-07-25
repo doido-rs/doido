@@ -1542,8 +1542,8 @@
       "crate": "doido-generators",
       "id": "US-096",
       "priority": 96,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added helpers::asset::digest + digested_path (Propshaft-style content-fingerprinted /assets/name-<digest>.ext) for cache-busting. Covered by tests/asset_pipeline_test.rs. NOTE: static file serving from public/ is a follow-up."
     },
     {
       "title": "Built-in testing story",
