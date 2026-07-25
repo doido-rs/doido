@@ -18,3 +18,4 @@ US-011: filter skipping — #[controller] before/after_action gain except=[...] 
 US-012: around_action — #[around_action(fn)] wraps the action via an async closure (fn brackets + owns the response). make verify green.
 US-013: respond_to — Context::negotiated_format()/respond_to() format negotiation (Accept + .json/.html), RespondTo html/json branches, 406 fallback. make verify green.
 US-014: HTTP caching — Context::fresh_when(etag, last_modified) conditional-GET 304 via If-None-Match/If-Modified-Since. make verify green.
+US-015: rate limiting — rate_limit::RateLimiter cache-backed fixed-window check(key). make verify green.

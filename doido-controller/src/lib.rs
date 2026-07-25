@@ -6,6 +6,7 @@ pub mod environment;
 pub mod flash;
 pub mod logging;
 pub mod params;
+pub mod rate_limit;
 pub mod rescue;
 pub mod respond;
 pub mod response;

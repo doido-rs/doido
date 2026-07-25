@@ -240,8 +240,8 @@
       "crate": "doido-controller",
       "id": "US-015",
       "priority": 15,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "rate_limit::RateLimiter (cache-backed fixed window): check(key) counts hits per key within window_secs, storing (count, window_start) so the window resets by time regardless of cache TTL; over-limit returns false; per-key isolation. Covered by tests/rate_limit_test.rs. FOLLOW-UP: Tower middleware + 429 wiring."
     },
     {
       "title": "Response streaming",
