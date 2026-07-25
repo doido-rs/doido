@@ -44,4 +44,15 @@ impl Mail {
     pub async fn deliver_now(&self, deliverer: &dyn Deliverer) -> Result<()> {
         deliverer.deliver(self).await
     }
+
+    /// Enqueue this mail onto the `mailers` queue for background delivery (Rails
+    /// `deliver_later`). A worker with a mailer job handler delivers it later.
+    pub async fn deliver_later(
+        &self,
+        queue: &dyn doido_jobs::JobQueue,
+    ) -> Result<doido_jobs::JobId> {
+        let payload = serde_json::to_value(self)?;
+        let job = doido_jobs::JobPayload::new("mailers", payload, 3);
+        queue.enqueue(job).await
+    }
 }

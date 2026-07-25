@@ -1121,6 +1121,7 @@ version = "0.0.7"
 dependencies = [
  "async-trait",
  "doido-core",
+ "doido-jobs",
  "doido-mailer-macros",
  "serde",
  "serde_json",

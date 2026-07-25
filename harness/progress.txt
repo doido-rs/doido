@@ -55,3 +55,4 @@ US-048: sanitization — helpers::sanitize (strip_tags/html_escape/sanitize). cl
 US-049: fragment caching — fragment::cache_fragment over CacheStore. clippy+test green (View phase complete).
 US-050: mailer macro codegen — inherent mailer_name/template_key on the struct. clippy+test green.
 US-051: SMTP deliverer — smtp::SmtpDeliverer async SMTP client (mock-server tested). clippy+test green.
+US-052: deliver_later — Mail::deliver_later enqueues on the mailers queue. clippy+test green.

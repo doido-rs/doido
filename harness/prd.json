@@ -832,8 +832,8 @@
       "crate": "doido-mailer",
       "id": "US-052",
       "priority": 52,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Mail::deliver_later(queue) serializes the mail and enqueues it on the mailers queue (doido-jobs) for background delivery; verified by reserving + deserializing. doido-jobs added as a mailer dep. Covered by tests/deliver_later_test.rs."
     },
     {
       "title": "Mailer templates",
