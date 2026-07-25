@@ -18,6 +18,7 @@ pub mod normalization;
 pub mod password;
 pub mod pool;
 pub mod scope;
+pub mod seeds;
 pub mod serialization;
 pub mod testing;
 pub mod transaction;

@@ -1248,8 +1248,8 @@
       "crate": "doido-model",
       "id": "US-078",
       "priority": 78,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added seeds::run_seeds(conn, seeder) executing an async seeding routine against the connection (Rails db:seed); doido db seed calls the app seeder. Covered by tests/seeds_test.rs."
     },
     {
       "title": "db:schema dump/load",
