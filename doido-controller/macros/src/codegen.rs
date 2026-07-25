@@ -179,6 +179,14 @@ fn generate_inner(
                     }))
                 });
             }
+            RouteDecl::Mount { path, router } => {
+                let full = match path_prefix {
+                    Some(pfx) => format!("{}{}", pfx, path.value()),
+                    None => path.value(),
+                };
+                descriptors.push(("MOUNT".to_string(), full.clone()));
+                route_stmts.push(quote! { .nest(#full, #router) });
+            }
             RouteDecl::Resource { name, controller } => {
                 let n = name.to_string();
                 let prefix = path_prefix.unwrap_or("");

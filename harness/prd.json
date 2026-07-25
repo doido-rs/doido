@@ -624,8 +624,8 @@
       "crate": "doido-controller",
       "id": "US-039",
       "priority": 39,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added mount!(\"/path\", router) to the routes! DSL: nests a sub-router (axum .nest) under a prefix (Rails mount). Covered by tests/mount_test.rs. NOTE: direct/resolve custom URL helpers left as a follow-up."
     },
     {
       "title": "Partial + collection render helpers",
