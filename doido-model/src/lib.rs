@@ -12,6 +12,7 @@ pub mod create;
 pub mod environment;
 pub mod factory;
 pub mod migration;
+pub mod normalization;
 pub mod password;
 pub mod pool;
 pub mod scope;

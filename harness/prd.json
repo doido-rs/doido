@@ -384,8 +384,8 @@
       "crate": "doido-model",
       "id": "US-024",
       "priority": 24,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added normalization::Normalizer: chainable strip/downcase/upcase/squish/custom steps + apply(); use in before_save/before_validation. Covered by tests/normalization_test.rs."
     },
     {
       "title": "as_json / serialized columns",
