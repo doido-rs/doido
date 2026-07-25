@@ -3,6 +3,7 @@ pub mod layout;
 pub mod mail;
 pub mod mailer;
 pub mod mime;
+pub mod preview;
 pub mod sendmail;
 pub mod smtp;
 

@@ -912,8 +912,8 @@
       "crate": "doido-mailer",
       "id": "US-057",
       "priority": 57,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added preview::MailerPreviews: register(name, fn)/names()/render(name) for dev mail previews (renders to MIME). Covered by tests/preview_test.rs."
     },
     {
       "title": "Interceptors / observers + i18n",
