@@ -92,7 +92,7 @@ Each line reads: `- [ ] `[tag]` **Feature** — note. *(state)*`
 - [x] `[nice]` **`normalizes`** (attribute normalization) — *(missing)*
 - [x] `[nice]` **`as_json` / serialized columns** — *(missing)*
 - [x] `[nice]` **Polymorphic associations / STI** — *(missing)*
-- [ ] `[nice]` **Multiple databases / read-write splitting** — single global pool today. *(missing)*
+- [x] `[nice]` **Multiple databases / read-write splitting** — single global pool today. *(missing)*
 - [ ] `[nice]` **Transaction convenience wrapper** — raw sea-orm only. *(partial)*
 - [ ] `[deferred]` **Attribute encryption** (`encrypts`) — *(missing)*
 

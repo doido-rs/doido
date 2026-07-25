@@ -30,3 +30,4 @@ US-023: fixtures/factories — factory::{Factory, sequence} test-record builders
 US-024: normalizes — normalization::Normalizer chainable attribute normalization. make verify green.
 US-025: as_json/serialized columns — serialization module (as_json only/except + serialize/deserialize_column). make verify green.
 US-026: polymorphic/STI — PolymorphicAssociation ({name}_type/id) + sti_type_column conventions. make verify green.
+US-027: multiple databases — databases::Databases writing/reading role routing with writer fallback. make verify green.

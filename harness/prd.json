@@ -432,8 +432,8 @@
       "crate": "doido-model",
       "id": "US-027",
       "priority": 27,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added databases module: Databases holds a writing connection + optional reading replica; connection(Role) routes reads to the replica (falling back to the writer). Real routing verified via a replica-only table. Covered by tests/databases_test.rs."
     },
     {
       "title": "Transaction convenience wrapper",
