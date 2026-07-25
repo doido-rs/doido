@@ -67,6 +67,8 @@ fn generate_inner(
                 resource_name,
                 controller,
                 filter,
+                member: member_actions,
+                collection: collection_actions,
             } => {
                 let name = resource_name.to_string();
                 let singular = name.trim_end_matches('s').to_string();
@@ -112,6 +114,23 @@ fn generate_inner(
                     descriptors.push(("GET".to_string(), base_id_edit.clone()));
                     route_stmts
                         .push(quote! { .route(#base_id_edit, axum::routing::get(#ctrl::edit)) });
+                }
+
+                // Collection routes: `GET /{resource}/<action>` (Rails `collection`).
+                for action in &collection_actions {
+                    let path = format!("{}/{}", base, action);
+                    let action_ident = format_ident!("{}", action);
+                    descriptors.push(("GET".to_string(), path.clone()));
+                    route_stmts
+                        .push(quote! { .route(#path, axum::routing::get(#ctrl::#action_ident)) });
+                }
+                // Member routes: `GET /{resource}/{id}/<action>` (Rails `member`).
+                for action in &member_actions {
+                    let path = format!("{}/{{id}}/{}", base, action);
+                    let action_ident = format_ident!("{}", action);
+                    descriptors.push(("GET".to_string(), path.clone()));
+                    route_stmts
+                        .push(quote! { .route(#path, axum::routing::get(#ctrl::#action_ident)) });
                 }
 
                 // URL helpers with optional prefix

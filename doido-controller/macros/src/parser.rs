@@ -19,6 +19,10 @@ pub enum RouteDecl {
         resource_name: Ident,
         controller: Ident,
         filter: ResourceFilter,
+        /// Extra GET routes under `/{id}/<action>` (Rails `member do … end`).
+        member: Vec<String>,
+        /// Extra GET routes under `/<action>` (Rails `collection do … end`).
+        collection: Vec<String>,
     },
     Namespace {
         name: Ident,
@@ -83,16 +87,20 @@ impl Parse for RoutesInput {
                     let resource_name: Ident = content.parse()?;
                     let _comma: Token![,] = content.parse()?;
                     let controller: Ident = content.parse()?;
-                    let filter = if content.is_empty() {
-                        ResourceFilter::All
-                    } else {
+                    // Zero or more `, key: [actions]` options (only/except/member/collection).
+                    let mut filter = ResourceFilter::All;
+                    let mut member = Vec::new();
+                    let mut collection = Vec::new();
+                    while !content.is_empty() {
                         let _comma: Token![,] = content.parse()?;
                         let key: Ident = content.parse()?;
                         let _colon: Token![:] = content.parse()?;
                         let actions = parse_action_list(&content)?;
                         match key.to_string().as_str() {
-                            "only" => ResourceFilter::Only(actions),
-                            "except" => ResourceFilter::Except(actions),
+                            "only" => filter = ResourceFilter::Only(actions),
+                            "except" => filter = ResourceFilter::Except(actions),
+                            "member" => member = actions,
+                            "collection" => collection = actions,
                             other => {
                                 return Err(syn::Error::new(
                                     key.span(),
@@ -100,11 +108,13 @@ impl Parse for RoutesInput {
                                 ))
                             }
                         }
-                    };
+                    }
                     decls.push(RouteDecl::Resources {
                         resource_name,
                         controller,
                         filter,
+                        member,
+                        collection,
                     });
                 }
                 "root" => {

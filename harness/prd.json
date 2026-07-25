@@ -528,8 +528,8 @@
       "crate": "doido-controller",
       "id": "US-033",
       "priority": 33,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "resources! now accepts member: [actions] and collection: [actions], adding GET /{res}/{id}/<action> and GET /{res}/<action> routes to the controller methods. Multiple options (only/except/member/collection) parse in a loop. Covered by tests/member_collection_test.rs."
     },
     {
       "title": "Route constraints",

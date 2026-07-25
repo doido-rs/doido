@@ -36,7 +36,7 @@ Each line reads: `- [ ] `[tag]` **Feature** — note. *(state)*`
 - [x] `[core]` **Root route** (`root "home#index"`) — *(missing)*
 - [x] `[core]` **`respond_to` / format-based content negotiation** — *(missing)*
 - [x] `[core]` **Named path/URL helpers for custom routes** — only `resources!` generates `_path` helpers; plain `get!/post!` routes get none. *(partial)*
-- [ ] `[core]` **`member` / `collection` route blocks on resources** — must add manual method routes today. *(partial)*
+- [x] `[core]` **`member` / `collection` route blocks on resources** — must add manual method routes today. *(partial)*
 - [ ] `[nice]` **Route constraints** (regex / format / lambda) — *(missing)*
 - [ ] `[nice]` **Singular resource** (`resource :profile`) — *(missing)*
 - [ ] `[nice]` **Shallow nesting** for nested resources — *(missing)*
