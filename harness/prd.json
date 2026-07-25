@@ -1394,8 +1394,8 @@
       "crate": "doido-generators",
       "id": "US-087",
       "priority": 87,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added ResourceGenerator (registered as generate resource): a model + RESTful controller + routes, no views (reuses the --api scaffold). Covered by tests/resource_generator_test.rs."
     },
     {
       "title": "generate destroy/undo",

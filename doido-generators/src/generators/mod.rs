@@ -8,6 +8,7 @@ pub mod migration;
 pub mod migration_support;
 pub mod model;
 pub mod new;
+pub mod resource;
 pub mod scaffold;
 pub mod templates_gen;
 

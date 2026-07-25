@@ -90,3 +90,4 @@ US-083: env overrides — env_override::apply_env_overrides (SECTION__KEY). clip
 US-084: initializers — Initializers boot registry. clippy+test green.
 US-085: config drift resolved — standardize on per-env YAML (documented in ARCHITECTURE.md).
 US-086: console REPL — banner + evcxr launch. clippy+test green.
+US-087: generate resource — ResourceGenerator (API scaffold, no views). clippy+test green.
