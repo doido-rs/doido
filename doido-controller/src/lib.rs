@@ -2,6 +2,7 @@ pub mod config;
 pub mod context;
 pub mod csrf;
 pub mod environment;
+pub mod flash;
 pub mod logging;
 pub mod params;
 pub mod response;
@@ -20,6 +21,7 @@ pub use context::{Context, IntoActionResponse};
 // not standalone macros, so only `controller` and `routes` are re-exported.
 pub use doido_controller_macros::{controller, routes};
 pub use environment::Environment;
+pub use flash::Flash;
 pub use params::Params;
 pub use response::Response;
 pub use route_table::{all_routes, print_routes, register_routes, RouteEntry};

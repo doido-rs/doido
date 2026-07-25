@@ -128,8 +128,8 @@
       "crate": "doido-controller",
       "id": "US-008",
       "priority": 8,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added flash::Flash (set/get/iter/is_empty) carried between requests in a signed cookie via CookieSessionStore (to_cookie/from_cookie); lives one following request, dropped when absent/tampered/wrong-secret. Covered by tests/flash_test.rs. FOLLOW-UP: Context::flash() wiring once the app secret is on Context."
     },
     {
       "title": "Cookies API",

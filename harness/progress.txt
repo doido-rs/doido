@@ -11,3 +11,4 @@ US-004: host authorization — MiddlewareStack::with_allowed_hosts 403s unlisted
 US-005: configurable middleware insertion — MiddlewareStack::insert_before/insert_after router transforms around the always-on stack. make verify green.
 US-006: strong parameters — params::Params with require/permit/deserialize + Context::query_params(). make verify green.
 US-007: CSRF protection — csrf module + MiddlewareStack::with_csrf() double-submit-cookie guard (constant-time compare). make verify green.
+US-008: flash messages — flash::Flash carried in a signed cookie (set now / read next / then gone). make verify green.
