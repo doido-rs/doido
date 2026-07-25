@@ -1411,8 +1411,8 @@
       "crate": "doido-generators",
       "id": "US-088",
       "priority": 88,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added commands::destroy: destroyable_paths(files) (standalone files, excluding shared mod.rs/routes.rs/lib.rs) + run(generator, args) deleting them (Rails destroy). Covered by tests/destroy_test.rs."
     },
     {
       "title": "runner + dbconsole commands",

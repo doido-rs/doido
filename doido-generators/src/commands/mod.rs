@@ -1,6 +1,7 @@
 pub mod console;
 pub mod credentials;
 pub mod db;
+pub mod destroy;
 pub mod generate;
 pub mod jobs;
 pub mod new;
