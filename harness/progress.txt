@@ -41,3 +41,4 @@ US-034: route constraints — constraints module (format validators + Constraint
 US-035: singular resource — resource!(name, Ctrl) no-id routes. clippy+test green.
 US-036: shallow nesting — shallow_resources! nested collection + shallow member routes. clippy+test green.
 US-037: redirect routes — redirect!(from, to) 301 in the DSL. clippy+test green.
+US-038: glob routes — axum {*name} catch-all via get! passthrough (test). test green.

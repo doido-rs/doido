@@ -608,8 +608,8 @@
       "crate": "doido-controller",
       "id": "US-038",
       "priority": 38,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Glob/catch-all works via the routes! DSL passing axum's {*name} wildcard through to the route; Path<String> captures the rest. Covered by tests/glob_route_test.rs."
     },
     {
       "title": "mount engines / sub-apps",
