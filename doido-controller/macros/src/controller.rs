@@ -102,6 +102,22 @@ fn parse_skip_filters(method: &syn::ImplItemFn) -> Vec<String> {
         .collect()
 }
 
+/// The single `#[around_action(fn)]` filter on a method, if present. The filter
+/// receives `(&mut Context, run)` where `run` executes the action and yields its
+/// `Response`, so it can bracket the action and own the result.
+fn parse_around_filter(method: &syn::ImplItemFn) -> Option<proc_macro2::Ident> {
+    method.attrs.iter().find_map(|attr| {
+        let attr_name = attr.meta.path().get_ident()?.to_string();
+        if attr_name != "around_action" {
+            return None;
+        }
+        let Meta::List(list) = &attr.meta else {
+            return None;
+        };
+        syn::parse_str(list.tokens.to_string().split(',').next()?.trim()).ok()
+    })
+}
+
 pub fn expand_controller(_attr: TokenStream, item: TokenStream) -> Result<TokenStream> {
     let mut impl_block: ItemImpl = parse2(item)?;
     let self_ty = impl_block.self_ty.clone();
@@ -172,6 +188,24 @@ pub fn expand_controller(_attr: TokenStream, item: TokenStream) -> Result<TokenS
             }
         }
 
+        // With an around filter the action is run *through* it (so it can bracket
+        // the call and own the response); otherwise the action runs directly.
+        // `IntoActionResponse` normalises `Response`/`Result<Response, _>` (mapping
+        // `Err` to a 500).
+        let invoke = match parse_around_filter(method) {
+            Some(around_fn) => quote! {
+                let __response = #around_fn(&mut ctx, async |__ctx: &mut ::doido_controller::Context| {
+                    let __action_result = Self::#action_fn(__ctx).await;
+                    ::doido_controller::IntoActionResponse::into_action_response(__action_result)
+                }).await;
+            },
+            None => quote! {
+                let __action_result = Self::#action_fn(&mut ctx).await;
+                let __response =
+                    ::doido_controller::IntoActionResponse::into_action_response(__action_result);
+            },
+        };
+
         handler_fns.push(quote! {
             pub async fn #fn_name(
                 req: ::axum::extract::Request,
@@ -179,11 +213,7 @@ pub fn expand_controller(_attr: TokenStream, item: TokenStream) -> Result<TokenS
                 #[allow(unused_mut)]
                 let mut ctx = ::doido_controller::Context::build(req).await;
                 #(#before_chain)*
-                // The extracted action returns `Response` or `Result<Response, _>`;
-                // `IntoActionResponse` normalises it (mapping `Err` to a 500).
-                let __action_result = Self::#action_fn(&mut ctx).await;
-                let __response =
-                    ::doido_controller::IntoActionResponse::into_action_response(__action_result);
+                #invoke
                 #(#after_chain)*
                 __response
             }

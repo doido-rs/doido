@@ -53,7 +53,7 @@ Each line reads: `- [ ] `[tag]` **Feature** — note. *(state)*`
 - [x] `[core]` **`rescue_from`** typed error handling — only panic→500 today. *(missing)*
 - [x] `[core]` **`skip_before_action`** / filter skipping — *(missing)*
 - [ ] `[core]` **Real `#[before_action]` / `#[after_action]` attrs** — standalone attrs are inert shells (the codegen path in `#[controller]` works). *(partial)*
-- [ ] `[nice]` **`around_action`** filters — *(missing)*
+- [x] `[nice]` **`around_action`** filters — *(missing)*
 - [ ] `[nice]` **HTTP caching** (`fresh_when` / `stale?` / ETag / Last-Modified) — *(missing)*
 - [ ] `[nice]` **Rate limiting** (Rails 8 `rate_limit`) — *(missing)*
 - [ ] `[nice]` **`force_ssl`** / SSL redirect — *(missing)*

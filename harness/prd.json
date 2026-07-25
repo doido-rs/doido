@@ -192,8 +192,8 @@
       "crate": "doido-controller",
       "id": "US-012",
       "priority": 12,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "#[around_action(fn)] wraps the action: the macro runs it through fn(&mut Context, run) where run is an async closure executing the action and yielding its Response, so the filter can bracket the call and own/modify the response. Covered by tests/around_action_test.rs. FOLLOW-UP: multiple around filters nest (currently first only)."
     },
     {
       "title": "HTTP caching",
