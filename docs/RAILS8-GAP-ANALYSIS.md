@@ -111,7 +111,7 @@ Each line reads: `- [ ] `[tag]` **Feature** — note. *(state)*`
 - [x] `[nice]` **`.set(wait:/wait_until:/queue:/priority:)` fluent parity** — `enqueue_at` exists. *(partial)*
 - [x] `[nice]` **Job batches / workflows** — *(missing)*
 - [x] `[nice]` **Job status introspection** (`doido jobs` dispatch) — listing only, dispatch is TODO. *(partial)*
-- [ ] `[nice]` **Richer worker app-context** (beyond db handle) — *(partial)*
+- [x] `[nice]` **Richer worker app-context** (beyond db handle) — *(partial)*
 
 ## Cache / Active Support Cache — `doido-cache`
 
