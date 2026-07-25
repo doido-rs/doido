@@ -256,8 +256,8 @@
       "crate": "doido-controller",
       "id": "US-016",
       "priority": 16,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "MiddlewareStack::with_force_ssl() adds a guard that 301-redirects insecure requests to their https:// URL (secure = X-Forwarded-Proto https or https scheme). Covered by tests/force_ssl_test.rs."
     },
     {
       "title": "Validations",

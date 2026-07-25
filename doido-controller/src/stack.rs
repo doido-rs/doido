@@ -22,6 +22,7 @@ pub struct MiddlewareStack {
     cors_config: Option<CorsConfig>,
     allowed_hosts: Vec<String>,
     csrf: bool,
+    force_ssl: bool,
     before: Vec<RouterTransform>,
     after: Vec<RouterTransform>,
 }
@@ -33,6 +34,7 @@ impl MiddlewareStack {
             cors_config: None,
             allowed_hosts: Vec::new(),
             csrf: false,
+            force_ssl: false,
             before: Vec::new(),
             after: Vec::new(),
         }
@@ -42,6 +44,14 @@ impl MiddlewareStack {
     /// must send an `X-CSRF-Token` header matching the `csrf_token` cookie.
     pub fn with_csrf(mut self) -> Self {
         self.csrf = true;
+        self
+    }
+
+    /// Redirect insecure requests to HTTPS (Rails `force_ssl`). A request is
+    /// considered secure when its `X-Forwarded-Proto` is `https` (or the URI
+    /// scheme is `https`); otherwise it gets a 301 to the `https://` URL.
+    pub fn with_force_ssl(mut self) -> Self {
+        self.force_ssl = true;
         self
     }
 
@@ -111,11 +121,55 @@ impl MiddlewareStack {
         if self.csrf {
             r = r.layer(from_fn(csrf_guard));
         }
+        if self.force_ssl {
+            r = r.layer(from_fn(force_ssl_guard));
+        }
         // App-registered "after" middleware wraps everything (outermost).
         for transform in self.after {
             r = transform(r);
         }
         r
+    }
+}
+
+/// Redirect insecure requests to their `https://` equivalent with a 301.
+async fn force_ssl_guard(request: Request, next: Next) -> Response {
+    let forwarded_https = request
+        .headers()
+        .get("x-forwarded-proto")
+        .and_then(|v| v.to_str().ok())
+        .map(|p| p.eq_ignore_ascii_case("https"))
+        .unwrap_or(false);
+    let scheme_https = request.uri().scheme_str() == Some("https");
+    if forwarded_https || scheme_https {
+        return next.run(request).await;
+    }
+
+    let host = request
+        .headers()
+        .get(header::HOST)
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("");
+    let path = request
+        .uri()
+        .path_and_query()
+        .map(|pq| pq.as_str())
+        .unwrap_or("/");
+    let location = format!("https://{host}{path}");
+
+    match HeaderValue::from_str(&location) {
+        Ok(value) => {
+            let mut response = Response::builder()
+                .status(StatusCode::MOVED_PERMANENTLY)
+                .body(Body::empty())
+                .expect("valid 301 response");
+            response.headers_mut().insert(header::LOCATION, value);
+            response
+        }
+        Err(_) => Response::builder()
+            .status(StatusCode::BAD_REQUEST)
+            .body(Body::empty())
+            .expect("valid 400 response"),
     }
 }
 
