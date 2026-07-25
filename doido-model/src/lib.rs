@@ -10,6 +10,7 @@ pub mod callbacks;
 pub mod config;
 pub mod create;
 pub mod environment;
+pub mod factory;
 pub mod migration;
 pub mod password;
 pub mod pool;

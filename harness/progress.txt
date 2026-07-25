@@ -26,3 +26,4 @@ US-019: model callbacks — callbacks::Callbacks trait + run_create/update/destr
 US-020: association ergonomics — association::Association conventions (fk/table) + HABTM join_table via Inflector. make verify green.
 US-021: named scopes — scope::Scoped extension (.scope/.scope_if) for chainable sea-orm query fragments. make verify green.
 US-022: secure password/tokens — password module (bcrypt hash/verify, HasSecurePassword::authenticate, generate_token). make verify green.
+US-023: fixtures/factories — factory::{Factory, sequence} test-record builders. make verify green.

@@ -87,7 +87,7 @@ Each line reads: `- [ ] `[tag]` **Feature** — note. *(state)*`
 - [x] `[core]` **Declarative associations ergonomics** (has_many/belongs_to/through) — raw sea-orm relations only. *(partial)*
 - [x] `[core]` **Named scopes** — *(missing)*
 - [x] `[core]` **Secure password / tokens** (`has_secure_password`, `generates_token_for`) — *(missing)*
-- [ ] `[core]` **Fixtures / factories for tests** — only in-memory `TestDb`. *(partial)*
+- [x] `[core]` **Fixtures / factories for tests** — only in-memory `TestDb`. *(partial)*
 - [ ] `[nice]` **Attribute enums with helpers** — *(missing)*
 - [ ] `[nice]` **`normalizes`** (attribute normalization) — *(missing)*
 - [ ] `[nice]` **`as_json` / serialized columns** — *(missing)*

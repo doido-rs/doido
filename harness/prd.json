@@ -368,8 +368,8 @@
       "crate": "doido-model",
       "id": "US-023",
       "priority": 23,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added factory module: Factory trait (build()/build_list(n)) + global monotonic sequence() for unique test values (FactoryBot-style), pairs with TestDb. Covered by tests/factory_test.rs."
     },
     {
       "title": "normalizes",
