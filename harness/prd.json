@@ -1200,8 +1200,8 @@
       "crate": "doido-cache",
       "id": "US-075",
       "priority": 75,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added multi module: read_multi (present keys only), write_multi, fetch_multi (compute+cache misses via a render closure). Covered by tests/multi_test.rs."
     },
     {
       "title": "Named/multi stores as first-class config",
