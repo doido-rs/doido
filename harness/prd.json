@@ -208,8 +208,8 @@
       "crate": "doido-controller",
       "id": "US-013",
       "priority": 13,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added respond::Format + Context::negotiated_format() (.json/.html path ext wins, else Accept header) and Context::respond_to() -> RespondTo builder with .html()/.json() branches; unmatched requested format -> 406. Covered by tests/respond_to_test.rs."
     },
     {
       "title": "Rate limiting",

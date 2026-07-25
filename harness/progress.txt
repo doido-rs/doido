@@ -16,3 +16,4 @@ US-009: cookies API — cookies::CookieJar (plain + HMAC-signed) + shared signin
 US-010: rescue_from — rescue::RescueHandlers maps typed errors to responses via downcast (else default 500). make verify green.
 US-011: filter skipping — #[controller] before/after_action gain except=[...] + #[skip_before_action(fn)]. make verify green.
 US-012: around_action — #[around_action(fn)] wraps the action via an async closure (fn brackets + owns the response). make verify green.
+US-013: respond_to — Context::negotiated_format()/respond_to() format negotiation (Accept + .json/.html), RespondTo html/json branches, 406 fallback. make verify green.

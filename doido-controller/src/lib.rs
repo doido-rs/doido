@@ -7,6 +7,7 @@ pub mod flash;
 pub mod logging;
 pub mod params;
 pub mod rescue;
+pub mod respond;
 pub mod response;
 pub mod route_table;
 pub mod server;

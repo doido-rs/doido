@@ -174,6 +174,35 @@ impl Context {
     pub fn header(&self, name: &str) -> Option<&http::HeaderValue> {
         self.parts.headers.get(name)
     }
+
+    /// The negotiated response [`Format`](crate::respond::Format): a `.json` or
+    /// `.html` path extension wins, otherwise the `Accept` header is inspected;
+    /// anything else is `Any`.
+    pub fn negotiated_format(&self) -> crate::respond::Format {
+        use crate::respond::Format;
+        let path = self.parts.uri.path();
+        if path.ends_with(".json") {
+            return Format::Json;
+        }
+        if path.ends_with(".html") {
+            return Format::Html;
+        }
+        match self
+            .parts
+            .headers
+            .get(header::ACCEPT)
+            .and_then(|a| a.to_str().ok())
+        {
+            Some(accept) if accept.contains("application/json") => Format::Json,
+            Some(accept) if accept.contains("text/html") => Format::Html,
+            _ => Format::Any,
+        }
+    }
+
+    /// Begin format-based content negotiation (Rails `respond_to`).
+    pub fn respond_to(&self) -> crate::respond::RespondTo {
+        crate::respond::RespondTo::new(self.negotiated_format())
+    }
 }
 
 /// Lets a `#[controller]` action body evaluate to either a [`Response`] or a
