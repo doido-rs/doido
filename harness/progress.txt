@@ -43,3 +43,4 @@ US-036: shallow nesting — shallow_resources! nested collection + shallow membe
 US-037: redirect routes — redirect!(from, to) 301 in the DSL. clippy+test green.
 US-038: glob routes — axum {*name} catch-all via get! passthrough (test). test green.
 US-039: mount — mount!(path, router) nests a sub-router. make verify green (router phase complete).
+US-040: partials — render_partial + render_collection helpers. clippy+test green.

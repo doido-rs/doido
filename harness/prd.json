@@ -640,8 +640,8 @@
       "crate": "doido-view",
       "id": "US-040",
       "priority": 40,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added partials module: render_partial(name) renders the _-prefixed partial (posts/form -> posts/_form) and render_collection(partial, items, as_var) renders per item and concatenates (Rails render partial:/collection:). Covered by tests/partials_test.rs."
     },
     {
       "title": "content_for / named yield blocks",

@@ -69,7 +69,7 @@ Each line reads: `- [ ] `[tag]` **Feature** — note. *(state)*`
 
 ## View / Action View — `doido-view`
 
-- [ ] `[core]` **Partial + collection render helpers** (`render "form"`, `render collection:`) — Tera `include` only, no Rails-style helper. *(partial)*
+- [x] `[core]` **Partial + collection render helpers** (`render "form"`, `render collection:`) — Tera `include` only, no Rails-style helper. *(partial)*
 - [ ] `[core]` **`content_for` / named `yield` blocks** — only `content_for_layout` exists. *(partial)*
 - [ ] `[core]` **Form builders** (`form_with`/`form_for` + field helpers) — *(missing)*
 - [ ] `[core]` **Link/URL helpers** (`link_to`, `button_to`) — *(missing)*
