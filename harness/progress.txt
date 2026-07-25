@@ -20,3 +20,4 @@ US-013: respond_to — Context::negotiated_format()/respond_to() format negotiat
 US-014: HTTP caching — Context::fresh_when(etag, last_modified) conditional-GET 304 via If-None-Match/If-Modified-Since. make verify green.
 US-015: rate limiting — rate_limit::RateLimiter cache-backed fixed-window check(key). make verify green.
 US-016: force_ssl — MiddlewareStack::with_force_ssl() 301-redirects insecure requests to https. make verify green.
+US-017: send_data/send_file — Context::send_data + async send_file downloads. make verify green.

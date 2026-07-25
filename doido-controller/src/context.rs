@@ -175,6 +175,40 @@ impl Context {
         self.parts.headers.get(name)
     }
 
+    /// Send raw bytes as a response (Rails `send_data`). When `filename` is set,
+    /// a `Content-Disposition: attachment` header prompts a download.
+    pub fn send_data(&self, data: Vec<u8>, content_type: &str, filename: Option<&str>) -> Response {
+        let mut builder = Response::builder()
+            .status(StatusCode::OK)
+            .header(header::CONTENT_TYPE, content_type);
+        if let Some(name) = filename {
+            builder = builder.header(
+                header::CONTENT_DISPOSITION,
+                format!("attachment; filename=\"{name}\""),
+            );
+        }
+        builder
+            .body(Body::from(data))
+            .expect("valid send_data response")
+    }
+
+    /// Send a file's contents as a response (Rails `send_file`). `content_type`
+    /// defaults to `application/octet-stream`; the file name is used for the
+    /// download disposition.
+    pub async fn send_file(
+        &self,
+        path: impl AsRef<std::path::Path>,
+        content_type: Option<&str>,
+    ) -> doido_core::Result<Response> {
+        let path = path.as_ref();
+        let data = tokio::fs::read(path)
+            .await
+            .map_err(|e| doido_core::anyhow::anyhow!("send_file failed to read {path:?}: {e}"))?;
+        let content_type = content_type.unwrap_or("application/octet-stream");
+        let filename = path.file_name().and_then(|n| n.to_str());
+        Ok(self.send_data(data, content_type, filename))
+    }
+
     /// The negotiated response [`Format`](crate::respond::Format): a `.json` or
     /// `.html` path extension wins, otherwise the `Accept` header is inspected;
     /// anything else is `Any`.

@@ -272,8 +272,8 @@
       "crate": "doido-model",
       "id": "US-017",
       "priority": 17,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Context::send_data(bytes, content_type, filename) -> Response (Content-Disposition attachment) and async send_file(path, content_type) reading the file (errors on missing path). Covered by tests/send_data_test.rs. FOLLOW-UP: true chunked streaming body for large files."
     },
     {
       "title": "Callbacks",

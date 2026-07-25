@@ -57,7 +57,7 @@ Each line reads: `- [ ] `[tag]` **Feature** — note. *(state)*`
 - [x] `[nice]` **HTTP caching** (`fresh_when` / `stale?` / ETag / Last-Modified) — *(missing)*
 - [x] `[nice]` **Rate limiting** (Rails 8 `rate_limit`) — *(missing)*
 - [x] `[nice]` **`force_ssl`** / SSL redirect — *(missing)*
-- [ ] `[nice]` **Response streaming** / `send_data` / `send_file` — *(missing)*
+- [x] `[nice]` **Response streaming** / `send_data` / `send_file` — *(missing)*
 
 ## Middleware & Sessions — `doido-controller`
 
