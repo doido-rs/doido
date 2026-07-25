@@ -52,7 +52,7 @@ Each line reads: `- [ ] `[tag]` **Feature** — note. *(state)*`
 - [x] `[core]` **Cookies API** (read/write, signed/encrypted) — *(missing)*
 - [x] `[core]` **`rescue_from`** typed error handling — only panic→500 today. *(missing)*
 - [x] `[core]` **`skip_before_action`** / filter skipping — *(missing)*
-- [ ] `[core]` **Real `#[before_action]` / `#[after_action]` attrs** — standalone attrs are inert shells (the codegen path in `#[controller]` works). *(partial)*
+- [x] `[core]` **Real `#[before_action]` / `#[after_action]` attrs** — resolved by design: these are controller-scoped inner-attribute DSL parsed by `#[controller]` (with `only`/`except`/`skip_before_action`/`around_action`), matching Rails where `before_action` is a class declaration, not a standalone macro. *(done)*
 - [x] `[nice]` **`around_action`** filters — *(missing)*
 - [x] `[nice]` **HTTP caching** (`fresh_when` / `stale?` / ETag / Last-Modified) — *(missing)*
 - [x] `[nice]` **Rate limiting** (Rails 8 `rate_limit`) — *(missing)*

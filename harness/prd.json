@@ -1678,8 +1678,8 @@
       "crate": "doido-generators",
       "id": "US-104",
       "priority": 104,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Runtime CRUD e2e green via `make example`: `doido new blog --database=sqlite` + `generate scaffold Post title:string body:text --api`, build, `db create`/`db migrate` on temp sqlite, boot the app's own `server` on an ephemeral port, HTTP POST/GET/PATCH/DELETE /posts (204 on delete). Caught + fixed a real bug: --api scaffolds injected a full resources! referencing nonexistent new/edit actions -> now emits `except: [new, edit]`. e2e tempdir moved off the small /tmp tmpfs onto the workspace target/ (real disk) so the framework+app+migration build fits."
     }
   ]
 }

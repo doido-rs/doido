@@ -408,6 +408,13 @@ fn test_scaffold_api_emits_json_controller_and_no_views() {
     assert!(ctrl.content.contains("ctx.json("));
     assert!(ctrl.content.contains("ctx.body_json()"));
     assert!(!ctrl.content.contains("ctx.render("));
+
+    // API controllers have no new/edit form actions, so the injected route must
+    // exclude them — otherwise `resources!` references methods that don't exist.
+    let routes = files.iter().find(|f| f.path == "config/routes.rs").unwrap();
+    assert!(routes
+        .content
+        .contains("resources!(posts, PostsController, except: [new, edit]);"));
 }
 
 #[test]

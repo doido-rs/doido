@@ -176,8 +176,8 @@ test: ## Run the workspace test suite (in-memory backends only)
 # definition-of-done). It builds the whole framework, so — like supply-chain — it
 # is kept OUT of `verify`: a ~3min build must not gate the fast loop. Run in CI
 # and on demand. The test itself is #[ignore]d.
-example: ## Slow e2e: generate an app in a tempdir and compile it
-	cargo test -p doido-generators --test e2e_app_build_test -- --ignored --nocapture
+example: ## Slow e2e: generate apps in a tempdir, compile them, and serve CRUD
+	cargo test -p doido-generators --test e2e_app_build_test --test e2e_app_runtime_test -- --ignored --nocapture
 
 verify: check test ## Fast green gate: lint + tests (harness relies on exit 0)
 	@echo "==> verify: OK"

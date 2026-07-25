@@ -20,10 +20,25 @@ fn doido(dir: &Path) -> Command {
     cmd
 }
 
+/// A scratch dir for the scaffolded app, placed under the workspace `target/`
+/// (real disk, gitignored) rather than `/tmp`, which is frequently a small
+/// tmpfs that a full framework + app build overflows.
+fn e2e_tempdir() -> tempfile::TempDir {
+    let base = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .expect("workspace root")
+        .join("target/e2e");
+    std::fs::create_dir_all(&base).expect("create e2e base dir");
+    tempfile::Builder::new()
+        .prefix("doido-e2e-")
+        .tempdir_in(&base)
+        .expect("create tempdir")
+}
+
 #[test]
 #[ignore = "slow: builds the whole framework; run via `make example`"]
 fn every_generator_output_compiles() {
-    let tmp = tempfile::tempdir().expect("create tempdir");
+    let tmp = e2e_tempdir();
 
     // `doido new blog --database=sqlite --cable` (cable so channels are wired).
     doido(tmp.path())
