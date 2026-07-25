@@ -139,7 +139,7 @@ Each line reads: `- [ ] `[tag]` **Feature** — note. *(state)*`
 - [x] `[core]` **Full ActionCable wire-protocol compliance** — client frames use `type` not `command`. *(partial)*
 - [x] `[core]` **Redis PubSub backend** (multi-process broadcast) — only MemoryPubSub. *(missing)*
 - [x] `[core]` **Connection identification / auth** (`identified_by`, current_user) — minimal. *(partial)*
-- [ ] `[nice]` **`stream_from` / `stream_for` naming helpers** — *(partial)*
+- [x] `[nice]` **`stream_from` / `stream_for` naming helpers** — *(partial)*
 - [ ] `[nice]` **Periodic timers / heartbeat pings** — *(missing)*
 - [ ] `[nice]` **Server-side `broadcast_to` from anywhere** — *(partial)*
 - [ ] `[nice]` **DB PubSub backend** — *(missing)*

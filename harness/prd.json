@@ -1008,8 +1008,8 @@
       "crate": "doido-cable",
       "id": "US-063",
       "priority": 63,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added streams::stream_from(name) and stream_for(type, id) -> Type:id naming helpers. Covered by tests/streams_test.rs."
     },
     {
       "title": "Periodic timers / heartbeat pings",

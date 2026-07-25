@@ -5,6 +5,7 @@ pub mod protocol;
 pub mod pubsub;
 #[cfg(feature = "cable-redis")]
 pub mod redis_pubsub;
+pub mod streams;
 
 pub use cable::Cable;
 pub use channel::{Channel, ChannelContext, ChannelName};
