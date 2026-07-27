@@ -7,9 +7,9 @@
 //! `cache-redis` / `cache-memcache` cargo features; selecting a backend whose
 //! feature is not enabled yields a clear error.
 
-use crate::environment::Environment;
 use crate::store::CacheStore;
 use crate::{MemoryStore, NamespacedStore};
+use doido_core::Environment;
 use doido_core::Result;
 use serde::Deserialize;
 use std::sync::Arc;

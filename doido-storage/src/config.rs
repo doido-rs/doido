@@ -242,11 +242,11 @@ pub struct YamlConfig {
 impl YamlConfig {
     /// Load `config/<env>.yml` for the current environment.
     pub fn load() -> std::io::Result<Self> {
-        Self::load_env(crate::environment::Environment::get_env())
+        Self::load_env(doido_core::Environment::get_env())
     }
 
     /// Load `config/<env>.yml` for a specific environment.
-    pub fn load_env(env: crate::environment::Environment) -> std::io::Result<Self> {
+    pub fn load_env(env: doido_core::Environment) -> std::io::Result<Self> {
         let path = format!("config/{}.yml", env.as_str());
         let contents = std::fs::read_to_string(&path)?;
         Self::from_yaml(&contents)

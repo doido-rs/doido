@@ -1,4 +1,5 @@
-use doido_controller::{Config, Environment, ServerConfig, YamlConfig};
+use doido_controller::{Config, ServerConfig, YamlConfig};
+use doido_core::Environment;
 
 #[test]
 fn server_config_defaults_to_0_0_0_0_3000() {

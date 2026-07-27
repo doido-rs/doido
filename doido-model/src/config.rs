@@ -5,7 +5,7 @@
 //! implementation that deserializes the `database` section of the YAML file for
 //! the environment reported by [`Environment::get_env`].
 
-use crate::environment::Environment;
+use doido_core::Environment;
 use serde::Deserialize;
 
 /// Re-exported so `config::LoggerConfig` resolves; the logger config lives in
