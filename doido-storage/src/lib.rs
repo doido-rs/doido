@@ -32,6 +32,7 @@ pub mod disk;
 pub mod environment;
 pub mod error;
 pub mod memory;
+pub mod registry;
 pub mod schema;
 pub mod service;
 pub mod serving;
@@ -41,6 +42,8 @@ pub mod signing;
 pub mod analyzer;
 #[cfg(feature = "storage-azure")]
 pub mod azure;
+#[cfg(feature = "storage-gcs")]
+pub mod gcs;
 #[cfg(feature = "storage-jobs")]
 pub mod jobs;
 #[cfg(feature = "storage-s3")]
@@ -53,11 +56,14 @@ pub use disk::DiskService;
 pub use environment::Environment;
 pub use error::StorageError;
 pub use memory::MemoryService;
+pub use registry::{register_adapter, registered_adapters, ServiceFactory};
 pub use schema::ensure_tables;
 pub use service::{Service, UrlOptions};
 pub use signing::{Disposition, Signer};
 
 #[cfg(feature = "storage-azure")]
 pub use azure::AzureBlobService;
+#[cfg(feature = "storage-gcs")]
+pub use gcs::GcsService;
 #[cfg(feature = "storage-s3")]
 pub use s3::S3Service;

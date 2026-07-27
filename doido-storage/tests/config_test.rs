@@ -24,6 +24,47 @@ fn parses_named_services_and_selection() {
     assert_eq!(cfg.services["amazon"].backend, ServiceBackend::S3);
 }
 
+#[test]
+fn parses_gcs_and_custom_backends() {
+    let yaml = r#"
+storage:
+  services:
+    google: { type: gcs, bucket: b }
+    files:  { type: dropbox, token: xyz }
+"#;
+    let cfg = YamlConfig::from_yaml(yaml).unwrap().storage;
+    assert_eq!(cfg.services["google"].backend, ServiceBackend::Gcs);
+    assert_eq!(
+        cfg.services["files"].backend,
+        ServiceBackend::Custom("dropbox".to_string())
+    );
+    // Unmatched keys land in `options`.
+    assert_eq!(cfg.services["files"].option_str("token"), Some("xyz"));
+}
+
+#[tokio::test]
+async fn gcs_without_feature_errors_clearly() {
+    let yaml = "storage:\n  service: g\n  services:\n    g: { type: gcs, bucket: b }\n";
+    let cfg = YamlConfig::from_yaml(yaml).unwrap().storage;
+    let result = cfg.build().await;
+    #[cfg(not(feature = "storage-gcs"))]
+    {
+        let err = match result {
+            Ok(_) => panic!("expected an error selecting gcs without the feature"),
+            Err(e) => e.to_string(),
+        };
+        assert!(err.contains("storage-gcs"), "unexpected error: {err}");
+    }
+    #[cfg(feature = "storage-gcs")]
+    {
+        // With the feature on it may fail on missing credentials, but must not
+        // complain about the feature being absent.
+        if let Err(e) = result {
+            assert!(!e.to_string().contains("without the `storage-gcs` feature"));
+        }
+    }
+}
+
 #[tokio::test]
 async fn builds_the_selected_service() {
     let cfg = YamlConfig::from_yaml(YAML).unwrap().storage;

@@ -26,13 +26,12 @@ use crate::error::StorageError;
 use crate::memory::MemoryService;
 use crate::service::Service;
 use doido_core::Result;
-use serde::Deserialize;
+use serde::{Deserialize, Deserializer};
 use std::collections::HashMap;
 use std::sync::Arc;
 
 /// Which storage backend a named service uses.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Deserialize)]
-#[serde(rename_all = "snake_case")]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub enum ServiceBackend {
     /// Local filesystem (the default).
     #[default]
@@ -45,6 +44,34 @@ pub enum ServiceBackend {
     R2,
     /// Azure Blob Storage. Requires `storage-azure`.
     Azure,
+    /// Google Cloud Storage. Requires `storage-gcs`.
+    Gcs,
+    /// A custom adapter registered via [`crate::register_adapter`], keyed by the
+    /// unrecognized `type` string.
+    Custom(String),
+}
+
+impl ServiceBackend {
+    /// Map a `type` string to a backend, treating anything unrecognized as a
+    /// custom adapter kind.
+    fn from_kind(kind: &str) -> Self {
+        match kind {
+            "disk" => ServiceBackend::Disk,
+            "memory" => ServiceBackend::Memory,
+            "s3" => ServiceBackend::S3,
+            "r2" => ServiceBackend::R2,
+            "azure" => ServiceBackend::Azure,
+            "gcs" | "google" => ServiceBackend::Gcs,
+            other => ServiceBackend::Custom(other.to_string()),
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for ServiceBackend {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> std::result::Result<Self, D::Error> {
+        let kind = String::deserialize(deserializer)?;
+        Ok(ServiceBackend::from_kind(&kind))
+    }
 }
 
 /// One named service's settings. Fields are shared across backends; each backend
@@ -87,12 +114,22 @@ pub struct ServiceConfig {
     /// Azure: account access key (else read from the environment).
     #[serde(default)]
     pub access_key: Option<String>,
+
+    /// Any extra keys not matched above — available to custom adapters (e.g. a
+    /// `token` or `api_url` for an external service).
+    #[serde(flatten)]
+    pub options: HashMap<String, serde_norway::Value>,
 }
 
 impl ServiceConfig {
+    /// A custom option read as a string, e.g. `cfg.option_str("token")`.
+    pub fn option_str(&self, key: &str) -> Option<&str> {
+        self.options.get(key).and_then(|v| v.as_str())
+    }
+
     /// Build this service as a live `Arc<dyn Service>` named `name`.
     pub async fn build(&self, name: &str) -> Result<Arc<dyn Service>> {
-        match self.backend {
+        match &self.backend {
             ServiceBackend::Disk => {
                 let root = self.root.clone().unwrap_or_else(|| "storage".to_string());
                 Ok(Arc::new(DiskService::new(name, root).public(self.public)))
@@ -101,6 +138,8 @@ impl ServiceConfig {
             ServiceBackend::S3 => self.build_s3(name, false).await,
             ServiceBackend::R2 => self.build_s3(name, true).await,
             ServiceBackend::Azure => self.build_azure(name).await,
+            ServiceBackend::Gcs => self.build_gcs(name).await,
+            ServiceBackend::Custom(kind) => crate::registry::build_adapter(kind, name, self),
         }
     }
 
@@ -131,6 +170,21 @@ impl ServiceConfig {
         Err(StorageError::Config(
             "storage backend 'azure' selected in config but doido-storage was built \
              without the `storage-azure` feature"
+                .to_string(),
+        )
+        .into())
+    }
+
+    #[cfg(feature = "storage-gcs")]
+    async fn build_gcs(&self, name: &str) -> Result<Arc<dyn Service>> {
+        Ok(Arc::new(crate::gcs::GcsService::connect(name, self).await?))
+    }
+
+    #[cfg(not(feature = "storage-gcs"))]
+    async fn build_gcs(&self, _name: &str) -> Result<Arc<dyn Service>> {
+        Err(StorageError::Config(
+            "storage backend 'gcs' selected in config but doido-storage was built \
+             without the `storage-gcs` feature"
                 .to_string(),
         )
         .into())

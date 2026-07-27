@@ -16,6 +16,8 @@ Rails-like operations; axum routes serve blobs and accept direct uploads.
 | `memory` | `MemoryService` — in-process `HashMap` (dev/test) |
 | `s3` | `S3Service` — AWS S3 **and** Cloudflare R2 (feature `storage-s3`) |
 | `azure` | `AzureBlobService` (feature `storage-azure`) |
+| `gcs` | `GcsService` — Google Cloud Storage (feature `storage-gcs`) |
+| `registry` | custom-adapter registry: `register_adapter` + `type: <kind>` selection |
 | `config` | `storage:` section of `config/<env>.yml` → `Arc<dyn Service>` |
 | `blob` | `Blob` metadata + `storage_blobs` row ops (raw SQL) |
 | `attachments` | polymorphic `has_one`/`has_many` helpers over `storage_attachments` |
@@ -44,12 +46,41 @@ storage:
       bucket: my-bucket
       endpoint: "https://<accountid>.r2.cloudflarestorage.com"
     azure:  { type: azure, container: my-container, account: my-account }
+    google: { type: gcs, bucket: my-bucket }   # auth via ADC
 ```
 
 Credentials come from the config or the standard environment variables (AWS keys,
-`AZURE_STORAGE_ACCESS_KEY`) and must not be committed. `disk` and `memory` are
-always available; `s3`/`r2` need `storage-s3`, `azure` needs `storage-azure`.
-Selecting a backend whose feature is off yields a clear error.
+`AZURE_STORAGE_ACCESS_KEY`, `GOOGLE_APPLICATION_CREDENTIALS` for GCS ADC) and must
+not be committed. `disk` and `memory` are always available; `s3`/`r2` need
+`storage-s3`, `azure` needs `storage-azure`, `gcs` needs `storage-gcs`. Selecting a
+backend whose feature is off yields a clear error.
+
+## Custom services (external integrations)
+
+Any external file service is a first-class backend: implement the `Service` trait,
+register a factory under a `type` string at boot, then select it from config.
+
+```rust
+use doido_storage::{register_adapter, Service, ServiceConfig};
+use std::sync::Arc;
+
+register_adapter("dropbox", |name: &str, cfg: &ServiceConfig| {
+    let _token = cfg.option_str("token");        // arbitrary YAML keys via cfg.options
+    Ok(Arc::new(DropboxService::connect(name, cfg)?) as Arc<dyn Service>)
+});
+```
+
+```yaml
+storage:
+  service: files
+  services:
+    files: { type: dropbox, token: "...", root: "/app" }
+```
+
+Unrecognized `type` values deserialize to `ServiceBackend::Custom(kind)` and resolve
+through the registry (a clear error names the missing adapter if none is registered).
+Scaffold a skeleton with `doido generate storage:adapter <Name>`, which writes
+`app/storage/<name>_service.rs` (a `Service` impl + `register()` to call at boot).
 
 ## API
 
@@ -84,12 +115,14 @@ the prefix (default `/doido/storage`):
 
 Signed ids/URLs are HMAC-SHA256 over `DOIDO_SECRET_KEY_BASE`.
 
-## Generator
+## Generators
 
-`doido generate storage:install` emits a timestamped migration creating
-`storage_blobs`, `storage_attachments`, `storage_variant_records` (via the
-`doido_model::migration` builders), registers it in `db/migration/src/lib.rs`, and
-appends a `storage:` section to `config/development.yml` / `config/test.yml`.
+- `doido generate storage:install` emits a timestamped migration creating
+  `storage_blobs`, `storage_attachments`, `storage_variant_records` (via the
+  `doido_model::migration` builders), registers it in `db/migration/src/lib.rs`, and
+  appends a `storage:` section to `config/development.yml` / `config/test.yml`.
+- `doido generate storage:adapter <Name>` scaffolds a custom `Service` adapter at
+  `app/storage/<name>_service.rs` (impl skeleton + `register()`).
 
 ## TDD surface
 
@@ -97,7 +130,8 @@ appends a `storage:` section to `config/development.yml` / `config/test.yml`.
   idempotency, key safety).
 - `blob_test` — checksum/content-type/size on upload; purge removes object + row.
 - `attachments_test` — has_one replace, has_many append, dependent purge.
-- `config_test` — YAML parse + build; cloud backend without its feature errors.
+- `config_test` — YAML parse + build; gcs/custom parse; cloud backend without its feature errors.
+- `registry_test` — custom adapter selected via `type` + reads `cfg.options`; unregistered kind errors.
 - `signing_test` — sign/verify, wrong key/purpose/tamper/expiry.
 - `serving_test` — proxy 200 + bytes, redirect 307 → proxy, direct upload round-trip.
 - `schema_test` — `ensure_tables` idempotent.
@@ -106,5 +140,5 @@ appends a `storage:` section to `config/development.yml` / `config/test.yml`.
 ## Deferred (backlog)
 
 Image variants (`variant(resize_to_limit:)`, named variants, `representation`),
-PDF/video previews, video/audio analyzers, GCS + Mirror services, native Azure
-SAS URLs, a `#[has_one_attached]` proc-macro, and `compose`.
+PDF/video previews, video/audio analyzers, the Mirror service, native Azure SAS
+URLs, a `#[has_one_attached]` proc-macro, and `compose`.

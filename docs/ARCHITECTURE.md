@@ -30,7 +30,7 @@ Legend: **Done** = implemented + tested · **Partial** = core works, spec featur
 | `doido-model` | 03 | Done | sea-orm re-export + connection pool + Rails-style schema builders + `testing` helpers |
 | `doido-view` | 04 | Done | Tera engine (swappable) + `ViewResponse` + global registry |
 | `doido-cache` | 10 | Done | memory + redis + memcache + named registry + namespacing |
-| `doido-storage` | 15 | Done | pluggable `Service` (disk/memory/S3/R2/Azure) + blobs/attachments (raw SQL) + HMAC signed URLs + axum serving + `storage:install` generator; variants/previews deferred |
+| `doido-storage` | 15 | Done | pluggable `Service` (disk/memory/S3/R2/Azure/GCS + custom-adapter registry) + blobs/attachments (raw SQL) + HMAC signed URLs + axum serving + `storage:install`/`storage:adapter` generators; variants/previews deferred |
 | `doido-jobs` | 09 | Done | queue + worker + backoff + memory/db/redis backends + dead-letter |
 | `doido-jobs/macros` | 09 | Done | `#[job]` + generated `*_enqueue()` helper |
 | `doido-mailer` | 08 | **Partial** | `Mail` + `Deliverer` + `Log`/`Test` deliverers work; **`#[mailer]` macro is a stub** |
