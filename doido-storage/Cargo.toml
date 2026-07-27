@@ -8,11 +8,11 @@ edition = "2021"
 [dependencies]
 doido-core.workspace = true
 doido-model.workspace = true          # sea-orm, connection pool, migration builders
-thiserror = "2"                        # typed StorageError (thiserror per crate)
+thiserror.workspace = true
 async-trait.workspace = true
 serde.workspace = true
 serde_json.workspace = true
-serde_norway = "0.9"                   # same YAML loader as doido-cache
+serde_norway.workspace = true
 axum.workspace = true                  # serving handlers (redirect / proxy / direct upload)
 tokio = { workspace = true, features = ["fs", "io-util", "rt"] }
 uuid.workspace = true                  # blob keys
@@ -21,15 +21,25 @@ tracing.workspace = true
 
 # Integrity + signing (all already in the workspace lock, digest 0.11 ecosystem).
 md-5 = "0.11"
-sha2 = "0.11"
-hmac = "0.13"
-base64 = "0.22"
+sha2.workspace = true
+hmac.workspace = true
+base64.workspace = true
 
-# Optional backends, enabled by the matching feature. rust-s3 uses rustls so no
-# system OpenSSL is required.
-s3 = { package = "rust-s3", version = "0.37", default-features = false, features = [
-    "tokio-rustls-tls",
+# Optional backends, enabled by the matching feature. We opt out of the SDK's
+# default features to drop its *legacy* rustls 0.21 client (the `rustls` /
+# `tls-rustls` feature), keeping only the modern `default-https-client`
+# (hyper 1 + rustls 0.23 + aws-lc-rs). This dedupes rustls with the rest of the
+# workspace and avoids the rustls-webpki 0.101 advisories; no system OpenSSL.
+aws-sdk-s3 = { version = "1", default-features = false, features = [
+    "behavior-version-latest",
+    "rt-tokio",
+    "sigv4a",
+    "http-1x",
+    "default-https-client",
 ], optional = true }
+# Azure stays on the 0.21 SDK: the new azure_storage_blob 1.x only supports Entra
+# ID (Azure AD) token auth, dropping the account access-key auth doido relies on.
+# The advisories from its azure_core 0.21 chain are tracked in .cargo/audit.toml.
 azure_storage = { version = "0.21", optional = true }
 azure_storage_blobs = { version = "0.21", optional = true }
 gcloud-storage = { version = "1.3", default-features = false, features = [
@@ -42,7 +52,7 @@ doido-jobs = { workspace = true, optional = true }
 
 [features]
 default = []
-storage-s3 = ["dep:s3"]                # covers both the `s3` and `r2` service kinds
+storage-s3 = ["dep:aws-sdk-s3"]        # covers both the `s3` and `r2` service kinds
 storage-azure = ["dep:azure_storage", "dep:azure_storage_blobs"]
 storage-gcs = ["dep:gcloud-storage"]   # Google Cloud Storage
 storage-image = ["dep:imagesize"]      # image dimension analyzer
@@ -51,7 +61,7 @@ storage-jobs = ["dep:doido-jobs"]      # purge_later / analyze_later via doido-j
 [dev-dependencies]
 doido-model.workspace = true           # sqlite in-memory pool + test helpers
 tokio = { workspace = true, features = ["macros", "rt", "fs", "io-util"] }
-tempfile = "3"
+tempfile.workspace = true
 serde_json.workspace = true
 tower = { workspace = true }           # ServiceExt::oneshot for handler tests
 axum.workspace = true

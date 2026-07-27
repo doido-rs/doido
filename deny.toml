@@ -4,7 +4,6 @@ allow = [
     "Apache-2.0",
     "Apache-2.0 WITH LLVM-exception",
     "ISC",
-    "BSD-2-Clause",
     "BSD-3-Clause",
     "Unicode-3.0",
     "Zlib",
@@ -13,32 +12,34 @@ allow = [
 
 [bans]
 multiple-versions = "warn"
+# Duplicated versions that can't be collapsed without *downgrading* freshly-updated
+# crates: the older halves are pinned by transitive deps (sqlx/sea-orm/azure) while
+# our crates (and bcrypt) are on the newer ones. The one duplicate we *could* remove
+# — a legacy rustls 0.21 stack pulled by aws-sdk-s3's default features — was removed
+# by switching to its modern (rustls 0.23) client. The rest are listed here to keep
+# `cargo deny` output meaningful; `multiple-versions` stays at "warn".
 skip = [
-    { name = "getrandom", version = "0.2" },
-    { name = "heck", version = "0.4" },
-    { name = "windows-sys", version = "0.52" },
+    # transitive-only older majors
+    { name = "getrandom", version = "0.2" },      # ring/older transitives vs 0.4 (uuid/rand)
+    { name = "heck", version = "0.4" },            # older transitive vs 0.5
+    { name = "windows-sys", version = "0.52" },    # older transitive vs 0.61
+    { name = "hashbrown", version = "0.16" },      # transitive vs 0.17
+    { name = "syn", version = "2" },               # sea-orm/serde use 2; our macros use 3 (accepted)
+    # digest 0.10 ecosystem (sqlx) vs 0.11 (our sha2/hmac/md-5 + bcrypt) — structural split
+    { name = "base64", version = "0.22" },         # sqlx-core 0.9 vs 0.23 (ours)
+    { name = "digest", version = "0.10" },
+    { name = "sha2", version = "0.10" },
+    { name = "block-buffer", version = "0.10" },
+    { name = "crypto-common", version = "0.1" },
+    { name = "cpufeatures", version = "0.2" },
 ]
 
 [advisories]
-ignore = [
-    # proc-macro-error2 is unmaintained, pulled in transitively via
-    # sea-bae -> sea-orm-macros -> sea-orm. No safe upgrade is available;
-    # remove once sea-orm drops the dependency.
-    "RUSTSEC-2026-0173",
-
-    # doido-storage optional S3 / Azure backends: no upstream fix available. Both
-    # source crates are at their latest published versions and pin the vulnerable
-    # transitive deps (rust-s3 0.37.2 -> quick-xml ^0.38; azure_* 0.21.0 ->
-    # quick-xml ^0.31, http-types 2.12, rand 0.7). The quick-xml DoS only applies
-    # to XML from the configured (trusted) storage endpoint. Revisit on migration
-    # to aws-sdk-s3 / azure_storage_blob 1.x. (Mirrors .cargo/audit.toml.)
-    "RUSTSEC-2026-0194", # quick-xml: quadratic runtime on duplicate attrs
-    "RUSTSEC-2026-0195", # quick-xml: unbounded namespace-decl alloc DoS
-    "RUSTSEC-2026-0174", # http-types: Authorization/WwwAuthenticate ASCII invariant
-    "RUSTSEC-2026-0097", # rand 0.7: unsound with custom logger
-    "RUSTSEC-2024-0384", # instant: unmaintained
-    "RUSTSEC-2024-0436", # paste: unmaintained
-]
+# Nothing to ignore here: cargo-deny evaluates the default-feature graph, which
+# excludes the opt-in `storage-azure` chain (azure_core 0.21) that carries the
+# accepted advisories. Those (plus rsa's RUSTSEC-2023-0071) are scanned by
+# cargo-audit over the full lockfile and documented in .cargo/audit.toml.
+ignore = []
 
 [sources]
 unknown-registry = "deny"

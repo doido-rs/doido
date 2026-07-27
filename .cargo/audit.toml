@@ -4,25 +4,21 @@ ignore = [
     # Pulled in transitively via sqlx-mysql -> sqlx -> sea-orm.
     # No fixed version is available upstream; ignored until sqlx/sea-orm resolves it.
     "RUSTSEC-2023-0071",
-    # RUSTSEC-2026-0173: `proc-macro-error2` is unmaintained. Pulled in transitively
-    # via sea-bae -> sea-orm-macros -> sea-orm. No safe upgrade is available;
-    # remove once sea-orm drops the dependency. (Mirrors deny.toml.)
-    "RUSTSEC-2026-0173",
 
-    # --- doido-storage optional backends: no upstream fix available ---
-    # Everything below originates from transitive deps of the opt-in S3 / Azure
-    # storage backends (`storage-s3` / `storage-azure` features). Both source
-    # crates are already at their latest published versions and pin the vulnerable
-    # transitive deps:
-    #   * rust-s3 0.37.2  -> quick-xml ^0.38 (cannot take the fixed 0.41)
-    #   * azure_* 0.21.0  -> quick-xml ^0.31, http-types 2.12, rand 0.7, ...
-    # A [patch] to quick-xml 0.41 is not viable (breaking API those crates call).
-    # The quick-xml DoS only applies to XML received from the *configured* S3/Azure
-    # endpoint (a trusted backend), so practical exposure is low. Revisit when
-    # rust-s3 / the Azure SDK bump their deps, or on migration to aws-sdk-s3 /
-    # azure_storage_blob 1.x. (Mirrors deny.toml.)
-    "RUSTSEC-2026-0194", # quick-xml: quadratic runtime on duplicate attrs (rust-s3, azure_core)
-    "RUSTSEC-2026-0195", # quick-xml: unbounded namespace-decl alloc DoS (rust-s3, azure_core)
+
+    # --- doido-storage Azure backend (azure_core 0.21 chain) ---
+    # The S3 backend was migrated to aws-sdk-s3, removing rust-s3 and its quick-xml
+    # 0.38 advisories. The remaining advisories below all originate from the opt-in
+    # Azure backend (`storage-azure`), which is intentionally kept on the 0.21 SDK:
+    # the new azure_storage_blob 1.x only supports Entra ID token auth and drops the
+    # account access-key auth doido relies on. azure_* 0.21 pins vulnerable deps
+    # (quick-xml ^0.31, http-types 2.12, rand 0.7, ...) with no in-line fix, and a
+    # [patch] to quick-xml 0.41 is not viable (breaking API azure_core calls). The
+    # quick-xml DoS only applies to XML received from the *configured* Azure endpoint
+    # (a trusted backend), so practical exposure is low. Revisit if the Azure SDK
+    # ships account-key auth on a modern stack. (Mirrors deny.toml.)
+    "RUSTSEC-2026-0194", # quick-xml 0.31: quadratic runtime on duplicate attrs (azure_core)
+    "RUSTSEC-2026-0195", # quick-xml 0.31: unbounded namespace-decl alloc DoS (azure_core)
     "RUSTSEC-2026-0174", # http-types: Authorization/WwwAuthenticate ASCII invariant (azure_core)
     "RUSTSEC-2026-0097", # rand 0.7: unsound with custom logger (azure_core -> http-types)
     "RUSTSEC-2024-0384", # instant: unmaintained (azure_core -> http-types -> fastrand)

@@ -8,12 +8,12 @@ edition = "2021"
 [dependencies]
 chrono = { workspace = true }
 anyhow = "1"
-thiserror = "2"
+thiserror.workspace = true
 async-trait.workspace = true
 tracing.workspace = true
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt", "json"] }
 serde.workspace = true
-serde_norway = "0.9"
+serde_norway.workspace = true
 regex = "1"
 
 [dev-dependencies]
