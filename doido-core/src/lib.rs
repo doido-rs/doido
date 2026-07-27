@@ -1,5 +1,6 @@
 pub mod concerns;
 pub mod core_ext;
+pub mod environment;
 pub mod error;
 pub mod inflector;
 pub mod logger;
@@ -15,6 +16,7 @@ pub use ::serde;
 pub use ::thiserror;
 pub use ::tracing;
 
+pub use environment::Environment;
 pub use error::{AnyhowContext, Result};
 pub use inflector::{init_inflections, load_inflections, InflectionConfig, Inflections, Inflector};
 pub use logger::init as init_logger;

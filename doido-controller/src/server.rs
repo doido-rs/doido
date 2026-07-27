@@ -6,7 +6,7 @@ use crate::stack::MiddlewareStack;
 /// Boots the HTTP server for `router`.
 ///
 /// The listen address is the `server.bind` IP joined with `server.port` from
-/// `config/<env>.yml` (the environment comes from [`crate::Environment::get_env`]).
+/// `config/<env>.yml` (the environment comes from [`doido_core::Environment::get_env`]).
 /// When no config file is present the defaults `0.0.0.0:3000` are used.
 pub async fn start_server(router: axum::Router) -> std::io::Result<()> {
     let config = config::load();

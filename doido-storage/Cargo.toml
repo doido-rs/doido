@@ -1,0 +1,57 @@
+[package]
+name = "doido-storage"
+description = "Attached-file storage — blobs, polymorphic attachments and pluggable services (disk, memory, S3, Cloudflare R2, Azure Blob) in ActiveStorage fashion for Doido."
+version.workspace = true
+license.workspace = true
+edition = "2021"
+
+[dependencies]
+doido-core.workspace = true
+doido-model.workspace = true          # sea-orm, connection pool, migration builders
+thiserror = "2"                        # typed StorageError (thiserror per crate)
+async-trait.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+serde_norway = "0.9"                   # same YAML loader as doido-cache
+axum.workspace = true                  # serving handlers (redirect / proxy / direct upload)
+tokio = { workspace = true, features = ["fs", "io-util", "rt"] }
+uuid.workspace = true                  # blob keys
+chrono.workspace = true
+tracing.workspace = true
+
+# Integrity + signing (all already in the workspace lock, digest 0.11 ecosystem).
+md-5 = "0.11"
+sha2 = "0.11"
+hmac = "0.13"
+base64 = "0.22"
+
+# Optional backends, enabled by the matching feature. rust-s3 uses rustls so no
+# system OpenSSL is required.
+s3 = { package = "rust-s3", version = "0.37", default-features = false, features = [
+    "tokio-rustls-tls",
+], optional = true }
+azure_storage = { version = "0.21", optional = true }
+azure_storage_blobs = { version = "0.21", optional = true }
+gcloud-storage = { version = "1.3", default-features = false, features = [
+    "rustls-tls",
+    "auth",
+    "jwt-rust-crypto",
+], optional = true }
+imagesize = { version = "0.15", optional = true }
+doido-jobs = { workspace = true, optional = true }
+
+[features]
+default = []
+storage-s3 = ["dep:s3"]                # covers both the `s3` and `r2` service kinds
+storage-azure = ["dep:azure_storage", "dep:azure_storage_blobs"]
+storage-gcs = ["dep:gcloud-storage"]   # Google Cloud Storage
+storage-image = ["dep:imagesize"]      # image dimension analyzer
+storage-jobs = ["dep:doido-jobs"]      # purge_later / analyze_later via doido-jobs
+
+[dev-dependencies]
+doido-model.workspace = true           # sqlite in-memory pool + test helpers
+tokio = { workspace = true, features = ["macros", "rt", "fs", "io-util"] }
+tempfile = "3"
+serde_json.workspace = true
+tower = { workspace = true }           # ServiceExt::oneshot for handler tests
+axum.workspace = true

@@ -1,7 +1,7 @@
 //! Runtime environment selection, driven by the `DOIDO_ENV` variable.
 //!
-//! Mirrors `doido-controller`'s environment so the model layer can resolve the
-//! same `config/<env>.yml` file without depending on the controller crate.
+//! The single, canonical [`Environment`] for the whole framework. Every crate
+//! that needs to resolve `config/<env>.yml` uses `doido_core::Environment`.
 
 /// The application environment. Selects which `config/<env>.yml` file is read.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -37,5 +37,22 @@ impl Environment {
 impl std::fmt::Display for Environment {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(self.as_str())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn as_str_maps_each_variant() {
+        assert_eq!(Environment::Development.as_str(), "development");
+        assert_eq!(Environment::Test.as_str(), "test");
+        assert_eq!(Environment::Production.as_str(), "production");
+    }
+
+    #[test]
+    fn display_matches_as_str() {
+        assert_eq!(Environment::Production.to_string(), "production");
     }
 }

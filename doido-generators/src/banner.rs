@@ -43,7 +43,7 @@ pub fn print(mode: &str) {
     let _ = writeln!(out);
 
     // Info block (values sourced honestly, never fabricated).
-    let environment = doido_model::Environment::get_env().to_string();
+    let environment = doido_core::Environment::get_env().to_string();
     let database = doido_model::config::load().database().url.clone();
     let logger = std::env::var("RUST_LOG").unwrap_or_else(|_| "info".to_string());
     let compilation = if cfg!(debug_assertions) {

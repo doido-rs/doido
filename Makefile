@@ -62,6 +62,7 @@ PUBLISH_CRATES ?= \
 	doido-mailer \
 	doido-jobs \
 	doido-cable \
+	doido-storage \
 	doido-generators \
 	doido
 

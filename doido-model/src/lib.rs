@@ -11,7 +11,6 @@ pub mod config;
 pub mod create;
 pub mod databases;
 pub mod enums;
-pub mod environment;
 pub mod factory;
 pub mod migrate;
 pub mod migration;
@@ -29,7 +28,6 @@ pub mod validation;
 
 pub use config::{Config, DatabaseConfig, LoggerConfig, YamlConfig};
 pub use create::create_database;
-pub use environment::Environment;
 pub use pool::{connect, connect_with_url};
 
 // Rails-style migration helpers: create_table, alter_table, add_column, …

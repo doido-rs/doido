@@ -9,7 +9,7 @@ Last reconciled: 2026-07-24 (branch `first_stable_project`).
 
 ## Actual workspace (from `Cargo.toml`)
 
-14 members: 9 library crates + 4 proc-macro crates + the `doido` meta crate.
+15 members: 10 library crates + 4 proc-macro crates + the `doido` meta crate.
 Several specced crates were **merged**, so they do not exist as separate crates:
 
 - `doido-router` → merged into **`doido-controller`** (`routes!` macro lives there).
@@ -30,6 +30,7 @@ Legend: **Done** = implemented + tested · **Partial** = core works, spec featur
 | `doido-model` | 03 | Done | sea-orm re-export + connection pool + Rails-style schema builders + `testing` helpers |
 | `doido-view` | 04 | Done | Tera engine (swappable) + `ViewResponse` + global registry |
 | `doido-cache` | 10 | Done | memory + redis + memcache + named registry + namespacing |
+| `doido-storage` | 15 | Done | pluggable `Service` (disk/memory/S3/R2/Azure/GCS + custom-adapter registry) + blobs/attachments (raw SQL) + HMAC signed URLs + axum serving + `storage:install`/`storage:adapter` generators; variants/previews deferred |
 | `doido-jobs` | 09 | Done | queue + worker + backoff + memory/db/redis backends + dead-letter |
 | `doido-jobs/macros` | 09 | Done | `#[job]` + generated `*_enqueue()` helper |
 | `doido-mailer` | 08 | **Partial** | `Mail` + `Deliverer` + `Log`/`Test` deliverers work; **`#[mailer]` macro is a stub** |
@@ -75,8 +76,10 @@ generated app's `src/main.rs` calls `doido_generators::run(Some(routes))`.
 3. **DB pool** — `doido_model::pool::init()` → `&'static DatabaseConnection`.
 4. **View engine** — `doido_view::init("app/views")`.
 5. **Cache** — `doido_cache::global::init()` → `Arc<dyn CacheStore>`.
-6. **Jobs worker** (separate process) — `doido worker` drives the `WorkerEngine`.
-7. **HTTP server** — `doido-controller` mounts the `routes!` table on axum and listens.
+6. **Storage** — `doido_storage::Storage::from_config(db)` builds the configured
+   `Arc<dyn Service>` + signer; `serving::routes()` mounts blob/direct-upload endpoints.
+7. **Jobs worker** (separate process) — `doido worker` drives the `WorkerEngine`.
+8. **HTTP server** — `doido-controller` mounts the `routes!` table on axum and listens.
 
 > The `examples/blog` app (definition-of-done) makes this sequence executable and is
 > the reference for the exact wiring.

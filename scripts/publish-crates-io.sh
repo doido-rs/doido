@@ -274,6 +274,7 @@ readonly PACKAGES=(
   doido-middleware
   doido-cache
   doido-jobs
+  doido-storage
   doido-mailer
   doido-cable
   doido-kafka

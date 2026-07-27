@@ -2,7 +2,6 @@ pub mod codec;
 pub mod config;
 #[cfg(feature = "cache-db")]
 pub mod db_store;
-pub mod environment;
 pub mod fetch;
 pub mod global;
 pub mod memory;
@@ -20,7 +19,6 @@ pub mod redis_store;
 pub use config::{CacheBackend, CacheConfig, MultiCacheConfig};
 #[cfg(feature = "cache-db")]
 pub use db_store::DbCacheStore;
-pub use environment::Environment;
 pub use global::init as init_cache;
 pub use memory::MemoryStore;
 pub use namespaced::NamespacedStore;

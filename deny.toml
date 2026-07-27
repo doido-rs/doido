@@ -25,6 +25,19 @@ ignore = [
     # sea-bae -> sea-orm-macros -> sea-orm. No safe upgrade is available;
     # remove once sea-orm drops the dependency.
     "RUSTSEC-2026-0173",
+
+    # doido-storage optional S3 / Azure backends: no upstream fix available. Both
+    # source crates are at their latest published versions and pin the vulnerable
+    # transitive deps (rust-s3 0.37.2 -> quick-xml ^0.38; azure_* 0.21.0 ->
+    # quick-xml ^0.31, http-types 2.12, rand 0.7). The quick-xml DoS only applies
+    # to XML from the configured (trusted) storage endpoint. Revisit on migration
+    # to aws-sdk-s3 / azure_storage_blob 1.x. (Mirrors .cargo/audit.toml.)
+    "RUSTSEC-2026-0194", # quick-xml: quadratic runtime on duplicate attrs
+    "RUSTSEC-2026-0195", # quick-xml: unbounded namespace-decl alloc DoS
+    "RUSTSEC-2026-0174", # http-types: Authorization/WwwAuthenticate ASCII invariant
+    "RUSTSEC-2026-0097", # rand 0.7: unsound with custom logger
+    "RUSTSEC-2024-0384", # instant: unmaintained
+    "RUSTSEC-2024-0436", # paste: unmaintained
 ]
 
 [sources]

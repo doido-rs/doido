@@ -8,4 +8,23 @@ ignore = [
     # via sea-bae -> sea-orm-macros -> sea-orm. No safe upgrade is available;
     # remove once sea-orm drops the dependency. (Mirrors deny.toml.)
     "RUSTSEC-2026-0173",
+
+    # --- doido-storage optional backends: no upstream fix available ---
+    # Everything below originates from transitive deps of the opt-in S3 / Azure
+    # storage backends (`storage-s3` / `storage-azure` features). Both source
+    # crates are already at their latest published versions and pin the vulnerable
+    # transitive deps:
+    #   * rust-s3 0.37.2  -> quick-xml ^0.38 (cannot take the fixed 0.41)
+    #   * azure_* 0.21.0  -> quick-xml ^0.31, http-types 2.12, rand 0.7, ...
+    # A [patch] to quick-xml 0.41 is not viable (breaking API those crates call).
+    # The quick-xml DoS only applies to XML received from the *configured* S3/Azure
+    # endpoint (a trusted backend), so practical exposure is low. Revisit when
+    # rust-s3 / the Azure SDK bump their deps, or on migration to aws-sdk-s3 /
+    # azure_storage_blob 1.x. (Mirrors deny.toml.)
+    "RUSTSEC-2026-0194", # quick-xml: quadratic runtime on duplicate attrs (rust-s3, azure_core)
+    "RUSTSEC-2026-0195", # quick-xml: unbounded namespace-decl alloc DoS (rust-s3, azure_core)
+    "RUSTSEC-2026-0174", # http-types: Authorization/WwwAuthenticate ASCII invariant (azure_core)
+    "RUSTSEC-2026-0097", # rand 0.7: unsound with custom logger (azure_core -> http-types)
+    "RUSTSEC-2024-0384", # instant: unmaintained (azure_core -> http-types -> fastrand)
+    "RUSTSEC-2024-0436", # paste: unmaintained (azure_core)
 ]
