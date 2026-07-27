@@ -21,9 +21,9 @@
 //! and `azure` backends are behind the `storage-s3` / `storage-azure` cargo
 //! features and produce a clear error when selected without their feature.
 
-use crate::disk::DiskService;
 use crate::error::StorageError;
-use crate::memory::MemoryService;
+use crate::providers::disk::DiskService;
+use crate::providers::memory::MemoryService;
 use crate::service::Service;
 use doido_core::Result;
 use serde::{Deserialize, Deserializer};
@@ -145,7 +145,9 @@ impl ServiceConfig {
 
     #[cfg(feature = "storage-s3")]
     async fn build_s3(&self, name: &str, r2: bool) -> Result<Arc<dyn Service>> {
-        Ok(Arc::new(crate::s3::S3Service::connect(name, self, r2)?))
+        Ok(Arc::new(crate::providers::s3::S3Service::connect(
+            name, self, r2,
+        )?))
     }
 
     #[cfg(not(feature = "storage-s3"))]
@@ -160,9 +162,9 @@ impl ServiceConfig {
 
     #[cfg(feature = "storage-azure")]
     async fn build_azure(&self, name: &str) -> Result<Arc<dyn Service>> {
-        Ok(Arc::new(crate::azure::AzureBlobService::connect(
-            name, self,
-        )?))
+        Ok(Arc::new(
+            crate::providers::azure::AzureBlobService::connect(name, self)?,
+        ))
     }
 
     #[cfg(not(feature = "storage-azure"))]
@@ -177,7 +179,9 @@ impl ServiceConfig {
 
     #[cfg(feature = "storage-gcs")]
     async fn build_gcs(&self, name: &str) -> Result<Arc<dyn Service>> {
-        Ok(Arc::new(crate::gcs::GcsService::connect(name, self).await?))
+        Ok(Arc::new(
+            crate::providers::gcs::GcsService::connect(name, self).await?,
+        ))
     }
 
     #[cfg(not(feature = "storage-gcs"))]

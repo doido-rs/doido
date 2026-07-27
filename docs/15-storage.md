@@ -12,11 +12,12 @@ Rails-like operations; axum routes serve blobs and accept direct uploads.
 | Module | Responsibility |
 |--------|----------------|
 | `service` | The `Service` trait (`upload`/`download`/`delete`/`exists`/`size`/`url`/`presigned_put`) + `Arc<dyn Service>` impl |
-| `disk` | `DiskService` — local filesystem, sharded `root/aa/bb/key` (**default**) |
-| `memory` | `MemoryService` — in-process `HashMap` (dev/test) |
-| `s3` | `S3Service` — AWS S3 **and** Cloudflare R2 (feature `storage-s3`) |
-| `azure` | `AzureBlobService` (feature `storage-azure`) |
-| `gcs` | `GcsService` — Google Cloud Storage (feature `storage-gcs`) |
+| `providers` | **All backend drivers, isolated in one module** — every concrete `Service` lives here |
+| `providers::disk` | `DiskService` — local filesystem, sharded `root/aa/bb/key` (**default**) |
+| `providers::memory` | `MemoryService` — in-process `HashMap` (dev/test) |
+| `providers::s3` | `S3Service` — AWS S3 **and** Cloudflare R2 (feature `storage-s3`) |
+| `providers::azure` | `AzureBlobService` (feature `storage-azure`) |
+| `providers::gcs` | `GcsService` — Google Cloud Storage (feature `storage-gcs`) |
 | `registry` | custom-adapter registry: `register_adapter` + `type: <kind>` selection |
 | `config` | `storage:` section of `config/<env>.yml` → `Arc<dyn Service>` |
 | `blob` | `Blob` metadata + `storage_blobs` row ops (raw SQL) |
