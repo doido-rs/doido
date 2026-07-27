@@ -19,23 +19,41 @@ async fn storage() -> Storage {
 #[tokio::test]
 async fn has_one_replaces_previous() {
     let s = storage().await;
-    let a = s.create_and_upload("a.txt", b"a".to_vec(), None).await.unwrap();
-    let b = s.create_and_upload("b.txt", b"b".to_vec(), None).await.unwrap();
+    let a = s
+        .create_and_upload("a.txt", b"a".to_vec(), None)
+        .await
+        .unwrap();
+    let b = s
+        .create_and_upload("b.txt", b"b".to_vec(), None)
+        .await
+        .unwrap();
 
     // Attach then replace via detach+attach (has_one semantics).
     s.attach("User", "1", "avatar", &a.key).await.unwrap();
-    assert_eq!(s.one("User", "1", "avatar").await.unwrap().unwrap().key, a.key);
+    assert_eq!(
+        s.one("User", "1", "avatar").await.unwrap().unwrap().key,
+        a.key
+    );
 
     s.detach("User", "1", "avatar").await.unwrap();
     s.attach("User", "1", "avatar", &b.key).await.unwrap();
-    assert_eq!(s.one("User", "1", "avatar").await.unwrap().unwrap().key, b.key);
+    assert_eq!(
+        s.one("User", "1", "avatar").await.unwrap().unwrap().key,
+        b.key
+    );
 }
 
 #[tokio::test]
 async fn has_many_keeps_all() {
     let s = storage().await;
-    let one = s.create_and_upload("1.txt", b"1".to_vec(), None).await.unwrap();
-    let two = s.create_and_upload("2.txt", b"2".to_vec(), None).await.unwrap();
+    let one = s
+        .create_and_upload("1.txt", b"1".to_vec(), None)
+        .await
+        .unwrap();
+    let two = s
+        .create_and_upload("2.txt", b"2".to_vec(), None)
+        .await
+        .unwrap();
     s.attach("Post", "9", "photos", &one.key).await.unwrap();
     s.attach("Post", "9", "photos", &two.key).await.unwrap();
 
@@ -48,8 +66,14 @@ async fn has_many_keeps_all() {
 #[tokio::test]
 async fn purge_for_record_purges_dependent_blobs() {
     let s = storage().await;
-    let one = s.create_and_upload("1.txt", b"1".to_vec(), None).await.unwrap();
-    let two = s.create_and_upload("2.txt", b"2".to_vec(), None).await.unwrap();
+    let one = s
+        .create_and_upload("1.txt", b"1".to_vec(), None)
+        .await
+        .unwrap();
+    let two = s
+        .create_and_upload("2.txt", b"2".to_vec(), None)
+        .await
+        .unwrap();
     s.attach("Post", "9", "photos", &one.key).await.unwrap();
     s.attach("Post", "9", "photos", &two.key).await.unwrap();
 

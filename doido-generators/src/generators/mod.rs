@@ -11,6 +11,7 @@ pub mod model;
 pub mod new;
 pub mod resource;
 pub mod scaffold;
+pub mod storage_install;
 pub mod templates_gen;
 
 use doido_core::Inflector;

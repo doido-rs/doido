@@ -73,7 +73,9 @@ impl Service for AzureBlobService {
     }
 
     async fn upload(&self, key: &str, data: Vec<u8>, content_type: Option<&str>) -> Result<()> {
-        let ct = content_type.unwrap_or("application/octet-stream").to_string();
+        let ct = content_type
+            .unwrap_or("application/octet-stream")
+            .to_string();
         self.blob(key)
             .put_block_blob(data)
             .content_type(ct)
@@ -98,15 +100,14 @@ impl Service for AzureBlobService {
     }
 
     async fn exists(&self, key: &str) -> Result<bool> {
-        self.blob(key).exists().await.map_err(|e| backend_err(e).into())
+        self.blob(key)
+            .exists()
+            .await
+            .map_err(|e| backend_err(e).into())
     }
 
     async fn size(&self, key: &str) -> Result<u64> {
-        let props = self
-            .blob(key)
-            .get_properties()
-            .await
-            .map_err(backend_err)?;
+        let props = self.blob(key).get_properties().await.map_err(backend_err)?;
         Ok(props.blob.properties.content_length)
     }
 }

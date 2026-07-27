@@ -36,11 +36,10 @@ async fn proxy_streams_bytes() {
         .unwrap();
 
     assert_eq!(resp.status(), StatusCode::OK);
-    assert_eq!(
-        resp.headers().get("content-type").unwrap(),
-        "text/plain"
-    );
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    assert_eq!(resp.headers().get("content-type").unwrap(), "text/plain");
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     assert_eq!(&body[..], b"proxied!");
 }
 
@@ -97,7 +96,9 @@ async fn direct_upload_creates_blob_then_accepts_bytes() {
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
     let key = json["key"].as_str().unwrap().to_string();
     let url = json["direct_upload"]["url"].as_str().unwrap().to_string();

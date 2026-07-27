@@ -4,9 +4,9 @@
 //! is just S3 with a custom endpoint and path-style addressing. Credentials come
 //! from the config or, if absent, the standard AWS environment variables.
 
+use crate::config::ServiceConfig;
 use crate::error::StorageError;
 use crate::service::{Service, UrlOptions};
-use crate::config::ServiceConfig;
 use doido_core::Result;
 use s3::creds::Credentials;
 use s3::region::Region;

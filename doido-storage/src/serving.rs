@@ -171,11 +171,10 @@ async fn direct_uploads_handler(
     let url = match storage.service().presigned_put(&blob.key, &opts).await {
         Ok(Some(u)) => u,
         _ => {
-            let token = storage.signer().sign(
-                &blob.key,
-                PURPOSE_DISK_UPLOAD,
-                Some(storage.expires_in()),
-            );
+            let token =
+                storage
+                    .signer()
+                    .sign(&blob.key, PURPOSE_DISK_UPLOAD, Some(storage.expires_in()));
             format!("{}/disk/{}", storage.prefix(), token)
         }
     };

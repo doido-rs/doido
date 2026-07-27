@@ -121,7 +121,9 @@ impl ServiceConfig {
 
     #[cfg(feature = "storage-azure")]
     async fn build_azure(&self, name: &str) -> Result<Arc<dyn Service>> {
-        Ok(Arc::new(crate::azure::AzureBlobService::connect(name, self)?))
+        Ok(Arc::new(crate::azure::AzureBlobService::connect(
+            name, self,
+        )?))
     }
 
     #[cfg(not(feature = "storage-azure"))]
@@ -129,7 +131,7 @@ impl ServiceConfig {
         Err(StorageError::Config(
             "storage backend 'azure' selected in config but doido-storage was built \
              without the `storage-azure` feature"
-            .to_string(),
+                .to_string(),
         )
         .into())
     }
@@ -164,9 +166,10 @@ impl StorageConfig {
 
     /// Build a specific named service.
     pub async fn build_named(&self, name: &str) -> Result<Arc<dyn Service>> {
-        let cfg = self.services.get(name).ok_or_else(|| {
-            StorageError::Config(format!("unknown storage service {name:?}"))
-        })?;
+        let cfg = self
+            .services
+            .get(name)
+            .ok_or_else(|| StorageError::Config(format!("unknown storage service {name:?}")))?;
         cfg.build(name).await
     }
 }

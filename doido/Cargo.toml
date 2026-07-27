@@ -19,6 +19,7 @@ doido-controller.workspace = true
 doido-model.workspace = true
 doido-view.workspace = true
 doido-cache.workspace = true
+doido-storage.workspace = true
 doido-jobs.workspace = true
 doido-mailer.workspace = true
 doido-cable.workspace = true
@@ -30,6 +31,11 @@ default = []
 # Distributed cache backends, selected at runtime via `config/<env>.yml`.
 cache-redis = ["doido-cache/cache-redis"]
 cache-memcache = ["doido-cache/cache-memcache"]
+# Storage service backends and add-ons, selected at runtime via `config/<env>.yml`.
+storage-s3 = ["doido-storage/storage-s3"]        # AWS S3 + Cloudflare R2
+storage-azure = ["doido-storage/storage-azure"]  # Azure Blob Storage
+storage-image = ["doido-storage/storage-image"]  # image dimension analyzer
+storage-jobs = ["doido-storage/storage-jobs"]    # purge_later / analyze_later
 
 [dev-dependencies]
 assert_cmd  = "2"

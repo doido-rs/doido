@@ -44,10 +44,22 @@ pub async fn storage_analyze(payload: AnalyzeBlob) -> Result<()> {
 
 /// Enqueue a purge for `key` (Rails `blob.purge_later`).
 pub async fn purge_later(queue: &dyn JobQueue, key: &str) -> Result<JobId> {
-    storage_purge_enqueue(queue, PurgeBlob { key: key.to_string() }).await
+    storage_purge_enqueue(
+        queue,
+        PurgeBlob {
+            key: key.to_string(),
+        },
+    )
+    .await
 }
 
 /// Enqueue an analysis for `key` (Rails `blob.analyze_later`).
 pub async fn analyze_later(queue: &dyn JobQueue, key: &str) -> Result<JobId> {
-    storage_analyze_enqueue(queue, AnalyzeBlob { key: key.to_string() }).await
+    storage_analyze_enqueue(
+        queue,
+        AnalyzeBlob {
+            key: key.to_string(),
+        },
+    )
+    .await
 }

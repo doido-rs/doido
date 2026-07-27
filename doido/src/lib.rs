@@ -7,6 +7,7 @@ pub use doido_generators as generators;
 pub use doido_jobs as jobs;
 pub use doido_mailer as mailer;
 pub use doido_model as model;
+pub use doido_storage as storage;
 pub use doido_view as view;
 
 pub use doido_cable as cable;

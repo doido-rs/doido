@@ -29,7 +29,10 @@ async fn create_and_upload_records_metadata() {
     assert_eq!(blob.filename, "fox.txt");
     assert_eq!(blob.content_type.as_deref(), Some("text/plain"));
     assert_eq!(blob.byte_size, data.len() as i64);
-    assert_eq!(blob.checksum.as_deref(), Some(checksum::md5_base64(&data).as_str()));
+    assert_eq!(
+        blob.checksum.as_deref(),
+        Some(checksum::md5_base64(&data).as_str())
+    );
     assert!(blob.text());
 
     // Persisted and downloadable.

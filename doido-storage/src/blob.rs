@@ -41,19 +41,27 @@ pub struct Blob {
 impl Blob {
     /// Whether the blob is an image.
     pub fn image(&self) -> bool {
-        self.content_type.as_deref().is_some_and(content_type::is_image)
+        self.content_type
+            .as_deref()
+            .is_some_and(content_type::is_image)
     }
     /// Whether the blob is a video.
     pub fn video(&self) -> bool {
-        self.content_type.as_deref().is_some_and(content_type::is_video)
+        self.content_type
+            .as_deref()
+            .is_some_and(content_type::is_video)
     }
     /// Whether the blob is audio.
     pub fn audio(&self) -> bool {
-        self.content_type.as_deref().is_some_and(content_type::is_audio)
+        self.content_type
+            .as_deref()
+            .is_some_and(content_type::is_audio)
     }
     /// Whether the blob is textual.
     pub fn text(&self) -> bool {
-        self.content_type.as_deref().is_some_and(content_type::is_text)
+        self.content_type
+            .as_deref()
+            .is_some_and(content_type::is_text)
     }
 }
 

@@ -76,7 +76,10 @@ pub async fn attached_keys(
     );
     let rows = conn.query_all_raw(stmt).await.map_err(db_err)?;
     rows.into_iter()
-        .map(|r| r.try_get::<String>("", "blob_key").map_err(|e| db_err(e).into()))
+        .map(|r| {
+            r.try_get::<String>("", "blob_key")
+                .map_err(|e| db_err(e).into())
+        })
         .collect()
 }
 
@@ -145,7 +148,10 @@ pub async fn all_keys_for_record(
     );
     let rows = conn.query_all_raw(stmt).await.map_err(db_err)?;
     rows.into_iter()
-        .map(|r| r.try_get::<String>("", "blob_key").map_err(|e| db_err(e).into()))
+        .map(|r| {
+            r.try_get::<String>("", "blob_key")
+                .map_err(|e| db_err(e).into())
+        })
         .collect()
 }
 

@@ -1207,6 +1207,7 @@ dependencies = [
  "doido-jobs",
  "doido-mailer",
  "doido-model",
+ "doido-storage",
  "doido-view",
  "predicates",
  "tokio",

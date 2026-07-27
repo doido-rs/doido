@@ -33,8 +33,8 @@ pub mod environment;
 pub mod error;
 pub mod memory;
 pub mod schema;
-pub mod serving;
 pub mod service;
+pub mod serving;
 pub mod signing;
 
 #[cfg(feature = "storage-image")]

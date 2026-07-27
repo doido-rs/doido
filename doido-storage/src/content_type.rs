@@ -17,7 +17,11 @@ pub fn detect(filename: &str, data: &[u8]) -> String {
 
 /// Content type inferred from a filename extension, if recognized.
 pub fn from_filename(filename: &str) -> Option<&'static str> {
-    let ext = filename.rsplit('.').next().unwrap_or("").to_ascii_lowercase();
+    let ext = filename
+        .rsplit('.')
+        .next()
+        .unwrap_or("")
+        .to_ascii_lowercase();
     let t = match ext.as_str() {
         "png" => "image/png",
         "jpg" | "jpeg" => "image/jpeg",
