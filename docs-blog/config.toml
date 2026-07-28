@@ -48,7 +48,6 @@ read_the_docs = "Read the docs"
 theme = "Theme"
 theme_light = "Light"
 theme_dark = "Dark"
-theme_auto = "System"
 specs = "Specs"
 min_read = "min read"
 newer = "Newer"
@@ -70,7 +69,6 @@ read_the_docs = "Ler a documentação"
 theme = "Tema"
 theme_light = "Claro"
 theme_dark = "Escuro"
-theme_auto = "Sistema"
 specs = "Especificações"
 min_read = "min de leitura"
 newer = "Mais recentes"
@@ -92,7 +90,6 @@ read_the_docs = "Leer la documentación"
 theme = "Tema"
 theme_light = "Claro"
 theme_dark = "Oscuro"
-theme_auto = "Sistema"
 specs = "Especificaciones"
 min_read = "min de lectura"
 newer = "Más recientes"
@@ -112,16 +109,21 @@ smart_punctuation = true
 # [extra] — THEME CONFIGURATION. Edit these to restyle the site.
 # ---------------------------------------------------------------------------
 [extra]
-# Default color mode: "auto" (follow the OS), "light", or "dark".
+# Initial colour mode for a first-time visitor: "auto" (follow the OS), "light",
+# or "dark". The header switcher only offers Light and Dark; "auto" just seeds
+# the first visit from the OS preference.
 theme_default = "auto"
 
-# Brand accent colour. `accent` is used in light mode, `accent_dark` in dark.
-accent = "#e5484d"
-accent_dark = "#ff7a7f"
+# Brand palette — the green of the Brazilian flag with a lemon-yellow highlight.
+# `accent`/`accent2` are used in light mode, the `_dark` variants in dark mode.
+accent = "#009c3b"        # Brazilian flag green (primary)
+accent_dark = "#00c24a"   # brighter green for dark backgrounds
+accent2 = "#cfe000"       # lemon yellow (secondary highlight)
+accent2_dark = "#e4ff4d"  # brighter lemon for dark backgrounds
 
-# Fonts (any valid CSS font-family stack).
-font_sans = "system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
-font_mono = "ui-monospace, 'SFMono-Regular', 'JetBrains Mono', Menlo, Consolas, monospace"
+# Fonts — Ubuntu Mono everywhere (loaded from Google Fonts in partials/head.html).
+font_sans = "'Ubuntu Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace"
+font_mono = "'Ubuntu Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace"
 
 # Wordmark shown in the header (falls back to `title`).
 logo_text = "doido"

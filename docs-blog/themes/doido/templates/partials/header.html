@@ -29,12 +29,11 @@
         {% endfor %}
       </div>
 
-      {# Theme selector: Light / Dark / System, chosen by the user and
-         persisted in localStorage by static/js/theme.js. #}
+      {# Theme selector: Light / Dark, chosen by the user and persisted in
+         localStorage by static/js/theme.js. #}
       <div class="theme-switcher" role="group" aria-label="{{ trans(key='theme', lang=lang) }}">
         <button class="theme-option" type="button" data-theme-value="light" title="{{ trans(key='theme_light', lang=lang) }}" aria-label="{{ trans(key='theme_light', lang=lang) }}"><span aria-hidden="true">☀</span></button>
         <button class="theme-option" type="button" data-theme-value="dark" title="{{ trans(key='theme_dark', lang=lang) }}" aria-label="{{ trans(key='theme_dark', lang=lang) }}"><span aria-hidden="true">☾</span></button>
-        <button class="theme-option" type="button" data-theme-value="auto" title="{{ trans(key='theme_auto', lang=lang) }}" aria-label="{{ trans(key='theme_auto', lang=lang) }}"><span aria-hidden="true">◐</span></button>
       </div>
     </nav>
   </div>

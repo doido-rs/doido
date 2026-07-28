@@ -29,6 +29,8 @@ body {
 .muted { color: var(--fg-muted); }
 .accent { color: var(--accent); }
 
+::selection { background: var(--accent2); color: #0a1207; }
+
 // ---------- Header ----------
 .site-header {
   position: sticky;
@@ -51,7 +53,7 @@ body {
   color: var(--fg);
   text-decoration: none;
 }
-.brand::before { content: "◆ "; color: var(--accent); }
+.brand::before { content: "◆ "; color: var(--accent2); }
 .nav {
   display: flex;
   align-items: center;
@@ -177,7 +179,7 @@ body {
 .sidebar-list a:hover { color: var(--fg); background: var(--bg-alt); }
 .sidebar-list a.active {
   color: var(--accent);
-  border-left-color: var(--accent);
+  border-left-color: var(--accent2);
   background: var(--bg-alt);
   font-weight: 600;
 }

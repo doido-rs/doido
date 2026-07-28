@@ -102,15 +102,18 @@ strings (nav labels, “min read”, the theme options, …) live in the
 
 The theme is **configurable** and **updatable**:
 
-- **Light / dark / system:** every visitor picks Light, Dark, or System from the
-  selector in the header; the choice persists in `localStorage` and, in System
-  mode, follows the OS. `theme_default` (`auto` / `light` / `dark`) only sets the
-  initial mode for first-time visitors.
+- **Light / dark:** every visitor picks Light or Dark from the selector in the
+  header; the choice persists in `localStorage`. Until they choose, the theme is
+  seeded by `theme_default` (`auto` follows the OS on the first visit, or set it to
+  `light` / `dark`).
 - **Restyle without touching templates:** edit the `[extra]` block in
-  [`config.toml`](./config.toml) — `accent` / `accent_dark` (brand colour per
-  mode), `font_sans` / `font_mono`, `theme_default`, the `logo_text`, and the
-  `[[extra.nav]]` links. The syntax-highlighting theme is set with
-  `highlight_theme` under `[markdown]`.
+  [`config.toml`](./config.toml) — `accent` / `accent_dark` (primary brand colour
+  per mode), `accent2` / `accent2_dark` (secondary highlight), `font_sans` /
+  `font_mono`, `theme_default`, the `logo_text`, and the `[[extra.nav]]` links. The
+  default palette is the green of the Brazilian flag with a lemon-yellow highlight,
+  and the font is **Ubuntu Mono** (loaded from Google Fonts in
+  `themes/doido/templates/partials/head.html`). The syntax-highlighting theme is
+  set with `highlight_theme` under `[markdown]`.
 - **Deeper structural colours** (backgrounds, borders, text) live as CSS custom
   properties in [`themes/doido/sass/_variables.scss`](./themes/doido/sass/_variables.scss).
 - **Swap the theme entirely:** drop another Zola theme into `themes/` and change
