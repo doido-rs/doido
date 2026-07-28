@@ -1,0 +1,57 @@
+name: docs-blog
+
+# Build the docs + blog site with Zola and deploy it to GitHub Pages.
+# Runs only when the site (or this workflow) changes, plus on manual dispatch.
+on:
+  push:
+    branches: ["master"]
+    paths:
+      - "docs-blog/**"
+      - ".github/workflows/docs-blog.yml"
+  workflow_dispatch:
+
+# Least-privilege token, plus the permissions the Pages deploy needs.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Serialize deploys; don't cancel an in-flight one.
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Prebuilt Zola binary (no compilation). Bump the version to upgrade.
+      - name: Install Zola
+        uses: taiki-e/install-action@v2
+        with:
+          tool: zola@0.19.2
+
+      # base_url is already set to the custom domain in config.toml.
+      - name: Build site
+        working-directory: docs-blog
+        run: zola build
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs-blog/public
+
+  deploy:
+    name: Deploy
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

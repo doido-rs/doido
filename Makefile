@@ -67,7 +67,8 @@ PUBLISH_CRATES ?= \
 	doido
 
 .PHONY: help publish publish-dry-run clean-package check supply-chain yank unyank \
-        fmt test verify example services-up services-down test-backends
+        fmt test verify example services-up services-down test-backends \
+        blog blog-build blog-install
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -195,3 +196,41 @@ services-down: ## Stop and remove dev backends
 test-backends: ## Run feature-gated backend tests (needs `make services-up`)
 	REDIS_URL=$${REDIS_URL:-redis://127.0.0.1:6379/} cargo test -p doido-jobs --features jobs-db,jobs-redis
 	cargo test -p doido-cache --features cache-redis,cache-memcache
+
+# ---------------------------------------------------------------------------
+# Documentation + blog site (docs-blog/ — a Zola static site).
+#
+# `make blog` serves it locally with live reload. Zola is a single static
+# binary: if it is not already on PATH, it is downloaded once into
+# target/tools/ (Linux) so the target works out of the box. Keep ZOLA_VERSION
+# in sync with .github/workflows/docs-blog.yml.
+# ---------------------------------------------------------------------------
+ZOLA_VERSION ?= 0.19.2
+ZOLA_BIN     ?= $(CURDIR)/target/tools/zola
+# Resolve a usable zola at recipe time: one on PATH, else the vendored binary.
+zola_bin      = $$(command -v zola 2>/dev/null || echo "$(ZOLA_BIN)")
+
+blog-install: ## Ensure Zola is available (downloads it into target/tools if missing)
+	@if command -v zola >/dev/null 2>&1; then \
+		echo "==> using system zola: $$(zola --version)"; \
+	elif [ -x "$(ZOLA_BIN)" ]; then \
+		echo "==> using vendored zola: $$($(ZOLA_BIN) --version)"; \
+	else \
+		os=$$(uname -s); arch=$$(uname -m); \
+		if [ "$$os" != "Linux" ]; then \
+			echo "error: zola not found. Install it (macOS: brew install zola) or see" >&2; \
+			echo "       https://www.getzola.org/documentation/getting-started/installation/" >&2; \
+			exit 1; \
+		fi; \
+		url="https://github.com/getzola/zola/releases/download/v$(ZOLA_VERSION)/zola-v$(ZOLA_VERSION)-$$arch-unknown-linux-gnu.tar.gz"; \
+		echo "==> downloading zola $(ZOLA_VERSION) for $$arch-unknown-linux-gnu"; \
+		mkdir -p "$(dir $(ZOLA_BIN))"; \
+		curl -sfL "$$url" | tar xz -C "$(dir $(ZOLA_BIN))" zola || { echo "error: failed to download zola from $$url" >&2; exit 1; }; \
+		echo "==> installed $$($(ZOLA_BIN) --version) at $(ZOLA_BIN)"; \
+	fi
+
+blog: blog-install ## Serve the docs + blog site locally at http://127.0.0.1:1111
+	cd docs-blog && $(zola_bin) serve
+
+blog-build: blog-install ## Build the docs + blog site into docs-blog/public
+	cd docs-blog && $(zola_bin) build

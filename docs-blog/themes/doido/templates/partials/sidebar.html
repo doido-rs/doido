@@ -1,0 +1,31 @@
+{# Documentation sidebar: the docs section, its pages, and any subsections,
+   resolved in the current language. #}
+{% set lang = lang | default(value=config.default_language) %}
+{% set docs = get_section(path="docs/_index.md", lang=lang) %}
+<aside class="sidebar">
+  <nav class="sidebar-nav" aria-label="Documentation">
+    <a class="sidebar-title" href="{{ docs.permalink }}">{{ docs.title }}</a>
+    <ul class="sidebar-list">
+      {% for p in docs.pages %}
+        <li>
+          <a href="{{ p.permalink }}"{% if p.permalink == current_url %} class="active" aria-current="page"{% endif %}>{{ p.title }}</a>
+        </li>
+      {% endfor %}
+      {% for sub in docs.subsections %}
+        {# `sub` already carries the language suffix (e.g. docs/guides/_index.pt.md),
+           so it is looked up as-is without a `lang` argument. #}
+        {% set subsec = get_section(path=sub) %}
+        <li class="sidebar-group">
+          <span class="sidebar-group-title">{{ subsec.title }}</span>
+          <ul class="sidebar-list">
+            {% for p in subsec.pages %}
+              <li>
+                <a href="{{ p.permalink }}"{% if p.permalink == current_url %} class="active" aria-current="page"{% endif %}>{{ p.title }}</a>
+              </li>
+            {% endfor %}
+          </ul>
+        </li>
+      {% endfor %}
+    </ul>
+  </nav>
+</aside>

@@ -182,6 +182,14 @@ make check         # cargo-deny supply-chain checks
 The spec documents that drive the design live in [`docs/`](docs/), indexed from
 [`CLAUDE.md`](CLAUDE.md).
 
+## Documentation & blog
+
+The user-facing manual and project blog live in [`docs-blog/`](docs-blog/) — a
+[Zola](https://www.getzola.org/) static site published to
+[doido.rs](https://doido.rs) by GitHub Actions. See
+[`docs-blog/README.md`](docs-blog/README.md) for how to run it locally, add a
+post, or change the theme.
+
 ## License
 
 MIT

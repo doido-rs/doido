@@ -1,0 +1,158 @@
+# Doido docs + blog — Zola configuration.
+#
+# This is the single control panel for the site. The [extra] block near the
+# bottom is the theme knob-set: colors, fonts, nav, and the default light/dark
+# mode all live there, so restyling the site never means touching a template.
+#
+# Local preview:  zola serve      (http://127.0.0.1:1111)
+# Production build: zola build     (outputs ./public)
+
+base_url = "https://doido.rs"
+title = "Doido"
+description = "A Rails-inspired web framework for Rust — batteries included, async-native."
+
+# The active theme. It lives in-repo at themes/doido and can be swapped or
+# updated without changing content.
+theme = "doido"
+
+# Language / build behaviour.
+default_language = "en"
+compile_sass = true
+minify_html = false
+build_search_index = false
+
+# RSS/Atom feeds (the built-in Atom template is used).
+generate_feeds = true
+feed_filenames = ["atom.xml"]
+
+# Blog tags. Each tag also gets its own Atom feed.
+taxonomies = [
+    { name = "tags", feed = true },
+]
+
+# ---------------------------------------------------------------------------
+# Internationalisation — English (default), Portuguese, and Spanish.
+#
+# Translate a page by adding a language-suffixed file next to it, e.g.
+# getting-started.pt.md / getting-started.es.md beside getting-started.md.
+# The default language is served at the root (/docs/), the others under a
+# prefix (/pt/docs/, /es/docs/). UI strings are translated in the
+# [*.translations] tables below and read in templates via trans(key=..., lang=lang).
+# ---------------------------------------------------------------------------
+
+# UI strings for the default language (English).
+[translations]
+docs = "Docs"
+blog = "Blog"
+read_the_docs = "Read the docs"
+theme = "Theme"
+theme_light = "Light"
+theme_dark = "Dark"
+specs = "Specs"
+min_read = "min read"
+newer = "Newer"
+older = "Older"
+posts_tagged = "Posts tagged"
+tags = "Tags"
+
+[languages.pt]
+title = "Doido"
+description = "Um framework web para Rust inspirado no Rails — baterias inclusas, async-native."
+generate_feeds = true
+feed_filenames = ["atom.xml"]
+taxonomies = [{ name = "tags", feed = true }]
+
+[languages.pt.translations]
+docs = "Documentação"
+blog = "Blog"
+read_the_docs = "Ler a documentação"
+theme = "Tema"
+theme_light = "Claro"
+theme_dark = "Escuro"
+specs = "Especificações"
+min_read = "min de leitura"
+newer = "Mais recentes"
+older = "Mais antigos"
+posts_tagged = "Publicações com a tag"
+tags = "Tags"
+
+[languages.es]
+title = "Doido"
+description = "Un framework web para Rust inspirado en Rails — con baterías incluidas y async-native."
+generate_feeds = true
+feed_filenames = ["atom.xml"]
+taxonomies = [{ name = "tags", feed = true }]
+
+[languages.es.translations]
+docs = "Documentación"
+blog = "Blog"
+read_the_docs = "Leer la documentación"
+theme = "Tema"
+theme_light = "Claro"
+theme_dark = "Oscuro"
+specs = "Especificaciones"
+min_read = "min de lectura"
+newer = "Más recientes"
+older = "Más antiguos"
+posts_tagged = "Entradas etiquetadas"
+tags = "Etiquetas"
+
+[markdown]
+# Syntax highlighting. `base16-ocean-dark` is a self-contained dark code theme
+# that reads well on both light and dark pages. Change it to any Zola built-in
+# theme (https://www.getzola.org/documentation/getting-started/configuration/).
+highlight_code = true
+highlight_theme = "base16-ocean-dark"
+smart_punctuation = true
+
+# ---------------------------------------------------------------------------
+# [extra] — THEME CONFIGURATION. Edit these to restyle the site.
+# ---------------------------------------------------------------------------
+[extra]
+# Initial colour mode for a first-time visitor: "auto" (follow the OS), "light",
+# or "dark". The header switcher only offers Light and Dark; "auto" just seeds
+# the first visit from the OS preference.
+theme_default = "auto"
+
+# Brand palette — the green of the Brazilian flag with a lemon-yellow highlight.
+# `accent`/`accent2` are used in light mode, the `_dark` variants in dark mode.
+accent = "#009c3b"        # Brazilian flag green (primary)
+accent_dark = "#00c24a"   # brighter green for dark backgrounds
+accent2 = "#cfe000"       # lemon yellow (secondary highlight)
+accent2_dark = "#e4ff4d"  # brighter lemon for dark backgrounds
+
+# Fonts — Ubuntu Mono everywhere (loaded from Google Fonts in partials/head.html).
+font_sans = "'Ubuntu Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace"
+font_mono = "'Ubuntu Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace"
+
+# Wordmark shown in the header (falls back to `title`).
+logo_text = "doido"
+
+# Links surfaced in the footer / docs landing.
+repo_url = "https://github.com/doido-rs/doido"
+specs_url = "https://github.com/doido-rs/doido/tree/master/docs"
+
+# Languages offered in the header switcher (order matters). Each `code` must
+# match the [languages.*] tables above, plus the `default_language`.
+languages = [
+    { code = "en", name = "English" },
+    { code = "pt", name = "Português" },
+    { code = "es", name = "Español" },
+]
+
+# Top navigation. Set `external = true` to link off-site (opens in a new tab).
+# `trans_key` (optional) translates the label via the [*.translations] tables.
+[[extra.nav]]
+name = "Docs"
+url = "/docs/"
+trans_key = "docs"
+
+[[extra.nav]]
+name = "Blog"
+url = "/blog/"
+trans_key = "blog"
+
+[[extra.nav]]
+name = "GitHub"
+url = "https://github.com/doido-rs/doido"
+external = true

@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="{{ lang | default(value="en") }}" data-theme-default="{{ config.extra.theme_default | default(value='auto') }}">
+<head>
+  {% include "partials/head.html" %}
+  {% block head %}{% endblock head %}
+</head>
+<body>
+  {% include "partials/header.html" %}
+  <main class="main">
+    {% block content %}{% endblock content %}
+  </main>
+  {% include "partials/footer.html" %}
+  <script src="{{ get_url(path='js/theme.js') }}" defer></script>
+</body>
+</html>

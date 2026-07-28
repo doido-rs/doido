@@ -1,0 +1,46 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}{{ config.title }}{% endblock title %}</title>
+<meta name="description" content="{% block description %}{{ config.description }}{% endblock description %}">
+<link rel="icon" href="{{ get_url(path='favicon.svg') }}" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Ubuntu+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ get_url(path='main.css') }}">
+{% if config.generate_feeds %}
+<link rel="alternate" type="application/atom+xml" title="{{ config.title }}" href="{{ get_url(path='atom.xml') }}">
+{% endif %}
+
+{# Config-driven palette knobs. Structural light/dark colours live in the SASS;
+   these are the values pulled straight from config.toml [extra]. #}
+<style>
+  :root {
+    --accent: {{ config.extra.accent }};
+    --accent2: {{ config.extra.accent2 }};
+    --font-sans: {{ config.extra.font_sans }};
+    --font-mono: {{ config.extra.font_mono }};
+  }
+  [data-theme="dark"] {
+    --accent: {{ config.extra.accent_dark }};
+    --accent2: {{ config.extra.accent2_dark }};
+  }
+</style>
+
+{# Set the theme before first paint to avoid a flash of the wrong mode. Only
+   "light" and "dark" are ever stored; "auto" just seeds the first visit. #}
+<script>
+  (function () {
+    try {
+      var saved = localStorage.getItem("theme");
+      if (saved !== "light" && saved !== "dark") {
+        var def = "{{ config.extra.theme_default | default(value='auto') }}";
+        saved = (def === "light" || def === "dark")
+          ? def
+          : (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+      }
+      document.documentElement.dataset.theme = saved;
+    } catch (e) {
+      document.documentElement.dataset.theme = "light";
+    }
+  })();
+</script>

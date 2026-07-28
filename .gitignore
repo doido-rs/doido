@@ -1,3 +1,6 @@
 /target
 .worktrees/
 _sk_check/
+
+# Zola build output for the docs + blog site (docs-blog/).
+docs-blog/public/

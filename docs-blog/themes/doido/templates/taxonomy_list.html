@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block title %}Tags · {{ config.title }}{% endblock title %}
+
+{% block content %}
+<div class="container blog-layout">
+  <header class="blog-header prose">
+    <h1>{{ trans(key='tags', lang=lang) }}</h1>
+  </header>
+  <ul class="tag-cloud">
+    {% for term in terms %}
+      <li><a class="tag" href="{{ term.permalink }}">#{{ term.name }} <span class="muted">({{ term.pages | length }})</span></a></li>
+    {% endfor %}
+  </ul>
+</div>
+{% endblock content %}
