@@ -3,7 +3,7 @@
 //! output (route tables, entity codegen, etc.). Colorized only when stderr is a
 //! TTY.
 
-use figlet_rs::FIGfont;
+use figlet_rs::FIGlet;
 use std::io::{IsTerminal, Write};
 
 /// Backend name from a connection URL (the scheme before `://`).
@@ -25,7 +25,7 @@ pub fn print(mode: &str) {
 
     // Logo: render "DOIDO" with the standard FIGlet font, printed as-is for
     // legibility. Bail quietly if the font is unavailable.
-    if let Ok(font) = FIGfont::standard() {
+    if let Ok(font) = FIGlet::standard() {
         if let Some(figure) = font.convert("DOIDO") {
             let _ = writeln!(out);
             for line in figure.to_string().lines() {

@@ -119,9 +119,10 @@ fn crud_cycle(port: u16) {
 
     // CREATE
     let created: serde_json::Value = ureq::post(&format!("{base}/posts"))
-        .send_json(ureq::json!({ "title": "Hello", "body": "world" }))
+        .send_json(serde_json::json!({ "title": "Hello", "body": "world" }))
         .expect("POST /posts")
-        .into_json()
+        .into_body()
+        .read_json()
         .expect("json body");
     let id = created["id"].as_i64().expect("created id");
     assert_eq!(created["title"], "Hello");
@@ -130,7 +131,8 @@ fn crud_cycle(port: u16) {
     let index: serde_json::Value = ureq::get(&format!("{base}/posts"))
         .call()
         .expect("GET /posts")
-        .into_json()
+        .into_body()
+        .read_json()
         .unwrap();
     assert!(
         index
@@ -146,24 +148,27 @@ fn crud_cycle(port: u16) {
         ureq::get(&format!("{base}/posts/{id}"))
             .call()
             .unwrap()
-            .status(),
+            .status()
+            .as_u16(),
         200
     );
 
     // UPDATE
-    let updated: serde_json::Value = ureq::request("PATCH", &format!("{base}/posts/{id}"))
-        .send_json(ureq::json!({ "title": "Updated", "body": "world" }))
+    let updated: serde_json::Value = ureq::patch(&format!("{base}/posts/{id}"))
+        .send_json(serde_json::json!({ "title": "Updated", "body": "world" }))
         .expect("PATCH /posts/:id")
-        .into_json()
+        .into_body()
+        .read_json()
         .unwrap();
     assert_eq!(updated["title"], "Updated");
 
     // DELETE
     assert_eq!(
-        ureq::request("DELETE", &format!("{base}/posts/{id}"))
+        ureq::delete(&format!("{base}/posts/{id}"))
             .call()
             .expect("DELETE /posts/:id")
-            .status(),
+            .status()
+            .as_u16(),
         204
     );
 }

@@ -42,8 +42,8 @@ doido-storage = { path = "doido-storage", version = "0.0.7" }
 doido-view = { path = "doido-view", version = "0.0.7" }
 
 # ORM
-sea-orm     = { version = "2.0.0-rc.38", features = ["sqlx-sqlite", "runtime-tokio-rustls", "macros"] }
-sea-orm-migration = { version = "2.0.0-rc.38", features = ["sqlx-sqlite", "runtime-tokio-rustls"] }
+sea-orm     = { version = "2.0.0", features = ["sqlx-sqlite", "runtime-tokio-rustls", "macros"] }
+sea-orm-migration = { version = "2.0.0", features = ["sqlx-sqlite", "runtime-tokio-rustls"] }
 
 # Async runtime
 tokio       = { version = "1", features = ["rt-multi-thread", "macros"] }
@@ -52,16 +52,25 @@ async-trait = "0.1"
 # Web
 axum        = "0.8"
 tower       = { version = "0.5", features = ["util"] }
-tower-http  = { version = "0.6", features = ["cors", "catch-panic"] }
+tower-http  = { version = "0.7", features = ["cors", "catch-panic"] }
 http        = "1"
 http-body-util = "0.1"
 
 # Serialization
 serde       = { version = "1", features = ["derive"] }
 serde_json  = "1"
+serde_norway = "0.9"                    # YAML loader shared by config/view/storage
+
+# Typed errors (per-crate derive; see the doido-thiserror-direct-dep note)
+thiserror   = "2"
+
+# Crypto / signing (HMAC-SHA256 for signed ids/cookies; digest 0.11 ecosystem)
+hmac        = "0.13"
+sha2        = "0.11"
+base64      = "0.23"
 
 # Proc-macro helpers
-syn         = { version = "2", features = ["full"] }
+syn         = { version = "3", features = ["full"] }
 quote       = "1"
 proc-macro2 = "1"
 
@@ -72,5 +81,6 @@ tracing     = "0.1"
 uuid        = { version = "1", features = ["v4"] }
 clap        = { version = "4", features = ["derive"] }
 chrono      = { version = "0.4", features = ["clock"] }
-redis       = { version = "0.27", features = ["tokio-comp", "aio"] }
-figlet-rs   = "0.1"
+redis       = { version = "1", features = ["tokio-comp", "aio"] }
+figlet-rs   = "1.0"
+tempfile    = "3"                       # dev-only: temp dirs/files in tests

@@ -30,7 +30,7 @@ include_dir = "0.7"
 # The `doido db` command embeds the SeaORM CLI (migrate + entity codegen).
 # All three sqlx backends are enabled so a single `doido` binary works against
 # whichever database the generated app targets.
-sea-orm-cli = { version = "2.0.0-rc.41", default-features = false, features = [
+sea-orm-cli = { version = "2.0.0", default-features = false, features = [
     "cli",
     "codegen",
     "runtime-tokio-rustls",
@@ -42,7 +42,7 @@ sea-orm-cli = { version = "2.0.0-rc.41", default-features = false, features = [
 [dev-dependencies]
 assert_cmd = "2"
 predicates = "3"
-tempfile = "3"
+tempfile.workspace = true
 # Light HTTP client for the runtime CRUD e2e (make example).
-ureq = { version = "2", features = ["json"] }
+ureq = { version = "3", features = ["json"] }
 serde_json = "1"
