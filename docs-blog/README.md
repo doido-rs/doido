@@ -1,0 +1,103 @@
+# docs-blog — the Doido manual & blog
+
+A static site (documentation + blog) for the Doido framework, built with
+[Zola](https://www.getzola.org/) — a static-site generator written in Rust that
+uses the `pulldown-cmark` markdown engine. It is deployed to GitHub Pages at
+**https://doido.rs** by GitHub Actions.
+
+```
+docs-blog/
+├── config.toml            # site + theme configuration (the control panel)
+├── content/
+│   ├── _index.md          # home page
+│   ├── docs/              # documentation section (the manual)
+│   │   ├── _index.md
+│   │   ├── getting-started.md
+│   │   ├── installation.md
+│   │   ├── cli.md
+│   │   └── guides/        # per-subsystem guides
+│   └── blog/              # blog posts (one .md per post)
+├── static/                # copied verbatim to the site root (CNAME, favicon, js)
+└── themes/doido/          # the in-repo, swappable theme
+```
+
+## Run it locally
+
+Install Zola (a single binary — see the
+[install guide](https://www.getzola.org/documentation/getting-started/installation/)),
+then:
+
+```bash
+cd docs-blog
+zola serve          # live preview at http://127.0.0.1:1111
+zola build          # production build into ./public
+zola check          # validate internal links without writing output
+```
+
+## Add a blog post
+
+Create `content/blog/YYYY-MM-DD-your-slug.md` — the date in the filename sets the
+post date and is stripped from the URL (so `2026-08-01-hello.md` → `/blog/hello/`):
+
+```markdown
++++
+title = "Your title"
+date = 2026-08-01
+description = "One-line summary shown in listings and meta tags."
+
+[taxonomies]
+tags = ["release", "announcements"]
++++
+
+Your Markdown content.
+```
+
+Push to `master` and GitHub Actions builds and deploys it. That's it.
+
+## Add a documentation page
+
+Create `content/docs/<name>.md` (or a new file under `content/docs/guides/`):
+
+```markdown
++++
+title = "Page title"
+description = "Shown in the sidebar tooltip and meta tags."
+weight = 5          # controls sidebar order (lower = higher up)
++++
+
+Your content. Link to other docs with `[text](@/docs/other-page.md)`.
+```
+
+The sidebar and prev/next navigation update automatically.
+
+## Change the theme
+
+The theme is **configurable** and **updatable**:
+
+- **Restyle without touching templates:** edit the `[extra]` block in
+  [`config.toml`](./config.toml) — `accent` / `accent_dark` (brand colour per
+  mode), `font_sans` / `font_mono`, `theme_default` (`auto` / `light` / `dark`),
+  the `logo_text`, and the `[[extra.nav]]` links. The syntax-highlighting theme is
+  set with `highlight_theme` under `[markdown]`.
+- **Deeper structural colours** (backgrounds, borders, text) live as CSS custom
+  properties in [`themes/doido/sass/_variables.scss`](./themes/doido/sass/_variables.scss).
+- **Swap the theme entirely:** drop another Zola theme into `themes/` and change
+  `theme = "..."` in `config.toml`.
+
+## Deployment
+
+[`.github/workflows/docs-blog.yml`](../.github/workflows/docs-blog.yml) builds the
+site with Zola and deploys it to GitHub Pages on every push to `master` that
+touches `docs-blog/**` (and on manual dispatch). `base_url` in `config.toml` and
+the `static/CNAME` file pin the custom domain `doido.rs`.
+
+### One-time setup (repo settings + DNS)
+
+These are configured once, outside the codebase:
+
+1. **GitHub → Settings → Pages → Build and deployment → Source: GitHub Actions.**
+2. **Custom domain:** set `doido.rs` under the same Pages settings (it reads the
+   `CNAME` file). Enable **Enforce HTTPS** once the certificate is provisioned.
+3. **DNS for the apex domain `doido.rs`:** add `A`/`AAAA` records pointing at
+   GitHub Pages' IP addresses (or an `ALIAS`/`ANAME` to `doido-rs.github.io`). See
+   [GitHub's apex-domain guide](https://docs.github.com/en/pages/configuring-a-custom-domain-for-your-github-pages-site/managing-a-custom-domain-for-your-github-pages-site#configuring-an-apex-domain).

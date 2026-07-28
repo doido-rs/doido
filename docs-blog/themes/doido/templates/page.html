@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block title %}{{ page.title }} · {{ config.title }}{% endblock title %}
+{% block description %}{{ page.description | default(value=config.description) }}{% endblock description %}
+
+{% block content %}
+<div class="container docs-layout">
+  {% include "partials/sidebar.html" %}
+  <article class="doc-content prose">
+    <h1>{{ page.title }}</h1>
+    {{ page.content | safe }}
+
+    <nav class="page-nav">
+      <span>
+        {% if page.lower %}<a class="prev" href="{{ page.lower.permalink }}">← {{ page.lower.title }}</a>{% endif %}
+      </span>
+      <span>
+        {% if page.higher %}<a class="next" href="{{ page.higher.permalink }}">{{ page.higher.title }} →</a>{% endif %}
+      </span>
+    </nav>
+  </article>
+</div>
+{% endblock content %}

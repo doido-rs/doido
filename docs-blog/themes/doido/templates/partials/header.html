@@ -1,0 +1,17 @@
+<header class="site-header">
+  <div class="container header-inner">
+    <a class="brand" href="{{ get_url(path='/') }}">{{ config.extra.logo_text | default(value=config.title) }}</a>
+    <nav class="nav">
+      {% for item in config.extra.nav %}
+        {% if item.external %}
+          <a class="nav-link" href="{{ item.url }}" rel="noopener" target="_blank">{{ item.name }}</a>
+        {% else %}
+          <a class="nav-link" href="{{ get_url(path=item.url) }}">{{ item.name }}</a>
+        {% endif %}
+      {% endfor %}
+      <button class="theme-toggle" type="button" aria-label="Toggle light/dark theme" title="Toggle theme">
+        <span class="theme-toggle-icon" aria-hidden="true">◐</span>
+      </button>
+    </nav>
+  </div>
+</header>

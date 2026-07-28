@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}{{ page.title }} · {{ config.title }}{% endblock title %}
+{% block description %}{{ page.description | default(value=config.description) }}{% endblock description %}
+
+{% block content %}
+<article class="container post">
+  <header class="post-header">
+    <a class="muted back-link" href="{{ get_url(path='/blog/') }}">← Blog</a>
+    <h1>{{ page.title }}</h1>
+    <div class="post-meta muted">
+      <time datetime="{{ page.date }}">{{ page.date | date(format='%B %d, %Y') }}</time>
+      {% if page.reading_time %}<span> · {{ page.reading_time }} min read</span>{% endif %}
+    </div>
+    {% if page.taxonomies.tags %}
+      <div class="tags">
+        {% for tag in page.taxonomies.tags %}
+          <a class="tag" href="{{ get_taxonomy_url(kind='tags', name=tag) }}">#{{ tag }}</a>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </header>
+
+  <div class="prose">
+    {{ page.content | safe }}
+  </div>
+
+  <nav class="page-nav">
+    <span>
+      {% if page.later %}<a class="prev" href="{{ page.later.permalink }}">← {{ page.later.title }}</a>{% endif %}
+    </span>
+    <span>
+      {% if page.earlier %}<a class="next" href="{{ page.earlier.permalink }}">{{ page.earlier.title }} →</a>{% endif %}
+    </span>
+  </nav>
+</article>
+{% endblock content %}

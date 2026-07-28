@@ -1,0 +1,23 @@
+name = "doido"
+description = "Minimal, configurable docs + blog theme for the Doido framework."
+license = "MIT"
+homepage = "https://github.com/doido-rs/doido"
+min_version = "0.19.0"
+demo = "https://doido.rs"
+
+[author]
+name = "Doido contributors"
+homepage = "https://github.com/doido-rs/doido"
+
+# Defaults for the theme knobs. The site's config.toml [extra] overrides any of
+# these, so the values here are just fallbacks that keep the theme usable when
+# dropped into another site.
+[extra]
+theme_default = "auto"
+accent = "#e5484d"
+accent_dark = "#ff7a7f"
+font_sans = "system-ui, sans-serif"
+font_mono = "ui-monospace, monospace"
+logo_text = "doido"
+repo_url = "https://github.com/doido-rs/doido"
+specs_url = "https://github.com/doido-rs/doido"

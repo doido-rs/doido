@@ -1,0 +1,38 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}{{ config.title }}{% endblock title %}</title>
+<meta name="description" content="{% block description %}{{ config.description }}{% endblock description %}">
+<link rel="icon" href="{{ get_url(path='favicon.svg') }}" type="image/svg+xml">
+<link rel="stylesheet" href="{{ get_url(path='main.css') }}">
+{% if config.generate_feeds %}
+<link rel="alternate" type="application/atom+xml" title="{{ config.title }}" href="{{ get_url(path='atom.xml') }}">
+{% endif %}
+
+{# Config-driven palette knobs. Structural light/dark colours live in the SASS;
+   these are the values pulled straight from config.toml [extra]. #}
+<style>
+  :root {
+    --accent: {{ config.extra.accent }};
+    --font-sans: {{ config.extra.font_sans }};
+    --font-mono: {{ config.extra.font_mono }};
+  }
+  [data-theme="dark"] {
+    --accent: {{ config.extra.accent_dark }};
+  }
+</style>
+
+{# Set the theme before first paint to avoid a flash of the wrong mode. #}
+<script>
+  (function () {
+    try {
+      var def = "{{ config.extra.theme_default | default(value='auto') }}";
+      var saved = localStorage.getItem("theme") || def;
+      if (saved === "auto") {
+        saved = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+      }
+      document.documentElement.dataset.theme = saved;
+    } catch (e) {
+      document.documentElement.dataset.theme = "light";
+    }
+  })();
+</script>

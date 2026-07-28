@@ -1,0 +1,72 @@
+// Long-form typography for docs pages and blog posts.
+
+.prose {
+  max-width: var(--content-width);
+
+  h1, h2, h3, h4 {
+    line-height: 1.25;
+    margin: 2rem 0 0.75rem;
+    scroll-margin-top: 5rem;
+  }
+  h1 { font-size: 2rem; margin-top: 0; }
+  h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: 0.3rem; }
+  h3 { font-size: 1.2rem; }
+
+  p, ul, ol, blockquote, table, pre { margin: 0 0 1rem; }
+
+  a { color: var(--link); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  ul, ol { padding-left: 1.4rem; }
+  li { margin: 0.3rem 0; }
+
+  blockquote {
+    margin-left: 0;
+    padding: 0.25rem 1rem;
+    border-left: 3px solid var(--accent);
+    color: var(--fg-muted);
+  }
+
+  img { max-width: 100%; height: auto; border-radius: var(--radius-sm); }
+
+  hr { border: 0; border-top: 1px solid var(--border); margin: 2rem 0; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95rem;
+  }
+  th, td {
+    text-align: left;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border);
+  }
+  th { background: var(--bg-alt); }
+
+  // Inline code.
+  code {
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+    background: var(--inline-code-bg);
+    color: var(--inline-code-fg);
+    padding: 0.15em 0.4em;
+    border-radius: 4px;
+  }
+
+  // Fenced code blocks (Zola emits <pre> with an inline background colour).
+  pre {
+    font-family: var(--font-mono);
+    font-size: 0.88rem;
+    line-height: 1.5;
+    padding: 1rem 1.1rem;
+    border-radius: var(--radius);
+    overflow-x: auto;
+  }
+  pre code {
+    background: transparent;
+    color: inherit;
+    padding: 0;
+    border-radius: 0;
+    font-size: inherit;
+  }
+}

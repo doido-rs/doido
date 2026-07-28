@@ -1,0 +1,75 @@
+# Doido docs + blog — Zola configuration.
+#
+# This is the single control panel for the site. The [extra] block near the
+# bottom is the theme knob-set: colors, fonts, nav, and the default light/dark
+# mode all live there, so restyling the site never means touching a template.
+#
+# Local preview:  zola serve      (http://127.0.0.1:1111)
+# Production build: zola build     (outputs ./public)
+
+base_url = "https://doido.rs"
+title = "Doido"
+description = "A Rails-inspired web framework for Rust — batteries included, async-native."
+
+# The active theme. It lives in-repo at themes/doido and can be swapped or
+# updated without changing content.
+theme = "doido"
+
+# Language / build behaviour.
+default_language = "en"
+compile_sass = true
+minify_html = false
+build_search_index = false
+
+# RSS/Atom feeds (the built-in Atom template is used).
+generate_feeds = true
+feed_filenames = ["atom.xml"]
+
+# Blog tags. Each tag also gets its own Atom feed.
+taxonomies = [
+    { name = "tags", feed = true },
+]
+
+[markdown]
+# Syntax highlighting. `base16-ocean-dark` is a self-contained dark code theme
+# that reads well on both light and dark pages. Change it to any Zola built-in
+# theme (https://www.getzola.org/documentation/getting-started/configuration/).
+highlight_code = true
+highlight_theme = "base16-ocean-dark"
+smart_punctuation = true
+
+# ---------------------------------------------------------------------------
+# [extra] — THEME CONFIGURATION. Edit these to restyle the site.
+# ---------------------------------------------------------------------------
+[extra]
+# Default color mode: "auto" (follow the OS), "light", or "dark".
+theme_default = "auto"
+
+# Brand accent colour. `accent` is used in light mode, `accent_dark` in dark.
+accent = "#e5484d"
+accent_dark = "#ff7a7f"
+
+# Fonts (any valid CSS font-family stack).
+font_sans = "system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
+font_mono = "ui-monospace, 'SFMono-Regular', 'JetBrains Mono', Menlo, Consolas, monospace"
+
+# Wordmark shown in the header (falls back to `title`).
+logo_text = "doido"
+
+# Links surfaced in the footer / docs landing.
+repo_url = "https://github.com/doido-rs/doido"
+specs_url = "https://github.com/doido-rs/doido/tree/master/docs"
+
+# Top navigation. Set `external = true` to link off-site (opens in a new tab).
+[[extra.nav]]
+name = "Docs"
+url = "/docs/"
+
+[[extra.nav]]
+name = "Blog"
+url = "/blog/"
+
+[[extra.nav]]
+name = "GitHub"
+url = "https://github.com/doido-rs/doido"
+external = true
