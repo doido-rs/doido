@@ -1,50 +1,65 @@
 +++
 title = "Controladores y enrutamiento"
-description = "Define rutas, escribe controladores y usa filtros y el Context de la petición."
-weight = 1
+description = "La DSL routes!, recursos RESTful, controladores, filtros y el Context de la petición."
+weight = 4
 +++
 
 > **Especificación de diseño:** [`docs/01-router.md`](https://github.com/doido-rs/doido/blob/master/docs/01-router.md)
 > y [`docs/02-controller.md`](https://github.com/doido-rs/doido/blob/master/docs/02-controller.md).
-> Esta guía es el complemento centrado en el uso de esas especificaciones.
+> Esta guía documenta la API tal como está implementada en `doido-controller`.
 
-La capa de peticiones de Doido se corresponde de forma limpia con Rails: un
-**router** despacha URLs a **actions de controlador**, y cada action recibe un
-`Context` tipado y devuelve un `Response`. Por debajo se construye sobre
-`axum::Router`, pero trabajas a través de la macro `routes!` en lugar de axum en
-crudo.
+**Análogo en Rails: Action Dispatch + Action Controller.** Un **router** mapea URLs a
+**actions de controlador**; cada action es una `async fn` que recibe un `Context` tipado de
+la petición y devuelve un `Response`. Por debajo se construye sobre `axum::Router`, pero
+trabajas mediante la macro `routes!` y la macro `#[controller]`, no con axum en crudo.
 
-## Enrutamiento
-
-Las rutas se declaran con la macro `routes!` en `config/routes.rs`:
+## Vistazo general
 
 ```rust
-routes! {
-    resources!(posts, PostsController);
-    resources!(comments, CommentsController, only: [index, show]);
-    resources!(admin, AdminController, except: [destroy]);
+use doido_controller::{controller, routes, Context, Response};
+```
 
-    get!("/about", PagesController::about);
-    post!("/login", SessionsController::create);
+## La DSL `routes!`
 
-    namespace!(api, {
-        resources!(users, Api::UsersController);
-    });
+Declara las rutas en `config/routes.rs`. La DSL soporta rutas por verbo HTTP, recursos
+RESTful, recursos singulares, agrupación por path/módulo, una ruta raíz, redirecciones y el
+montaje de sub-routers.
 
-    scope!("/v2", {
-        resources!(articles, V2::ArticlesController);
-    });
+```rust
+use doido_controller::routes;
+
+pub fn router() -> doido_controller::axum::Router {
+    routes! {
+        root!(PagesController::home);              // GET /
+        get!("/about", PagesController::about);
+        post!("/login", SessionsController::create);
+
+        resources!(posts, PostsController);        // las 7 rutas REST
+        resources!(comments, CommentsController, only: [index, show]);
+        resources!(admin, AdminController, except: [destroy]);
+        resources!(posts, PostsController, member: [publish], collection: [search]);
+
+        resource!(profile, ProfileController);     // singular (sin :id)
+
+        namespace!(api, {                          // prefijo de path Y de módulo
+            resources!(users, Api::UsersController);
+        });
+        scope!("/v2", {                            // solo prefijo de path
+            resources!(articles, V2::ArticlesController);
+        });
+
+        redirect!("/old", "/new");                 // redirección permanente
+        mount!("/metrics", metrics_router());      // monta un sub-router
+    }
 }
 ```
 
-- `namespace!` prefija **tanto** el path **como** la ruta del módulo del controlador.
-- `scope!` prefija **solo** el path.
-- Verbos soportados: `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `HEAD`, `OPTIONS`.
+Macros de verbo soportadas: `get!`, `post!`, `put!`, `patch!`, `delete!`.
 
 ### Las 7 rutas REST
 
-`resources!(posts, PostsController)` genera las siete rutas RESTful, cada una con
-un helper de URL en tiempo de compilación:
+`resources!(posts, PostsController)` genera las siete rutas RESTful, cada una con un helper
+de URL en tiempo de compilación:
 
 | Helper | Método | Path | Action |
 |--------|--------|------|--------|
@@ -56,34 +71,32 @@ un helper de URL en tiempo de compilación:
 | `post_path(id)` | PATCH | `/posts/:id` | update |
 | `post_path(id)` | DELETE | `/posts/:id` | destroy |
 
-Usa `only:` / `except:` para restringir cuáles de las siete se generan.
+`only:` / `except:` restringen el conjunto generado; `member:` / `collection:` añaden rutas
+extra (las rutas de member reciben un `:id`, las de collection no).
 
 ## Controladores
 
-Un controlador es una struct anotada con `#[controller]`; las actions son `async
-fn` normales que reciben un `Context` y devuelven un `Response`. La ruta despacha
-a la action cuyo nombre de método coincide con la action (convención sobre
-configuración).
+Un controlador es una struct anotada con `#[controller]`; las actions son `async fn(ctx:
+Context) -> Response`. La ruta despacha a la action cuyo nombre de método coincide
+(convención sobre configuración).
 
 ```rust
-#[controller]
-struct PostsController;
+use doido_controller::{controller, Context, Response};
+use serde_json::json;
 
+pub struct PostsController;
+
+#[controller]
 impl PostsController {
-    #[before_action(authenticate)]
-    #[before_action(find_post, only = [show, edit, update, destroy])]
     async fn index(ctx: Context) -> Response {
-        let posts = Post::all(&ctx.db).await?;
-        ctx.render("posts/index", json!({ "posts": posts }))
+        let posts = post::Entity::find().all(ctx.db()).await.unwrap_or_default();
+        ctx.render("posts/index", json!({ "posts": doido_model::serialization::as_json(&posts) }))
     }
 
-    #[before_action(authenticate)]
-    #[after_action(log_response)]
-    async fn create(ctx: Context) -> Response {
-        let params = ctx.params::<CreatePostParams>()?;
-        match Post::create(&ctx.db, params).await {
-            Ok(post) => ctx.redirect_to(post_path(post.id)),
-            Err(_)   => ctx.render("posts/new", status = 422),
+    async fn show(ctx: Context) -> Response {
+        match ctx.param("id") {
+            Some(id) => ctx.json(json!({ "id": id })),
+            None => ctx.status(404),
         }
     }
 }
@@ -91,38 +104,123 @@ impl PostsController {
 
 ## El `Context` de la petición
 
-Todo lo que una action necesita está en `ctx`:
+Todo lo que una action necesita está en `ctx`.
+
+**Leer la entrada:**
 
 ```rust
-ctx.params::<T>()          // params tipados (path + query + body) vía serde
-ctx.db                     // handle de la conexión a la base de datos
-ctx.session                // acceso al store de sesión
-ctx.render(template, data) // renderiza una vista (delega a doido-view)
-ctx.redirect_to(path)      // helper de redirect 302
-ctx.json(data)             // helper de respuesta JSON
-ctx.status(code)           // define el estado de la respuesta
+ctx.param("id");                         // Option<&str> — un segmento del path
+ctx.params::<Filters>()?;                // query string tipada (GET)
+ctx.query_params();                      // Params sin tipo (para require/permit)
+ctx.form::<CreatePost>().await?;         // cuerpo de formulario URL-encoded
+ctx.body_json::<CreatePost>().await?;    // cuerpo JSON
+ctx.header("authorization");             // Option<&HeaderValue>
+ctx.db();                                // &'static DatabaseConnection
 ```
 
-## Dos formas de filtrar
+**Producir una respuesta:**
 
-Doido ofrece dos mecanismos de filtro complementarios:
+```rust
+ctx.render("posts/show", json!({ "post": post }));   // 200 HTML vía doido-view
+ctx.json(json!({ "ok": true }));                     // 200 JSON
+ctx.redirect_to(post_path(post.id));                 // 302
+ctx.status(422);                                     // estado con cuerpo vacío
+ctx.send_data(bytes, "application/pdf", Some("report.pdf")); // descarga
+ctx.send_file("storage/report.pdf", None).await;     // envía un archivo en streaming
+```
 
-1. **Filtros por macro de atributo (nivel de action).** `#[before_action(fn)]` y
-   `#[after_action(fn)]` en el controlador. Restríngelos con
-   `only = [action1, action2]`. Un `before_action` tiene la firma
-   `async fn(ctx: &mut Context) -> Result<(), Response>`; devolver `Err(response)`
-   detiene la cadena y retorna pronto — el equivalente a `render`-y-retorna en un
-   filtro de Rails.
+## Filtros
 
-2. **Capas de middleware Tower (nivel de router).** Aplicadas vía la DSL `routes!`
-   o el `.layer()` de axum, cubren preocupaciones transversales (autenticación,
-   rate limiting, request IDs, CORS) en un controlador o namespace completo. El
-   middleware se ejecuta **antes** de los filtros por macro de atributo.
+Los filtros por macro de atributo se ejecutan alrededor de las actions. Un
+`before_action`/`after_action` tiene la firma `async fn(ctx: &mut Context) -> Result<(),
+Response>`; devolver `Err(response)` detiene la cadena y retorna pronto (el patrón
+`render`-y-retorna de Rails). Restríngelos con `only = [...]` / `except = [...]`, y cancela
+un filtro heredado con `#[skip_before_action(...)]`.
+
+```rust
+async fn require_auth(ctx: &mut Context) -> Result<(), Response> {
+    if ctx.header("x-auth-token").is_none() {
+        return Err(ctx.status(401)); // detiene
+    }
+    Ok(())
+}
+
+#[controller]
+impl PostsController {
+    #[before_action(require_auth, except = [index, show])]
+    async fn create(ctx: Context) -> Response { ctx.status(201) }
+
+    #[before_action(require_auth)]
+    #[skip_before_action(require_auth)] // excluye esta action del filtro
+    async fn index(ctx: Context) -> Response { ctx.status(200) }
+}
+```
+
+Un `around_action` envuelve la action y es dueño de la respuesta:
+
+```rust
+async fn timed(ctx: &mut Context, run: impl AsyncFnOnce(&mut Context) -> Response) -> Response {
+    let mut resp = run(ctx).await;
+    resp.headers_mut().insert("x-served-by", "doido".parse().unwrap());
+    resp
+}
+
+#[controller]
+impl PostsController {
+    #[around_action(timed)]
+    async fn show(ctx: Context) -> Response { ctx.status(200) }
+}
+```
+
+## Parámetros fuertes
+
+`query_params()` devuelve un `Params` del que puedes `require` una clave y `permit` una
+lista de campos permitidos — la protección contra mass-assignment de Rails.
+
+```rust
+let post_params = ctx.query_params()
+    .require("post")?          // debe estar presente
+    .permit(&["title", "body"]); // descarta el resto
+
+let create: CreatePost = post_params.deserialize()?;
+```
+
+## Negociación de contenido
+
+`respond_to()` elige una rama según el header `Accept` de la petición;
+`negotiated_format()` devuelve el `Format` resuelto (`Html`, `Json` o `Any`).
+
+```rust
+async fn show(ctx: Context) -> Response {
+    ctx.respond_to()
+        .html(|| ctx.render("posts/show", json!({ "post": post })))
+        .json(|| ctx.json(json!({ "post": post })))
+        .finish()
+}
+```
+
+## GET condicional (ETags)
+
+`fresh_when()` devuelve un `304 Not Modified` de forma temprana cuando los validadores del
+cliente aún coinciden; `etag_matches()` comprueba un valor `If-None-Match`.
+
+```rust
+async fn show(ctx: Context) -> Response {
+    if let Some(not_modified) = ctx.fresh_when(Some(&post.etag), None) {
+        return not_modified; // 304
+    }
+    ctx.json(json!({ "post": post }))
+}
+```
 
 ## Pruebas
 
-La capa de controlador está pensada para probarse sin un servidor HTTP: construye
-un `Context` directamente y llama a la action, verificando el `Response`
-devuelto. Para cobertura de extremo a extremo, monta un bloque `routes!` y
-condúcelo con el cliente de pruebas. Consulta la superficie de TDD en las
-especificaciones para la matriz de pruebas exacta.
+Las actions son funciones async normales, así que puedes montarlas en un `axum::Router` y
+dirigirlas con un cliente de pruebas, o construir un `Context` directamente. Filtros,
+parámetros y respuestas son todos verificables sin un servidor real.
+
+## Véase también
+
+- [Middleware y sesiones](@/docs/guides/middleware.es.md) — la stack Tower, sesiones, flash, CSRF, CORS.
+- [Vistas](@/docs/guides/views.es.md) — a qué delega `ctx.render(...)`.
+- [Modelos](@/docs/guides/models.es.md) — usar `ctx.db()` dentro de las actions.

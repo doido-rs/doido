@@ -12,4 +12,8 @@ guía está curada sobre la especificación de diseño correspondiente en la
 [carpeta `docs/`](https://github.com/doido-rs/doido/tree/master/docs); la
 especificación se enlaza al inicio de cada guía.
 
-Se añaden más guías con el tiempo — este es el lugar para hacer crecer el manual.
+Hay una guía para cada módulo del framework — **Core**, **Configuración**, **Modelos**,
+**Controladores y enrutamiento**, **Middleware y sesiones**, **Vistas**, **Generadores y
+CLI**, **Jobs**, **Mailer**, **Cache**, **Cable** y **Storage** — con una introducción
+seguida de una sección por funcionalidad y un ejemplo de código ejecutable. Explóralas en
+la barra lateral.

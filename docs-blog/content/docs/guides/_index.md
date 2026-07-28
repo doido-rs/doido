@@ -12,4 +12,7 @@ curated on top of the corresponding design spec in the
 [`docs/` folder](https://github.com/doido-rs/doido/tree/master/docs); the spec is
 linked at the top of every guide.
 
-More guides are added over time — this is the place to grow the manual.
+One guide covers each framework module — **Core**, **Configuration**, **Models**,
+**Controllers & routing**, **Middleware & sessions**, **Views**, **Generators & CLI**,
+**Jobs**, **Mailer**, **Cache**, **Cable**, and **Storage** — with an introduction
+followed by a section per feature and a runnable code example. Browse them in the sidebar.
