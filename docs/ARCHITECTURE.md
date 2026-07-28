@@ -40,8 +40,6 @@ Legend: **Done** = implemented + tested · **Partial** = core works, spec featur
 | `doido-generators` | 06, 06b | Done | CLI (`new`/`generate`/`server`/`db`/`worker`) + generator registry + embedded templates; `console` is a placeholder |
 | `doido` (meta) | all | Done | re-exports + `run()` entry |
 | `doido-config` | 05 | **Deferred / Partial** | basic per-env YAML lives folded in `controller`/`model`; the spec's TOML-layering, AES-256-GCM credentials and env overrides are **not implemented**; a WIP crate exists in the worktree |
-| `doido-kafka` | 13 | **Deferred** | ~52-line skeleton in the worktree only |
-| `doido-mcp` | 14 | **Deferred** | ~216-line WIP in the worktree only |
 
 ## Reconciliation decisions
 
@@ -61,9 +59,6 @@ product decisions — override here and the backlog follows.
    `config/application.toml` is a minimal placeholder only; layered TOML +
    AES-256-GCM credentials stay deferred (opt-in, vNext) and can be revisited if
    an app needs them.
-2. **Kafka — Deferred (opt-in, vNext).** Not part of first stable; promote the worktree
-   crate when scheduled.
-3. **MCP — Deferred (opt-in, vNext).** Same as kafka.
 
 ## Runtime boot sequence (closes the "how does it wire together" gap)
 
@@ -93,4 +88,3 @@ generated app's `src/main.rs` calls `doido_generators::run(Some(routes))`.
 - `doido-generators` interactive `console` REPL (currently a placeholder).
 - Config: encrypted credentials + TOML layering + env overrides (spec 05) — *if adopted*.
 - `examples/blog` end-to-end app as the framework definition-of-done.
-- Promote `doido-kafka` / `doido-mcp` from the worktree when scheduled.

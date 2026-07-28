@@ -3,7 +3,7 @@
 Doido is a Rails-inspired web framework in Rust (axum + sea-orm).
 Implementation is TDD-first. The table below indexes the **spec** documents (design
 intent). For what is **actually built** — the crate ↔ spec status, reconciliation
-decisions (config/kafka/mcp), and the runtime boot sequence — see the authoritative
+decisions (config), and the runtime boot sequence — see the authoritative
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Green gate: `make verify`.
 
 ## Spec Documents
@@ -24,8 +24,6 @@ decisions (config/kafka/mcp), and the runtime boot sequence — see the authorit
 | [docs/10-cache.md](docs/10-cache.md) | `doido-cache` | Pluggable cache store, TTL, Active Support Cache analogue |
 | [docs/11-core.md](docs/11-core.md) | `doido-core` | Shared errors, inflector, utilities, Active Support analogue |
 | [docs/12-cable.md](docs/12-cable.md) | `doido-cable` | WebSocket channels, pub/sub, Action Cable analogue |
-| [docs/13-kafka.md](docs/13-kafka.md) | `doido-kafka` | Kafka producers and consumers, messaging integration |
-| [docs/14-mcp.md](docs/14-mcp.md) | `doido-mcp` | MCP server (tools/resources) + MCP client integration |
 | [docs/15-storage.md](docs/15-storage.md) | `doido-storage` | Attached-file storage: blobs, polymorphic attachments, pluggable services (disk/memory/S3/R2/Azure/GCS) + custom-adapter registry, Active Storage analogue |
 
 ## Workspace Layout
@@ -43,9 +41,7 @@ doido/                  ← workspace root (Cargo.toml)
 ├── doido-jobs/         ← background jobs
 ├── doido-cache/        ← cache store
 ├── doido-storage/      ← attached-file storage (blobs, attachments, disk/memory/S3/R2/Azure)
-├── doido-cable/        ← websocket channels + pub/sub
-├── doido-kafka/        ← kafka producers + consumers
-└── doido-mcp/          ← mcp server + client
+└── doido-cable/        ← websocket channels + pub/sub
 ```
 
 ## Interview Status
@@ -63,6 +59,4 @@ doido/                  ← workspace root (Cargo.toml)
 - [x] 10-cache — **Pluggable backends (memory/redis/db), configurable namespacing (`app:env:custom:key`), multiple named stores**
 - [x] 11-core — **`thiserror` per crate + `anyhow` at app level, all inflections + `config/inflections.rs` for custom rules**
 - [x] 12-cable — **`#[channel]` macro + trait, pluggable PubSub (memory/redis/db), middleware+`CableConnection` auth, ActionCable wire protocol, generator added**
-- [x] 13-kafka — **Kafka-specific opt-in crate, `rskafka`, `#[consumer]` + `#[topic]`, pluggable `MessageCodec`, dispatch-to-jobs pattern**
-- [x] 14-mcp — **HTTP+SSE transport, `#[tool]` on fns, `#[resource]`+`#[mcp_resource]` on models, raw+typed client, middleware+OAuth2.1 auth**
 - [x] 15-storage — **Pluggable `Service` (disk default/memory/S3/R2/Azure/GCS + custom-adapter registry via `register_adapter`/`type:`), blobs+polymorphic attachments (raw SQL), HMAC signed ids/URLs, axum redirect+proxy+direct-upload serving, `storage:install`/`storage:adapter` generators; variants/previews deferred**

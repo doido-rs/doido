@@ -19,7 +19,7 @@ Each line reads: `- [ ] `[tag]` **Feature** — note. *(state)*`
 **Priority tags**
 - `[core]` — capability most Rails apps depend on (auth, validations, CSRF, forms…).
 - `[nice]` — ergonomic/convenience feature; an app works without it.
-- `[deferred]` — already explicitly deferred in ARCHITECTURE.md (Kafka, MCP, encrypted
+- `[deferred]` — already explicitly deferred in ARCHITECTURE.md (encrypted
   credentials / TOML config layering).
 
 **State markers**
@@ -179,7 +179,3 @@ Each line reads: `- [ ] `[tag]` **Feature** — note. *(state)*`
 - [x] `[nice]` **Production Dockerfile + Kamal deploy + Thruster + Devcontainer** — dev `docker-compose.yml` only. *(partial)*
 - [x] `[nice]` **Solid Queue/Cache/Cable parity** (DB-backed defaults) — db job backend exists; cable/cache db backends missing. *(partial)*
 
-## Integrations (opt-in / vNext)
-
-- [ ] `[deferred]` **Kafka producers/consumers** (`#[consumer]`/`#[topic]`) — ~52-line worktree skeleton. *(partial)*
-- [ ] `[deferred]` **MCP server + client** (`#[tool]`/`#[resource]`, HTTP+SSE, OAuth2.1) — ~216-line worktree WIP. *(partial)*

@@ -122,8 +122,6 @@ pluralization rules declared in `config/inflection.yaml`.
 | `doido-cache` | Active Support Cache | Pluggable cache store (memory / redis / memcache) |
 | `doido-cable` | Action Cable | WebSocket channels and pub/sub |
 
-> `doido-kafka` and `doido-mcp` are specified in [`docs/`](docs/) and planned.
-
 ## Configuration
 
 Configuration is layered: `config/application.toml` provides the base, then

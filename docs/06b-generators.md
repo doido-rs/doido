@@ -31,7 +31,6 @@ doido-generators/
       mailer.rs
       job.rs
       channel.rs
-      consumer.rs
     templates/          ← embedded Tera templates for generated file content
       model.rs.tera
       controller.rs.tera
@@ -44,7 +43,6 @@ doido-generators/
       mailer.rs.tera
       job.rs.tera
       channel.rs.tera
-      consumer.rs.tera
 ```
 
 ## `Generator` Trait (extensible)
@@ -102,10 +100,6 @@ doido_generators::dispatch("scaffold", args)?;
 | `mailer` | `mailers/<name>_mailer.rs`, view templates | No |
 | `job` | `jobs/<name>_job.rs` | No |
 | `channel` | `channels/<name>_channel.rs` | No (prints hint to add `cable!(...)` manually) |
-| `consumer` | `consumers/<name>_consumer.rs` + job stubs | No (prints hint to register in initializer) |
-| `mcp_tool` | `mcp/tools/<name>.rs` with `#[tool]` stub | No |
-| `mcp_resource` | `mcp/resources/<name>_resource.rs` with `#[resource]` stub | No |
-| `mcp_client` | `clients/<name>_client.rs` typed wrapper from live server schema | No |
 
 ## Field Specs (`model`, `scaffold`, `resource`)
 
