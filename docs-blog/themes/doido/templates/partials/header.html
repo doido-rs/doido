@@ -1,17 +1,41 @@
+{% set lang = lang | default(value=config.default_language) %}
+{% set langprefix = "" %}
+{% if lang != config.default_language %}{% set langprefix = "/" ~ lang %}{% endif %}
+{% if page %}{% set translations = page.translations %}{% elif section %}{% set translations = section.translations %}{% else %}{% set translations = [] %}{% endif %}
 <header class="site-header">
   <div class="container header-inner">
-    <a class="brand" href="{{ get_url(path='/') }}">{{ config.extra.logo_text | default(value=config.title) }}</a>
+    <a class="brand" href="{{ get_url(path=langprefix ~ '/') }}">{{ config.extra.logo_text | default(value=config.title) }}</a>
     <nav class="nav">
       {% for item in config.extra.nav %}
+        {% if item.trans_key %}{% set label = trans(key=item.trans_key, lang=lang) %}{% else %}{% set label = item.name %}{% endif %}
         {% if item.external %}
-          <a class="nav-link" href="{{ item.url }}" rel="noopener" target="_blank">{{ item.name }}</a>
+          <a class="nav-link" href="{{ item.url }}" rel="noopener" target="_blank">{{ label }}</a>
         {% else %}
-          <a class="nav-link" href="{{ get_url(path=item.url) }}">{{ item.name }}</a>
+          <a class="nav-link" href="{{ get_url(path=langprefix ~ item.url) }}">{{ label }}</a>
         {% endif %}
       {% endfor %}
-      <button class="theme-toggle" type="button" aria-label="Toggle light/dark theme" title="Toggle theme">
-        <span class="theme-toggle-icon" aria-hidden="true">◐</span>
-      </button>
+
+      {# Language switcher: link to the current page in each language when a
+         translation exists, otherwise to that language's home. #}
+      <div class="lang-switcher" role="group" aria-label="Language">
+        {% for l in config.extra.languages %}
+          {% if l.code == config.default_language %}
+            {% set_global target = get_url(path="/") %}
+          {% else %}
+            {% set_global target = get_url(path="/" ~ l.code ~ "/") %}
+          {% endif %}
+          {% for t in translations %}{% if t.lang == l.code %}{% set_global target = t.permalink %}{% endif %}{% endfor %}
+          <a class="lang-link{% if l.code == lang %} active{% endif %}" href="{{ target | safe }}" hreflang="{{ l.code }}"{% if l.code == lang %} aria-current="true"{% endif %}>{{ l.code | upper }}</a>
+        {% endfor %}
+      </div>
+
+      {# Theme selector: Light / Dark / System, chosen by the user and
+         persisted in localStorage by static/js/theme.js. #}
+      <div class="theme-switcher" role="group" aria-label="{{ trans(key='theme', lang=lang) }}">
+        <button class="theme-option" type="button" data-theme-value="light" title="{{ trans(key='theme_light', lang=lang) }}" aria-label="{{ trans(key='theme_light', lang=lang) }}"><span aria-hidden="true">☀</span></button>
+        <button class="theme-option" type="button" data-theme-value="dark" title="{{ trans(key='theme_dark', lang=lang) }}" aria-label="{{ trans(key='theme_dark', lang=lang) }}"><span aria-hidden="true">☾</span></button>
+        <button class="theme-option" type="button" data-theme-value="auto" title="{{ trans(key='theme_auto', lang=lang) }}" aria-label="{{ trans(key='theme_auto', lang=lang) }}"><span aria-hidden="true">◐</span></button>
+      </div>
     </nav>
   </div>
 </header>

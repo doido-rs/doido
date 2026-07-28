@@ -5,7 +5,7 @@
 {% block content %}
 <div class="container blog-layout">
   <header class="blog-header prose">
-    <h1>Tags</h1>
+    <h1>{{ trans(key='tags', lang=lang) }}</h1>
   </header>
   <ul class="tag-cloud">
     {% for term in terms %}

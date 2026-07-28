@@ -30,8 +30,8 @@
 
   {% if paginator and (paginator.previous or paginator.next) %}
     <nav class="pagination">
-      {% if paginator.previous %}<a class="prev" href="{{ paginator.previous }}">← Newer</a>{% endif %}
-      {% if paginator.next %}<a class="next" href="{{ paginator.next }}">Older →</a>{% endif %}
+      {% if paginator.previous %}<a class="prev" href="{{ paginator.previous }}">← {{ trans(key='newer', lang=lang) }}</a>{% endif %}
+      {% if paginator.next %}<a class="next" href="{{ paginator.next }}">{{ trans(key='older', lang=lang) }} →</a>{% endif %}
     </nav>
   {% endif %}
 </div>

@@ -30,6 +30,76 @@ taxonomies = [
     { name = "tags", feed = true },
 ]
 
+# ---------------------------------------------------------------------------
+# Internationalisation — English (default), Portuguese, and Spanish.
+#
+# Translate a page by adding a language-suffixed file next to it, e.g.
+# getting-started.pt.md / getting-started.es.md beside getting-started.md.
+# The default language is served at the root (/docs/), the others under a
+# prefix (/pt/docs/, /es/docs/). UI strings are translated in the
+# [*.translations] tables below and read in templates via trans(key=..., lang=lang).
+# ---------------------------------------------------------------------------
+
+# UI strings for the default language (English).
+[translations]
+docs = "Docs"
+blog = "Blog"
+read_the_docs = "Read the docs"
+theme = "Theme"
+theme_light = "Light"
+theme_dark = "Dark"
+theme_auto = "System"
+specs = "Specs"
+min_read = "min read"
+newer = "Newer"
+older = "Older"
+posts_tagged = "Posts tagged"
+tags = "Tags"
+
+[languages.pt]
+title = "Doido"
+description = "Um framework web para Rust inspirado no Rails — baterias inclusas, async-native."
+generate_feeds = true
+feed_filenames = ["atom.xml"]
+taxonomies = [{ name = "tags", feed = true }]
+
+[languages.pt.translations]
+docs = "Documentação"
+blog = "Blog"
+read_the_docs = "Ler a documentação"
+theme = "Tema"
+theme_light = "Claro"
+theme_dark = "Escuro"
+theme_auto = "Sistema"
+specs = "Especificações"
+min_read = "min de leitura"
+newer = "Mais recentes"
+older = "Mais antigos"
+posts_tagged = "Publicações com a tag"
+tags = "Tags"
+
+[languages.es]
+title = "Doido"
+description = "Un framework web para Rust inspirado en Rails — con baterías incluidas y async-native."
+generate_feeds = true
+feed_filenames = ["atom.xml"]
+taxonomies = [{ name = "tags", feed = true }]
+
+[languages.es.translations]
+docs = "Documentación"
+blog = "Blog"
+read_the_docs = "Leer la documentación"
+theme = "Tema"
+theme_light = "Claro"
+theme_dark = "Oscuro"
+theme_auto = "Sistema"
+specs = "Especificaciones"
+min_read = "min de lectura"
+newer = "Más recientes"
+older = "Más antiguos"
+posts_tagged = "Entradas etiquetadas"
+tags = "Etiquetas"
+
 [markdown]
 # Syntax highlighting. `base16-ocean-dark` is a self-contained dark code theme
 # that reads well on both light and dark pages. Change it to any Zola built-in
@@ -60,14 +130,25 @@ logo_text = "doido"
 repo_url = "https://github.com/doido-rs/doido"
 specs_url = "https://github.com/doido-rs/doido/tree/master/docs"
 
+# Languages offered in the header switcher (order matters). Each `code` must
+# match the [languages.*] tables above, plus the `default_language`.
+languages = [
+    { code = "en", name = "English" },
+    { code = "pt", name = "Português" },
+    { code = "es", name = "Español" },
+]
+
 # Top navigation. Set `external = true` to link off-site (opens in a new tab).
+# `trans_key` (optional) translates the label via the [*.translations] tables.
 [[extra.nav]]
 name = "Docs"
 url = "/docs/"
+trans_key = "docs"
 
 [[extra.nav]]
 name = "Blog"
 url = "/blog/"
+trans_key = "blog"
 
 [[extra.nav]]
 name = "GitHub"

@@ -63,21 +63,61 @@ body {
   font-size: 0.95rem;
 }
 .nav-link:hover { color: var(--fg); }
-.theme-toggle {
-  cursor: pointer;
+// Theme selector (Light / Dark / System), a segmented control.
+.theme-switcher {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.1rem;
+  padding: 0.15rem;
   border: 1px solid var(--border);
+  border-radius: 999px;
   background: var(--bg-alt);
-  color: var(--fg);
-  width: 2rem;
-  height: 2rem;
+}
+.theme-option {
+  cursor: pointer;
+  border: 0;
+  background: transparent;
+  color: var(--fg-muted);
+  width: 1.6rem;
+  height: 1.6rem;
   border-radius: 50%;
-  font-size: 1rem;
+  font-size: 0.82rem;
   line-height: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
 }
-.theme-toggle:hover { border-color: var(--accent); }
+.theme-option:hover { color: var(--fg); }
+.theme-option.active {
+  color: #fff;
+  background: var(--accent);
+}
+
+// Language switcher.
+.lang-switcher {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.15rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-alt);
+}
+.lang-link {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: var(--fg-muted);
+  text-decoration: none;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  line-height: 1;
+}
+.lang-link:hover { color: var(--fg); }
+.lang-link.active {
+  color: #fff;
+  background: var(--accent);
+}
 
 // ---------- Hero (home) ----------
 .hero { padding: 4rem 0 3rem; }

@@ -1,9 +1,12 @@
+{% set lang = lang | default(value=config.default_language) %}
+{% set langprefix = "" %}
+{% if lang != config.default_language %}{% set langprefix = "/" ~ lang %}{% endif %}
 <footer class="site-footer">
   <div class="container footer-inner">
     <nav class="footer-links">
       <a href="{{ config.extra.repo_url }}" rel="noopener" target="_blank">GitHub</a>
-      <a href="{{ config.extra.specs_url }}" rel="noopener" target="_blank">Specs</a>
-      <a href="{{ get_url(path='atom.xml') }}">RSS</a>
+      <a href="{{ config.extra.specs_url }}" rel="noopener" target="_blank">{{ trans(key='specs', lang=lang) }}</a>
+      <a href="{{ get_url(path=langprefix ~ '/atom.xml') }}">RSS</a>
     </nav>
     <p class="muted">Doido — a Rails-inspired web framework for Rust. MIT licensed.</p>
   </div>

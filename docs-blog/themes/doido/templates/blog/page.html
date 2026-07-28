@@ -4,13 +4,15 @@
 {% block description %}{{ page.description | default(value=config.description) }}{% endblock description %}
 
 {% block content %}
+{% set langprefix = "" %}
+{% if lang != config.default_language %}{% set langprefix = "/" ~ lang %}{% endif %}
 <article class="container post">
   <header class="post-header">
-    <a class="muted back-link" href="{{ get_url(path='/blog/') }}">← Blog</a>
+    <a class="muted back-link" href="{{ get_url(path=langprefix ~ '/blog/') }}">← {{ trans(key='blog', lang=lang) }}</a>
     <h1>{{ page.title }}</h1>
     <div class="post-meta muted">
       <time datetime="{{ page.date }}">{{ page.date | date(format='%B %d, %Y') }}</time>
-      {% if page.reading_time %}<span> · {{ page.reading_time }} min read</span>{% endif %}
+      {% if page.reading_time %}<span> · {{ page.reading_time }} {{ trans(key='min_read', lang=lang) }}</span>{% endif %}
     </div>
     {% if page.taxonomies.tags %}
       <div class="tags">

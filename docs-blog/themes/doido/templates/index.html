@@ -1,14 +1,17 @@
 {% extends "base.html" %}
 
 {% block content %}
+{% set lang = lang | default(value=config.default_language) %}
+{% set langprefix = "" %}
+{% if lang != config.default_language %}{% set langprefix = "/" ~ lang %}{% endif %}
 <section class="hero">
   <div class="container">
     <div class="prose hero-prose">
       {{ section.content | safe }}
     </div>
     <div class="hero-actions">
-      <a class="btn btn-primary" href="{{ get_url(path='/docs/') }}">Read the docs</a>
-      <a class="btn" href="{{ get_url(path='/blog/') }}">Blog</a>
+      <a class="btn btn-primary" href="{{ get_url(path=langprefix ~ '/docs/') }}">{{ trans(key='read_the_docs', lang=lang) }}</a>
+      <a class="btn" href="{{ get_url(path=langprefix ~ '/blog/') }}">{{ trans(key='blog', lang=lang) }}</a>
       <a class="btn" href="{{ config.extra.repo_url }}" rel="noopener" target="_blank">GitHub</a>
     </div>
   </div>

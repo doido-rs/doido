@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ lang | default(value="en") }}">
+<html lang="{{ lang | default(value="en") }}" data-theme-default="{{ config.extra.theme_default | default(value='auto') }}">
 <head>
   {% include "partials/head.html" %}
   {% block head %}{% endblock head %}

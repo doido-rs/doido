@@ -70,15 +70,47 @@ Your content. Link to other docs with `[text](@/docs/other-page.md)`.
 
 The sidebar and prev/next navigation update automatically.
 
+## Translate a page (English · Português · Español)
+
+The site is multilingual. English is the default (served at the root, e.g.
+`/docs/`); Portuguese and Spanish are served under a prefix (`/pt/…`, `/es/…`). A
+switcher in the header links between the translated versions of the current page.
+
+Translate any page by adding a language-suffixed file next to the original:
+
+```
+content/docs/installation.md      # English (default)  → /docs/installation/
+content/docs/installation.pt.md   # Português          → /pt/docs/installation/
+content/docs/installation.es.md   # Español            → /es/docs/installation/
+```
+
+Keep the same front-matter keys (`weight`, `sort_by`, …). When linking between
+docs **inside a translation**, use the language-suffixed target so the link stays
+in that language:
+
+```markdown
+<!-- inside installation.pt.md -->
+[Primeiros passos](@/docs/getting-started.pt.md)
+```
+
+To add or remove a language, edit the `[languages.*]` / `[*.translations]` tables
+and the `[extra].languages` switcher list in [`config.toml`](./config.toml). UI
+strings (nav labels, “min read”, the theme options, …) live in the
+`[*.translations]` tables and are read in templates via `trans(key=…, lang=lang)`.
+
 ## Change the theme
 
 The theme is **configurable** and **updatable**:
 
+- **Light / dark / system:** every visitor picks Light, Dark, or System from the
+  selector in the header; the choice persists in `localStorage` and, in System
+  mode, follows the OS. `theme_default` (`auto` / `light` / `dark`) only sets the
+  initial mode for first-time visitors.
 - **Restyle without touching templates:** edit the `[extra]` block in
   [`config.toml`](./config.toml) — `accent` / `accent_dark` (brand colour per
-  mode), `font_sans` / `font_mono`, `theme_default` (`auto` / `light` / `dark`),
-  the `logo_text`, and the `[[extra.nav]]` links. The syntax-highlighting theme is
-  set with `highlight_theme` under `[markdown]`.
+  mode), `font_sans` / `font_mono`, `theme_default`, the `logo_text`, and the
+  `[[extra.nav]]` links. The syntax-highlighting theme is set with
+  `highlight_theme` under `[markdown]`.
 - **Deeper structural colours** (backgrounds, borders, text) live as CSS custom
   properties in [`themes/doido/sass/_variables.scss`](./themes/doido/sass/_variables.scss).
 - **Swap the theme entirely:** drop another Zola theme into `themes/` and change
