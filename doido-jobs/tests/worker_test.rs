@@ -14,6 +14,13 @@ fn config(queues: &[&str], concurrency: usize) -> EngineConfig {
 }
 
 #[test]
+fn engine_config_default_values() {
+    let ec = EngineConfig::default();
+    assert_eq!(ec.concurrency, 1);
+    assert_eq!(ec.queues, vec!["default"]);
+}
+
+#[test]
 fn test_backoff_delays() {
     assert_eq!(BackoffStrategy::Exponential.delay(1, 5).as_secs(), 5);
     assert_eq!(BackoffStrategy::Exponential.delay(2, 5).as_secs(), 10);
@@ -116,6 +123,33 @@ async fn test_engine_processes_multiple_queues() {
     engine.run_once(&handler).await.unwrap();
     engine.run_once(&handler).await.unwrap();
     assert_eq!(count.load(Ordering::SeqCst), 2);
+}
+
+#[tokio::test]
+async fn test_engine_nacks_on_transient_failure() {
+    let queue: Arc<dyn JobQueue> = Arc::new(MemoryQueue::new());
+    let job = JobPayload::new("default", json!({}), 3).with_backoff(BackoffStrategy::None, 0);
+    queue.enqueue(job).await.unwrap();
+    let engine = WorkerEngine::new(queue.clone(), config(&["default"], 1));
+    engine
+        .run_once(&|_job, _ctx| async { Err(doido_core::anyhow::anyhow!("transient")) })
+        .await
+        .unwrap();
+    assert!(queue.dead_jobs("default").await.unwrap().is_empty());
+    let r = queue
+        .reserve(&["default"], Duration::from_millis(50))
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(r.job.attempts, 2);
+}
+
+#[tokio::test]
+async fn test_engine_exposes_context() {
+    struct Marker(i32);
+    let queue: Arc<dyn JobQueue> = Arc::new(MemoryQueue::new());
+    let engine = WorkerEngine::with_context(queue, config(&["default"], 1), Marker(42));
+    assert_eq!(engine.context().0, 42);
 }
 
 #[tokio::test]

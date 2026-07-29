@@ -109,3 +109,28 @@ fn registry_lists_the_defined_jobs() {
     assert!(names.contains(&"add_to_total"));
     assert!(names.contains(&"bump_ctx_counter"));
 }
+
+#[tokio::test]
+async fn manual_register_dispatches_handler() {
+    use doido_jobs::queue::JobPayload;
+
+    static HIT: AtomicU32 = AtomicU32::new(0);
+
+    fn handler(_job: JobPayload, _ctx: Arc<JobContext>) -> doido_jobs::registry::HandlerFuture {
+        Box::pin(async {
+            HIT.fetch_add(1, Ordering::SeqCst);
+            Ok(())
+        })
+    }
+
+    let mut registry = JobRegistry::new();
+    registry.register("manual_job", handler);
+    registry
+        .dispatch(
+            JobPayload::new("default", serde_json::json!({}), 0).with_name("manual_job"),
+            Arc::new(JobContext::new()),
+        )
+        .await
+        .unwrap();
+    assert_eq!(HIT.load(Ordering::SeqCst), 1);
+}

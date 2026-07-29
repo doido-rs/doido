@@ -1653,7 +1653,7 @@ dependencies = [
 
 [[package]]
 name = "doido"
-version = "0.0.8"
+version = "0.0.9"
 dependencies = [
  "assert_cmd",
  "doido-cable",
@@ -1672,7 +1672,7 @@ dependencies = [
 
 [[package]]
 name = "doido-cable"
-version = "0.0.8"
+version = "0.0.9"
 dependencies = [
  "async-trait",
  "axum",
@@ -1690,7 +1690,7 @@ dependencies = [
 
 [[package]]
 name = "doido-cable-macros"
-version = "0.0.8"
+version = "0.0.9"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1699,7 +1699,7 @@ dependencies = [
 
 [[package]]
 name = "doido-cache"
-version = "0.0.8"
+version = "0.0.9"
 dependencies = [
  "async-trait",
  "doido-core",
@@ -1715,7 +1715,7 @@ dependencies = [
 
 [[package]]
 name = "doido-controller"
-version = "0.0.8"
+version = "0.0.9"
 dependencies = [
  "async-trait",
  "axum",
@@ -1744,7 +1744,7 @@ dependencies = [
 
 [[package]]
 name = "doido-controller-macros"
-version = "0.0.8"
+version = "0.0.9"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1753,7 +1753,7 @@ dependencies = [
 
 [[package]]
 name = "doido-core"
-version = "0.0.8"
+version = "0.0.9"
 dependencies = [
  "aes-gcm",
  "anyhow",
@@ -1763,6 +1763,7 @@ dependencies = [
  "serde",
  "serde_norway",
  "sha2 0.10.9",
+ "tempfile",
  "thiserror 2.0.19",
  "tracing",
  "tracing-subscriber",
@@ -1771,7 +1772,7 @@ dependencies = [
 
 [[package]]
 name = "doido-generators"
-version = "0.0.8"
+version = "0.0.9"
 dependencies = [
  "assert_cmd",
  "chrono",
@@ -1794,7 +1795,7 @@ dependencies = [
 
 [[package]]
 name = "doido-jobs"
-version = "0.0.8"
+version = "0.0.9"
 dependencies = [
  "async-trait",
  "chrono",
@@ -1806,13 +1807,14 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_norway",
+ "tempfile",
  "tokio",
  "uuid",
 ]
 
 [[package]]
 name = "doido-jobs-macros"
-version = "0.0.8"
+version = "0.0.9"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1821,7 +1823,7 @@ dependencies = [
 
 [[package]]
 name = "doido-mailer"
-version = "0.0.8"
+version = "0.0.9"
 dependencies = [
  "async-trait",
  "base64 0.23.0",
@@ -1841,7 +1843,7 @@ dependencies = [
 
 [[package]]
 name = "doido-mailer-macros"
-version = "0.0.8"
+version = "0.0.9"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1850,7 +1852,7 @@ dependencies = [
 
 [[package]]
 name = "doido-model"
-version = "0.0.8"
+version = "0.0.9"
 dependencies = [
  "bcrypt",
  "doido-core",
@@ -1859,6 +1861,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_norway",
+ "tempfile",
  "tokio",
  "url",
  "uuid",
@@ -1866,7 +1869,7 @@ dependencies = [
 
 [[package]]
 name = "doido-storage"
-version = "0.0.8"
+version = "0.0.9"
 dependencies = [
  "async-trait",
  "aws-sdk-s3",
@@ -1896,7 +1899,7 @@ dependencies = [
 
 [[package]]
 name = "doido-view"
-version = "0.0.8"
+version = "0.0.9"
 dependencies = [
  "doido-cache",
  "doido-core",

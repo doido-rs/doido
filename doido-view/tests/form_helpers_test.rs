@@ -1,4 +1,6 @@
-use doido_view::helpers::form::{form_tag, submit, text_area, text_field};
+use doido_view::helpers::form::{
+    form_end, form_tag, hidden_field, label, submit, text_area, text_field,
+};
 
 #[test]
 fn form_tag_tunnels_patch_and_includes_csrf() {
@@ -26,4 +28,24 @@ fn field_helpers_escape_values() {
     );
     assert!(text_area("body", "a & b").contains("a &amp; b"));
     assert!(submit("Save").contains("value=\"Save\""));
+}
+
+#[test]
+fn form_end_hidden_field_and_label() {
+    assert_eq!(form_end(), "</form>");
+    assert_eq!(
+        hidden_field("id", "<1>"),
+        "<input type=\"hidden\" name=\"id\" value=\"&lt;1&gt;\">"
+    );
+    assert_eq!(
+        label("title", "<Title>"),
+        "<label for=\"title\">&lt;Title&gt;</label>"
+    );
+}
+
+#[test]
+fn delete_form_tunnels_method_and_escapes_csrf() {
+    let f = form_tag("/posts/1", "delete", Some("<tok>"));
+    assert!(f.contains("name=\"_method\" value=\"DELETE\""));
+    assert!(f.contains("value=\"&lt;tok&gt;\""));
 }

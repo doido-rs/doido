@@ -1,9 +1,20 @@
 use doido_model::password::{
-    generate_token, hash_password_with_cost, verify_password, HasSecurePassword,
+    generate_token, hash_password, hash_password_with_cost, verify_password, HasSecurePassword,
 };
 
 // Low bcrypt cost keeps the test fast; production uses hash_password (DEFAULT_COST).
 const TEST_COST: u32 = 4;
+
+#[test]
+fn hash_password_uses_default_cost() {
+    let digest = hash_password("secret").unwrap();
+    assert!(verify_password("secret", &digest));
+}
+
+#[test]
+fn verify_password_rejects_malformed_digest() {
+    assert!(!verify_password("secret", "not-a-bcrypt-digest"));
+}
 
 #[test]
 fn hashing_produces_a_verifiable_non_plaintext_digest() {

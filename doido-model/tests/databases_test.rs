@@ -32,6 +32,15 @@ async fn reads_route_to_the_replica_when_configured() {
 }
 
 #[tokio::test]
+async fn writing_and_reading_accessors() {
+    let writing = TestDb::new().await.unwrap();
+    let reading = TestDb::new().await.unwrap();
+    let dbs = Databases::new(writing.conn().clone()).with_reading(reading.conn().clone());
+    dbs.writing().ping().await.unwrap();
+    dbs.reading().ping().await.unwrap();
+}
+
+#[tokio::test]
 async fn reads_fall_back_to_the_writer_without_a_replica() {
     let writing = TestDb::new().await.unwrap();
     let dbs = Databases::new(writing.conn().clone());

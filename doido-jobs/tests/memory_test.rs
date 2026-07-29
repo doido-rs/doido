@@ -8,6 +8,14 @@ use std::time::Duration;
 const QUEUES: &[&str] = &["default"];
 
 #[tokio::test]
+async fn default_memory_queue_constructs() {
+    let q = MemoryQueue::default();
+    q.enqueue(JobPayload::new("default", json!({}), 1))
+        .await
+        .unwrap();
+}
+
+#[tokio::test]
 async fn test_enqueue_and_reserve() {
     let q = Arc::new(MemoryQueue::new());
     let job = JobPayload::new("default", json!({"x": 1}), 3);
@@ -110,6 +118,14 @@ async fn test_discard_dead_clears_dead_store() {
 }
 
 #[tokio::test]
+async fn nack_and_dead_letter_on_missing_running_job_are_ok() {
+    let q = MemoryQueue::new();
+    q.nack("ghost", None, "err").await.unwrap();
+    q.dead_letter("ghost", "fatal").await.unwrap();
+    assert!(q.dead_jobs("default").await.unwrap().is_empty());
+}
+
+#[tokio::test]
 async fn test_enqueue_at_defers_until_run_at() {
     let q = MemoryQueue::new();
     let job = JobPayload::new("default", json!({}), 3);
@@ -158,4 +174,23 @@ async fn test_reclaim_expired_returns_lease_to_queue() {
         .await
         .unwrap()
         .is_some());
+}
+
+#[tokio::test]
+async fn reclaim_skips_leases_on_unlisted_queues() {
+    let q = MemoryQueue::new().with_visibility_timeout(Duration::from_millis(0));
+    q.enqueue(JobPayload::new("other", json!({}), 1))
+        .await
+        .unwrap();
+    let _ = q
+        .reserve(&["other"], Duration::from_millis(50))
+        .await
+        .unwrap();
+    assert_eq!(q.reclaim_expired(&["default"]).await.unwrap(), 0);
+}
+
+#[tokio::test]
+async fn reclaim_empty_queue_list_is_noop() {
+    let q = MemoryQueue::new();
+    assert_eq!(q.reclaim_expired(&[]).await.unwrap(), 0);
 }

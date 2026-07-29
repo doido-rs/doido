@@ -31,6 +31,28 @@ async fn test_full_job_lifecycle_enqueue_perform_ack() {
 }
 
 #[tokio::test]
+async fn test_failed_job_retries_when_retries_remain() {
+    use doido_jobs::BackoffStrategy;
+
+    let queue = Arc::new(MemoryQueue::new());
+    let job = JobPayload::new("default", json!({}), 3).with_backoff(BackoffStrategy::None, 0);
+    queue.enqueue(job).await.unwrap();
+
+    let worker = Worker::new(queue.clone(), "default");
+    worker
+        .run_once(|_job| async { Err(doido_core::anyhow::anyhow!("transient")) })
+        .await
+        .unwrap();
+
+    assert!(queue.dead_jobs("default").await.unwrap().is_empty());
+    assert!(queue
+        .reserve(QUEUES, Duration::from_millis(50))
+        .await
+        .unwrap()
+        .is_some());
+}
+
+#[tokio::test]
 async fn test_failed_job_goes_to_dead_after_max_retries() {
     let queue = Arc::new(MemoryQueue::new());
     let job = JobPayload::new("default", json!({}), 1);

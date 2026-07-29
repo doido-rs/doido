@@ -83,3 +83,52 @@ async fn purge_for_record_purges_dependent_blobs() {
     assert!(s.find_blob(&one.key).await.unwrap().is_none());
     assert!(s.find_blob(&two.key).await.unwrap().is_none());
 }
+
+#[tokio::test]
+async fn replace_one_swaps_attachment() {
+    let s = storage().await;
+    let a = s
+        .create_and_upload("a.txt", b"a".to_vec(), None)
+        .await
+        .unwrap();
+    let b = s
+        .create_and_upload("b.txt", b"b".to_vec(), None)
+        .await
+        .unwrap();
+
+    doido_storage::attachments::replace_one(s.conn(), "avatar", "User", "1", &a.key)
+        .await
+        .unwrap();
+    doido_storage::attachments::replace_one(s.conn(), "avatar", "User", "1", &b.key)
+        .await
+        .unwrap();
+
+    let keys = doido_storage::attachments::attached_keys(s.conn(), "avatar", "User", "1")
+        .await
+        .unwrap();
+    assert_eq!(keys, vec![b.key]);
+}
+
+#[tokio::test]
+async fn detach_blob_removes_one_of_many() {
+    let s = storage().await;
+    let one = s
+        .create_and_upload("1.txt", b"1".to_vec(), None)
+        .await
+        .unwrap();
+    let two = s
+        .create_and_upload("2.txt", b"2".to_vec(), None)
+        .await
+        .unwrap();
+    s.attach("Post", "1", "docs", &one.key).await.unwrap();
+    s.attach("Post", "1", "docs", &two.key).await.unwrap();
+
+    doido_storage::attachments::detach_blob(s.conn(), "docs", "Post", "1", &two.key)
+        .await
+        .unwrap();
+
+    let keys = doido_storage::attachments::attached_keys(s.conn(), "docs", "Post", "1")
+        .await
+        .unwrap();
+    assert_eq!(keys, vec![one.key]);
+}

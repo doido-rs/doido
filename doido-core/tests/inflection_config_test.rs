@@ -68,3 +68,12 @@ fn load_missing_file_falls_back_to_defaults() {
         doido_core::load_inflections("config/__does_not_exist__.yaml").expect("missing file is ok");
     assert!(!found);
 }
+
+#[test]
+fn load_invalid_yaml_returns_parse_error() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("bad.yaml");
+    std::fs::write(&path, "irregulars: [not-a-map]").unwrap();
+    let err = doido_core::load_inflections(&path).unwrap_err();
+    assert!(err.to_string().contains("parse"));
+}
