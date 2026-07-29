@@ -127,3 +127,41 @@ async fn a_failing_before_callback_aborts_persist() {
         "persist is skipped when a before callback fails"
     );
 }
+
+#[tokio::test]
+async fn before_validation_failure_skips_persist() {
+    struct Aborting;
+    impl Callbacks for Aborting {
+        fn before_validation(&mut self) -> Result<()> {
+            Err(doido_core::anyhow::anyhow!("invalid"))
+        }
+    }
+    let mut m = Aborting;
+    assert!(run_create(&mut m, async |_| Ok(())).await.is_err());
+}
+
+#[tokio::test]
+async fn persist_failure_skips_after_callbacks() {
+    struct Mock {
+        fired: Vec<String>,
+    }
+    impl Mock {
+        fn log(&mut self, s: &str) {
+            self.fired.push(s.to_string());
+        }
+    }
+    impl Callbacks for Mock {
+        fn before_create(&mut self) -> Result<()> {
+            self.log("before_create");
+            Ok(())
+        }
+        fn after_create(&mut self) -> Result<()> {
+            self.log("after_create");
+            Ok(())
+        }
+    }
+    let mut m = Mock { fired: vec![] };
+    let err = run_create(&mut m, async |_| Err(doido_core::anyhow::anyhow!("db error"))).await;
+    assert!(err.is_err());
+    assert_eq!(m.fired, ["before_create"]);
+}
