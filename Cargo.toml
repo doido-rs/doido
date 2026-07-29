@@ -27,6 +27,14 @@ license = "MIT"
 [workspace.metadata.coverage-gate]
 min-lines-percent = 80.0
 
+# Dev/test build profile tuning. Full DWARF (`debug = 2`, cargo's dev default) is
+# a major driver of link-time RAM and target/ disk usage — costly on this 7 GiB
+# box. `line-tables-only` keeps file:line info in panic backtraces and coverage
+# reports while dropping the heavy variable/type debug data. `[profile.test]`
+# inherits from dev, so this covers `cargo test` and `cargo llvm-cov` too.
+[profile.dev]
+debug = "line-tables-only"
+
 [workspace.dependencies]
 # First-party crates: every entry needs `path` *and* `version` so `cargo publish`
 # strips `path`, keeps the semver, and resolves from crates.io.

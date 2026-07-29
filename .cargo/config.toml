@@ -1,0 +1,10 @@
+# Workspace-local cargo config.
+#
+# Build parallelism cap. This box has ~7 GiB RAM; letting cargo spawn one rustc
+# per logical core (8) during a 15-crate build oversubscribes memory and pushes
+# the machine into swap thrashing (the real cause of "disk" slowness — the disks
+# are both SSD). Capping to 4 parallel rustc invocations keeps peak RAM in check
+# while still using the CPU well (each rustc parallelizes codegen internally).
+# Override per-invocation with `cargo build -j N` or `CARGO_BUILD_JOBS=N`.
+[build]
+jobs = 4

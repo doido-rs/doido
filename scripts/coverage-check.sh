@@ -8,6 +8,11 @@
 # Environment:
 #   COVERAGE_THRESHOLD  Minimum line coverage percent (default: 80)
 #   COVERAGE_PACKAGES   Space-separated package list (default: all workspace members)
+#   COVERAGE_JOBS       Max parallel rustc jobs for the instrumented coverage
+#                       builds (default: 3). Coverage builds carry -C
+#                       instrument-coverage and use more RAM per rustc, so this
+#                       caps below the normal build to avoid swap thrashing on
+#                       low-memory machines.
 
 set -euo pipefail
 
@@ -24,6 +29,12 @@ if ! command -v cargo-llvm-cov >/dev/null 2>&1; then
 	echo "error: cargo-llvm-cov not found; install with: cargo install cargo-llvm-cov" >&2
 	exit 1
 fi
+
+# Instrumented coverage builds are the heaviest workload here (extra
+# -C instrument-coverage codegen + a test-binary run per crate). Cap parallel
+# rustc jobs so the loop doesn't exhaust RAM and push the box into swap. Env
+# takes precedence over the workspace-wide [build] jobs in .cargo/config.toml.
+export CARGO_BUILD_JOBS="${COVERAGE_JOBS:-3}"
 
 if [[ -n "${COVERAGE_PACKAGES:-}" ]]; then
 	# shellcheck disable=SC2206
