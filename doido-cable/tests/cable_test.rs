@@ -40,10 +40,7 @@ async fn test_full_pubsub_and_cable_broadcast() {
 #[tokio::test]
 async fn test_channel_macro_compiles() {
     let ch = ChatChannel;
-    let ctx = ChannelContext {
-        identifier: "ChatChannel".to_string(),
-        stream: Some("chat:1".to_string()),
-    };
+    let (ctx, _rx) = ChannelContext::for_test("ChatChannel");
     ch.subscribed(&ctx).await.unwrap();
     ch.received(&ctx, serde_json::json!({"action": "speak", "text": "hi"}))
         .await

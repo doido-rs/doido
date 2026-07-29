@@ -46,10 +46,7 @@ async fn subscribe_broadcast_and_receive_flow() {
 
     // the #[channel] type handles the lifecycle + a received frame
     let ch = RoomChannel;
-    let ctx = ChannelContext {
-        identifier: RoomChannel::channel_name().to_string(),
-        stream: Some("room:1".to_string()),
-    };
+    let (ctx, _rx) = ChannelContext::for_test(RoomChannel::channel_name());
     ch.subscribed(&ctx).await.unwrap();
     ch.received(&ctx, serde_json::json!({ "action": "speak" }))
         .await

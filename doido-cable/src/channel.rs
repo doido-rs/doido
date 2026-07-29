@@ -1,8 +1,92 @@
+use crate::protocol::ServerMessage;
+use crate::pubsub::PubSub;
 use doido_core::Result;
+use std::sync::Arc;
+use tokio::sync::{mpsc, Mutex};
+use tokio::task::JoinHandle;
 
+/// Per-subscription context handed to a [`Channel`]'s lifecycle callbacks. It
+/// carries the ActionCable `identifier`, an outbound sink to *this* connection,
+/// and the pub/sub backend, so a channel can `transmit`, `stream_from`, read
+/// `params`, and `stop_all_streams` (Rails `ActionCable::Channel`).
 pub struct ChannelContext {
+    /// The raw ActionCable subscription identifier (a JSON string).
     pub identifier: String,
-    pub stream: Option<String>,
+    tx: mpsc::UnboundedSender<String>,
+    pubsub: Arc<dyn PubSub>,
+    /// Forwarding tasks for the streams this connection is subscribed to.
+    streams: Arc<Mutex<Vec<JoinHandle<()>>>>,
+}
+
+impl ChannelContext {
+    /// Build a context bound to a connection's outbound sink and pub/sub backend.
+    /// Used by the cable server; apps get one via the channel callbacks.
+    pub(crate) fn new(
+        identifier: String,
+        tx: mpsc::UnboundedSender<String>,
+        pubsub: Arc<dyn PubSub>,
+    ) -> Self {
+        Self {
+            identifier,
+            tx,
+            pubsub,
+            streams: Arc::new(Mutex::new(Vec::new())),
+        }
+    }
+
+    /// A context wired to a fresh channel and in-memory pub/sub, returning the
+    /// receiving end so tests can observe `transmit`/`stream_from` output.
+    pub fn for_test(identifier: impl Into<String>) -> (Self, mpsc::UnboundedReceiver<String>) {
+        let (tx, rx) = mpsc::unbounded_channel();
+        let ctx = Self::new(
+            identifier.into(),
+            tx,
+            Arc::new(crate::pubsub::MemoryPubSub::new()),
+        );
+        (ctx, rx)
+    }
+
+    /// The subscription params: the parsed ActionCable `identifier` JSON (e.g.
+    /// `{ "channel": "ChatChannel", "room": "42" }`), or `Null` if unparseable.
+    pub fn params(&self) -> serde_json::Value {
+        serde_json::from_str(&self.identifier).unwrap_or(serde_json::Value::Null)
+    }
+
+    /// Send a message to just this connection (Rails `transmit`). Wrapped as an
+    /// ActionCable [`ServerMessage`] carrying this subscription's identifier.
+    pub fn transmit(&self, message: serde_json::Value) {
+        let frame = ServerMessage::new(self.identifier.clone(), message);
+        if let Ok(json) = frame.to_json() {
+            let _ = self.tx.send(json);
+        }
+    }
+
+    /// Subscribe this connection to `stream`: anything published to it (e.g. via
+    /// [`Cable::broadcast`]) is forwarded to the client (Rails `stream_from`).
+    ///
+    /// [`Cable::broadcast`]: crate::cable::Cable::broadcast
+    pub async fn stream_from(&self, stream: &str) {
+        if let Ok(mut rx) = self.pubsub.subscribe(stream).await {
+            let tx = self.tx.clone();
+            let handle = tokio::spawn(async move {
+                while let Ok(msg) = rx.recv().await {
+                    if tx.send(msg).is_err() {
+                        break;
+                    }
+                }
+            });
+            self.streams.lock().await.push(handle);
+        }
+    }
+
+    /// Stop forwarding every stream this connection subscribed to (Rails
+    /// `stop_all_streams`).
+    pub async fn stop_all_streams(&self) {
+        let mut streams = self.streams.lock().await;
+        for handle in streams.drain(..) {
+            handle.abort();
+        }
+    }
 }
 
 #[async_trait::async_trait]
@@ -17,4 +101,45 @@ pub trait Channel: Send + Sync {
 /// the `#[channel]` macro.
 pub trait ChannelName {
     fn channel_name() -> &'static str;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn params_parses_the_identifier_json() {
+        let (ctx, _rx) = ChannelContext::for_test(r#"{"channel":"ChatChannel","room":"42"}"#);
+        assert_eq!(ctx.params()["channel"], "ChatChannel");
+        assert_eq!(ctx.params()["room"], "42");
+    }
+
+    #[tokio::test]
+    async fn transmit_sends_a_server_message_to_this_connection() {
+        let (ctx, mut rx) = ChannelContext::for_test(r#"{"channel":"ChatChannel"}"#);
+        ctx.transmit(serde_json::json!({ "hello": "world" }));
+        let raw = rx.recv().await.unwrap();
+        let msg = ServerMessage::parse(&raw).unwrap();
+        assert_eq!(msg.identifier, r#"{"channel":"ChatChannel"}"#);
+        assert_eq!(msg.message["hello"], "world");
+    }
+
+    #[tokio::test]
+    async fn stream_from_forwards_published_messages_and_stops() {
+        let pubsub: Arc<dyn PubSub> = Arc::new(crate::pubsub::MemoryPubSub::new());
+        let (tx, mut rx) = mpsc::unbounded_channel();
+        let ctx = ChannelContext::new("id".into(), tx, pubsub.clone());
+
+        ctx.stream_from("room:1").await;
+        // Give the forwarder task a moment to subscribe.
+        tokio::task::yield_now().await;
+        pubsub.publish("room:1", "hi").await.unwrap();
+        assert_eq!(rx.recv().await.unwrap(), "hi");
+
+        ctx.stop_all_streams().await;
+        tokio::task::yield_now().await;
+        pubsub.publish("room:1", "after-stop").await.unwrap();
+        // The forwarder was aborted, so nothing more arrives.
+        assert!(rx.try_recv().is_err());
+    }
 }

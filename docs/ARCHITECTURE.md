@@ -39,7 +39,7 @@ Legend: **Done** = implemented + tested · **Partial** = core works, spec featur
 | `doido-jobs/macros` | 09 | Done | `#[job]` + generated `*_enqueue()` helper. |
 | `doido-mailer` | 08 | Done | `Mail` (to + cc/bcc, `recipients()`) + `Deliverer` + `Log`/`Test`/`Smtp`/`Sendmail` deliverers + MIME assembly (Cc header; Bcc envelope-only) + `deliver_now`/`deliver_later` (via `doido-jobs`) + previews + `#[mailer]` macro. `Mailer::mail(action, ctx)` renders `mailers/<m>/<action>.{html,text}.tera` via `doido-view` with an HTML→text fallback. SMTP does multi-recipient `RCPT TO` and opt-in `STARTTLS` (`SmtpDeliverer::new(addr).starttls()`, rustls). No open gaps. |
 | `doido-mailer/macros` | 08 | Done | real codegen (implements the mailer trait + template-key resolution). |
-| `doido-cable` | 12 | **Partial** | ActionCable wire frames + `PubSub` (memory/redis/db) + `Channel` trait + **real `#[channel]` macro** + heartbeat helpers work. **Gap:** there is **no WebSocket server** — no `axum::extract::ws` dependency anywhere in the workspace, no `server.rs`, no connection lifecycle, no `ChannelRegistry`, no subscription routing/dispatch, no `ctx.stream_from/transmit/params/stop_all_streams`, no `cable!()` route macro. It is a protocol + pub/sub library, not a live server. |
+| `doido-cable` | 12 | Done | ActionCable wire frames + `PubSub` (memory/redis/db) + `Channel` trait + `#[channel]` macro + heartbeat helpers + **live WebSocket server** (`server.rs`): axum `ws` upgrade handler, connection lifecycle + heartbeat ping loop, `ChannelRegistry`, subscription routing/dispatch (subscribe→confirm/reject, message, unsubscribe), `ctx.transmit/stream_from/params/stop_all_streams`, pub/sub bridge, and the `cable!(pubsub, [Channels…])` route macro. E2E-tested over a real WebSocket. No open gaps. |
 | `doido-cable/macros` | 12 | Done | real codegen (implements the channel trait + name resolution). |
 | `doido-generators` | 06, 06b | Done | CLI (`new`/`generate`/`server`/`console` via evcxr/`db`/`worker`) + generator registry + generators (model, controller, migration, scaffold, resource, mailer, job, channel, storage_install/adapter, templates, generator, locale) + route auto-injection + embedded templates. `doido db` wires `create`/`reset`/`prepare`/`seed`/`schema dump|load` (delegating to `doido-model` tasks; `db/schema.sql`/`db/seeds.sql` conventions) plus the SeaORM passthrough; `jobs:failed/retry/discard` are backed by the dead-letter store (`discard_dead` trait method + per-backend impls). **Gaps:** `credentials:edit` is a log-only stub and `credentials:show` is absent; `server` does not parse `--port`/`--env`; the jobs CLI still uses the default (memory) backend until `[jobs]` config is wired (same TODO as the worker). |
 | `doido` (meta) | all | Done | re-exports + `run()` entry. |
@@ -91,9 +91,9 @@ generated app's `src/main.rs` calls `doido_generators::run(Some(routes))`.
 
 Ordered by size. These are the real spec-vs-code gaps after the 104-story backlog:
 
-1. **`doido-cable` — WebSocket server.** axum `ws` upgrade handler, connection lifecycle
-   + ping loop, `ChannelRegistry`, subscription routing/dispatch, `ctx.stream_from/
-   transmit/params/stop_all_streams`, and the `cable!()` route macro (spec 12).
+1. ~~**`doido-cable` — WebSocket server.**~~ **(done, Phase 4)** — axum `ws` upgrade handler,
+   connection lifecycle + ping loop, `ChannelRegistry`, subscription routing/dispatch,
+   `ctx.stream_from/transmit/params/stop_all_streams`, and the `cable!()` route macro (spec 12).
 2. ~~**`doido-mailer` — template rendering.**~~ **(done, Phase 3)** — `Mailer::mail()`
    renders `mailers/<m>/<action>.{html,text}.tera` via `doido-view` with HTML→text fallback;
    cc/bcc + multi-recipient `RCPT TO`; opt-in SMTP `STARTTLS` (rustls) (spec 08).
