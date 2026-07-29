@@ -23,15 +23,39 @@ use sea_orm_cli::{
 pub enum DbCommand {
     /// Create the database for the current environment
     Create,
+    /// Drop every table and reload `db/schema.sql`
+    Reset,
+    /// Load `db/schema.sql` only if the database has no tables yet (idempotent)
+    Prepare,
+    /// Run `db/seeds.sql` against the database
+    Seed,
+    /// Schema dump/load (`db/schema.sql`)
+    Schema {
+        #[command(subcommand)]
+        action: SchemaCommand,
+    },
     /// SeaORM CLI commands (migrate, generate entity)
     #[command(flatten)]
     SeaOrm(Commands),
+}
+
+/// Subcommands of `doido db schema`.
+#[derive(Subcommand)]
+pub enum SchemaCommand {
+    /// Dump the current schema to `db/schema.sql`
+    Dump,
+    /// Load `db/schema.sql` into the database
+    Load,
 }
 
 /// Where Doido keeps its SeaORM migration crate.
 const DEFAULT_MIGRATION_DIR: &str = "db/migration";
 /// Where Doido writes generated SeaORM entities.
 const DEFAULT_ENTITY_OUTPUT_DIR: &str = "app/models/_entities";
+/// Canonical schema file (Rails `db/schema.rb` analogue).
+const SCHEMA_FILE: &str = "db/schema.sql";
+/// Plain-SQL seed script (Rails `db/seeds.rb` analogue).
+const SEEDS_FILE: &str = "db/seeds.sql";
 
 /// Upstream SeaORM CLI defaults — used to detect "the user didn't override this".
 const SEA_ORM_CLI_DEFAULT_MIGRATION_DIR: &str = "./migration";
@@ -61,7 +85,99 @@ pub fn ensure_database_url_from_config() {
 pub async fn run(command: DbCommand, verbose: bool) {
     match command {
         DbCommand::Create => create().await,
+        DbCommand::Reset => reset().await,
+        DbCommand::Prepare => prepare().await,
+        DbCommand::Seed => seed().await,
+        DbCommand::Schema { action } => schema(action).await,
         DbCommand::SeaOrm(command) => run_sea_orm(command, verbose).await,
+    }
+}
+
+/// Opens a connection to the resolved [`database_url`], exiting on failure.
+async fn connect() -> doido_model::DatabaseConnection {
+    let url = database_url();
+    match doido_model::connect_with_url(&url).await {
+        Ok(conn) => conn,
+        Err(e) => {
+            doido_core::tracing::error!("failed to connect to {url}: {e}");
+            std::process::exit(1);
+        }
+    }
+}
+
+/// Reads a file, logging (and returning `None`) on failure.
+fn read_sql_file(path: &str) -> Option<String> {
+    match std::fs::read_to_string(path) {
+        Ok(contents) => Some(contents),
+        Err(e) => {
+            doido_core::tracing::error!("could not read {path}: {e}");
+            None
+        }
+    }
+}
+
+/// `doido db reset` — drop everything, then reload `db/schema.sql`.
+async fn reset() {
+    let Some(schema) = read_sql_file(SCHEMA_FILE) else {
+        return;
+    };
+    let conn = connect().await;
+    match doido_model::tasks::reset(&conn, &schema).await {
+        Ok(()) => doido_core::tracing::info!("reset database from {SCHEMA_FILE}"),
+        Err(e) => doido_core::tracing::error!("db reset failed: {e}"),
+    }
+}
+
+/// `doido db prepare` — load `db/schema.sql` only if the database is empty.
+async fn prepare() {
+    let Some(schema) = read_sql_file(SCHEMA_FILE) else {
+        return;
+    };
+    let conn = connect().await;
+    match doido_model::tasks::prepare(&conn, &schema).await {
+        Ok(()) => doido_core::tracing::info!("prepared database from {SCHEMA_FILE}"),
+        Err(e) => doido_core::tracing::error!("db prepare failed: {e}"),
+    }
+}
+
+/// `doido db seed` — execute `db/seeds.sql` (a plain SQL script). Rust-closure
+/// seeders threaded through `run()` are a future enhancement.
+async fn seed() {
+    let Some(sql) = read_sql_file(SEEDS_FILE) else {
+        return;
+    };
+    let conn = connect().await;
+    match doido_model::schema::load(&conn, &sql).await {
+        Ok(()) => doido_core::tracing::info!("seeded database from {SEEDS_FILE}"),
+        Err(e) => doido_core::tracing::error!("db seed failed: {e}"),
+    }
+}
+
+/// `doido db schema dump|load` over [`SCHEMA_FILE`].
+async fn schema(action: SchemaCommand) {
+    let conn = connect().await;
+    match action {
+        SchemaCommand::Dump => match doido_model::schema::dump(&conn).await {
+            Ok(sql) => {
+                if let Some(parent) = std::path::Path::new(SCHEMA_FILE).parent() {
+                    let _ = std::fs::create_dir_all(parent);
+                }
+                match std::fs::write(SCHEMA_FILE, sql) {
+                    Ok(()) => doido_core::tracing::info!("wrote schema to {SCHEMA_FILE}"),
+                    Err(e) => doido_core::tracing::error!("could not write {SCHEMA_FILE}: {e}"),
+                }
+            }
+            Err(e) => doido_core::tracing::error!("schema dump failed: {e}"),
+        },
+        SchemaCommand::Load => {
+            let Some(sql) = read_sql_file(SCHEMA_FILE) else {
+                return;
+            };
+            match doido_model::schema::load(&conn, &sql).await {
+                Ok(()) => doido_core::tracing::info!("loaded schema from {SCHEMA_FILE}"),
+                Err(e) => doido_core::tracing::error!("schema load failed: {e}"),
+            }
+        }
     }
 }
 

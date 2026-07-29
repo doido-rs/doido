@@ -27,9 +27,6 @@ fn test_channel_trait_is_object_safe() {
 #[tokio::test]
 async fn test_channel_subscribed_called() {
     let ch = EchoChannel;
-    let ctx = ChannelContext {
-        identifier: "test".to_string(),
-        stream: None,
-    };
+    let (ctx, _rx) = ChannelContext::for_test("test");
     ch.subscribed(&ctx).await.unwrap();
 }

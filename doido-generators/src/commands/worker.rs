@@ -1,4 +1,4 @@
-use doido_jobs::{build_queue, JobContext, JobPayload, JobsConfig, WorkerEngine};
+use doido_jobs::{JobContext, JobRegistry, WorkerEngine};
 use std::sync::Arc;
 
 /// Start the background worker.
@@ -8,11 +8,12 @@ use std::sync::Arc;
 /// `once`, it drains the jobs currently ready and exits (cron-friendly);
 /// otherwise it runs until the process receives Ctrl-C, draining in-flight jobs.
 pub async fn run(once: bool) {
-    // TODO: load `[jobs]` from the application config once the config crate
-    // exposes it here. Until then the engine runs against the in-memory backend.
-    let config = JobsConfig::default();
+    // Backend + queues + concurrency come from the `jobs` section of
+    // `config/<env>.yml` (in-memory when absent). The `db` backend connects
+    // using the app's `database` config.
+    let config = doido_jobs::config::load();
 
-    let queue = match build_queue(&config).await {
+    let queue = match doido_jobs::config::build_configured_queue(&config).await {
         Ok(q) => q,
         Err(e) => {
             doido_core::tracing::error!("failed to build jobs backend: {e}");
@@ -30,13 +31,15 @@ pub async fn run(once: bool) {
     // The engine carries the application context handed to every job handler.
     let engine = WorkerEngine::with_context(queue, config.engine_config(), JobContext::new());
 
-    // TODO: dispatch to the registered job handler. A job-type registry (mapping
-    // each `#[job]` to its `perform(payload, ctx)`) is required for real execution;
-    // until then the worker logs each reserved job and acks it. `ctx` is the
-    // shared application context the engine carries.
-    let handler = |job: JobPayload, _ctx: Arc<JobContext>| async move {
-        doido_core::tracing::info!("processing job {} on queue {}", job.id, job.queue);
-        Ok(())
+    // Every `#[job]` registers its handler at link time; build the lookup once and
+    // route each reserved payload to its handler by `job_name`. An unknown name
+    // returns `Err`, so the engine retries and eventually dead-letters it rather
+    // than silently acking work with no handler.
+    let registry = Arc::new(JobRegistry::from_inventory());
+    doido_core::tracing::info!("registered jobs: {:?}", registry.names());
+    let handler = move |job, ctx| {
+        let registry = Arc::clone(&registry);
+        async move { registry.dispatch(job, ctx).await }
     };
 
     if once {

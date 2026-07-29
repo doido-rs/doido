@@ -3,7 +3,7 @@
 Doido is a Rails-inspired web framework in Rust (axum + sea-orm).
 Implementation is TDD-first. The table below indexes the **spec** documents (design
 intent). For what is **actually built** — the crate ↔ spec status, reconciliation
-decisions (config/kafka/mcp), and the runtime boot sequence — see the authoritative
+decisions (config), and the runtime boot sequence — see the authoritative
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Green gate: `make verify`.
 
 ## Spec Documents
@@ -15,7 +15,7 @@ decisions (config/kafka/mcp), and the runtime boot sequence — see the authorit
 | [docs/02-controller.md](docs/02-controller.md) | `doido-controller` | Request handling, params, filters, Action Controller analogue |
 | [docs/03-model.md](docs/03-model.md) | `doido-model` | sea-orm re-exports + connection pool + test helpers |
 | [docs/04-view.md](docs/04-view.md) | `doido-view` | Tera template engine, layouts, partials, Action View analogue |
-| [docs/05-config.md](docs/05-config.md) | `doido-config` | TOML layered config, encrypted credentials, env var overrides |
+| [docs/05-config.md](docs/05-config.md) | `doido-config` | Per-env YAML config, AES-256-GCM encrypted credentials, env var overrides |
 | [docs/06-cli.md](docs/06-cli.md) | `doido-generators` | CLI runtime commands (server, console, db, worker, credentials) — merged into `doido-generators` |
 | [docs/06b-generators.md](docs/06b-generators.md) | `doido-generators` | All Rails generator targets + the unified CLI, extensible registry, route auto-injection |
 | [docs/07-middleware.md](docs/07-middleware.md) | `doido-controller` | Tower middleware stack, sessions, CORS, Rack analogue — merged into `doido-controller` |
@@ -24,8 +24,6 @@ decisions (config/kafka/mcp), and the runtime boot sequence — see the authorit
 | [docs/10-cache.md](docs/10-cache.md) | `doido-cache` | Pluggable cache store, TTL, Active Support Cache analogue |
 | [docs/11-core.md](docs/11-core.md) | `doido-core` | Shared errors, inflector, utilities, Active Support analogue |
 | [docs/12-cable.md](docs/12-cable.md) | `doido-cable` | WebSocket channels, pub/sub, Action Cable analogue |
-| [docs/13-kafka.md](docs/13-kafka.md) | `doido-kafka` | Kafka producers and consumers, messaging integration |
-| [docs/14-mcp.md](docs/14-mcp.md) | `doido-mcp` | MCP server (tools/resources) + MCP client integration |
 | [docs/15-storage.md](docs/15-storage.md) | `doido-storage` | Attached-file storage: blobs, polymorphic attachments, pluggable services (disk/memory/S3/R2/Azure/GCS) + custom-adapter registry, Active Storage analogue |
 
 ## Workspace Layout
@@ -43,9 +41,7 @@ doido/                  ← workspace root (Cargo.toml)
 ├── doido-jobs/         ← background jobs
 ├── doido-cache/        ← cache store
 ├── doido-storage/      ← attached-file storage (blobs, attachments, disk/memory/S3/R2/Azure)
-├── doido-cable/        ← websocket channels + pub/sub
-├── doido-kafka/        ← kafka producers + consumers
-└── doido-mcp/          ← mcp server + client
+└── doido-cable/        ← websocket channels + pub/sub
 ```
 
 ## Interview Status
@@ -54,7 +50,7 @@ doido/                  ← workspace root (Cargo.toml)
 - [x] 02-controller — **`#[controller]` macro + trait, `#[before_action]`/`#[after_action]` attrs, Tower middleware layers**
 - [x] 03-model — **Re-exports sea-orm fully, adds only connection pool + test helpers (SQLite in-memory)**
 - [x] 04-view — **Tera default engine, swappable via `TemplateEngine` trait, convention-based template resolution**
-- [x] 05-config — **TOML, layered (base→env→credentials→env vars), AES-256-GCM encrypted credentials, `SECTION__KEY` env override**
+- [x] 05-config — **Per-env YAML (`config/<env>.yml`), AES-256-GCM encrypted credentials (`credentials.yml.enc` + `master.key`), `SECTION__KEY` env override; layered TOML dropped (US-085)**
 - [x] 06-cli — **Runtime commands only; `doido generate` delegates to `doido-generators`**
 - [x] 06b-generators — **Separate crate, all Rails targets, `Generator` trait registry, auto-injects `config/routes.rs`**
 - [x] 07-middleware — **Logging+PanicRecovery always-on, all else opt-in via config, pluggable `SessionStore` (cookie default)**
@@ -63,6 +59,4 @@ doido/                  ← workspace root (Cargo.toml)
 - [x] 10-cache — **Pluggable backends (memory/redis/db), configurable namespacing (`app:env:custom:key`), multiple named stores**
 - [x] 11-core — **`thiserror` per crate + `anyhow` at app level, all inflections + `config/inflections.rs` for custom rules**
 - [x] 12-cable — **`#[channel]` macro + trait, pluggable PubSub (memory/redis/db), middleware+`CableConnection` auth, ActionCable wire protocol, generator added**
-- [x] 13-kafka — **Kafka-specific opt-in crate, `rskafka`, `#[consumer]` + `#[topic]`, pluggable `MessageCodec`, dispatch-to-jobs pattern**
-- [x] 14-mcp — **HTTP+SSE transport, `#[tool]` on fns, `#[resource]`+`#[mcp_resource]` on models, raw+typed client, middleware+OAuth2.1 auth**
 - [x] 15-storage — **Pluggable `Service` (disk default/memory/S3/R2/Azure/GCS + custom-adapter registry via `register_adapter`/`type:`), blobs+polymorphic attachments (raw SQL), HMAC signed ids/URLs, axum redirect+proxy+direct-upload serving, `storage:install`/`storage:adapter` generators; variants/previews deferred**

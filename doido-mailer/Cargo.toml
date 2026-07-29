@@ -9,12 +9,19 @@ edition = "2021"
 doido-core.workspace = true
 doido-mailer-macros.workspace = true
 doido-jobs.workspace = true
+doido-view.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+serde_norway.workspace = true
 base64.workspace = true
 async-trait.workspace = true
 tracing.workspace = true
 tokio = { workspace = true, features = ["sync", "net", "io-util", "process"] }
+# SMTP STARTTLS (opt-in). Pin the `ring` provider so `ClientConfig::builder`
+# is unambiguous even though other crates also pull aws-lc-rs.
+tokio-rustls = { version = "0.26", default-features = false, features = ["ring", "tls12"] }
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
+webpki-roots = "1"
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["full"] }

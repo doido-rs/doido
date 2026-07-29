@@ -2,6 +2,13 @@
 
 Rails analogue: **Active Job**
 
+> **Status (2026-07-28): mostly done.** `JobQueue` trait, worker engine, leasing,
+> exponential backoff, dead-letter, memory/db/redis backends, and the `#[job]` macro are
+> implemented. **Open:** the fluent per-instance enqueue below (`Job{}.enqueue()`,
+> `.enqueue_at()`, `.on_queue()`) is not present — enqueue is via `queue.enqueue(payload)`
+> plus the macro-generated `*_enqueue()` helper. The `doido jobs:*` CLI commands are stubs
+> (see spec 06). See [ARCHITECTURE.md](ARCHITECTURE.md).
+
 ## Decisions (resolved in interview)
 
 - **Queue backends: pluggable** — in-memory, database (sea-orm), and Redis selectable via config.

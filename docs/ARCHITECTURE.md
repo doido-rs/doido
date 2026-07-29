@@ -5,7 +5,10 @@ authoritative map of what is **actually built** in the workspace, the crate ↔ 
 status, and the reconciliation decisions where the specs and the code diverge. It
 is the source of truth for the implementation backlog (`prd.json`).
 
-Last reconciled: 2026-07-24 (branch `first_stable_project`).
+Last reconciled: 2026-07-28 (branch `cleaning_the_specs`), verified spec-by-spec
+against the crate source. The prior reconciliation (2026-07-24, `first_stable_project`)
+predates the 104-story backlog (`harness/prd.json`, US-001→US-104) that closed most of
+the Rails-8 gap list — several statuses below were upgraded accordingly.
 
 ## Actual workspace (from `Cargo.toml`)
 
@@ -15,55 +18,51 @@ Several specced crates were **merged**, so they do not exist as separate crates:
 - `doido-router` → merged into **`doido-controller`** (`routes!` macro lives there).
 - `doido-middleware` → merged into **`doido-controller`** (`MiddlewareStack`, sessions).
 - `doido-cli` → merged into **`doido-generators`** (`new`/`generate`/`server`/`db`/`worker`).
+- `doido-config` → **not a crate**; config lives folded into `doido-controller` and
+  `doido-model` (per-env YAML) — see the reconciliation decision below.
 
 ## Crate ↔ spec status
 
 Legend: **Done** = implemented + tested · **Partial** = core works, spec features missing ·
-**Stub** = placeholder only · **Deferred** = not in first stable (exists only in the
-`.worktrees/generators-new-generate` experimental worktree).
+**Stub** = placeholder only · **Deferred** = deliberately out of first stable.
 
 | Crate | Spec | Status | Notes |
 |-------|------|--------|-------|
-| `doido-core` | 11 | Done | errors, logger, inflector (+ custom rules) |
-| `doido-controller` | 01, 02, 07 | Done | `routes!` + `#[controller]` + filters + Tower middleware + cookie session + per-env YAML config |
-| `doido-controller/macros` | 01, 02 | Done | `routes!`, `#[controller]`; `before/after_action` codegen works (the standalone attr macros are inert shells) |
-| `doido-model` | 03 | Done | sea-orm re-export + connection pool + Rails-style schema builders + `testing` helpers |
-| `doido-view` | 04 | Done | Tera engine (swappable) + `ViewResponse` + global registry |
-| `doido-cache` | 10 | Done | memory + redis + memcache + named registry + namespacing |
-| `doido-storage` | 15 | Done | pluggable `Service` (disk/memory/S3/R2/Azure/GCS + custom-adapter registry) + blobs/attachments (raw SQL) + HMAC signed URLs + axum serving + `storage:install`/`storage:adapter` generators; variants/previews deferred |
-| `doido-jobs` | 09 | Done | queue + worker + backoff + memory/db/redis backends + dead-letter |
-| `doido-jobs/macros` | 09 | Done | `#[job]` + generated `*_enqueue()` helper |
-| `doido-mailer` | 08 | **Partial** | `Mail` + `Deliverer` + `Log`/`Test` deliverers work; **`#[mailer]` macro is a stub** |
-| `doido-mailer/macros` | 08 | **Stub** | pass-through, no codegen |
-| `doido-cable` | 12 | **Partial** | `Cable` + `MemoryPubSub` broadcast work; **`Channel` trait + ActionCable protocol are minimal**; `#[channel]` stub |
-| `doido-cable/macros` | 12 | **Stub** | pass-through, no codegen |
-| `doido-generators` | 06, 06b | Done | CLI (`new`/`generate`/`server`/`db`/`worker`) + generator registry + embedded templates; `console` is a placeholder |
-| `doido` (meta) | all | Done | re-exports + `run()` entry |
-| `doido-config` | 05 | **Deferred / Partial** | basic per-env YAML lives folded in `controller`/`model`; the spec's TOML-layering, AES-256-GCM credentials and env overrides are **not implemented**; a WIP crate exists in the worktree |
-| `doido-kafka` | 13 | **Deferred** | ~52-line skeleton in the worktree only |
-| `doido-mcp` | 14 | **Deferred** | ~216-line WIP in the worktree only |
+| `doido-core` | 11 | Done | errors, logger, inflector, notifications bus, `core_ext` (blank/present, String/Array/Hash), time helpers, concerns, `test_time`. Custom inflection rules load from **`config/inflection.yaml`** (runtime), not the spec's compiled `config/inflections.rs`. |
+| `doido-controller` | 01, 02, 07 | Done | `routes!` + `#[controller]` + filters (`before/after/around_action`, `skip_before_action`, `only/except`) + Tower stack (logging + panic always-on; CORS/CSRF/force-SSL/host-allowlist/rate-limit opt-in) + strong params (`permit/require`) + `respond_to`/format negotiation + `ctx.session()`/`ctx.flash()`/`ctx.cookies()` (flushed to `Set-Cookie` by the `#[controller]` macro; session cookie **AES-256-GCM** encrypted via `doido_core::crypto`, secret from `doido_controller::secret`) + `routes!` `constraints: { id: numeric }` DSL + health check + per-env YAML config + `SECTION__KEY` env overrides. No open gaps. |
+| `doido-controller/macros` | 01, 02 | Done | `routes!`, `#[controller]`; `before/after/around_action` codegen works. |
+| `doido-model` | 03 | Done | sea-orm re-export + connection pool + Rails-style schema builders + db tasks (`seeds`, `tasks` reset/setup/prepare, `schema` dump/load, `migrate` rollback/redo, pool knobs) + `TestDb` (incl. `TestDb::run_migrations::<M>()` / `TestDb::seed()` convenience helpers). No open gaps. |
+| `doido-view` | 04 | Done | Tera engine (swappable) + `ViewResponse` + layouts/partials + helpers (`asset`, `form`, `link`, `tag`, `sanitize`, `i18n`, `number`, `hotwire`). |
+| `doido-cache` | 10 | Done | memory + redis + memcache + db backends + named registry (`store()`) + `fetch` + `read/write/fetch_multi` + namespacing + compression. No open gaps. |
+| `doido-storage` | 15 | Done | pluggable `Service` (disk/memory/S3/R2/Azure/GCS + custom-adapter registry) + blobs/attachments (raw SQL) + HMAC signed URLs + axum serving (redirect/proxy/direct-upload) + `storage:install`/`storage:adapter` generators. **Deferred (per spec):** variants, previews, video/audio analyzers, Mirror, native Azure SAS, `#[has_one_attached]`, `compose`. |
+| `doido-jobs` | 09 | Done | `JobQueue` trait (incl. `discard_dead`) + worker engine + backoff + memory/db/redis backends + leasing + dead-letter + config loading (`config::load`/`build_configured_queue` reading the `jobs:` section of `config/<env>.yml`, mirroring `doido-cache`). Enqueue via `queue.enqueue(payload)`, the macro-generated `*_enqueue()` fn, or the fluent per-instance builder `<Name>Job::new(payload).on_queue(q).wait(secs).enqueue(&q)` (`#[job]`-generated). No open gaps. |
+| `doido-jobs/macros` | 09 | Done | `#[job]` + generated `*_enqueue()` helper. |
+| `doido-mailer` | 08 | Done | `Mail` (to + cc/bcc, `recipients()`) + `Deliverer` + `Log`/`Test`/`Smtp`/`Sendmail` deliverers + MIME assembly (Cc header; Bcc envelope-only) + `deliver_now`/`deliver_later` (via `doido-jobs`) + previews + `#[mailer]` macro. `Mailer::mail(action, ctx)` renders `mailers/<m>/<action>.{html,text}.tera` via `doido-view` with an HTML→text fallback. SMTP does multi-recipient `RCPT TO` and opt-in `STARTTLS` (`SmtpDeliverer::new(addr).starttls()`, rustls). No open gaps. |
+| `doido-mailer/macros` | 08 | Done | real codegen (implements the mailer trait + template-key resolution). |
+| `doido-cable` | 12 | Done | ActionCable wire frames + `PubSub` (memory/redis/db) + `Channel` trait + `#[channel]` macro + heartbeat helpers + **live WebSocket server** (`server.rs`): axum `ws` upgrade handler, connection lifecycle + heartbeat ping loop, `ChannelRegistry`, subscription routing/dispatch (subscribe→confirm/reject, message, unsubscribe), `ctx.transmit/stream_from/params/stop_all_streams`, pub/sub bridge, and the `cable!(pubsub, [Channels…])` route macro. E2E-tested over a real WebSocket. No open gaps. |
+| `doido-cable/macros` | 12 | Done | real codegen (implements the channel trait + name resolution). |
+| `doido-generators` | 06, 06b | Done | CLI (`new`/`generate`/`server`/`console` via evcxr/`db`/`worker`) + generator registry + generators (model, controller, migration, scaffold, resource, mailer, job, channel, storage_install/adapter, templates, generator, locale) + route auto-injection + embedded templates. `doido db` wires `create`/`reset`/`prepare`/`seed`/`schema dump|load` (delegating to `doido-model` tasks; `db/schema.sql`/`db/seeds.sql` conventions) plus the SeaORM passthrough; `jobs:failed/retry/discard` are backed by the dead-letter store (`discard_dead` trait method + per-backend impls). `credentials edit`/`show` encrypt/decrypt `config/credentials.yml.enc` with AES-256-GCM (`doido_core::crypto`), keyed by `config/master.key` (auto-generated + gitignored) or `DOIDO_MASTER_KEY`. `doido server --port/--env` override the bind port and environment; `doido worker`/`doido jobs` pick the backend (memory/db/redis), queues, and concurrency from the `jobs:` section of `config/<env>.yml` (`doido_jobs::config::load` + `build_configured_queue`; db/redis backends compiled into the CLI). **Gap:** the worker's job dispatch is still a stub (logs + acks) — a job-type registry mapping each `#[job]` to its `perform()` is not yet wired. |
+| `doido` (meta) | all | Done | re-exports + `run()` entry. |
+| `doido-config` | 05 | **Partial / decided** | Reality is per-env **YAML** (`config/<env>.yml`) via `YamlConfig` (split across `doido-controller` + `doido-model`) + `SECTION__KEY` env overrides (`doido_controller::env_override`) + an initializers boot registry. **AES-256-GCM encrypted credentials** (`config/credentials.yml.enc` + `config/master.key`/`DOIDO_MASTER_KEY`) with the `doido credentials edit/show` CLI are implemented (Phase 5, `doido-generators` + `doido_core::crypto`). **Still deferred:** auto-injecting decrypted credentials into the config tree. (Layered TOML was dropped from spec 05 — YAML is the decided path.) |
 
 ## Reconciliation decisions
 
-These are the working defaults for `first_stable_project`. Flagged items are genuine
-product decisions — override here and the backlog follows.
+These are the working defaults. Flagged items are genuine product decisions — override
+here and the backlog follows.
 
-1. **Config — YAML now, encrypted credentials deferred.** Reality is per-env
-   `config/<env>.yml` (a `Config` trait + `YamlConfig` in `doido-controller`), plus
-   `config/application.toml` in the app template. Spec 05 asks for layered **TOML** +
-   **AES-256-GCM credentials** + `SECTION__KEY` env overrides — none of that exists yet.
-   *Decision (default):* ship the current YAML config for first stable; extract a
-   dedicated `doido-config` crate later (seeding from the worktree WIP) and track
-   layering + credentials + env overrides as backlog items.
-   **Drift resolved (2026-07-25):** standardize on per-env **YAML**
-   (`config/<env>.yml`), the implemented and tested path. `SECTION__KEY` env
-   overrides now exist (`doido_controller::env_override`). The template's
-   `config/application.toml` is a minimal placeholder only; layered TOML +
-   AES-256-GCM credentials stay deferred (opt-in, vNext) and can be revisited if
-   an app needs them.
-2. **Kafka — Deferred (opt-in, vNext).** Not part of first stable; promote the worktree
-   crate when scheduled.
-3. **MCP — Deferred (opt-in, vNext).** Same as kafka.
+1. **Config — per-env YAML.** Reality is per-env `config/<env>.yml` (a `Config` trait +
+   `YamlConfig` folded into `doido-controller` and `doido-model`). **Decision (US-085):**
+   standardize on per-env **YAML**, the implemented and tested path; a base-then-env
+   layered format (e.g. TOML) was dropped and is **no longer a spec item** (spec 05 rewritten
+   around YAML). `SECTION__KEY` env overrides exist (`doido_controller::env_override`); an
+   initializers registry exists. **AES-256-GCM encrypted credentials** + the `doido
+   credentials edit/show` CLI are implemented (Phase 5). The only remaining follow-up is
+   auto-injecting decrypted credentials into the config tree.
+
+2. **Inflection rules — YAML, not a compiled Rust file.** Spec 11 describes
+   `config/inflections.rs` (a compiled `configure(&mut Inflections)`); the implementation
+   loads rules at runtime from `config/inflection.yaml`. Functionally equivalent; spec 11
+   annotated. (Revisit only if compile-time inflection config is wanted.)
 
 ## Runtime boot sequence (closes the "how does it wire together" gap)
 
@@ -72,7 +71,7 @@ then serves. Concrete wiring lives in the `doido-generators` `server` command; t
 generated app's `src/main.rs` calls `doido_generators::run(Some(routes))`.
 
 1. **Logger** — `doido_core` tracing subscriber.
-2. **Config** — load per-env YAML (`doido_controller::YamlConfig` for the current `Environment`).
+2. **Config** — load per-env YAML (`doido_controller::YamlConfig` for the current `Environment`), apply `SECTION__KEY` overrides, run initializers.
 3. **DB pool** — `doido_model::pool::init()` → `&'static DatabaseConnection`.
 4. **View engine** — `doido_view::init("app/views")`.
 5. **Cache** — `doido_cache::global::init()` → `Arc<dyn CacheStore>`.
@@ -81,16 +80,30 @@ generated app's `src/main.rs` calls `doido_generators::run(Some(routes))`.
 7. **Jobs worker** (separate process) — `doido worker` drives the `WorkerEngine`.
 8. **HTTP server** — `doido-controller` mounts the `routes!` table on axum and listens.
 
-> The `examples/blog` app (definition-of-done) makes this sequence executable and is
-> the reference for the exact wiring.
+> There is **no committed `examples/blog` app**. The end-to-end definition-of-done is the
+> `make example` target (US-104): it scaffolds an ephemeral `blog` (`--api`) under
+> `target/`, runs `db create`/`db migrate` on a temp SQLite DB, boots the app's own
+> server, and exercises POST/GET/PATCH/DELETE `/posts`. (`docs-blog/` is an unrelated
+> markdown content site, not a demo app.)
 
-## Backlog seeds (feed `prd.json` in Fase 5)
+## Backlog seeds (open spec gaps — feed `prd.json`)
 
-- Implement `#[mailer]` macro expansion per spec 08 (+ TDD surface).
-- Implement `#[channel]` macro + ActionCable wire protocol + `Channel` trait per spec 12 (+ TDD).
-- Flesh out `doido-cable` protocol / subscribe / broadcast beyond `MemoryPubSub`.
-- Resolve `before/after_action` inert attr shells (remove or make meaningful).
-- `doido-generators` interactive `console` REPL (currently a placeholder).
-- Config: encrypted credentials + TOML layering + env overrides (spec 05) — *if adopted*.
-- `examples/blog` end-to-end app as the framework definition-of-done.
-- Promote `doido-kafka` / `doido-mcp` from the worktree when scheduled.
+Ordered by size. These are the real spec-vs-code gaps after the 104-story backlog:
+
+1. ~~**`doido-cable` — WebSocket server.**~~ **(done, Phase 4)** — axum `ws` upgrade handler,
+   connection lifecycle + ping loop, `ChannelRegistry`, subscription routing/dispatch,
+   `ctx.stream_from/transmit/params/stop_all_streams`, and the `cable!()` route macro (spec 12).
+2. ~~**`doido-mailer` — template rendering.**~~ **(done, Phase 3)** — `Mailer::mail()`
+   renders `mailers/<m>/<action>.{html,text}.tera` via `doido-view` with HTML→text fallback;
+   cc/bcc + multi-recipient `RCPT TO`; opt-in SMTP `STARTTLS` (rustls) (spec 08).
+3. ~~**Config — encrypted credentials.**~~ **(done, Phase 5)** — AES-256-GCM
+   `config/credentials.yml.enc`, `config/master.key`/`DOIDO_MASTER_KEY`, `doido credentials
+   edit/show`. *Still deferred:* auto-injecting decrypted credentials into the config tree.
+   (Layered TOML was removed from spec 05 — YAML is the decided path.)
+4. **Small wiring / ergonomics.**
+   - ~~Wire `doido db seed/reset/prepare/schema` into the CLI~~ **(done, Phase 1).**
+   - ~~Real `doido jobs:failed/retry/discard` backed by the dead-letter queue~~ **(done, Phase 1).**
+   - ~~`testing::run_migrations()`/`seed()` helpers (spec 03)~~ **(done, Phase 1).**
+   - ~~`routes!` `HEAD`/`OPTIONS` verbs~~ **(done, Phase 1)**; ~~route constraints DSL (spec 01)~~ **(done, Phase 2)**.
+   - ~~Expose `ctx.session` (and flash) on `Context` (spec 02); AES-256-GCM cookie encryption (spec 07)~~ **(done, Phase 2)**.
+   - ~~Fluent per-instance `Job{}.enqueue()/.enqueue_at()/.on_queue()` (spec 09)~~ **(done, Phase 2)**.

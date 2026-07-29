@@ -7,6 +7,21 @@ use base64::{engine::general_purpose::STANDARD, Engine as _};
 const BOUNDARY: &str = "doido_mime_boundary_9f2a";
 const MIXED_BOUNDARY: &str = "doido_mixed_boundary_7c3b";
 
+/// The comma-separated `To:` header value (primary recipients).
+fn to_header(mail: &Mail) -> String {
+    mail.to.join(", ")
+}
+
+/// A `Cc:` header line (with trailing CRLF) when there are cc recipients, else
+/// empty. Bcc recipients are deliberately never written into the headers.
+fn cc_header(mail: &Mail) -> String {
+    if mail.cc.is_empty() {
+        String::new()
+    } else {
+        format!("Cc: {}\r\n", mail.cc.join(", "))
+    }
+}
+
 /// Assemble the full RFC 5322 / MIME message for `mail`. With attachments the
 /// message is `multipart/mixed` (body part followed by each base64 attachment).
 pub fn to_mime(mail: &Mail) -> String {
@@ -16,9 +31,11 @@ pub fn to_mime(mail: &Mail) -> String {
 
     let from = mail.from.as_deref().unwrap_or("no-reply@localhost");
     let mut out = format!(
-        "From: {from}\r\nTo: {}\r\nSubject: {}\r\nMIME-Version: 1.0\r\n\
+        "From: {from}\r\nTo: {}\r\n{}Subject: {}\r\nMIME-Version: 1.0\r\n\
          Content-Type: multipart/mixed; boundary=\"{MIXED_BOUNDARY}\"\r\n\r\n",
-        mail.to, mail.subject
+        to_header(mail),
+        cc_header(mail),
+        mail.subject
     );
 
     // Body part: prefer text, else html.
@@ -50,8 +67,10 @@ pub fn to_mime(mail: &Mail) -> String {
 fn body_message(mail: &Mail) -> String {
     let from = mail.from.as_deref().unwrap_or("no-reply@localhost");
     let headers = format!(
-        "From: {from}\r\nTo: {}\r\nSubject: {}\r\nMIME-Version: 1.0\r\n",
-        mail.to, mail.subject
+        "From: {from}\r\nTo: {}\r\n{}Subject: {}\r\nMIME-Version: 1.0\r\n",
+        to_header(mail),
+        cc_header(mail),
+        mail.subject
     );
 
     match (&mail.body_text, &mail.body_html) {

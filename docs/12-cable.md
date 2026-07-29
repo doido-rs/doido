@@ -2,6 +2,15 @@
 
 Rails analogue: **Action Cable**
 
+> **Status (2026-07-28): partial.** Implemented: ActionCable wire frames (`protocol`),
+> `PubSub` backends (memory/redis/db), the `Channel` trait, a real `#[channel]` macro, and
+> heartbeat helpers. **Not yet implemented — no live server:** there is no
+> `axum::extract::ws` upgrade handler anywhere, no `server.rs`, no connection lifecycle /
+> ping loop, no `ChannelRegistry`, no subscription routing/dispatch, no
+> `ctx.stream_from/transmit/params/stop_all_streams`, and no `cable!()` route macro. Today
+> this is a protocol + pub/sub library; the sections below describe the full server target.
+> See [ARCHITECTURE.md](ARCHITECTURE.md).
+
 ## Decisions (resolved in interview)
 
 - **Channel definition:** `#[channel]` macro generates `Channel` trait impl — same pattern as `#[controller]`

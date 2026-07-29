@@ -1,5 +1,6 @@
 pub mod concerns;
 pub mod core_ext;
+pub mod crypto;
 pub mod environment;
 pub mod error;
 pub mod inflector;

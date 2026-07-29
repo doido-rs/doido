@@ -22,7 +22,7 @@ async fn test_mailer_deliver_now_via_test_deliverer() {
 
     let sent = deliverer.sent().await;
     assert_eq!(sent.len(), 1);
-    assert_eq!(sent[0].to, "alice@example.com");
+    assert_eq!(sent[0].to, ["alice@example.com"]);
     assert_eq!(sent[0].subject, "Welcome!");
 }
 

@@ -92,6 +92,24 @@ async fn test_dead_letter_moves_job() {
 }
 
 #[tokio::test]
+async fn test_discard_dead_clears_dead_store() {
+    let q = MemoryQueue::new();
+    let job = JobPayload::new("default", json!({}), 1);
+    q.enqueue(job).await.unwrap();
+    let r = q
+        .reserve(QUEUES, Duration::from_millis(50))
+        .await
+        .unwrap()
+        .unwrap();
+    q.dead_letter(&r.job.id, "fatal").await.unwrap();
+    assert_eq!(q.dead_jobs("default").await.unwrap().len(), 1);
+
+    let discarded = q.discard_dead("default").await.unwrap();
+    assert_eq!(discarded, 1);
+    assert!(q.dead_jobs("default").await.unwrap().is_empty());
+}
+
+#[tokio::test]
 async fn test_enqueue_at_defers_until_run_at() {
     let q = MemoryQueue::new();
     let job = JobPayload::new("default", json!({}), 3);

@@ -56,6 +56,12 @@ fn default_timeout() -> u64 {
 pub struct JobPayload {
     pub id: JobId,
     pub queue: String,
+    /// The registered name of the job type, used by the worker to look up the
+    /// handler that runs this payload (the `#[job]` macro stamps the job's
+    /// function name here). Empty for anonymous/raw payloads. `#[serde(default)]`
+    /// keeps already-persisted jobs (written before this field existed) loadable.
+    #[serde(default)]
+    pub job_name: String,
     pub payload: Value,
     pub attempts: u32,
     pub max_retries: u32,
@@ -78,6 +84,7 @@ impl JobPayload {
         Self {
             id: uuid::Uuid::new_v4().to_string(),
             queue: queue.into(),
+            job_name: String::new(),
             payload,
             attempts: 0,
             max_retries,
@@ -89,6 +96,13 @@ impl JobPayload {
             backoff_base: default_backoff_base(),
             timeout: default_timeout(),
         }
+    }
+
+    /// Stamp the registered job-type name (the `#[job]` macro sets this to the
+    /// job's function name) so the worker can route the payload to its handler.
+    pub fn with_name(mut self, name: impl Into<String>) -> Self {
+        self.job_name = name.into();
+        self
     }
 
     /// Fluent setters used by the `#[job]` macro to stamp policy onto the payload.
@@ -167,4 +181,8 @@ pub trait JobQueue: Send + Sync {
 
     /// Inspect the dead letter store for a queue.
     async fn dead_jobs(&self, queue: &str) -> Result<Vec<JobPayload>>;
+
+    /// Discard every dead-lettered job for a queue (Rails `jobs:discard`).
+    /// Returns the number of jobs removed.
+    async fn discard_dead(&self, queue: &str) -> Result<u64>;
 }

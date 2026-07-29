@@ -68,10 +68,7 @@ mod tests {
 
         // 3. Another client sends a message; the channel relays it.
         let channel = ChatChannel::new(cable);
-        let ctx = ChannelContext {
-            identifier: r#"{"channel":"ChatChannel"}"#.to_string(),
-            stream: Some(STREAM.to_string()),
-        };
+        let (ctx, _rx) = ChannelContext::for_test(r#"{"channel":"ChatChannel"}"#);
         channel
             .received(&ctx, serde_json::json!({ "message": "hello" }))
             .await

@@ -1,3 +1,6 @@
+use crate::cookies::CookieJar;
+use crate::flash::Flash;
+use crate::session::{CookieSessionStore, EncryptedCookieSessionStore, Session};
 use axum::{
     body::Body,
     extract::{FromRequestParts, RawPathParams, Request},
@@ -7,9 +10,15 @@ use axum::{
 use doido_model::sea_orm::DatabaseConnection;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
+use std::collections::BTreeMap;
 
 /// Maximum request body size accepted by [`Context::form`]/[`Context::body_json`].
 const MAX_BODY_BYTES: usize = 2 * 1024 * 1024;
+
+/// Cookie name for the encrypted session.
+const SESSION_COOKIE: &str = "_doido_session";
+/// Cookie name for the flash.
+const FLASH_COOKIE: &str = "_doido_flash";
 
 /// Per-request context passed to every action.
 pub struct Context {
@@ -18,6 +27,14 @@ pub struct Context {
     pub(crate) body: Option<Body>,
     /// Matched path parameters (e.g. `id` from `/posts/{id}`), in route order.
     pub(crate) path_params: Vec<(String, String)>,
+    /// Encrypted session, loaded from the session cookie on first access.
+    pub(crate) session: Option<Session>,
+    /// Flash bag, loaded from the flash cookie on first access.
+    pub(crate) flash: Option<Flash>,
+    /// Snapshot of the incoming flash, used to sweep it after one request.
+    pub(crate) flash_loaded: BTreeMap<String, String>,
+    /// Cookie jar, built from the request `Cookie` header on first access.
+    pub(crate) cookies: Option<CookieJar>,
 }
 
 impl Context {
@@ -30,6 +47,10 @@ impl Context {
             parts,
             body: Some(body),
             path_params,
+            session: None,
+            flash: None,
+            flash_loaded: BTreeMap::new(),
+            cookies: None,
         }
     }
 
@@ -48,6 +69,10 @@ impl Context {
             parts,
             body: None,
             path_params: Vec::new(),
+            session: None,
+            flash: None,
+            flash_loaded: BTreeMap::new(),
+            cookies: None,
         }
     }
 
@@ -56,6 +81,10 @@ impl Context {
             parts,
             body: Some(body),
             path_params: Vec::new(),
+            session: None,
+            flash: None,
+            flash_loaded: BTreeMap::new(),
+            cookies: None,
         }
     }
 
@@ -281,6 +310,113 @@ impl Context {
             builder = builder.header(header::LAST_MODIFIED, lm);
         }
         Some(builder.body(Body::empty()).expect("valid 304 response"))
+    }
+
+    /// The plain/signed cookie jar (Rails `cookies` / `cookies.signed`). Reads
+    /// parse the request `Cookie` header; staged writes are flushed to
+    /// `Set-Cookie` after the action runs (see [`commit_to_response`]).
+    ///
+    /// [`commit_to_response`]: Self::commit_to_response
+    pub fn cookies(&mut self) -> &mut CookieJar {
+        if self.cookies.is_none() {
+            let header = self
+                .parts
+                .headers
+                .get(header::COOKIE)
+                .and_then(|v| v.to_str().ok());
+            self.cookies = Some(CookieJar::from_header(header, crate::secret::key_base()));
+        }
+        self.cookies.as_mut().expect("cookie jar just set")
+    }
+
+    /// The encrypted session (Rails `session`). Loaded from the session cookie on
+    /// first access and re-encrypted into the response afterwards.
+    pub fn session(&mut self) -> &mut Session {
+        if self.session.is_none() {
+            let store = EncryptedCookieSessionStore::default();
+            let session = self
+                .raw_cookie(SESSION_COOKIE)
+                .and_then(|raw| store.decode(&raw))
+                .unwrap_or_default();
+            self.session = Some(session);
+        }
+        self.session.as_mut().expect("session just set")
+    }
+
+    /// The flash (Rails `flash`): messages set on one request and read on the
+    /// next. Messages set this request are carried forward in a cookie; a flash
+    /// that is only read is swept so it lives exactly one following request.
+    pub fn flash(&mut self) -> &mut Flash {
+        if self.flash.is_none() {
+            let store = CookieSessionStore::new(crate::secret::key_base());
+            let flash = self
+                .raw_cookie(FLASH_COOKIE)
+                .map(|raw| Flash::from_cookie(&store, &raw))
+                .unwrap_or_default();
+            self.flash_loaded = flash.iter().map(|(k, v)| (k.clone(), v.clone())).collect();
+            self.flash = Some(flash);
+        }
+        self.flash.as_mut().expect("flash just set")
+    }
+
+    /// Read a raw incoming cookie value by name from the request `Cookie` header.
+    fn raw_cookie(&self, name: &str) -> Option<String> {
+        let header = self.parts.headers.get(header::COOKIE)?.to_str().ok()?;
+        header
+            .split(';')
+            .filter_map(|pair| pair.trim().split_once('='))
+            .find(|(k, _)| *k == name)
+            .map(|(_, v)| v.to_string())
+    }
+
+    /// Flush any session/flash/cookie changes into the response `Set-Cookie`
+    /// headers. Called by the `#[controller]` macro after the action; a no-op
+    /// when the action never touched session/flash/cookies.
+    pub fn commit_to_response(&self, response: &mut Response) {
+        let secret = crate::secret::key_base();
+
+        if let Some(session) = &self.session {
+            let value = EncryptedCookieSessionStore::new(secret.clone()).encode(session);
+            append_cookie(
+                response,
+                &format!("{SESSION_COOKIE}={value}; Path=/; HttpOnly; SameSite=Lax"),
+            );
+        }
+
+        if let Some(flash) = &self.flash {
+            let current: BTreeMap<String, String> =
+                flash.iter().map(|(k, v)| (k.clone(), v.clone())).collect();
+            if current != self.flash_loaded {
+                // New messages set this request → carry them to the next one.
+                if current.is_empty() {
+                    append_cookie(response, &format!("{FLASH_COOKIE}=; Path=/; Max-Age=0"));
+                } else {
+                    let value = flash.to_cookie(&CookieSessionStore::new(secret.clone()));
+                    append_cookie(
+                        response,
+                        &format!("{FLASH_COOKIE}={value}; Path=/; HttpOnly; SameSite=Lax"),
+                    );
+                }
+            } else if !self.flash_loaded.is_empty() {
+                // Read-only this request → expire so it lives exactly one request.
+                append_cookie(response, &format!("{FLASH_COOKIE}=; Path=/; Max-Age=0"));
+            }
+        }
+
+        if let Some(jar) = &self.cookies {
+            for header_value in jar.to_set_cookie_headers() {
+                append_cookie(response, &header_value);
+            }
+        }
+    }
+}
+
+/// Append a `Set-Cookie` header value to a response (multiple are allowed).
+fn append_cookie(response: &mut Response, value: &str) {
+    if let Ok(header_value) = HeaderValue::from_str(value) {
+        response
+            .headers_mut()
+            .append(header::SET_COOKIE, header_value);
     }
 }
 

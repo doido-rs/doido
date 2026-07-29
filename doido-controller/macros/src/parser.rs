@@ -11,6 +11,9 @@ pub enum RouteDecl {
         handler: Expr,
         /// Optional route name for a generated `{name}_path()` helper (`as: name`).
         name: Option<Ident>,
+        /// Optional `constraints: { param: validator }` — each param must satisfy
+        /// its validator (`fn(&str) -> bool`) or the route 404s.
+        constraints: Vec<(Ident, Expr)>,
     },
     Root {
         handler: Expr,
@@ -168,24 +171,50 @@ impl Parse for RoutesInput {
                     let router: Expr = content.parse()?;
                     decls.push(RouteDecl::Mount { path, router });
                 }
-                method @ ("get" | "post" | "put" | "patch" | "delete") => {
+                method @ ("get" | "post" | "put" | "patch" | "delete" | "head" | "options") => {
                     let path: LitStr = content.parse()?;
                     let _comma: Token![,] = content.parse()?;
                     let handler: Expr = content.parse()?;
-                    // Optional `, as: name` for a named `{name}_path()` helper.
-                    // `as` is a keyword, so match it as a token, not an ident.
+                    // Optional trailing `, as: name` and/or `, constraints: { … }`,
+                    // in any order. `as` is a keyword, so peek it as a token.
                     let mut name = None;
-                    if content.peek(Token![,]) {
+                    let mut constraints = Vec::new();
+                    while content.peek(Token![,]) {
                         let _comma: Token![,] = content.parse()?;
-                        let _as: Token![as] = content.parse()?;
-                        let _colon: Token![:] = content.parse()?;
-                        name = Some(content.parse()?);
+                        if content.peek(Token![as]) {
+                            let _as: Token![as] = content.parse()?;
+                            let _colon: Token![:] = content.parse()?;
+                            name = Some(content.parse()?);
+                        } else {
+                            let key: Ident = content.parse()?;
+                            let _colon: Token![:] = content.parse()?;
+                            match key.to_string().as_str() {
+                                "constraints" => {
+                                    let inner;
+                                    braced!(inner in content);
+                                    while !inner.is_empty() {
+                                        let param: Ident = inner.parse()?;
+                                        let _colon: Token![:] = inner.parse()?;
+                                        let validator: Expr = inner.parse()?;
+                                        constraints.push((param, validator));
+                                        let _comma: Option<Token![,]> = inner.parse().ok();
+                                    }
+                                }
+                                other => {
+                                    return Err(syn::Error::new(
+                                        key.span(),
+                                        format!("unknown route option: {other}"),
+                                    ))
+                                }
+                            }
+                        }
                     }
                     decls.push(RouteDecl::Method {
                         method: method.to_string(),
                         path,
                         handler,
                         name,
+                        constraints,
                     });
                 }
                 other => {

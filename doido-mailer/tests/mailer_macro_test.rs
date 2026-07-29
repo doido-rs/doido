@@ -38,6 +38,6 @@ async fn mailer_action_composes_and_delivers() {
 
     let sent = deliverer.sent().await;
     assert_eq!(sent.len(), 1);
-    assert_eq!(sent[0].to, "alice@example.com");
+    assert_eq!(sent[0].to, ["alice@example.com"]);
     assert_eq!(sent[0].subject, "Welcome to Doido!");
 }

@@ -15,7 +15,12 @@ pub struct Attachment {
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct Mail {
     pub from: Option<String>,
-    pub to: String,
+    #[serde(default)]
+    pub to: Vec<String>,
+    #[serde(default)]
+    pub cc: Vec<String>,
+    #[serde(default)]
+    pub bcc: Vec<String>,
     pub subject: String,
     pub body_html: Option<String>,
     pub body_text: Option<String>,
@@ -33,9 +38,41 @@ impl Mail {
         self
     }
 
+    /// Add a primary recipient (repeatable). Appears in the `To:` header.
     pub fn to(mut self, to: impl Into<String>) -> Self {
-        self.to = to.into();
+        self.to.push(to.into());
         self
+    }
+
+    /// Add several primary recipients at once.
+    pub fn to_many(mut self, tos: impl IntoIterator<Item = impl Into<String>>) -> Self {
+        self.to.extend(tos.into_iter().map(Into::into));
+        self
+    }
+
+    /// Add a carbon-copy recipient (repeatable). Appears in the `Cc:` header.
+    pub fn cc(mut self, cc: impl Into<String>) -> Self {
+        self.cc.push(cc.into());
+        self
+    }
+
+    /// Add a blind carbon-copy recipient (repeatable). Gets the message via
+    /// `RCPT TO` but is never written into the headers.
+    pub fn bcc(mut self, bcc: impl Into<String>) -> Self {
+        self.bcc.push(bcc.into());
+        self
+    }
+
+    /// All envelope recipients (`to` + `cc` + `bcc`), skipping empties — the set
+    /// an SMTP client issues `RCPT TO` for.
+    pub fn recipients(&self) -> Vec<&str> {
+        self.to
+            .iter()
+            .map(String::as_str)
+            .chain(self.cc.iter().map(String::as_str))
+            .chain(self.bcc.iter().map(String::as_str))
+            .filter(|addr| !addr.is_empty())
+            .collect()
     }
 
     pub fn subject(mut self, subject: impl Into<String>) -> Self {
@@ -90,13 +127,13 @@ impl Mail {
     }
 
     /// Enqueue this mail onto the `mailers` queue for background delivery (Rails
-    /// `deliver_later`). A worker with a mailer job handler delivers it later.
+    /// `deliver_later`). The built-in [`deliver_mail`](crate::jobs) job — which
+    /// self-registers with the worker — delivers it later via the configured
+    /// deliverer, so the payload is stamped with that job's name and policy.
     pub async fn deliver_later(
         &self,
         queue: &dyn doido_jobs::JobQueue,
     ) -> Result<doido_jobs::JobId> {
-        let payload = serde_json::to_value(self)?;
-        let job = doido_jobs::JobPayload::new("mailers", payload, 3);
-        queue.enqueue(job).await
+        crate::jobs::deliver_mail_enqueue(queue, self.clone()).await
     }
 }

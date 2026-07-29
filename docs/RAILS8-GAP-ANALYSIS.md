@@ -19,15 +19,18 @@ Each line reads: `- [ ] `[tag]` **Feature** — note. *(state)*`
 **Priority tags**
 - `[core]` — capability most Rails apps depend on (auth, validations, CSRF, forms…).
 - `[nice]` — ergonomic/convenience feature; an app works without it.
-- `[deferred]` — already explicitly deferred in ARCHITECTURE.md (Kafka, MCP, encrypted
-  credentials / TOML config layering).
+- `[deferred]` — already explicitly deferred in ARCHITECTURE.md (e.g. Active
+  Storage variants/previews).
 
 **State markers**
 - `*(missing)*` — no implementation exists.
 - `*(partial)*` — some code exists but it's incomplete or a stub; the note says what's there.
 
-> Derived from the 2026-07-24 reconciliation (branch `first_stable_project`). The code
-> moves fast — spot-check a line against the source before you build it.
+> Realigned 2026-07-28 (branch `cleaning_the_specs`) against a spec-by-spec audit of the
+> source, after the 104-story backlog (`harness/prd.json`) shipped. Most `[x]` lines are
+> now genuinely done; a few that the audit confirmed **still open** were flipped back to
+> `[ ]` and their notes updated. The authoritative open-gap list lives in
+> [ARCHITECTURE.md](ARCHITECTURE.md) → *Backlog seeds*. Spot-check a line before you build it.
 
 ---
 
@@ -48,7 +51,7 @@ Each line reads: `- [ ] `[tag]` **Feature** — note. *(state)*`
 
 - [x] `[core]` **Strong parameters** (`permit`/`require` allowlist) — `ctx.form/params` deserialize directly, no filtering. *(missing)*
 - [x] `[core]` **CSRF protection** (authenticity token) — *(missing)*
-- [x] `[core]` **Flash messages** — *(missing)*
+- [ ] `[core]` **Flash messages** — session/flash not exposed on `Context` (spec 02). *(missing)*
 - [x] `[core]` **Cookies API** (read/write, signed/encrypted) — *(missing)*
 - [x] `[core]` **`rescue_from`** typed error handling — only panic→500 today. *(missing)*
 - [x] `[core]` **`skip_before_action`** / filter skipping — *(missing)*
@@ -61,7 +64,7 @@ Each line reads: `- [ ] `[tag]` **Feature** — note. *(state)*`
 
 ## Middleware & Sessions — `doido-controller`
 
-- [x] `[core]` **Real cookie session store** (signed/encrypted values) — `CookieSessionStore` is a no-op stub. *(partial)*
+- [x] `[core]` **Real cookie session store** — `CookieSessionStore` now signs (HMAC-SHA256) + `CacheSessionStore` server-side; AES-256-GCM **encryption still pending** (spec 07). *(partial)*
 - [x] `[core]` **Server-side session backends** (cache/db-backed) — *(missing)*
 - [x] `[nice]` **Config-driven CORS** (opt-in per spec) — permissive layer exists but isn't wired from config. *(partial)*
 - [x] `[nice]` **Host authorization** (`config.hosts`) — *(missing)*
@@ -98,9 +101,9 @@ Each line reads: `- [ ] `[tag]` **Feature** — note. *(state)*`
 
 ## Migrations & DB tooling — `doido-model` + `doido db`
 
-- [x] `[core]` **`db:seed`** (`db/seeds` + runner) — *(missing)*
-- [x] `[nice]` **`db:schema` dump/load** (schema.rb / structure.sql) — *(missing)*
-- [x] `[nice]` **`db:reset` / `db:prepare` / `db:setup`** — *(missing)*
+- [x] `[core]` **`db:seed`** (`db/seeds` + runner) — `doido-model::seeds` exists; **not yet wired** as a `doido db seed` subcommand. *(partial)*
+- [x] `[nice]` **`db:schema` dump/load** — `doido-model::schema` exists; **not yet wired** to CLI. *(partial)*
+- [x] `[nice]` **`db:reset` / `db:prepare` / `db:setup`** — `doido-model::tasks` exists; **not yet wired** to CLI. *(partial)*
 - [x] `[nice]` **`db:rollback STEP=n` / redo wrappers** — sea-orm supports it, CLI wrapper is thin. *(partial)*
 - [x] `[nice]` **Connection pool size/timeout config knobs** — *(missing)*
 
@@ -108,25 +111,25 @@ Each line reads: `- [ ] `[tag]` **Feature** — note. *(state)*`
 
 - [x] `[core]` **Conditional retry/discard by error type** (`retry_on` / `discard_on`) — blanket retry + dead-letter only. *(partial)*
 - [x] `[nice]` **Job lifecycle callbacks** (before/after/around perform, on-failure) — *(missing)*
-- [x] `[nice]` **`.set(wait:/wait_until:/queue:/priority:)` fluent parity** — `enqueue_at` exists. *(partial)*
+- [ ] `[nice]` **Fluent per-instance enqueue** (`Job{}.enqueue()/.enqueue_at()/.on_queue()`) — only `queue.enqueue(payload)` + macro-generated `*_enqueue()`; `enqueue_at` on the queue exists (spec 09). *(partial)*
 - [x] `[nice]` **Job batches / workflows** — *(missing)*
-- [x] `[nice]` **Job status introspection** (`doido jobs` dispatch) — listing only, dispatch is TODO. *(partial)*
+- [ ] `[nice]` **Job status introspection** (`doido jobs:failed/retry/discard`) — CLI commands are log-only stubs; dead-letter queue exists in the backend but isn't wired. *(partial)*
 - [x] `[nice]` **Richer worker app-context** (beyond db handle) — *(partial)*
 
 ## Cache / Active Support Cache — `doido-cache`
 
-- [x] `[core]` **Read-through `fetch(key){ compute }` on miss** — no `fetch` fn in `doido-cache/src`. *(missing)*
+- [x] `[core]` **Read-through `fetch(key){ compute }` on miss** — `doido-cache::fetch` implemented. *(done)*
 - [x] `[nice]` **Cache versioning** / recyclable versioned keys — *(missing)*
-- [x] `[nice]` **`read_multi` / `write_multi` / `fetch_multi`** — *(missing)*
-- [x] `[nice]` **Named/multi stores as first-class config** — registry exists but isn't config-wired. *(partial)*
+- [x] `[nice]` **`read_multi` / `write_multi` / `fetch_multi`** — implemented in `doido-cache::multi`. *(done)*
+- [x] `[nice]` **Named/multi stores as first-class config** — `store(name)` registry + `MultiCacheConfig::build_registry`. *(done)*
 - [x] `[nice]` **Compression / pluggable serializer options** — *(missing)*
 
 ## Mailer / Action Mailer — `doido-mailer`
 
-- [x] `[core]` **`#[mailer]` macro codegen** — pass-through stub. *(partial)*
-- [x] `[core]` **SMTP deliverer** — only Log/Test deliverers. *(missing)*
-- [x] `[core]` **`deliver_later`** via `doido-jobs` — *(missing)*
-- [x] `[core]` **Mailer templates** (html+text via views) + MIME multipart assembly — body fields exist, no rendering/assembly. *(partial)*
+- [x] `[core]` **`#[mailer]` macro codegen** — real codegen (trait impl + template-key). *(done)*
+- [x] `[core]` **SMTP deliverer** — `SmtpDeliverer` + `SendmailDeliverer` (no TLS/STARTTLS yet). *(partial)*
+- [x] `[core]` **`deliver_later`** via `doido-jobs` — enqueues to the `mailers` queue. *(done)*
+- [ ] `[core]` **Mailer templates** (html+text via views) + MIME multipart assembly — **no `doido-view` integration**; bodies are set manually, no template render/fallback (spec 08). *(missing)*
 - [x] `[core]` **Attachments / inline attachments** — *(missing)*
 - [x] `[nice]` **Mailer layouts** — *(missing)*
 - [x] `[nice]` **Sendmail deliverer** — *(missing)*
@@ -135,14 +138,15 @@ Each line reads: `- [ ] `[tag]` **Feature** — note. *(state)*`
 
 ## Cable / Action Cable — `doido-cable`
 
-- [x] `[core]` **`#[channel]` macro codegen** — pass-through stub. *(partial)*
-- [x] `[core]` **Full ActionCable wire-protocol compliance** — client frames use `type` not `command`. *(partial)*
-- [x] `[core]` **Redis PubSub backend** (multi-process broadcast) — only MemoryPubSub. *(missing)*
+- [ ] `[core]` **WebSocket server** (axum ws upgrade, connection lifecycle + ping loop, `ChannelRegistry`, subscription routing/dispatch, `cable!()` route) — protocol + pub/sub exist but **nothing serves a live socket** (no `axum::extract::ws` dep anywhere). *(missing)*
+- [x] `[core]` **`#[channel]` macro codegen** — real codegen (trait impl + name). *(done)*
+- [x] `[core]` **Full ActionCable wire-protocol compliance** — frame encode/decode implemented. *(done)*
+- [x] `[core]` **Redis PubSub backend** (multi-process broadcast) — `RedisPubSub` implemented. *(done)*
 - [x] `[core]` **Connection identification / auth** (`identified_by`, current_user) — minimal. *(partial)*
 - [x] `[nice]` **`stream_from` / `stream_for` naming helpers** — *(partial)*
 - [x] `[nice]` **Periodic timers / heartbeat pings** — *(missing)*
 - [x] `[nice]` **Server-side `broadcast_to` from anywhere** — *(partial)*
-- [x] `[nice]` **DB PubSub backend** — *(missing)*
+- [x] `[nice]` **DB PubSub backend** — `DbPubSub` implemented. *(done)*
 
 ## Core / Active Support — `doido-core`
 
@@ -154,15 +158,15 @@ Each line reads: `- [ ] `[tag]` **Feature** — note. *(state)*`
 
 ## Config & Credentials — `doido-config` (deferred crate)
 
-- [ ] `[deferred]` **Encrypted credentials** (AES-256-GCM) + `doido credentials edit` — CLI + worktree crate are stubs. *(partial)*
-- [ ] `[deferred]` **Layered TOML config** (base→env→credentials→env vars) per spec 05 — only per-env YAML today. *(missing)*
-- [x] `[nice]` **`SECTION__KEY` env-var overrides** — *(missing)*
-- [x] `[nice]` **Initializers** (`config/initializers/*`) — *(missing)*
-- [x] `[nice]` **Resolve YAML-vs-TOML drift** (pick one) — decision open in ARCHITECTURE.md. *(partial)*
+- [x] `[nice]` **Encrypted credentials** (AES-256-GCM) + `doido credentials edit/show` — implemented (Phase 5): `config/credentials.yml.enc` + `config/master.key`/`DOIDO_MASTER_KEY` via `doido_core::crypto`. *(done)*
+- [x] `[n/a]` **Layered TOML config** — dropped: removed from spec 05 in favour of per-env YAML (decision US-085). *(not a gap)*
+- [x] `[nice]` **`SECTION__KEY` env-var overrides** — `doido_controller::env_override`. *(done)*
+- [x] `[nice]` **Initializers** (`config/initializers/*`) — boot registry (US-084). *(done)*
+- [x] `[nice]` **Resolve YAML-vs-TOML drift** (pick one) — resolved to per-env YAML (spec 05 annotated). *(done)*
 
 ## CLI & Generators — `doido-generators`
 
-- [x] `[nice]` **Interactive console REPL** (`doido console`) — placeholder. *(partial)*
+- [x] `[nice]` **Interactive console REPL** (`doido console`) — launches evcxr. *(done)*
 - [x] `[nice]` **`generate resource` target** — *(missing)*
 - [x] `[nice]` **`generate` destroy/undo** (`rails destroy`) — *(missing)*
 - [x] `[nice]` **`runner` + `dbconsole` commands** — *(missing)*
@@ -179,7 +183,3 @@ Each line reads: `- [ ] `[tag]` **Feature** — note. *(state)*`
 - [x] `[nice]` **Production Dockerfile + Kamal deploy + Thruster + Devcontainer** — dev `docker-compose.yml` only. *(partial)*
 - [x] `[nice]` **Solid Queue/Cache/Cable parity** (DB-backed defaults) — db job backend exists; cable/cache db backends missing. *(partial)*
 
-## Integrations (opt-in / vNext)
-
-- [ ] `[deferred]` **Kafka producers/consumers** (`#[consumer]`/`#[topic]`) — ~52-line worktree skeleton. *(partial)*
-- [ ] `[deferred]` **MCP server + client** (`#[tool]`/`#[resource]`, HTTP+SSE, OAuth2.1) — ~216-line worktree WIP. *(partial)*

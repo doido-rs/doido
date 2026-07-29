@@ -215,6 +215,9 @@ pub fn expand_controller(_attr: TokenStream, item: TokenStream) -> Result<TokenS
                 #(#before_chain)*
                 #invoke
                 #(#after_chain)*
+                // Flush any session/flash/cookie changes into the response.
+                let mut __response = __response;
+                ctx.commit_to_response(&mut __response);
                 __response
             }
         });

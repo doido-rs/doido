@@ -44,6 +44,22 @@ pub fn render(template: &str, context: &serde_json::Value) -> Result<String> {
     engine.render(template, context)
 }
 
+/// Render a specific format `variant` of `template` (e.g. `("mailers/x/welcome",
+/// "text")` renders `mailers/x/welcome.text.tera`). Used for mailer html/text
+/// parts, where `render` — which always appends `.html.tera` — is not enough.
+pub fn render_variant(
+    template: &str,
+    variant: &str,
+    context: &serde_json::Value,
+) -> Result<String> {
+    let engine = ENGINE.get().ok_or_else(|| {
+        doido_core::anyhow::anyhow!(
+            "view engine not initialised; call doido_view::init(\"app/views\") at boot"
+        )
+    })?;
+    engine.render_named(&format!("{template}.{variant}.tera"), context)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

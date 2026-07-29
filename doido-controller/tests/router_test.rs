@@ -30,6 +30,46 @@ async fn about_handler() -> &'static str {
     "about page"
 }
 
+async fn ping_handler() -> &'static str {
+    "pong"
+}
+
+#[tokio::test]
+async fn test_head_route_responds() {
+    let app = doido_controller::routes! {
+        head!("/ping", ping_handler)
+    };
+    let resp = app
+        .oneshot(
+            Request::builder()
+                .method("HEAD")
+                .uri("/ping")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+}
+
+#[tokio::test]
+async fn test_options_route_responds() {
+    let app = doido_controller::routes! {
+        options!("/ping", ping_handler)
+    };
+    let resp = app
+        .oneshot(
+            Request::builder()
+                .method("OPTIONS")
+                .uri("/ping")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+}
+
 #[tokio::test]
 async fn test_single_get_route_responds() {
     let app = doido_controller::routes! {

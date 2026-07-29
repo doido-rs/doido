@@ -15,7 +15,14 @@ struct Cli {
 #[allow(clippy::large_enum_variant)]
 enum Commands {
     /// Start the web server
-    Server,
+    Server {
+        /// Port to bind (overrides `server.port` in config/<env>.yml)
+        #[arg(long)]
+        port: Option<u16>,
+        /// Environment for this run: development | test | production (sets DOIDO_ENV)
+        #[arg(long)]
+        env: Option<String>,
+    },
     /// Print routes
     Routes,
     /// Start interactive console
@@ -102,7 +109,7 @@ pub async fn run(routes: Option<axum::Router>) {
     }
     let cli = Cli::parse();
     match cli.command {
-        Commands::Server => commands::server::run(routes).await,
+        Commands::Server { port, env } => commands::server::run(routes, env, port).await,
         Commands::Routes => {
             // `routes` being `Some` means the app already built its router, which
             // populated the global route table the macro registers into.
@@ -117,7 +124,7 @@ pub async fn run(routes: Option<axum::Router>) {
         Commands::Console => commands::console::run(),
         Commands::Worker { once } => commands::worker::run(once).await,
         Commands::Db { verbose, command } => commands::db::run(command, verbose).await,
-        Commands::Jobs { action } => commands::jobs::run(action),
+        Commands::Jobs { action } => commands::jobs::run(action).await,
         Commands::Credentials { action } => commands::credentials::run(action),
         Commands::Generate { args } => commands::generate::run(&args),
         Commands::New {

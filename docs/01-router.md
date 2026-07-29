@@ -2,6 +2,14 @@
 
 Rails analogue: **Action Dispatch / Router**
 
+> **Status (2026-07-28): done, with two small gaps.** The `routes!` macro lives in
+> **`doido-controller`** (this crate was merged in). Implemented: `resources!` (7 REST +
+> `only`/`except`), `namespace!`/`scope!`, `member`/`collection`, `shallow_resources!`,
+> `redirect!`, `mount!`, and compile-time URL helpers. **Open:** the DSL exposes
+> `get/post/put/patch/delete` but **not `HEAD`/`OPTIONS`**, and route constraints
+> (format/subdomain/custom) are still an open question (placeholder only). See
+> [ARCHITECTURE.md](ARCHITECTURE.md).
+
 ## Decisions (resolved in interview)
 
 - **Route definition style:** Macro DSL — primary and only API

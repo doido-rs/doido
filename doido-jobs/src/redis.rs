@@ -270,4 +270,24 @@ impl JobQueue for RedisQueue {
         }
         Ok(out)
     }
+
+    async fn discard_dead(&self, queue: &str) -> Result<u64> {
+        let mut conn = self.conn.clone();
+        let ids: Vec<String> = conn
+            .lrange(self.dead_key(queue), 0, -1)
+            .await
+            .map_err(|e| anyhow!("discard_dead lrange failed: {e}"))?;
+        let count = ids.len() as u64;
+        for id in &ids {
+            let _: () = conn
+                .del(self.job_key(id))
+                .await
+                .map_err(|e| anyhow!("discard_dead del failed: {e}"))?;
+        }
+        let _: () = conn
+            .del(self.dead_key(queue))
+            .await
+            .map_err(|e| anyhow!("discard_dead del list failed: {e}"))?;
+        Ok(count)
+    }
 }

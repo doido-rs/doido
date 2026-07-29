@@ -95,6 +95,60 @@ async fn test_job_macro_generates_enqueue_fn() {
 }
 
 #[tokio::test]
+async fn test_job_macro_generates_fluent_builder() {
+    use doido_jobs::{job, JobQueue, MemoryQueue};
+    use std::sync::Arc;
+
+    #[job(queue = "default", max_retries = 4)]
+    #[allow(dead_code)]
+    async fn ship_order(_data: serde_json::Value) -> doido_core::Result<()> {
+        Ok(())
+    }
+
+    let queue = Arc::new(MemoryQueue::new());
+    ShipOrderJob::new(json!({"id": 1}))
+        .on_queue("shipping")
+        .enqueue(queue.as_ref())
+        .await
+        .unwrap();
+
+    let r = queue
+        .reserve(&["shipping"], Duration::from_millis(50))
+        .await
+        .unwrap();
+    let j = r.expect("job enqueued on the overridden queue").job;
+    assert_eq!(j.queue, "shipping");
+    assert_eq!(j.max_retries, 4);
+    assert_eq!(j.payload["id"], 1);
+}
+
+#[tokio::test]
+async fn test_fluent_builder_wait_defers_eligibility() {
+    use doido_jobs::{job, JobQueue, MemoryQueue};
+    use std::sync::Arc;
+
+    #[job]
+    #[allow(dead_code)]
+    async fn deferred(_data: serde_json::Value) -> doido_core::Result<()> {
+        Ok(())
+    }
+
+    let queue = Arc::new(MemoryQueue::new());
+    DeferredJob::new(json!({}))
+        .wait(60)
+        .enqueue(queue.as_ref())
+        .await
+        .unwrap();
+
+    // Not eligible yet (run_at is 60s out).
+    assert!(queue
+        .reserve(&["default"], Duration::from_millis(10))
+        .await
+        .unwrap()
+        .is_none());
+}
+
+#[tokio::test]
 async fn test_run_once_returns_false_on_empty_queue() {
     let queue = Arc::new(MemoryQueue::new());
     let worker = Worker::new(queue.clone(), "default");

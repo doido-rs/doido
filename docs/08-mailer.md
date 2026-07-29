@@ -2,6 +2,15 @@
 
 Rails analogue: **Action Mailer**
 
+> **Status (2026-07-28): partial.** Implemented: the `Mail` builder, `Deliverer` trait,
+> `Log`/`Test`/`Smtp`/`Sendmail` deliverers, MIME assembly, `deliver_now`/`deliver_later`
+> (via `doido-jobs`), previews, and a real `#[mailer]` macro. **Not yet implemented:**
+> template rendering — mailers do **not** render `views/mailers/<m>/<action>.{html,text}.tera`
+> via `doido-view` (the crate has no view dependency), so `Mail::template(...)`, the
+> HTML→text fallback, and template-driven multipart are absent; bodies are set manually.
+> `Mail.to` is single (no cc/bcc) and SMTP has no TLS/STARTTLS. The template sections below
+> are the target. See [ARCHITECTURE.md](ARCHITECTURE.md).
+
 ## Decisions (resolved in interview)
 
 - **Delivery strategies: both** — `deliver_now()` (inline async) and `deliver_later()` (enqueued via `doido-jobs`)

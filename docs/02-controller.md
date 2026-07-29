@@ -2,6 +2,14 @@
 
 Rails analogue: **Action Controller**
 
+> **Status (2026-07-28): mostly done.** `#[controller]`, filters (`before/after/around_action`,
+> `skip_before_action`, `only/except`), typed params + strong params (`permit`/`require`),
+> `respond_to`/format negotiation, `render`/`redirect_to`/`json`/`status`, and cookies are
+> implemented (see also spec 07 for the middleware stack). **Open:** `ctx.session` is **not**
+> exposed on `Context` (sessions live only in the middleware `SessionStore`), and flash
+> messages are not surfaced. `.layout()`/`.no_layout()` live on `ViewResponse` (spec 04),
+> not on `Context`. See [ARCHITECTURE.md](ARCHITECTURE.md).
+
 ## Decisions (resolved in interview)
 
 - **Controller abstraction:** `#[controller]` derive macro generates the `Controller` trait impl boilerplate; actions are plain `async fn` on the struct
