@@ -16,6 +16,10 @@ pub struct Attachment {
 pub struct Mail {
     pub from: Option<String>,
     pub to: String,
+    #[serde(default)]
+    pub cc: Vec<String>,
+    #[serde(default)]
+    pub bcc: Vec<String>,
     pub subject: String,
     pub body_html: Option<String>,
     pub body_text: Option<String>,
@@ -36,6 +40,29 @@ impl Mail {
     pub fn to(mut self, to: impl Into<String>) -> Self {
         self.to = to.into();
         self
+    }
+
+    /// Add a carbon-copy recipient (repeatable). Appears in the `Cc:` header.
+    pub fn cc(mut self, cc: impl Into<String>) -> Self {
+        self.cc.push(cc.into());
+        self
+    }
+
+    /// Add a blind carbon-copy recipient (repeatable). Gets the message via
+    /// `RCPT TO` but is never written into the headers.
+    pub fn bcc(mut self, bcc: impl Into<String>) -> Self {
+        self.bcc.push(bcc.into());
+        self
+    }
+
+    /// All envelope recipients (`to` + `cc` + `bcc`), skipping empties — the set
+    /// an SMTP client issues `RCPT TO` for.
+    pub fn recipients(&self) -> Vec<&str> {
+        std::iter::once(self.to.as_str())
+            .chain(self.cc.iter().map(String::as_str))
+            .chain(self.bcc.iter().map(String::as_str))
+            .filter(|addr| !addr.is_empty())
+            .collect()
     }
 
     pub fn subject(mut self, subject: impl Into<String>) -> Self {

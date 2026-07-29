@@ -37,7 +37,7 @@ Legend: **Done** = implemented + tested · **Partial** = core works, spec featur
 | `doido-storage` | 15 | Done | pluggable `Service` (disk/memory/S3/R2/Azure/GCS + custom-adapter registry) + blobs/attachments (raw SQL) + HMAC signed URLs + axum serving (redirect/proxy/direct-upload) + `storage:install`/`storage:adapter` generators. **Deferred (per spec):** variants, previews, video/audio analyzers, Mirror, native Azure SAS, `#[has_one_attached]`, `compose`. |
 | `doido-jobs` | 09 | Done | `JobQueue` trait (incl. `discard_dead`) + worker engine + backoff + memory/db/redis backends + leasing + dead-letter. Enqueue via `queue.enqueue(payload)`, the macro-generated `*_enqueue()` fn, or the fluent per-instance builder `<Name>Job::new(payload).on_queue(q).wait(secs).enqueue(&q)` (`#[job]`-generated). No open gaps. |
 | `doido-jobs/macros` | 09 | Done | `#[job]` + generated `*_enqueue()` helper. |
-| `doido-mailer` | 08 | **Partial** | `Mail` + `Deliverer` + `Log`/`Test`/**`Smtp`**/**`Sendmail`** deliverers + MIME assembly + `deliver_now`/`deliver_later` (via `doido-jobs`) + previews + **real `#[mailer]` macro** all work. **Gap:** mailers do **not** render `views/mailers/<m>/<action>.{html,text}.tera` via `doido-view` (no view dependency) — bodies are set manually; no HTML→text fallback, no `Mail::template(...)`, no multipart-from-templates; `Mail.to` is single (no cc/bcc); SMTP has no TLS/STARTTLS. |
+| `doido-mailer` | 08 | Done | `Mail` (to + cc/bcc, `recipients()`) + `Deliverer` + `Log`/`Test`/`Smtp`/`Sendmail` deliverers + MIME assembly (Cc header; Bcc envelope-only) + `deliver_now`/`deliver_later` (via `doido-jobs`) + previews + `#[mailer]` macro. `Mailer::mail(action, ctx)` renders `mailers/<m>/<action>.{html,text}.tera` via `doido-view` with an HTML→text fallback. SMTP does multi-recipient `RCPT TO` and opt-in `STARTTLS` (`SmtpDeliverer::new(addr).starttls()`, rustls). No open gaps. |
 | `doido-mailer/macros` | 08 | Done | real codegen (implements the mailer trait + template-key resolution). |
 | `doido-cable` | 12 | **Partial** | ActionCable wire frames + `PubSub` (memory/redis/db) + `Channel` trait + **real `#[channel]` macro** + heartbeat helpers work. **Gap:** there is **no WebSocket server** — no `axum::extract::ws` dependency anywhere in the workspace, no `server.rs`, no connection lifecycle, no `ChannelRegistry`, no subscription routing/dispatch, no `ctx.stream_from/transmit/params/stop_all_streams`, no `cable!()` route macro. It is a protocol + pub/sub library, not a live server. |
 | `doido-cable/macros` | 12 | Done | real codegen (implements the channel trait + name resolution). |
@@ -94,9 +94,9 @@ Ordered by size. These are the real spec-vs-code gaps after the 104-story backlo
 1. **`doido-cable` — WebSocket server.** axum `ws` upgrade handler, connection lifecycle
    + ping loop, `ChannelRegistry`, subscription routing/dispatch, `ctx.stream_from/
    transmit/params/stop_all_streams`, and the `cable!()` route macro (spec 12).
-2. **`doido-mailer` — template rendering.** Wire `doido-view`: render
-   `views/mailers/<m>/<action>.{html,text}.tera`, HTML→text fallback, multipart assembly,
-   `Mail::template(...)`, cc/bcc, SMTP TLS/STARTTLS (spec 08).
+2. ~~**`doido-mailer` — template rendering.**~~ **(done, Phase 3)** — `Mailer::mail()`
+   renders `mailers/<m>/<action>.{html,text}.tera` via `doido-view` with HTML→text fallback;
+   cc/bcc + multi-recipient `RCPT TO`; opt-in SMTP `STARTTLS` (rustls) (spec 08).
 3. **Config — encrypted credentials + layered TOML.** AES-256-GCM `credentials.toml.enc`,
    `config/master.key`/`DOIDO_MASTER_KEY`, `doido credentials edit/show`, and (if adopted)
    the base→env→credentials→env-var TOML layering (spec 05) — *if adopted*.

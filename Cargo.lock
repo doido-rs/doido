@@ -1814,10 +1814,14 @@ dependencies = [
  "doido-core",
  "doido-jobs",
  "doido-mailer-macros",
+ "doido-view",
+ "rustls",
  "serde",
  "serde_json",
  "tokio",
+ "tokio-rustls",
  "tracing",
+ "webpki-roots",
 ]
 
 [[package]]

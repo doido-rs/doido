@@ -31,6 +31,16 @@ impl TemplateEngine for TeraEngine {
             .map_err(|e| doido_core::anyhow::anyhow!("template '{}' render failed: {e}", template))
     }
 
+    fn render_named(&self, name: &str, context: &serde_json::Value) -> Result<String> {
+        let ctx = tera::Context::from_serialize(context)
+            .map_err(|e| doido_core::anyhow::anyhow!("invalid template context: {e}"))?;
+        self.tera
+            .read()
+            .unwrap()
+            .render(name, &ctx)
+            .map_err(|e| doido_core::anyhow::anyhow!("template '{}' render failed: {e}", name))
+    }
+
     fn reload(&self) -> Result<()> {
         let tera = load(&self.templates_dir)
             .with_context(|| format!("reload failed for {}", self.templates_dir))?;
