@@ -125,11 +125,53 @@ fn test_worker_command() {
 
 #[test]
 fn test_credentials_edit_command() {
+    // Run non-interactively: `true` stands in for $EDITOR (leaves the file as-is
+    // and exits 0), an explicit master key avoids touching the repo, and a temp
+    // cwd contains the encrypted file it writes. The timeout guards against a
+    // hang if the editor stub ever blocks.
+    let dir = std::env::temp_dir().join(format!(
+        "doido-cli-cred-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    ));
+    std::fs::create_dir_all(&dir).unwrap();
     cmd()
         .args(["credentials", "edit"])
+        .current_dir(&dir)
+        .env("EDITOR", "true")
+        .env("DOIDO_MASTER_KEY", "cli-test-master-key")
+        .timeout(std::time::Duration::from_secs(30))
         .assert()
         .success()
         .stdout(predicate::str::contains("credentials"));
+    std::fs::remove_dir_all(&dir).ok();
+}
+
+#[test]
+fn test_credentials_show_command() {
+    // With a master key but no credentials file yet, `show` prints the seed
+    // template (which mentions "credentials") and exits 0.
+    let dir = std::env::temp_dir().join(format!(
+        "doido-cli-cred-show-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    ));
+    std::fs::create_dir_all(&dir).unwrap();
+    cmd()
+        .args(["credentials", "show"])
+        .current_dir(&dir)
+        .env("DOIDO_MASTER_KEY", "cli-test-master-key")
+        .timeout(std::time::Duration::from_secs(30))
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("credentials"));
+    std::fs::remove_dir_all(&dir).ok();
 }
 
 #[test]

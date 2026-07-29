@@ -41,9 +41,9 @@ Legend: **Done** = implemented + tested · **Partial** = core works, spec featur
 | `doido-mailer/macros` | 08 | Done | real codegen (implements the mailer trait + template-key resolution). |
 | `doido-cable` | 12 | Done | ActionCable wire frames + `PubSub` (memory/redis/db) + `Channel` trait + `#[channel]` macro + heartbeat helpers + **live WebSocket server** (`server.rs`): axum `ws` upgrade handler, connection lifecycle + heartbeat ping loop, `ChannelRegistry`, subscription routing/dispatch (subscribe→confirm/reject, message, unsubscribe), `ctx.transmit/stream_from/params/stop_all_streams`, pub/sub bridge, and the `cable!(pubsub, [Channels…])` route macro. E2E-tested over a real WebSocket. No open gaps. |
 | `doido-cable/macros` | 12 | Done | real codegen (implements the channel trait + name resolution). |
-| `doido-generators` | 06, 06b | Done | CLI (`new`/`generate`/`server`/`console` via evcxr/`db`/`worker`) + generator registry + generators (model, controller, migration, scaffold, resource, mailer, job, channel, storage_install/adapter, templates, generator, locale) + route auto-injection + embedded templates. `doido db` wires `create`/`reset`/`prepare`/`seed`/`schema dump|load` (delegating to `doido-model` tasks; `db/schema.sql`/`db/seeds.sql` conventions) plus the SeaORM passthrough; `jobs:failed/retry/discard` are backed by the dead-letter store (`discard_dead` trait method + per-backend impls). **Gaps:** `credentials:edit` is a log-only stub and `credentials:show` is absent; `server` does not parse `--port`/`--env`; the jobs CLI still uses the default (memory) backend until `[jobs]` config is wired (same TODO as the worker). |
+| `doido-generators` | 06, 06b | Done | CLI (`new`/`generate`/`server`/`console` via evcxr/`db`/`worker`) + generator registry + generators (model, controller, migration, scaffold, resource, mailer, job, channel, storage_install/adapter, templates, generator, locale) + route auto-injection + embedded templates. `doido db` wires `create`/`reset`/`prepare`/`seed`/`schema dump|load` (delegating to `doido-model` tasks; `db/schema.sql`/`db/seeds.sql` conventions) plus the SeaORM passthrough; `jobs:failed/retry/discard` are backed by the dead-letter store (`discard_dead` trait method + per-backend impls). `credentials edit`/`show` encrypt/decrypt `config/credentials.yml.enc` with AES-256-GCM (`doido_core::crypto`), keyed by `config/master.key` (auto-generated + gitignored) or `DOIDO_MASTER_KEY`. **Gaps:** `server` does not parse `--port`/`--env`; the jobs CLI still uses the default (memory) backend until `[jobs]` config is wired (same TODO as the worker). |
 | `doido` (meta) | all | Done | re-exports + `run()` entry. |
-| `doido-config` | 05 | **Partial / decided** | Reality is per-env **YAML** (`config/<env>.yml`) via `YamlConfig` (split across `doido-controller` + `doido-model`) + `SECTION__KEY` env overrides (`doido_controller::env_override`) + an initializers boot registry. **Deferred (backlog):** the spec's layered **TOML** (base→env→credentials→env), **AES-256-GCM** encrypted credentials + `config/master.key`, and the `doido credentials edit/show` CLI. |
+| `doido-config` | 05 | **Partial / decided** | Reality is per-env **YAML** (`config/<env>.yml`) via `YamlConfig` (split across `doido-controller` + `doido-model`) + `SECTION__KEY` env overrides (`doido_controller::env_override`) + an initializers boot registry. **AES-256-GCM encrypted credentials** (`config/credentials.yml.enc` + `config/master.key`/`DOIDO_MASTER_KEY`) with the `doido credentials edit/show` CLI are implemented (Phase 5, `doido-generators` + `doido_core::crypto`). **Still deferred:** the spec's layered **TOML** (base→env→credentials→env) — YAML remains the decided path; and auto-injecting decrypted credentials into the config tree. |
 
 ## Reconciliation decisions
 
@@ -97,9 +97,10 @@ Ordered by size. These are the real spec-vs-code gaps after the 104-story backlo
 2. ~~**`doido-mailer` — template rendering.**~~ **(done, Phase 3)** — `Mailer::mail()`
    renders `mailers/<m>/<action>.{html,text}.tera` via `doido-view` with HTML→text fallback;
    cc/bcc + multi-recipient `RCPT TO`; opt-in SMTP `STARTTLS` (rustls) (spec 08).
-3. **Config — encrypted credentials + layered TOML.** AES-256-GCM `credentials.toml.enc`,
-   `config/master.key`/`DOIDO_MASTER_KEY`, `doido credentials edit/show`, and (if adopted)
-   the base→env→credentials→env-var TOML layering (spec 05) — *if adopted*.
+3. ~~**Config — encrypted credentials.**~~ **(done, Phase 5)** — AES-256-GCM
+   `config/credentials.yml.enc`, `config/master.key`/`DOIDO_MASTER_KEY`, `doido credentials
+   edit/show`. *Still deferred:* base→env→credentials→env-var **TOML** layering (YAML stays the
+   decided path) and auto-injecting decrypted credentials into the config tree (spec 05).
 4. **Small wiring / ergonomics.**
    - ~~Wire `doido db seed/reset/prepare/schema` into the CLI~~ **(done, Phase 1).**
    - ~~Real `doido jobs:failed/retry/discard` backed by the dead-letter queue~~ **(done, Phase 1).**

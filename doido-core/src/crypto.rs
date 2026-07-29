@@ -25,6 +25,18 @@ pub fn key_from_secret(secret: &[u8]) -> [u8; 32] {
     hasher.finalize().into()
 }
 
+/// Generate a random 32-byte secret, hex-encoded (64 chars) — e.g. an app's
+/// `master.key` for encrypted credentials.
+pub fn generate_key_hex() -> String {
+    let mut bytes = [0u8; 32];
+    OsRng.fill_bytes(&mut bytes);
+    use std::fmt::Write as _;
+    bytes.iter().fold(String::with_capacity(64), |mut acc, b| {
+        let _ = write!(acc, "{b:02x}");
+        acc
+    })
+}
+
 /// Encrypt `plaintext` under `secret`, returning `nonce || ciphertext+tag`.
 pub fn encrypt(secret: &[u8], plaintext: &[u8]) -> Vec<u8> {
     let key = key_from_secret(secret);
