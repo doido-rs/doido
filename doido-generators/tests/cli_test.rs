@@ -1,5 +1,6 @@
 use assert_cmd::Command;
 use predicates::prelude::*;
+use std::fs;
 
 fn cmd() -> Command {
     Command::cargo_bin("doido-generators").unwrap()
@@ -68,6 +69,70 @@ fn test_jobs_failed_command() {
         .assert()
         .success()
         .stdout(predicate::str::contains("failed jobs"));
+}
+
+#[test]
+fn test_jobs_retry_and_discard_commands() {
+    cmd()
+        .args(["jobs", "retry"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("retried"));
+    cmd()
+        .args(["jobs", "discard"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("discarded"));
+}
+
+#[test]
+fn test_routes_without_router_warns() {
+    cmd()
+        .arg("routes")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("no routes configured"));
+}
+
+#[test]
+fn test_new_app_with_sqlite_database() {
+    let dir = tempfile::tempdir().unwrap();
+    cmd()
+        .current_dir(dir.path())
+        .args(["new", "blog", "--database", "sqlite"])
+        .timeout(std::time::Duration::from_secs(60))
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("created 'blog'"));
+    assert!(dir.path().join("blog/Cargo.toml").exists());
+}
+
+#[test]
+fn test_new_rejects_unknown_database() {
+    let dir = tempfile::tempdir().unwrap();
+    cmd()
+        .current_dir(dir.path())
+        .args(["new", "bad", "--database", "mongodb"])
+        .assert()
+        .failure()
+        .stdout(predicate::str::contains("unknown database"));
+}
+
+#[test]
+fn test_db_create_and_prepare_subcommands() {
+    let dir = tempfile::tempdir().unwrap();
+    fs::create_dir_all(dir.path().join("db")).unwrap();
+    fs::write(
+        dir.path().join("db/schema.sql"),
+        "CREATE TABLE x (id INTEGER PRIMARY KEY);",
+    )
+    .unwrap();
+    cmd()
+        .current_dir(dir.path())
+        .env("DATABASE_URL", "sqlite::memory:")
+        .args(["db", "create"])
+        .assert()
+        .success();
 }
 
 #[test]

@@ -26,11 +26,10 @@ fn sendmail_default_constructs() {
 #[tokio::test]
 async fn sendmail_errors_on_nonzero_exit() {
     let mail = Mail::new().to("b@y.com").subject("Hi");
-    let err = SendmailDeliverer::new("sh")
+    let err = SendmailDeliverer::new("false")
         .deliver(&mail)
         .await
         .unwrap_err()
         .to_string();
-    // `sh` without `-c` exits non-zero when stdin closes.
     assert!(err.contains("exited"), "got: {err}");
 }
