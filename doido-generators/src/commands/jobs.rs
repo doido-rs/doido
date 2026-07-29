@@ -5,7 +5,7 @@
 //! in `commands::worker`); until then these operate on [`JobsConfig::default`].
 
 use clap::Subcommand;
-use doido_jobs::{build_queue, JobPayload, JobQueue, JobsConfig};
+use doido_jobs::{JobPayload, JobQueue, JobsConfig};
 
 #[derive(Subcommand)]
 pub enum JobsCommand {
@@ -18,8 +18,8 @@ pub enum JobsCommand {
 }
 
 pub async fn run(cmd: JobsCommand) {
-    let config = JobsConfig::default();
-    let queue = match build_queue(&config).await {
+    let config = doido_jobs::config::load();
+    let queue = match doido_jobs::config::build_configured_queue(&config).await {
         Ok(q) => q,
         Err(e) => {
             doido_core::tracing::error!("failed to build jobs backend: {e}");

@@ -22,9 +22,10 @@ fn test_version_output() {
 #[test]
 fn test_server_command_without_routes_does_not_start() {
     // The standalone binary passes `None` for routes, so the server must not
-    // start — it just reports there is nothing to serve.
+    // start — it just reports there is nothing to serve. `--port`/`--env` must
+    // still parse cleanly.
     cmd()
-        .arg("server")
+        .args(["server", "--port", "0", "--env", "test"])
         .assert()
         .success()
         .stdout(predicate::str::contains("server not started"));

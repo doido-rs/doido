@@ -36,7 +36,7 @@ pub use params::Params;
 pub use rescue::RescueHandlers;
 pub use response::Response;
 pub use route_table::{all_routes, print_routes, register_routes, RouteEntry};
-pub use server::start_server;
+pub use server::{start_server, start_server_with};
 pub use session::{
     CacheSessionStore, CookieSessionStore, EncryptedCookieSessionStore, Session, SessionStore,
 };

@@ -1803,6 +1803,7 @@ dependencies = [
  "redis",
  "serde",
  "serde_json",
+ "serde_norway",
  "tokio",
  "uuid",
 ]

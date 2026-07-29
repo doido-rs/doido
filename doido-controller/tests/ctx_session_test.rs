@@ -2,7 +2,6 @@
 //! the `#[controller]` macro. Exercises the full two-request round trip.
 
 use axum::body::Body;
-use doido_controller::Context;
 use http::{header, Request, StatusCode};
 use http_body_util::BodyExt;
 use tower::ServiceExt;

@@ -1,4 +1,4 @@
-use doido_jobs::{build_queue, JobContext, JobPayload, JobsConfig, WorkerEngine};
+use doido_jobs::{JobContext, JobPayload, WorkerEngine};
 use std::sync::Arc;
 
 /// Start the background worker.
@@ -8,11 +8,12 @@ use std::sync::Arc;
 /// `once`, it drains the jobs currently ready and exits (cron-friendly);
 /// otherwise it runs until the process receives Ctrl-C, draining in-flight jobs.
 pub async fn run(once: bool) {
-    // TODO: load `[jobs]` from the application config once the config crate
-    // exposes it here. Until then the engine runs against the in-memory backend.
-    let config = JobsConfig::default();
+    // Backend + queues + concurrency come from the `jobs` section of
+    // `config/<env>.yml` (in-memory when absent). The `db` backend connects
+    // using the app's `database` config.
+    let config = doido_jobs::config::load();
 
-    let queue = match build_queue(&config).await {
+    let queue = match doido_jobs::config::build_configured_queue(&config).await {
         Ok(q) => q,
         Err(e) => {
             doido_core::tracing::error!("failed to build jobs backend: {e}");
