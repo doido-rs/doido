@@ -2,6 +2,13 @@
 
 Rails analogue: **Rack middleware stack**
 
+> **Status (2026-07-28): done, one gap.** The `MiddlewareStack` lives in
+> **`doido-controller`** (this crate was merged in). Logging + panic recovery are
+> always-on; CORS, CSRF, force-SSL, host-allowlist, request-id, and rate-limit are opt-in;
+> `SessionStore` is pluggable (`CookieSessionStore` HMAC-signed + `CacheSessionStore`).
+> Config is per-env **YAML**, not the TOML shown below (spec 05). **Open:** cookie session
+> values are signed but **not AES-256-GCM encrypted** yet. See [ARCHITECTURE.md](ARCHITECTURE.md).
+
 ## Decisions (resolved in interview)
 
 - **Request Logging and Panic Recovery are always on** — mandatory, cannot be disabled

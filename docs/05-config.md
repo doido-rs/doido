@@ -2,6 +2,16 @@
 
 Rails analogue: **Rails.application.config + credentials**
 
+> **Implementation status (2026-07-28) — reconciled.** The framework ships **per-env
+> YAML** (`config/<env>.yml`), *not* the layered TOML described below (decision US-085).
+> **Implemented:** env-specific YAML loading (`YamlConfig`, folded into `doido-controller`
+> + `doido-model`), `SECTION__KEY` env-var overrides (`doido_controller::env_override`),
+> and an initializers boot registry. **Deferred (vNext):** the layered TOML design,
+> AES-256-GCM encrypted credentials (`credentials.toml.enc` + `master.key`), and
+> `doido credentials edit/show` (currently a log-only stub). Everything below describes
+> that deferred design — kept as the future target, not current behavior. See
+> [ARCHITECTURE.md](ARCHITECTURE.md).
+
 ## Decisions (resolved in interview)
 
 - **File format: TOML**

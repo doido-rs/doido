@@ -68,6 +68,12 @@ Used by:
 
 ## Custom Inflection Rules — `config/inflections.rs`
 
+> **Implementation status (2026-07-28) — reconciled.** The implemented mechanism is a
+> **runtime `config/inflection.yaml`**, not the compiled `config/inflections.rs` shown
+> below. Functionally equivalent (irregulars, uncountables, custom plural/singular rules,
+> acronyms); the compiled-Rust form remains an unadopted alternative. See
+> [ARCHITECTURE.md](ARCHITECTURE.md).
+
 Users override or extend the default rules in `config/inflections.rs`:
 
 ```rust

@@ -2,6 +2,13 @@
 
 Rails analogue: **Active Record** (thin abstraction, not a full replacement)
 
+> **Status (2026-07-28): mostly done.** sea-orm re-export, connection pool, Rails-style
+> schema builders, and db tasks (`seeds`, reset/setup/prepare, `schema` dump/load, migrate
+> rollback/redo) are implemented, plus `TestDb`. Note: the pool is initialized from **YAML**
+> config, not `doido-config` (spec 05). **Open:** the spec's `testing::run_migrations(db)` /
+> `testing::seed(db, entities)` convenience helpers below are not present (only `TestDb`).
+> See [ARCHITECTURE.md](ARCHITECTURE.md).
+
 ## Decisions (resolved in interview)
 
 - **doido-model does NOT wrap sea-orm** — it re-exports sea-orm's full interface

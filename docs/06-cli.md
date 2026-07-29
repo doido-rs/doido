@@ -2,6 +2,14 @@
 
 Rails analogue: **rails runtime commands** (`rails server`, `rails console`, `rails db:*`)
 
+> **Status (2026-07-28): mostly done.** Runtime commands are merged into
+> **`doido-generators`**. Implemented: `server`, `console` (evcxr), `routes`,
+> `db create` + SeaORM migrate/rollback/status passthrough, `worker`, `generate`, `new`.
+> **Open:** `db seed`/`db reset`/`db prepare`/`db schema` exist in `doido-model` but are
+> **not wired** as subcommands; `jobs:failed/retry/discard` and `credentials:edit` are
+> log-only stubs and `credentials:show` is absent; `server` does not parse `--port`/`--env`.
+> See [ARCHITECTURE.md](ARCHITECTURE.md).
+
 ## Decisions (resolved in interview)
 
 - **Runtime commands only** — generators live in the separate `doido-generators` crate
