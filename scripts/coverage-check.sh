@@ -1,0 +1,125 @@
+#!/usr/bin/env bash
+# Enforce line-coverage thresholds for every workspace crate.
+#
+# Usage:
+#   scripts/coverage-check.sh              # crate-level gate (default)
+#   scripts/coverage-check.sh --per-file   # also require every src file >= threshold
+#
+# Environment:
+#   COVERAGE_THRESHOLD  Minimum line coverage percent (default: 80)
+#   COVERAGE_PACKAGES   Space-separated package list (default: all workspace members)
+
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$ROOT"
+
+THRESHOLD="${COVERAGE_THRESHOLD:-80}"
+PER_FILE=0
+if [[ "${1:-}" == "--per-file" ]]; then
+	PER_FILE=1
+fi
+
+if ! command -v cargo-llvm-cov >/dev/null 2>&1; then
+	echo "error: cargo-llvm-cov not found; install with: cargo install cargo-llvm-cov" >&2
+	exit 1
+fi
+
+if [[ -n "${COVERAGE_PACKAGES:-}" ]]; then
+	# shellcheck disable=SC2206
+	PACKAGES=(${COVERAGE_PACKAGES})
+else
+	mapfile -t PACKAGES < <(
+		cargo metadata --no-deps --format-version 1 \
+			| python3 -c 'import json,sys; print("\n".join(sorted({p["name"] for p in json.load(sys.stdin)["packages"]})))'
+	)
+fi
+
+parse_crate_line_pct() {
+	python3 -c '
+import sys
+for line in sys.stdin:
+    if not line.startswith("TOTAL"):
+        continue
+    pcts = [p.rstrip("%") for p in line.split() if p.endswith("%")]
+    if len(pcts) >= 3:
+        print(pcts[2])
+        break
+'
+}
+
+parse_file_failures() {
+	python3 - "$THRESHOLD" <<'PY'
+import sys
+
+threshold = float(sys.argv[1])
+for line in sys.stdin.read().splitlines():
+    if not line.startswith("doido-"):
+        continue
+    parts = line.split()
+    pcts = [p for p in parts if p.endswith("%")]
+    if len(pcts) < 3:
+        continue
+    file_line_pct = float(pcts[2].rstrip("%"))
+    if file_line_pct < threshold:
+        print(f"{parts[0]} {file_line_pct:.2f}")
+PY
+}
+
+failed_crates=()
+failed_files=()
+
+echo "==> coverage gate: ${THRESHOLD}% line coverage (per-file=${PER_FILE})"
+for pkg in "${PACKAGES[@]}"; do
+	echo "    measuring ${pkg}..."
+	summary="$(cargo llvm-cov -p "$pkg" --summary-only 2>/dev/null || true)"
+	if [[ -z "$summary" ]]; then
+		echo "error: no coverage summary for ${pkg}" >&2
+		failed_crates+=("${pkg} (no summary)")
+		continue
+	fi
+
+	total_line="$(printf '%s\n' "$summary" | parse_crate_line_pct)"
+	if [[ -z "$total_line" ]]; then
+		echo "error: could not parse TOTAL line for ${pkg}" >&2
+		failed_crates+=("${pkg} (parse error)")
+		continue
+	fi
+
+	status="OK"
+	if awk "BEGIN { exit !(${total_line} < ${THRESHOLD}) }"; then
+		status="FAIL"
+		failed_crates+=("${pkg} ${total_line}%")
+	fi
+	printf '    %-24s %6.2f%%  [%s]\n' "${pkg}" "${total_line}" "${status}"
+
+	if [[ "$PER_FILE" -eq 1 ]]; then
+		while IFS= read -r row; do
+			[[ -z "$row" ]] && continue
+			failed_files+=("${row}%")
+		done < <(printf '%s\n' "$summary" | parse_file_failures)
+	fi
+done
+
+if ((${#failed_crates[@]} > 0)); then
+	echo
+	echo "==> crate coverage below ${THRESHOLD}%:"
+	for entry in "${failed_crates[@]}"; do
+		echo "    - ${entry}"
+	done
+fi
+
+if ((${#failed_files[@]} > 0)); then
+	echo
+	echo "==> source files below ${THRESHOLD}%:"
+	for entry in "${failed_files[@]}"; do
+		echo "    - ${entry}"
+	done
+fi
+
+if ((${#failed_crates[@]} > 0 || ${#failed_files[@]} > 0)); then
+	exit 1
+fi
+
+echo
+echo "==> coverage gate: OK (all crates >= ${THRESHOLD}%)"

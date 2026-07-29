@@ -68,7 +68,11 @@ PUBLISH_CRATES ?= \
 
 .PHONY: help publish publish-dry-run clean-package check supply-chain yank unyank \
         fmt test verify example services-up services-down test-backends \
+        coverage coverage-check \
         blog blog-build blog-install
+
+# Minimum line coverage (percent) required per workspace crate.
+COVERAGE_THRESHOLD ?= 80
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -174,6 +178,13 @@ supply-chain: ## Supply-chain audit: cargo-deny + cargo-audit
 test: ## Run the workspace test suite (in-memory backends only)
 	cargo test --workspace
 
+coverage: ## Generate workspace line-coverage summary (requires cargo-llvm-cov)
+	@command -v cargo-llvm-cov >/dev/null || { echo "error: cargo-llvm-cov not found; install with: cargo install cargo-llvm-cov" >&2; exit 1; }
+	cargo llvm-cov --workspace --summary-only
+
+coverage-check: ## Fail if any workspace crate is below COVERAGE_THRESHOLD (default 80%)
+	COVERAGE_THRESHOLD=$(COVERAGE_THRESHOLD) ./scripts/coverage-check.sh
+
 # End-to-end proof that `doido new` scaffolds a compiling app (the framework's
 # definition-of-done). It builds the whole framework, so — like supply-chain — it
 # is kept OUT of `verify`: a ~3min build must not gate the fast loop. Run in CI
@@ -181,6 +192,9 @@ test: ## Run the workspace test suite (in-memory backends only)
 example: ## Slow e2e: generate apps in a tempdir, compile them, and serve CRUD
 	cargo test -p doido-generators --test e2e_app_build_test --test e2e_app_runtime_test -- --ignored --nocapture
 
+# Coverage gate is intentionally kept OUT of `verify` until every workspace crate
+# meets COVERAGE_THRESHOLD (see harness/coverage-plan.md). Once green, add:
+#   verify: check test coverage-check
 verify: check test ## Fast green gate: lint + tests (harness relies on exit 0)
 	@echo "==> verify: OK"
 

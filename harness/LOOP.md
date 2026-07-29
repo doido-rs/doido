@@ -35,6 +35,9 @@ git history, `harness/progress.txt`, and the checkboxes in
   runs fmt + clippy `-D warnings` + `cargo test --workspace` (~12s); it is
   deterministic and does not depend on the network. The slow generate-and-build e2e
   runs under `make example` (out of `verify` by design).
+- **Coverage (`make coverage-check`) is a parallel quality gate** — 80% line coverage
+  per workspace crate (`harness/coverage-plan.md`). It stays out of `verify` until all
+  crates pass; coverage work adds **tests only** (no `src/` production changes).
 - **Supply-chain (`make supply-chain`) is NOT part of the gate** — the RustSec DB is
   time-varying and must not turn the loop red. Run it in CI, not here.
 - **Do not weaken tests to pass.** Do not edit a story's `acceptanceCriteria`; only

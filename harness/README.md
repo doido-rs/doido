@@ -12,6 +12,8 @@ the green baseline (`make verify`).
   the gap file.
 - `LOOP.md` — the contract for a single autonomous iteration (pick next story → TDD →
   implement → `make verify` → tick box → commit → flip `passes`). Tool-agnostic.
+- `coverage-plan.md` — phased plan to reach **80% line coverage per workspace crate**
+  (tests only; no production code changes). Tracked separately from `prd.json`.
 - `progress.txt` — append-only log, one line per completed story.
 - `archive/` — the previous finishing run (a different US-001..009 backlog + its
   progress log), kept for history.
@@ -22,8 +24,14 @@ Everything hinges on one deterministic command:
 
 ```sh
 make verify        # fmt + clippy + tests (~12s); must exit 0
+make coverage      # line-coverage summary (requires cargo-llvm-cov)
+make coverage-check # fail if any crate < 80% (see coverage-plan.md)
 make example       # slow generate-and-build e2e (out of verify by design)
 ```
+
+Coverage gate (`make coverage-check`) is **out of `verify` until all crates pass**
+(`harness/coverage-plan.md`). Target: **80% line coverage per workspace crate**.
+Once green, add `coverage-check` to the `verify` recipe in the Makefile.
 
 Supply-chain audit is intentionally **out** of the loop gate (it depends on the
 time-varying RustSec advisory DB). Run it separately / in CI:

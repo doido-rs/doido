@@ -22,6 +22,11 @@ members = [
 version = "0.0.8"
 license = "MIT"
 
+# Line-coverage gate (`make coverage-check`). Per-crate enforcement lives in
+# scripts/coverage-check.sh; phased rollout plan: harness/coverage-plan.md
+[workspace.metadata.coverage-gate]
+min-lines-percent = 80.0
+
 [workspace.dependencies]
 # First-party crates: every entry needs `path` *and* `version` so `cargo publish`
 # strips `path`, keeps the semver, and resolves from crates.io.
