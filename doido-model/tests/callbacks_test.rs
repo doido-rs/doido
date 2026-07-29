@@ -161,7 +161,10 @@ async fn persist_failure_skips_after_callbacks() {
         }
     }
     let mut m = Mock { fired: vec![] };
-    let err = run_create(&mut m, async |_| Err(doido_core::anyhow::anyhow!("db error"))).await;
+    let err = run_create(&mut m, async |_| {
+        Err(doido_core::anyhow::anyhow!("db error"))
+    })
+    .await;
     assert!(err.is_err());
     assert_eq!(m.fired, ["before_create"]);
 }

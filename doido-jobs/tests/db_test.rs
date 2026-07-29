@@ -114,3 +114,67 @@ async fn test_db_reclaim_expired() {
         .unwrap()
         .is_some());
 }
+
+#[tokio::test]
+async fn test_db_discard_dead() {
+    let q = fresh().await;
+    q.enqueue(JobPayload::new("default", json!({}), 1))
+        .await
+        .unwrap();
+    let r = q
+        .reserve(QUEUES, Duration::from_millis(100))
+        .await
+        .unwrap()
+        .unwrap();
+    q.dead_letter(&r.job.id, "fatal").await.unwrap();
+    assert_eq!(q.discard_dead("default").await.unwrap(), 1);
+    assert!(q.dead_jobs("default").await.unwrap().is_empty());
+}
+
+#[tokio::test]
+async fn test_db_reclaim_empty_queues_is_noop() {
+    let q = fresh().await;
+    assert_eq!(q.reclaim_expired(&[]).await.unwrap(), 0);
+}
+
+#[tokio::test]
+async fn test_db_nack_missing_job_is_ok() {
+    let q = fresh().await;
+    q.nack("missing-id", None, "err").await.unwrap();
+}
+
+#[tokio::test]
+async fn test_db_reserve_empty_queues() {
+    let q = fresh().await;
+    assert!(q
+        .reserve(&[], Duration::from_millis(10))
+        .await
+        .unwrap()
+        .is_none());
+}
+
+#[tokio::test]
+async fn test_db_ack_missing_job_is_ok() {
+    let q = fresh().await;
+    q.ack("missing").await.unwrap();
+}
+
+#[tokio::test]
+async fn test_db_reclaim_skips_other_queues() {
+    let q = fresh().await;
+    q.enqueue(JobPayload::new("other", json!({}), 1))
+        .await
+        .unwrap();
+    let _ = q
+        .reserve(&["other"], Duration::from_millis(100))
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(q.reclaim_expired(&["default"]).await.unwrap(), 0);
+}
+
+#[tokio::test]
+async fn test_db_dead_letter_missing_job_is_ok() {
+    let q = fresh().await;
+    q.dead_letter("missing", "reason").await.unwrap();
+}

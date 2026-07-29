@@ -192,10 +192,8 @@ coverage-check: ## Fail if any workspace crate is below COVERAGE_THRESHOLD (defa
 example: ## Slow e2e: generate apps in a tempdir, compile them, and serve CRUD
 	cargo test -p doido-generators --test e2e_app_build_test --test e2e_app_runtime_test -- --ignored --nocapture
 
-# Coverage gate is intentionally kept OUT of `verify` until every workspace crate
-# meets COVERAGE_THRESHOLD (see harness/coverage-plan.md). Once green, add:
-#   verify: check test coverage-check
-verify: check test ## Fast green gate: lint + tests (harness relies on exit 0)
+# Coverage gate: every non-macro workspace crate must meet COVERAGE_THRESHOLD.
+verify: check test coverage-check ## Lint + tests + per-crate line coverage (80%)
 	@echo "==> verify: OK"
 
 # ---------------------------------------------------------------------------

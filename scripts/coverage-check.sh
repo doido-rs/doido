@@ -31,7 +31,10 @@ if [[ -n "${COVERAGE_PACKAGES:-}" ]]; then
 else
 	mapfile -t PACKAGES < <(
 		cargo metadata --no-deps --format-version 1 \
-			| python3 -c 'import json,sys; print("\n".join(sorted({p["name"] for p in json.load(sys.stdin)["packages"]})))'
+			| python3 -c 'import json,sys; print("\n".join(sorted(
+			    p for p in {pkg["name"] for pkg in json.load(sys.stdin)["packages"]}
+			    if not p.endswith("-macros")
+			)))'
 	)
 fi
 
@@ -69,10 +72,18 @@ PY
 failed_crates=()
 failed_files=()
 
+# Extra flags for crates whose backends are feature-gated.
+coverage_extra_args() {
+	case "$1" in
+	doido-jobs) echo "--features jobs-db,jobs-redis" ;;
+	esac
+}
+
 echo "==> coverage gate: ${THRESHOLD}% line coverage (per-file=${PER_FILE})"
 for pkg in "${PACKAGES[@]}"; do
 	echo "    measuring ${pkg}..."
-	summary="$(cargo llvm-cov -p "$pkg" --summary-only 2>/dev/null || true)"
+	extra="$(coverage_extra_args "$pkg")"
+	summary="$(cargo llvm-cov -p "$pkg" ${extra} --summary-only 2>/dev/null || true)"
 	if [[ -z "$summary" ]]; then
 		echo "error: no coverage summary for ${pkg}" >&2
 		failed_crates+=("${pkg} (no summary)")

@@ -75,6 +75,58 @@ async fn test_redis_priority_and_dead_letter() {
 }
 
 #[tokio::test]
+async fn test_redis_nack_and_enqueue_at() {
+    let Some(q) = queue().await else {
+        eprintln!("skipping: no Redis available");
+        return;
+    };
+    let at = chrono::Utc::now() + chrono::Duration::seconds(60);
+    q.enqueue_at(JobPayload::new("default", json!({}), 3), at)
+        .await
+        .unwrap();
+    assert!(q
+        .reserve(QUEUES, Duration::from_millis(50))
+        .await
+        .unwrap()
+        .is_none());
+
+    q.enqueue(JobPayload::new("default", json!({}), 3))
+        .await
+        .unwrap();
+    let r = q
+        .reserve(QUEUES, Duration::from_millis(200))
+        .await
+        .unwrap()
+        .unwrap();
+    q.nack(&r.job.id, None, "retry").await.unwrap();
+    let r2 = q
+        .reserve(QUEUES, Duration::from_millis(200))
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(r2.job.attempts, 2);
+}
+
+#[tokio::test]
+async fn test_redis_discard_dead() {
+    let Some(q) = queue().await else {
+        eprintln!("skipping: no Redis available");
+        return;
+    };
+    q.enqueue(JobPayload::new("default", json!({}), 1))
+        .await
+        .unwrap();
+    let r = q
+        .reserve(QUEUES, Duration::from_millis(200))
+        .await
+        .unwrap()
+        .unwrap();
+    q.dead_letter(&r.job.id, "fatal").await.unwrap();
+    assert_eq!(q.discard_dead("default").await.unwrap(), 1);
+    assert!(q.dead_jobs("default").await.unwrap().is_empty());
+}
+
+#[tokio::test]
 async fn test_redis_reclaim_expired() {
     let url = match std::env::var("REDIS_URL") {
         Ok(u) => u,

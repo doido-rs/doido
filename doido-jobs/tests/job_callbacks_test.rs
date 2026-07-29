@@ -44,3 +44,45 @@ async fn failure_runs_on_failure_not_after() {
     assert!(job.failed, "on_failure fired");
     assert_eq!(job.log, ["before"], "after did not run");
 }
+
+#[tokio::test]
+async fn before_perform_failure_skips_work() {
+    struct Aborting;
+    impl JobCallbacks for Aborting {
+        fn before_perform(&mut self) -> Result<()> {
+            Err(doido_core::anyhow::anyhow!("halt"))
+        }
+    }
+    let mut job = Aborting;
+    assert!(run_perform(&mut job, async |_| Ok(())).await.is_err());
+}
+
+#[tokio::test]
+async fn after_perform_failure_propagates() {
+    struct AfterFail;
+    impl JobCallbacks for AfterFail {
+        fn after_perform(&mut self) -> Result<()> {
+            Err(doido_core::anyhow::anyhow!("cleanup failed"))
+        }
+    }
+    let mut job = AfterFail;
+    assert!(run_perform(&mut job, async |_| Ok(())).await.is_err());
+}
+
+#[tokio::test]
+async fn default_callback_hooks_are_noops() {
+    struct Defaults;
+    impl JobCallbacks for Defaults {}
+    run_perform(&mut Defaults, async |_| Ok(())).await.unwrap();
+}
+
+#[tokio::test]
+async fn default_on_failure_is_noop() {
+    struct Defaults;
+    impl JobCallbacks for Defaults {}
+    assert!(run_perform(&mut Defaults, async |_| {
+        Err(doido_core::anyhow::anyhow!("fail"))
+    })
+    .await
+    .is_err());
+}

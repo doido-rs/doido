@@ -35,7 +35,6 @@ jobs:
     name: Coverage
     needs: test
     runs-on: ubuntu-latest
-    continue-on-error: true # remove once harness/coverage-plan.md is complete
     services:
       redis:
         image: redis:7

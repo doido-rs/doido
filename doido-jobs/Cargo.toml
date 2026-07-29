@@ -28,3 +28,4 @@ jobs-redis = ["dep:redis"]
 tokio = { workspace = true, features = ["rt-multi-thread", "macros", "time"] }
 doido-model.workspace = true
 uuid.workspace = true
+tempfile = "3"
