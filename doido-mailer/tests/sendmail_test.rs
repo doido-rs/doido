@@ -16,3 +16,21 @@ async fn sendmail_errors_when_the_binary_is_missing() {
         .await
         .is_err());
 }
+
+#[test]
+fn sendmail_default_constructs() {
+    let d = SendmailDeliverer::default();
+    let _ = d;
+}
+
+#[tokio::test]
+async fn sendmail_errors_on_nonzero_exit() {
+    let mail = Mail::new().to("b@y.com").subject("Hi");
+    let err = SendmailDeliverer::new("sh")
+        .deliver(&mail)
+        .await
+        .unwrap_err()
+        .to_string();
+    // `sh` without `-c` exits non-zero when stdin closes.
+    assert!(err.contains("exited"), "got: {err}");
+}

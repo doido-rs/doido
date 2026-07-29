@@ -100,3 +100,32 @@ async fn s3_without_feature_errors_clearly() {
         }
     }
 }
+
+#[tokio::test]
+async fn build_named_missing_service_errors() {
+    let cfg = YamlConfig::from_yaml(YAML).unwrap().storage;
+    let err = match cfg.build_named("missing").await {
+        Ok(_) => panic!("expected missing service error"),
+        Err(e) => e.to_string(),
+    };
+    assert!(err.contains("missing") || err.contains("service"));
+}
+
+#[tokio::test]
+async fn disk_public_flag_propagates() {
+    let yaml = r#"
+storage:
+  service: pub
+  services:
+    pub: { type: disk, root: uploads, public: true }
+"#;
+    let cfg = YamlConfig::from_yaml(yaml).unwrap().storage;
+    let svc = cfg.build().await.unwrap();
+    assert!(svc.public());
+}
+
+#[test]
+fn load_without_config_file_is_usable() {
+    let cfg = doido_storage::config::load();
+    assert!(cfg.services.is_empty() || cfg.service.is_some() || cfg.services.contains_key("local"));
+}

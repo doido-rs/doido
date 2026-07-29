@@ -67,3 +67,35 @@ fn test_hot_reload_picks_up_template_changes() {
         .unwrap();
     assert_eq!(second, "version2");
 }
+
+#[test]
+fn render_named_resolves_exact_template_path() {
+    let dir = TempDir::new().unwrap();
+    write_tpl(&dir, "mailers/welcome.text.tera", "Hello {{ name }}");
+    let engine = TeraEngine::new(dir.path().to_str().unwrap()).unwrap();
+    let out = engine
+        .render_named(
+            "mailers/welcome.text.tera",
+            &serde_json::json!({ "name": "Ada" }),
+        )
+        .unwrap();
+    assert_eq!(out, "Hello Ada");
+}
+
+#[test]
+fn template_inheritance_renders_layout() {
+    let dir = TempDir::new().unwrap();
+    write_tpl(
+        &dir,
+        "layouts/base.html.tera",
+        "<html>{% block content %}{% endblock content %}</html>",
+    );
+    write_tpl(
+        &dir,
+        "pages/show.html.tera",
+        "{% extends \"layouts/base.html.tera\" %}{% block content %}body{% endblock content %}",
+    );
+    let engine = TeraEngine::new(dir.path().to_str().unwrap()).unwrap();
+    let html = engine.render("pages/show", &serde_json::json!({})).unwrap();
+    assert!(html.contains("body"));
+}

@@ -1763,6 +1763,7 @@ dependencies = [
  "serde",
  "serde_norway",
  "sha2 0.10.9",
+ "tempfile",
  "thiserror 2.0.19",
  "tracing",
  "tracing-subscriber",

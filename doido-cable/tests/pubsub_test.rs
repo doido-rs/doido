@@ -29,3 +29,21 @@ async fn test_different_streams_are_isolated() {
     let msg = rx1.recv().await.unwrap();
     assert_eq!(msg, "mine");
 }
+
+#[tokio::test]
+async fn test_publish_without_subscribers_succeeds() {
+    let ps = MemoryPubSub::default();
+    ps.publish("orphan", "msg").await.unwrap();
+}
+
+#[tokio::test]
+async fn test_unsubscribe_removes_stream() {
+    let ps = Arc::new(MemoryPubSub::new());
+    let _rx = ps.subscribe("gone").await.unwrap();
+    ps.unsubscribe("gone").await.unwrap();
+    ps.publish("gone", "after").await.unwrap();
+    // Fresh subscribe should not receive the old channel's history.
+    let mut rx2 = ps.subscribe("gone").await.unwrap();
+    ps.publish("gone", "fresh").await.unwrap();
+    assert_eq!(rx2.recv().await.unwrap(), "fresh");
+}

@@ -20,3 +20,4 @@ sha2 = "0.10"
 
 [dev-dependencies]
 tracing-test = "0.2"
+tempfile.workspace = true

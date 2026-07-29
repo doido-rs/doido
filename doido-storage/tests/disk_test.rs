@@ -39,3 +39,18 @@ async fn rejects_keys_that_escape_the_root() {
     assert!(svc.upload("../evil", b"x".to_vec(), None).await.is_err());
     assert!(svc.download("a/b").await.is_err());
 }
+
+#[tokio::test]
+async fn public_flag_root_empty_key_and_short_shard() {
+    let (dir, svc) = disk().await;
+    let public = DiskService::new("local", dir.path()).public(true);
+    assert!(doido_storage::Service::public(&public));
+
+    assert_eq!(public.root(), dir.path());
+    assert!(public.upload("", b"x".to_vec(), None).await.is_err());
+    assert!(public.size("missing").await.is_err());
+
+    public.upload("ab", b"short".to_vec(), None).await.unwrap();
+    let path = dir.path().join("ab").join("__").join("ab");
+    assert!(path.exists());
+}
