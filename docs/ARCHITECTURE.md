@@ -43,22 +43,21 @@ Legend: **Done** = implemented + tested · **Partial** = core works, spec featur
 | `doido-cable/macros` | 12 | Done | real codegen (implements the channel trait + name resolution). |
 | `doido-generators` | 06, 06b | Done | CLI (`new`/`generate`/`server`/`console` via evcxr/`db`/`worker`) + generator registry + generators (model, controller, migration, scaffold, resource, mailer, job, channel, storage_install/adapter, templates, generator, locale) + route auto-injection + embedded templates. `doido db` wires `create`/`reset`/`prepare`/`seed`/`schema dump|load` (delegating to `doido-model` tasks; `db/schema.sql`/`db/seeds.sql` conventions) plus the SeaORM passthrough; `jobs:failed/retry/discard` are backed by the dead-letter store (`discard_dead` trait method + per-backend impls). `credentials edit`/`show` encrypt/decrypt `config/credentials.yml.enc` with AES-256-GCM (`doido_core::crypto`), keyed by `config/master.key` (auto-generated + gitignored) or `DOIDO_MASTER_KEY`. **Gaps:** `server` does not parse `--port`/`--env`; the jobs CLI still uses the default (memory) backend until `[jobs]` config is wired (same TODO as the worker). |
 | `doido` (meta) | all | Done | re-exports + `run()` entry. |
-| `doido-config` | 05 | **Partial / decided** | Reality is per-env **YAML** (`config/<env>.yml`) via `YamlConfig` (split across `doido-controller` + `doido-model`) + `SECTION__KEY` env overrides (`doido_controller::env_override`) + an initializers boot registry. **AES-256-GCM encrypted credentials** (`config/credentials.yml.enc` + `config/master.key`/`DOIDO_MASTER_KEY`) with the `doido credentials edit/show` CLI are implemented (Phase 5, `doido-generators` + `doido_core::crypto`). **Still deferred:** the spec's layered **TOML** (base→env→credentials→env) — YAML remains the decided path; and auto-injecting decrypted credentials into the config tree. |
+| `doido-config` | 05 | **Partial / decided** | Reality is per-env **YAML** (`config/<env>.yml`) via `YamlConfig` (split across `doido-controller` + `doido-model`) + `SECTION__KEY` env overrides (`doido_controller::env_override`) + an initializers boot registry. **AES-256-GCM encrypted credentials** (`config/credentials.yml.enc` + `config/master.key`/`DOIDO_MASTER_KEY`) with the `doido credentials edit/show` CLI are implemented (Phase 5, `doido-generators` + `doido_core::crypto`). **Still deferred:** auto-injecting decrypted credentials into the config tree. (Layered TOML was dropped from spec 05 — YAML is the decided path.) |
 
 ## Reconciliation decisions
 
 These are the working defaults. Flagged items are genuine product decisions — override
 here and the backlog follows.
 
-1. **Config — YAML now, encrypted credentials deferred.** Reality is per-env
-   `config/<env>.yml` (a `Config` trait + `YamlConfig` folded into `doido-controller`
-   and `doido-model`). Spec 05 asks for layered **TOML** + **AES-256-GCM credentials** +
-   `SECTION__KEY` env overrides. **Decision (US-085):** standardize on per-env **YAML**,
-   the implemented and tested path. `SECTION__KEY` env overrides exist
-   (`doido_controller::env_override`); an initializers registry exists. The template's
-   `config/application.toml` is a minimal placeholder only. Layered TOML + AES-256-GCM
-   credentials + the credentials CLI stay **deferred (opt-in, vNext)**. Spec 05 has been
-   annotated to reflect this.
+1. **Config — per-env YAML.** Reality is per-env `config/<env>.yml` (a `Config` trait +
+   `YamlConfig` folded into `doido-controller` and `doido-model`). **Decision (US-085):**
+   standardize on per-env **YAML**, the implemented and tested path; a base-then-env
+   layered format (e.g. TOML) was dropped and is **no longer a spec item** (spec 05 rewritten
+   around YAML). `SECTION__KEY` env overrides exist (`doido_controller::env_override`); an
+   initializers registry exists. **AES-256-GCM encrypted credentials** + the `doido
+   credentials edit/show` CLI are implemented (Phase 5). The only remaining follow-up is
+   auto-injecting decrypted credentials into the config tree.
 
 2. **Inflection rules — YAML, not a compiled Rust file.** Spec 11 describes
    `config/inflections.rs` (a compiled `configure(&mut Inflections)`); the implementation
@@ -99,8 +98,8 @@ Ordered by size. These are the real spec-vs-code gaps after the 104-story backlo
    cc/bcc + multi-recipient `RCPT TO`; opt-in SMTP `STARTTLS` (rustls) (spec 08).
 3. ~~**Config — encrypted credentials.**~~ **(done, Phase 5)** — AES-256-GCM
    `config/credentials.yml.enc`, `config/master.key`/`DOIDO_MASTER_KEY`, `doido credentials
-   edit/show`. *Still deferred:* base→env→credentials→env-var **TOML** layering (YAML stays the
-   decided path) and auto-injecting decrypted credentials into the config tree (spec 05).
+   edit/show`. *Still deferred:* auto-injecting decrypted credentials into the config tree.
+   (Layered TOML was removed from spec 05 — YAML is the decided path.)
 4. **Small wiring / ergonomics.**
    - ~~Wire `doido db seed/reset/prepare/schema` into the CLI~~ **(done, Phase 1).**
    - ~~Real `doido jobs:failed/retry/discard` backed by the dead-letter queue~~ **(done, Phase 1).**

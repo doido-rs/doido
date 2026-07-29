@@ -2,148 +2,152 @@
 
 Rails analogue: **Rails.application.config + credentials**
 
-> **Implementation status (2026-07-28) — reconciled.** The framework ships **per-env
-> YAML** (`config/<env>.yml`), *not* the layered TOML described below (decision US-085).
-> **Implemented:** env-specific YAML loading (`YamlConfig`, folded into `doido-controller`
-> + `doido-model`), `SECTION__KEY` env-var overrides (`doido_controller::env_override`),
-> and an initializers boot registry. **Deferred (vNext):** the layered TOML design,
-> AES-256-GCM encrypted credentials (`credentials.toml.enc` + `master.key`), and
-> `doido credentials edit/show` (currently a log-only stub). Everything below describes
-> that deferred design — kept as the future target, not current behavior. See
+> **Implementation status — reconciled.** The framework ships **per-env YAML**
+> (`config/<env>.yml`) loaded by `YamlConfig` (folded into `doido-controller` +
+> `doido-model`), `SECTION__KEY` env-var overrides (`doido_controller::env_override`),
+> an initializers boot registry, and **AES-256-GCM encrypted credentials**
+> (`config/credentials.yml.enc` + `config/master.key`/`DOIDO_MASTER_KEY`) with the
+> `doido credentials edit/show` CLI. This spec describes that design. See
 > [ARCHITECTURE.md](ARCHITECTURE.md).
 
-## Decisions (resolved in interview)
+## Decisions (resolved)
 
-- **File format: TOML**
-- **Secrets: encrypted credentials file + env vars, env vars always win**
+- **File format: per-env YAML** (`config/<env>.yml`). A base-then-env layered format
+  (e.g. TOML) was considered and dropped (decision US-085) — per-env YAML is the path.
+- **Secrets: encrypted credentials file + env vars, env vars always win.**
 
-## Layering Order (lowest → highest priority)
+## Environment selection
+
+`DOIDO_ENV` selects the environment (default: `development`). It picks the config file
+`config/<env>.yml` and the app's runtime mode.
+
+## Load order (lowest → highest priority)
 
 ```
-1. config/doido.toml            ← base config (all environments)
-2. config/doido.<env>.toml      ← environment override (dev/test/prod)
-3. config/credentials.toml.enc  ← encrypted secrets (decrypted at boot)
-4. Environment variables         ← always override everything
+1. config/<env>.yml            ← per-environment config
+2. config/credentials.yml.enc  ← encrypted secrets (decrypted at boot)
+3. Environment variables       ← always override everything
 ```
 
-`DOIDO_ENV` selects the environment (default: `development`).
 `DOIDO_MASTER_KEY` (or `config/master.key`) decrypts the credentials file.
 
-## File Structure Convention
+## File structure convention
 
 ```
 config/
-  doido.toml                 # base — shared across all envs
-  doido.development.toml     # dev overrides
-  doido.test.toml            # test overrides
-  doido.production.toml      # prod overrides
-  credentials.toml.enc       # encrypted secrets (committed to git)
-  master.key                 # decryption key (NOT committed, in .gitignore)
+  development.yml            # dev config
+  test.yml                  # test config
+  production.yml            # prod config
+  credentials.yml.enc       # encrypted secrets (committed to git)
+  master.key                # decryption key (NOT committed, in .gitignore)
 ```
 
-## Example `config/doido.toml`
+## Example `config/development.yml`
 
-```toml
-[server]
-port = 3000
-bind = "127.0.0.1"
+```yaml
+server:
+  bind: "127.0.0.1"
+  port: 3000
 
-[database]
-url = "sqlite://db/development.sqlite3"
-pool_size = 5
+database:
+  url: "sqlite://db/development.sqlite3"
+  pool: 5
 
-[view]
-engine = "tera"
-templates_dir = "views"
-layout = "application"
-hot_reload = true
+logger:
+  level: "info"
+  sql: true
 
-[log]
-level = "info"
+middleware:
+  cors:
+    enabled: false
+    allowed_origins: []
+    allowed_methods: []
 ```
 
-## Example `config/doido.production.toml`
+## Example `config/production.yml`
 
-```toml
-[server]
-bind = "0.0.0.0"
+```yaml
+server:
+  bind: "0.0.0.0"
+  port: 3000
 
-[database]
-pool_size = 20
+database:
+  pool: 20
 
-[view]
-hot_reload = false
-
-[log]
-level = "warn"
+logger:
+  level: "warn"
+  sql: false
 ```
 
-## Credentials (`config/credentials.toml.enc`)
+## Credentials (`config/credentials.yml.enc`)
 
-Encrypted with `DOIDO_MASTER_KEY`. Decrypted content is plain TOML:
+Encrypted with AES-256-GCM (`nonce || ciphertext+tag`) via `doido_core::crypto`, keyed by
+`config/master.key` or the `DOIDO_MASTER_KEY` env var. The decrypted content is plain YAML:
 
-```toml
-[database]
-url = "postgres://user:pass@host/db"
-
-[mailer]
-smtp_password = "secret"
-
-secret_key_base = "abc123..."
+```yaml
+secret_key_base: "abc123..."
+database:
+  url: "postgres://user:pass@host/db"
+mailer:
+  smtp_password: "secret"
 ```
 
-Edit via CLI: `doido credentials:edit` (opens decrypted file in `$EDITOR`, re-encrypts on save).
+Manage via CLI:
 
-## Env Var Mapping
+- `doido credentials edit` — decrypts into a temp file, opens `$EDITOR`, re-encrypts on save
+  (auto-generates + gitignores `config/master.key` on first run).
+- `doido credentials show` — decrypts and prints to stdout.
 
-Env vars override any key using double-underscore path notation:
+## Env var mapping
+
+Env vars override any config key using double-underscore path notation
+(`doido_controller::env_override`), coerced to bool/number/string:
 
 ```
-DATABASE__URL=postgres://...   →  config.database.url
-SERVER__PORT=8080              →  config.server.port
-LOG__LEVEL=debug               →  config.log.level
+SERVER__PORT=8080     →  config.server.port
+DATABASE__URL=...     →  config.database.url
+LOGGER__LEVEL=debug   →  config.logger.level
 ```
 
-## Access Pattern
+## Access pattern
 
 ```rust
-use doido_config::Config;
-
-let config = Config::load()?;      // called once at boot
-let port = config.server.port;     // typed struct access
-let db_url = config.database.url;  // from credentials or env var
+// Loaded once at boot for the current environment.
+let config = doido_controller::YamlConfig::load()?; // implements the Config trait
+let port = config.server().port;                    // typed section access
 ```
 
-Config is immutable after load; shared via `Arc<Config>` injected into `Context`.
+Config is immutable after load. The DB pool, view engine, and other singletons are wired
+from it during the boot sequence (see ARCHITECTURE.md → “Runtime boot sequence”).
 
-## `doido-config` Typed Structs
+## Typed config structs
 
 ```rust
-pub struct Config {
-    pub server:   ServerConfig,
-    pub database: DatabaseConfig,
-    pub view:     ViewConfig,
-    pub log:      LogConfig,
-    // user-defined sections via serde flatten
-}
+pub struct ServerConfig   { pub bind: String, pub port: u16 }
+pub struct DatabaseConfig { pub url: String, pub pool: Option<u32>, pub connect_timeout: Option<u64> }
+pub struct LoggerConfig   { pub level: String, pub sql: bool }
+pub struct MiddlewareConfig { pub cors: CorsConfig /* … */ }
 ```
 
-## Known Requirements
+## Initializers
 
-- TOML parsing via `toml` crate + `serde`
-- Layer merge: base → env file → credentials → env vars
-- Encrypted credentials: AES-256-GCM, key from `DOIDO_MASTER_KEY` or `config/master.key`
-- Env var override: `SECTION__KEY` double-underscore notation
-- `Config::load()` called once at boot; returns `Arc<Config>`
-- CLI command `doido credentials:edit` for managing secrets
+An initializers registry (`doido_controller::initializers`) runs named boot hooks in
+order after config load — the place to validate credentials, set up third-party clients,
+etc. The first error aborts boot.
 
-## TDD Surface
+## Known requirements
 
-- Test base config loads correctly from TOML
-- Test environment file overrides base values
-- Test credentials file decrypts and merges correctly
-- Test env var overrides take highest precedence
-- Test missing `master.key` with no `DOIDO_MASTER_KEY` returns clear error
-- Test unknown env var format is ignored gracefully
-- Test `Config` struct deserializes all sections correctly
-- Test `Config::load()` in test env uses `config/doido.test.toml`
+- YAML parsing via `serde` (`serde_norway`).
+- Per-env file resolution from `DOIDO_ENV` (`config/<env>.yml`).
+- Encrypted credentials: AES-256-GCM, key from `DOIDO_MASTER_KEY` or `config/master.key`.
+- Env var override: `SECTION__KEY` double-underscore notation, with type coercion.
+- `doido credentials edit/show` for managing secrets.
+
+## TDD surface
+
+- Test per-env YAML loads correctly and deserializes all sections.
+- Test env var overrides take highest precedence and coerce types.
+- Test credentials encrypt/decrypt round-trip; wrong master key fails to decrypt.
+- Test `credentials show` prints what `credentials edit` saved.
+- Test missing `master.key` with no `DOIDO_MASTER_KEY` returns a clear error.
+- Test unknown env var format is ignored gracefully.

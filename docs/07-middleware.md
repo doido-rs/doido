@@ -27,7 +27,7 @@ Request
 
 ## Opt-in Middleware
 
-Enabled in `config/doido.toml` under `[middleware]` or registered manually:
+Enabled in `config/<env>.yml` under `middleware:` or registered manually:
 
 | Middleware | Config key | Default |
 |-----------|------------|---------|
@@ -38,24 +38,21 @@ Enabled in `config/doido.toml` under `[middleware]` or registered manually:
 | Static files | `middleware.static_files = "public"` | disabled |
 | Timeout | `middleware.timeout = 30` (seconds) | disabled |
 
-Example `config/doido.toml`:
+Example `config/<env>.yml`:
 
-```toml
-[middleware]
-request_id = true
-compression = true
-timeout = 30
-
-[middleware.cors]
-allowed_origins = ["https://myapp.com"]
-allowed_methods = ["GET", "POST", "PUT", "DELETE"]
-
-[middleware.session]
-store = "cookie"              # "cookie" | "db" | "redis" | custom
-secret = "${SECRET_KEY_BASE}" # from credentials/env
-
-[middleware.static_files]
-dir = "public"
+```yaml
+middleware:
+  request_id: true
+  compression: true
+  timeout: 30
+  cors:
+    allowed_origins: ["https://myapp.com"]
+    allowed_methods: ["GET", "POST", "PUT", "DELETE"]
+  session:
+    store: "cookie"              # "cookie" | "db" | "redis" | custom
+    secret: "${SECRET_KEY_BASE}" # from credentials/env
+  static_files:
+    dir: "public"
 ```
 
 ## Session — Pluggable `SessionStore` Trait
@@ -88,7 +85,7 @@ Three ways to add middleware:
 
 ```rust
 // 1. Via config (declarative, recommended)
-// config/doido.toml → [middleware] section (see above)
+// config/<env>.yml → middleware: section (see above)
 
 // 2. In the app router (programmatic)
 routes! {

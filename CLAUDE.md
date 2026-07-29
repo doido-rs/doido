@@ -15,7 +15,7 @@ decisions (config), and the runtime boot sequence — see the authoritative
 | [docs/02-controller.md](docs/02-controller.md) | `doido-controller` | Request handling, params, filters, Action Controller analogue |
 | [docs/03-model.md](docs/03-model.md) | `doido-model` | sea-orm re-exports + connection pool + test helpers |
 | [docs/04-view.md](docs/04-view.md) | `doido-view` | Tera template engine, layouts, partials, Action View analogue |
-| [docs/05-config.md](docs/05-config.md) | `doido-config` | TOML layered config, encrypted credentials, env var overrides |
+| [docs/05-config.md](docs/05-config.md) | `doido-config` | Per-env YAML config, AES-256-GCM encrypted credentials, env var overrides |
 | [docs/06-cli.md](docs/06-cli.md) | `doido-generators` | CLI runtime commands (server, console, db, worker, credentials) — merged into `doido-generators` |
 | [docs/06b-generators.md](docs/06b-generators.md) | `doido-generators` | All Rails generator targets + the unified CLI, extensible registry, route auto-injection |
 | [docs/07-middleware.md](docs/07-middleware.md) | `doido-controller` | Tower middleware stack, sessions, CORS, Rack analogue — merged into `doido-controller` |
@@ -50,7 +50,7 @@ doido/                  ← workspace root (Cargo.toml)
 - [x] 02-controller — **`#[controller]` macro + trait, `#[before_action]`/`#[after_action]` attrs, Tower middleware layers**
 - [x] 03-model — **Re-exports sea-orm fully, adds only connection pool + test helpers (SQLite in-memory)**
 - [x] 04-view — **Tera default engine, swappable via `TemplateEngine` trait, convention-based template resolution**
-- [x] 05-config — **TOML, layered (base→env→credentials→env vars), AES-256-GCM encrypted credentials, `SECTION__KEY` env override**
+- [x] 05-config — **Per-env YAML (`config/<env>.yml`), AES-256-GCM encrypted credentials (`credentials.yml.enc` + `master.key`), `SECTION__KEY` env override; layered TOML dropped (US-085)**
 - [x] 06-cli — **Runtime commands only; `doido generate` delegates to `doido-generators`**
 - [x] 06b-generators — **Separate crate, all Rails targets, `Generator` trait registry, auto-injects `config/routes.rs`**
 - [x] 07-middleware — **Logging+PanicRecovery always-on, all else opt-in via config, pluggable `SessionStore` (cookie default)**

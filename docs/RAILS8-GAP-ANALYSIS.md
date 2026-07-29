@@ -19,8 +19,8 @@ Each line reads: `- [ ] `[tag]` **Feature** — note. *(state)*`
 **Priority tags**
 - `[core]` — capability most Rails apps depend on (auth, validations, CSRF, forms…).
 - `[nice]` — ergonomic/convenience feature; an app works without it.
-- `[deferred]` — already explicitly deferred in ARCHITECTURE.md (encrypted
-  credentials / TOML config layering).
+- `[deferred]` — already explicitly deferred in ARCHITECTURE.md (e.g. Active
+  Storage variants/previews).
 
 **State markers**
 - `*(missing)*` — no implementation exists.
@@ -158,8 +158,8 @@ Each line reads: `- [ ] `[tag]` **Feature** — note. *(state)*`
 
 ## Config & Credentials — `doido-config` (deferred crate)
 
-- [ ] `[deferred]` **Encrypted credentials** (AES-256-GCM) + `doido credentials edit/show` — `credentials:edit` is a log-only stub, `credentials:show` absent. *(missing)*
-- [ ] `[deferred]` **Layered TOML config** (base→env→credentials→env vars) per spec 05 — only per-env YAML today (decision US-085). *(missing)*
+- [x] `[nice]` **Encrypted credentials** (AES-256-GCM) + `doido credentials edit/show` — implemented (Phase 5): `config/credentials.yml.enc` + `config/master.key`/`DOIDO_MASTER_KEY` via `doido_core::crypto`. *(done)*
+- [x] `[n/a]` **Layered TOML config** — dropped: removed from spec 05 in favour of per-env YAML (decision US-085). *(not a gap)*
 - [x] `[nice]` **`SECTION__KEY` env-var overrides** — `doido_controller::env_override`. *(done)*
 - [x] `[nice]` **Initializers** (`config/initializers/*`) — boot registry (US-084). *(done)*
 - [x] `[nice]` **Resolve YAML-vs-TOML drift** (pick one) — resolved to per-env YAML (spec 05 annotated). *(done)*
