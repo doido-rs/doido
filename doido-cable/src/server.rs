@@ -16,14 +16,15 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
 
-/// How often the server sends an ActionCable `ping` frame.
-const HEARTBEAT: Duration = Duration::from_secs(3);
+/// Default heartbeat when none is configured (matches ActionCable's 3s).
+const DEFAULT_HEARTBEAT: Duration = Duration::from_secs(3);
 
 /// Maps ActionCable channel names to their handlers, over a shared pub/sub
 /// backend (Rails' channel routing).
 pub struct ChannelRegistry {
     channels: HashMap<String, Arc<dyn Channel>>,
     pubsub: Arc<dyn PubSub>,
+    heartbeat: Duration,
 }
 
 impl ChannelRegistry {
@@ -31,7 +32,14 @@ impl ChannelRegistry {
         Self {
             channels: HashMap::new(),
             pubsub,
+            heartbeat: DEFAULT_HEARTBEAT,
         }
+    }
+
+    /// Set the heartbeat ping interval (from `cable.ping_interval`).
+    pub fn with_heartbeat(mut self, interval: Duration) -> Self {
+        self.heartbeat = interval;
+        self
     }
 
     /// Register a channel handler under an explicit name.
@@ -140,10 +148,11 @@ pub async fn handle_socket(socket: WebSocket, registry: Arc<ChannelRegistry>) {
 
     let _ = tx.send(ServerFrame::Welcome.to_json().unwrap_or_default());
 
-    // Heartbeat task: ActionCable `ping` frames on a fixed interval.
+    // Heartbeat task: ActionCable `ping` frames on the configured interval.
     let heartbeat_tx = tx.clone();
+    let heartbeat_interval = registry.heartbeat;
     let heartbeat = tokio::spawn(async move {
-        let mut ticker = tokio::time::interval(HEARTBEAT);
+        let mut ticker = tokio::time::interval(heartbeat_interval);
         ticker.tick().await; // consume the immediate first tick
         loop {
             ticker.tick().await;

@@ -1,8 +1,8 @@
 //! `doido jobs` — inspect and manage the dead-letter store.
 //!
-//! Backed by the configured queue backend (memory/db/redis). Like the worker,
-//! the backend selection is not yet wired from `config/<env>.yml` (see the TODO
-//! in `commands::worker`); until then these operate on [`JobsConfig::default`].
+//! Backed by the configured queue backend (memory/db/redis), selected from the
+//! `jobs` section of `config/<env>.yml` (in-memory when absent) — the same
+//! backend the worker drains.
 
 use clap::Subcommand;
 use doido_jobs::{JobPayload, JobQueue, JobsConfig};

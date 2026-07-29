@@ -15,6 +15,6 @@ async fn deliver_later_enqueues_the_mail_on_the_mailers_queue() {
         .unwrap()
         .expect("a mailer job was enqueued");
     let back: Mail = serde_json::from_value(reserved.job.payload).unwrap();
-    assert_eq!(back.to, "b@y.com");
+    assert_eq!(back.to, ["b@y.com"]);
     assert_eq!(back.subject, "Later");
 }

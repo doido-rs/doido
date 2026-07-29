@@ -5,6 +5,7 @@
 
 use crate::deliverer::Deliverer;
 use crate::mail::Mail;
+use base64::{engine::general_purpose::STANDARD, Engine as _};
 use doido_core::Result;
 use std::pin::Pin;
 use std::sync::Arc;
@@ -17,6 +18,8 @@ pub struct SmtpDeliverer {
     addr: String,
     ehlo_name: String,
     starttls: bool,
+    auth: Option<(String, String)>,
+    allow_insecure_auth: bool,
 }
 
 impl SmtpDeliverer {
@@ -25,6 +28,8 @@ impl SmtpDeliverer {
             addr: addr.into(),
             ehlo_name: "doido".to_string(),
             starttls: false,
+            auth: None,
+            allow_insecure_auth: false,
         }
     }
 
@@ -32,6 +37,23 @@ impl SmtpDeliverer {
     /// server advertises it in its EHLO capabilities.
     pub fn starttls(mut self) -> Self {
         self.starttls = true;
+        self
+    }
+
+    /// Authenticate with `AUTH LOGIN`/`PLAIN` before sending (Action Mailer
+    /// `user_name`/`password`). By default credentials are only sent over a
+    /// TLS-upgraded connection; pair with [`starttls`](Self::starttls) or opt out
+    /// with [`allow_insecure_auth`](Self::allow_insecure_auth).
+    pub fn credentials(mut self, username: impl Into<String>, password: impl Into<String>) -> Self {
+        self.auth = Some((username.into(), password.into()));
+        self
+    }
+
+    /// Permit sending credentials over an unencrypted connection (e.g. a trusted
+    /// localhost relay, or tests). Off by default — credentials over plain TCP
+    /// are otherwise refused.
+    pub fn allow_insecure_auth(mut self) -> Self {
+        self.allow_insecure_auth = true;
         self
     }
 
@@ -47,8 +69,11 @@ pub fn build_message(mail: &Mail) -> String {
 }
 
 /// EHLO-advertised capabilities we care about.
+#[derive(Default)]
 struct Caps {
     starttls: bool,
+    auth_login: bool,
+    auth_plain: bool,
 }
 
 #[async_trait::async_trait]
@@ -60,15 +85,28 @@ impl Deliverer for SmtpDeliverer {
         let mut stream = BufReader::new(MaybeTls::Plain(tcp));
 
         expect(&mut stream, "220").await?;
-        let caps = ehlo(&mut stream, &self.ehlo_name).await?;
+        let mut caps = ehlo(&mut stream, &self.ehlo_name).await?;
+        let mut encrypted = false;
 
         if self.starttls && caps.starttls {
             send(&mut stream, "STARTTLS").await?;
             expect(&mut stream, "220").await?;
             let upgraded = tls_upgrade(stream.into_inner(), self.host()).await?;
             stream = BufReader::new(upgraded);
+            encrypted = true;
             // Re-issue EHLO over the encrypted channel (capabilities may change).
-            ehlo(&mut stream, &self.ehlo_name).await?;
+            caps = ehlo(&mut stream, &self.ehlo_name).await?;
+        }
+
+        if let Some((username, password)) = &self.auth {
+            if !encrypted && !self.allow_insecure_auth {
+                return Err(doido_core::anyhow::anyhow!(
+                    "refusing to send SMTP credentials over an unencrypted connection to {}; \
+                     enable STARTTLS with .starttls() or opt in with .allow_insecure_auth()",
+                    self.addr
+                ));
+            }
+            authenticate(&mut stream, &caps, username, password).await?;
         }
 
         let from = mail.from.as_deref().unwrap_or("no-reply@localhost");
@@ -98,7 +136,7 @@ where
     S: AsyncRead + AsyncWrite + Unpin,
 {
     send(stream, &format!("EHLO {name}")).await?;
-    let mut starttls = false;
+    let mut caps = Caps::default();
     loop {
         let mut line = String::new();
         if stream.read_line(&mut line).await? == 0 {
@@ -110,14 +148,56 @@ where
                 "smtp EHLO expected 250, got: {line}"
             ));
         }
-        if line.to_ascii_uppercase().contains("STARTTLS") {
-            starttls = true;
+        let upper = line.to_ascii_uppercase();
+        if upper.contains("STARTTLS") {
+            caps.starttls = true;
+        }
+        if upper.contains("AUTH") {
+            // `AUTH LOGIN PLAIN CRAM-MD5` — record the mechanisms we support.
+            if upper.contains("LOGIN") {
+                caps.auth_login = true;
+            }
+            if upper.contains("PLAIN") {
+                caps.auth_plain = true;
+            }
         }
         // "250 " (or a bare "250") ends the reply; "250-" is a continuation.
         if line.len() == 3 || line.as_bytes()[3] == b' ' {
-            return Ok(Caps { starttls });
+            return Ok(caps);
         }
     }
+}
+
+/// Authenticate against the server, preferring `AUTH PLAIN` (one round-trip) and
+/// falling back to `AUTH LOGIN`. Returns an error if the server advertised
+/// neither mechanism.
+async fn authenticate<S>(
+    stream: &mut BufReader<S>,
+    caps: &Caps,
+    username: &str,
+    password: &str,
+) -> Result<()>
+where
+    S: AsyncRead + AsyncWrite + Unpin,
+{
+    if caps.auth_plain {
+        // AUTH PLAIN base64("\0" user "\0" pass) — the identity is left empty.
+        let token = STANDARD.encode(format!("\0{username}\0{password}"));
+        send(stream, &format!("AUTH PLAIN {token}")).await?;
+        expect(stream, "235").await?;
+    } else if caps.auth_login {
+        send(stream, "AUTH LOGIN").await?;
+        expect(stream, "334").await?; // prompts for the username
+        send(stream, &STANDARD.encode(username)).await?;
+        expect(stream, "334").await?; // prompts for the password
+        send(stream, &STANDARD.encode(password)).await?;
+        expect(stream, "235").await?;
+    } else {
+        return Err(doido_core::anyhow::anyhow!(
+            "smtp credentials set but the server advertised no supported AUTH mechanism"
+        ));
+    }
+    Ok(())
 }
 
 /// Wrap a plain connection in TLS (no-op if it is already a TLS stream).

@@ -1,4 +1,4 @@
-use doido_jobs::{JobContext, JobPayload, WorkerEngine};
+use doido_jobs::{JobContext, JobRegistry, WorkerEngine};
 use std::sync::Arc;
 
 /// Start the background worker.
@@ -31,13 +31,15 @@ pub async fn run(once: bool) {
     // The engine carries the application context handed to every job handler.
     let engine = WorkerEngine::with_context(queue, config.engine_config(), JobContext::new());
 
-    // TODO: dispatch to the registered job handler. A job-type registry (mapping
-    // each `#[job]` to its `perform(payload, ctx)`) is required for real execution;
-    // until then the worker logs each reserved job and acks it. `ctx` is the
-    // shared application context the engine carries.
-    let handler = |job: JobPayload, _ctx: Arc<JobContext>| async move {
-        doido_core::tracing::info!("processing job {} on queue {}", job.id, job.queue);
-        Ok(())
+    // Every `#[job]` registers its handler at link time; build the lookup once and
+    // route each reserved payload to its handler by `job_name`. An unknown name
+    // returns `Err`, so the engine retries and eventually dead-letters it rather
+    // than silently acking work with no handler.
+    let registry = Arc::new(JobRegistry::from_inventory());
+    doido_core::tracing::info!("registered jobs: {:?}", registry.names());
+    let handler = move |job, ctx| {
+        let registry = Arc::clone(&registry);
+        async move { registry.dispatch(job, ctx).await }
     };
 
     if once {

@@ -112,7 +112,7 @@ pub fn job(attr: TokenStream, item: TokenStream) -> TokenStream {
     // serializes it into the `serde_json::Value` every backend persists, so the
     // payload must be `Serialize`. Defaults to `serde_json::Value` for untyped,
     // context-free jobs (back-compat).
-    let payload_ty: syn::Type = func
+    let typed_inputs: Vec<syn::Type> = func
         .sig
         .inputs
         .iter()
@@ -120,11 +120,60 @@ pub fn job(attr: TokenStream, item: TokenStream) -> TokenStream {
             syn::FnArg::Typed(pat_type) => Some((*pat_type.ty).clone()),
             syn::FnArg::Receiver(_) => None,
         })
+        .collect();
+    let payload_ty: syn::Type = typed_inputs
         .last()
+        .cloned()
         .unwrap_or_else(|| syn::parse_quote!(serde_json::Value));
+
+    // The job's registered name (its function name) — stamped onto every enqueued
+    // payload so the worker's `JobRegistry` can route it back to this function.
+    let job_name_lit = LitStr::new(&fn_name.to_string(), Span::call_site());
+
+    // Generated handler that deserializes a reserved payload and invokes the job.
+    // The engine hands it the shared `Arc<JobContext>`; context-carrying jobs take
+    // `&JobContext` as their first parameter (see the `job` generator template),
+    // context-free jobs take just the payload. Registered at link time via
+    // `inventory`, so defining a `#[job]` is all that's needed to make it runnable.
+    let handler_ident = syn::Ident::new(
+        &format!("__doido_job_handler_{}", fn_name),
+        Span::call_site(),
+    );
+    let call = match typed_inputs.len() {
+        0 => quote! { #fn_name().await },
+        1 => quote! { #fn_name(__payload).await },
+        _ => quote! { #fn_name(&*_ctx, __payload).await },
+    };
+    let deserialize = if typed_inputs.is_empty() {
+        quote! {}
+    } else {
+        quote! {
+            let __payload: #payload_ty = serde_json::from_value(_job.payload)
+                .map_err(|e| doido_core::anyhow::anyhow!(
+                    "failed to deserialize job `{}` payload: {e}", #job_name_lit))?;
+        }
+    };
 
     let expanded = quote! {
         #func
+
+        #[doc(hidden)]
+        fn #handler_ident(
+            _job: doido_jobs::JobPayload,
+            _ctx: ::std::sync::Arc<doido_jobs::JobContext>,
+        ) -> doido_jobs::HandlerFuture {
+            ::std::boxed::Box::pin(async move {
+                #deserialize
+                #call
+            })
+        }
+
+        doido_jobs::inventory::submit! {
+            doido_jobs::JobRegistration {
+                name: #job_name_lit,
+                handler: #handler_ident,
+            }
+        }
 
         pub async fn #enqueue_fn_name(
             queue: &dyn doido_jobs::JobQueue,
@@ -133,6 +182,7 @@ pub fn job(attr: TokenStream, item: TokenStream) -> TokenStream {
             let payload = serde_json::to_value(payload)
                 .map_err(|e| doido_core::anyhow::anyhow!("failed to serialize job payload: {e}"))?;
             let job = doido_jobs::JobPayload::new(#queue_lit, payload, #max_retries_lit)
+                .with_name(#job_name_lit)
                 .with_priority(#priority_lit)
                 .with_backoff(#backoff_variant, #backoff_base_lit)
                 .with_timeout(#timeout_lit);
@@ -176,6 +226,7 @@ pub fn job(attr: TokenStream, item: TokenStream) -> TokenStream {
                 let payload = serde_json::to_value(self.payload)
                     .map_err(|e| doido_core::anyhow::anyhow!("failed to serialize job payload: {e}"))?;
                 let mut job = doido_jobs::JobPayload::new(self.queue, payload, #max_retries_lit)
+                    .with_name(#job_name_lit)
                     .with_priority(#priority_lit)
                     .with_backoff(#backoff_variant, #backoff_base_lit)
                     .with_timeout(#timeout_lit);

@@ -7,6 +7,11 @@ use base64::{engine::general_purpose::STANDARD, Engine as _};
 const BOUNDARY: &str = "doido_mime_boundary_9f2a";
 const MIXED_BOUNDARY: &str = "doido_mixed_boundary_7c3b";
 
+/// The comma-separated `To:` header value (primary recipients).
+fn to_header(mail: &Mail) -> String {
+    mail.to.join(", ")
+}
+
 /// A `Cc:` header line (with trailing CRLF) when there are cc recipients, else
 /// empty. Bcc recipients are deliberately never written into the headers.
 fn cc_header(mail: &Mail) -> String {
@@ -28,7 +33,7 @@ pub fn to_mime(mail: &Mail) -> String {
     let mut out = format!(
         "From: {from}\r\nTo: {}\r\n{}Subject: {}\r\nMIME-Version: 1.0\r\n\
          Content-Type: multipart/mixed; boundary=\"{MIXED_BOUNDARY}\"\r\n\r\n",
-        mail.to,
+        to_header(mail),
         cc_header(mail),
         mail.subject
     );
@@ -63,7 +68,7 @@ fn body_message(mail: &Mail) -> String {
     let from = mail.from.as_deref().unwrap_or("no-reply@localhost");
     let headers = format!(
         "From: {from}\r\nTo: {}\r\n{}Subject: {}\r\nMIME-Version: 1.0\r\n",
-        mail.to,
+        to_header(mail),
         cc_header(mail),
         mail.subject
     );

@@ -5,7 +5,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 static OBSERVED: AtomicUsize = AtomicUsize::new(0);
 
 fn redirect_to_sink(mail: &mut Mail) {
-    mail.to = "sink@test".to_string();
+    mail.to = vec!["sink@test".to_string()];
 }
 fn count_observed(_mail: &Mail) {
     OBSERVED.fetch_add(1, Ordering::SeqCst);
@@ -28,6 +28,10 @@ async fn interceptors_mutate_and_observers_see_delivery() {
 
     let sent = test.sent().await;
     assert_eq!(sent.len(), 1);
-    assert_eq!(sent[0].to, "sink@test", "interceptor rewrote the recipient");
+    assert_eq!(
+        sent[0].to,
+        ["sink@test"],
+        "interceptor rewrote the recipient"
+    );
     assert_eq!(OBSERVED.load(Ordering::SeqCst), 1, "observer fired");
 }

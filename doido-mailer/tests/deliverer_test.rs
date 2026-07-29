@@ -15,7 +15,7 @@ async fn test_test_deliverer_captures_mail() {
     d.deliver(&mail).await.unwrap();
     let sent = d.sent().await;
     assert_eq!(sent.len(), 1);
-    assert_eq!(sent[0].to, "a@b.com");
+    assert_eq!(sent[0].to, ["a@b.com"]);
     assert_eq!(sent[0].subject, "Welcome");
 }
 

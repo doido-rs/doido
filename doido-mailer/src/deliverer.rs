@@ -14,7 +14,7 @@ pub struct LogDeliverer;
 impl Deliverer for LogDeliverer {
     async fn deliver(&self, mail: &Mail) -> Result<()> {
         tracing::info!(
-            to = %mail.to,
+            to = %mail.to.join(", "),
             subject = %mail.subject,
             "delivering mail"
         );

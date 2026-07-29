@@ -1653,7 +1653,7 @@ dependencies = [
 
 [[package]]
 name = "doido"
-version = "0.0.7"
+version = "0.0.8"
 dependencies = [
  "assert_cmd",
  "doido-cable",
@@ -1672,7 +1672,7 @@ dependencies = [
 
 [[package]]
 name = "doido-cable"
-version = "0.0.7"
+version = "0.0.8"
 dependencies = [
  "async-trait",
  "axum",
@@ -1683,13 +1683,14 @@ dependencies = [
  "redis",
  "serde",
  "serde_json",
+ "serde_norway",
  "tokio",
  "tokio-tungstenite 0.26.2",
 ]
 
 [[package]]
 name = "doido-cable-macros"
-version = "0.0.7"
+version = "0.0.8"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1698,7 +1699,7 @@ dependencies = [
 
 [[package]]
 name = "doido-cache"
-version = "0.0.7"
+version = "0.0.8"
 dependencies = [
  "async-trait",
  "doido-core",
@@ -1714,7 +1715,7 @@ dependencies = [
 
 [[package]]
 name = "doido-controller"
-version = "0.0.7"
+version = "0.0.8"
 dependencies = [
  "async-trait",
  "axum",
@@ -1743,7 +1744,7 @@ dependencies = [
 
 [[package]]
 name = "doido-controller-macros"
-version = "0.0.7"
+version = "0.0.8"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1752,7 +1753,7 @@ dependencies = [
 
 [[package]]
 name = "doido-core"
-version = "0.0.7"
+version = "0.0.8"
 dependencies = [
  "aes-gcm",
  "anyhow",
@@ -1770,7 +1771,7 @@ dependencies = [
 
 [[package]]
 name = "doido-generators"
-version = "0.0.7"
+version = "0.0.8"
 dependencies = [
  "assert_cmd",
  "chrono",
@@ -1793,13 +1794,14 @@ dependencies = [
 
 [[package]]
 name = "doido-jobs"
-version = "0.0.7"
+version = "0.0.8"
 dependencies = [
  "async-trait",
  "chrono",
  "doido-core",
  "doido-jobs-macros",
  "doido-model",
+ "inventory",
  "redis",
  "serde",
  "serde_json",
@@ -1810,7 +1812,7 @@ dependencies = [
 
 [[package]]
 name = "doido-jobs-macros"
-version = "0.0.7"
+version = "0.0.8"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1819,7 +1821,7 @@ dependencies = [
 
 [[package]]
 name = "doido-mailer"
-version = "0.0.7"
+version = "0.0.8"
 dependencies = [
  "async-trait",
  "base64 0.23.0",
@@ -1830,6 +1832,7 @@ dependencies = [
  "rustls",
  "serde",
  "serde_json",
+ "serde_norway",
  "tokio",
  "tokio-rustls",
  "tracing",
@@ -1838,7 +1841,7 @@ dependencies = [
 
 [[package]]
 name = "doido-mailer-macros"
-version = "0.0.7"
+version = "0.0.8"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1847,7 +1850,7 @@ dependencies = [
 
 [[package]]
 name = "doido-model"
-version = "0.0.7"
+version = "0.0.8"
 dependencies = [
  "bcrypt",
  "doido-core",
@@ -1863,7 +1866,7 @@ dependencies = [
 
 [[package]]
 name = "doido-storage"
-version = "0.0.7"
+version = "0.0.8"
 dependencies = [
  "async-trait",
  "aws-sdk-s3",
@@ -1893,7 +1896,7 @@ dependencies = [
 
 [[package]]
 name = "doido-view"
-version = "0.0.7"
+version = "0.0.8"
 dependencies = [
  "doido-cache",
  "doido-core",
@@ -2973,6 +2976,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e0242819d153cba4b4b05a5a8f2a7e9bbf97b6055b2a002b395c96b5ff3c0222"
 dependencies = [
  "cfg-if",
+]
+
+[[package]]
+name = "inventory"
+version = "0.3.24"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a4f0c30c76f2f4ccee3fe55a2435f691ca00c0e4bd87abe4f4a851b1d4dac39b"
+dependencies = [
+ "rustversion",
 ]
 
 [[package]]
