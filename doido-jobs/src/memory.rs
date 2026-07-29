@@ -226,4 +226,15 @@ impl JobQueue for MemoryQueue {
             .cloned()
             .unwrap_or_default())
     }
+
+    async fn discard_dead(&self, queue: &str) -> Result<u64> {
+        let removed = self
+            .dead
+            .lock()
+            .await
+            .remove(queue)
+            .map(|jobs| jobs.len() as u64)
+            .unwrap_or(0);
+        Ok(removed)
+    }
 }

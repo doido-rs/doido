@@ -168,7 +168,7 @@ impl Parse for RoutesInput {
                     let router: Expr = content.parse()?;
                     decls.push(RouteDecl::Mount { path, router });
                 }
-                method @ ("get" | "post" | "put" | "patch" | "delete") => {
+                method @ ("get" | "post" | "put" | "patch" | "delete" | "head" | "options") => {
                     let path: LitStr = content.parse()?;
                     let _comma: Token![,] = content.parse()?;
                     let handler: Expr = content.parse()?;

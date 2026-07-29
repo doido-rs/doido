@@ -167,4 +167,8 @@ pub trait JobQueue: Send + Sync {
 
     /// Inspect the dead letter store for a queue.
     async fn dead_jobs(&self, queue: &str) -> Result<Vec<JobPayload>>;
+
+    /// Discard every dead-lettered job for a queue (Rails `jobs:discard`).
+    /// Returns the number of jobs removed.
+    async fn discard_dead(&self, queue: &str) -> Result<u64>;
 }

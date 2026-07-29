@@ -293,4 +293,14 @@ impl JobQueue for DbQueue {
         }
         Ok(out)
     }
+
+    async fn discard_dead(&self, queue: &str) -> Result<u64> {
+        let sql = "DELETE FROM doido_jobs WHERE status = $1 AND queue = $2";
+        let res = self
+            .conn
+            .execute_raw(self.stmt(sql, vec![STATUS_DEAD.into(), queue.into()]))
+            .await
+            .map_err(|e| anyhow!("discard_dead failed: {e}"))?;
+        Ok(res.rows_affected())
+    }
 }
