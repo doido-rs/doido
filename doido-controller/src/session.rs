@@ -146,6 +146,61 @@ impl SessionStore for CookieSessionStore {
     }
 }
 
+/// The default cookie session store used by [`Context::session`]: the whole
+/// session is serialized and **encrypted with AES-256-GCM** (via
+/// [`doido_core::crypto`]) into the cookie value (base64url of
+/// `nonce || ciphertext+tag`). Unlike [`CookieSessionStore`], the payload is
+/// hidden as well as authenticated (spec 07).
+///
+/// [`Context::session`]: crate::context::Context::session
+pub struct EncryptedCookieSessionStore {
+    secret: Vec<u8>,
+}
+
+impl EncryptedCookieSessionStore {
+    /// Build a store that encrypts cookies with `secret` (e.g. `secret_key_base`).
+    pub fn new(secret: impl Into<Vec<u8>>) -> Self {
+        Self {
+            secret: secret.into(),
+        }
+    }
+
+    /// Serialize and encrypt `session` into a base64url cookie value.
+    pub fn encode(&self, session: &Session) -> String {
+        let payload = serde_json::to_vec(session).unwrap_or_default();
+        let blob = doido_core::crypto::encrypt(&self.secret, &payload);
+        URL_SAFE_NO_PAD.encode(blob)
+    }
+
+    /// Decrypt and parse a cookie value. Returns `None` when the value is
+    /// malformed or fails authentication (tampering or a wrong secret).
+    pub fn decode(&self, raw: &str) -> Option<Session> {
+        let blob = URL_SAFE_NO_PAD.decode(raw).ok()?;
+        let payload = doido_core::crypto::decrypt(&self.secret, &blob)?;
+        serde_json::from_slice(&payload).ok()
+    }
+}
+
+impl Default for EncryptedCookieSessionStore {
+    /// A dev-only store keyed by the process-global secret (see [`crate::secret`]).
+    fn default() -> Self {
+        Self::new(crate::secret::key_base())
+    }
+}
+
+#[async_trait::async_trait]
+impl SessionStore for EncryptedCookieSessionStore {
+    async fn load(&self, raw: &str) -> Result<Option<Session>> {
+        Ok(self.decode(raw))
+    }
+    async fn save(&self, _session: &Session) -> Result<()> {
+        Ok(())
+    }
+    async fn destroy(&self, _id: &str) -> Result<()> {
+        Ok(())
+    }
+}
+
 /// A server-side session store backed by any [`doido_cache::CacheStore`]: only
 /// the session id travels in the cookie, while the data lives in the cache
 /// (memory/redis/memcache). This is the generic backend the spec's

@@ -11,6 +11,9 @@ pub mod redis;
 pub mod retry;
 pub mod worker;
 
+// Re-exported so `#[job]`-generated fluent builders can name chrono types
+// without the app depending on chrono directly.
+pub use chrono;
 pub use config::{build_queue, Backend, JobsConfig};
 pub use context::JobContext;
 #[cfg(feature = "jobs-db")]

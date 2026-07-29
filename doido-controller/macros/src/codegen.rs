@@ -26,6 +26,7 @@ fn generate_inner(
                 path,
                 handler,
                 name,
+                constraints,
             } => {
                 let axum_method = syn::Ident::new(&method, Span::call_site());
                 let full_path = match path_prefix {
@@ -37,8 +38,47 @@ fn generate_inner(
                 };
                 descriptors.push((method.to_uppercase(), full_path.value()));
                 let path_value = full_path.value();
+                let method_router = if constraints.is_empty() {
+                    quote! { axum::routing::#axum_method(#handler) }
+                } else {
+                    // Each `param: validator` becomes a check against the matched
+                    // path params; any miss/failure 404s before the handler runs.
+                    let checks = constraints.iter().map(|(param, validator)| {
+                        let param_str = param.to_string();
+                        quote! {
+                            match __params.iter().find(|(k, _)| *k == #param_str).map(|(_, v)| v) {
+                                Some(__v) if (#validator)(__v) => {}
+                                _ => __ok = false,
+                            }
+                        }
+                    });
+                    quote! {
+                        axum::routing::#axum_method(#handler).layer(axum::middleware::from_fn(
+                            |__req: axum::extract::Request, __next: axum::middleware::Next| async move {
+                                use axum::extract::FromRequestParts as _;
+                                let (mut __parts, __body) = __req.into_parts();
+                                let __ok = match axum::extract::RawPathParams::from_request_parts(&mut __parts, &()).await {
+                                    Ok(__params) => {
+                                        let mut __ok = true;
+                                        #(#checks)*
+                                        __ok
+                                    }
+                                    Err(_) => false,
+                                };
+                                let __req = axum::extract::Request::from_parts(__parts, __body);
+                                if __ok {
+                                    __next.run(__req).await
+                                } else {
+                                    axum::response::IntoResponse::into_response(
+                                        axum::http::StatusCode::NOT_FOUND,
+                                    )
+                                }
+                            },
+                        ))
+                    }
+                };
                 route_stmts.push(quote! {
-                    .route(#full_path, axum::routing::#axum_method(#handler))
+                    .route(#full_path, #method_router)
                 });
                 // `as: name` → a `{name}_path()` helper returning the full path.
                 if let Some(name) = name {

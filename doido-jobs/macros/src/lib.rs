@@ -6,11 +6,29 @@ use syn::{
     MetaNameValue, Token,
 };
 
+/// Convert a snake_case identifier to PascalCase (`send_email` → `SendEmail`).
+fn to_pascal_case(s: &str) -> String {
+    s.split('_')
+        .filter(|part| !part.is_empty())
+        .map(|part| {
+            let mut chars = part.chars();
+            match chars.next() {
+                Some(first) => first.to_uppercase().collect::<String>() + chars.as_str(),
+                None => String::new(),
+            }
+        })
+        .collect()
+}
+
 #[proc_macro_attribute]
 pub fn job(attr: TokenStream, item: TokenStream) -> TokenStream {
     let func = parse_macro_input!(item as ItemFn);
     let fn_name = &func.sig.ident;
     let enqueue_fn_name = syn::Ident::new(&format!("{}_enqueue", fn_name), Span::call_site());
+    let builder_name = syn::Ident::new(
+        &format!("{}Job", to_pascal_case(&fn_name.to_string())),
+        Span::call_site(),
+    );
 
     // Parse key=value attributes
     let mut queue_name = "default".to_string();
@@ -119,6 +137,69 @@ pub fn job(attr: TokenStream, item: TokenStream) -> TokenStream {
                 .with_backoff(#backoff_variant, #backoff_base_lit)
                 .with_timeout(#timeout_lit);
             queue.enqueue(job).await
+        }
+
+        /// Fluent per-instance enqueue builder for the `#fn_name` job (Rails
+        /// `Job.set(...).perform_later`). Carries the job's compile-time policy
+        /// (queue/retries/backoff/timeout), overridable via the setters.
+        pub struct #builder_name {
+            payload: #payload_ty,
+            queue: String,
+            run_at: Option<doido_jobs::chrono::DateTime<doido_jobs::chrono::Utc>>,
+        }
+
+        impl #builder_name {
+            /// Start a builder with the job's default queue.
+            pub fn new(payload: #payload_ty) -> Self {
+                Self { payload, queue: #queue_lit.to_string(), run_at: None }
+            }
+
+            /// Route to a different queue (Rails `set(queue:)`).
+            pub fn on_queue(mut self, queue: impl Into<String>) -> Self {
+                self.queue = queue.into();
+                self
+            }
+
+            /// Delay eligibility by `secs` from now (Rails `set(wait: n.seconds)`).
+            pub fn wait(mut self, secs: i64) -> Self {
+                self.run_at = Some(doido_jobs::chrono::Utc::now() + doido_jobs::chrono::Duration::seconds(secs));
+                self
+            }
+
+            /// Make it eligible at an absolute time (Rails `set(wait_until:)`).
+            pub fn at(mut self, at: doido_jobs::chrono::DateTime<doido_jobs::chrono::Utc>) -> Self {
+                self.run_at = Some(at);
+                self
+            }
+
+            fn into_payload(self) -> doido_core::Result<doido_jobs::JobPayload> {
+                let payload = serde_json::to_value(self.payload)
+                    .map_err(|e| doido_core::anyhow::anyhow!("failed to serialize job payload: {e}"))?;
+                let mut job = doido_jobs::JobPayload::new(self.queue, payload, #max_retries_lit)
+                    .with_priority(#priority_lit)
+                    .with_backoff(#backoff_variant, #backoff_base_lit)
+                    .with_timeout(#timeout_lit);
+                if let Some(at) = self.run_at {
+                    job = job.with_run_at(at);
+                }
+                Ok(job)
+            }
+
+            /// Enqueue for immediate eligibility (unless `wait`/`at` was set).
+            pub async fn enqueue(self, queue: &dyn doido_jobs::JobQueue) -> doido_core::Result<doido_jobs::JobId> {
+                let job = self.into_payload()?;
+                queue.enqueue(job).await
+            }
+
+            /// Enqueue, eligible no earlier than `at`.
+            pub async fn enqueue_at(
+                mut self,
+                at: doido_jobs::chrono::DateTime<doido_jobs::chrono::Utc>,
+                queue: &dyn doido_jobs::JobQueue,
+            ) -> doido_core::Result<doido_jobs::JobId> {
+                self.run_at = Some(at);
+                self.enqueue(queue).await
+            }
         }
     };
 
