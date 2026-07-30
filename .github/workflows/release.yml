@@ -3,9 +3,24 @@ name: Release
 on:
   workflow_dispatch:
     inputs:
-      version:
-        description: "Semver version to publish (e.g. 0.1.0)"
+      version_type:
+        description: "How to bump the workspace version (cargo-workspaces semver keyword)"
         required: true
+        type: choice
+        options:
+          - major
+          - minor
+          - patch
+          - premajor
+          - preminor
+          - prepatch
+          - skip
+          - prerelease
+          - custom
+        default: patch
+      version:
+        description: "Exact semver when version_type is custom (e.g. 0.1.0; no leading v)"
+        required: false
         type: string
       dry_run:
         description: "Dry run — skip publish and GitHub Release creation"
@@ -24,26 +39,57 @@ jobs:
       - run: cargo test --workspace
       - run: make install-check
 
+  version:
+    name: Resolve version
+    needs: test
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.bump.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.95.0
+      - run: cargo install cargo-workspaces --locked
+      - name: Validate custom version input
+        if: ${{ inputs.version_type == 'custom' }}
+        run: |
+          if [ -z "${{ inputs.version }}" ]; then
+            echo "error: version is required when version_type=custom" >&2
+            exit 1
+          fi
+      - name: Bump workspace version
+        id: bump
+        env:
+          VERSION_TYPE: ${{ inputs.version_type }}
+          VERSION: ${{ inputs.version }}
+        run: ./scripts/bump-workspace-version.sh
+      - name: Pack versioned Cargo manifests
+        run: ./scripts/pack-cargo-manifests.sh cargo-manifests.tar.gz
+      - name: Upload versioned manifests
+        uses: actions/upload-artifact@v4
+        with:
+          name: cargo-manifests
+          path: cargo-manifests.tar.gz
+
   publish:
     name: Publish to crates.io
-    needs: test
+    needs: version
     runs-on: ubuntu-latest
     if: ${{ inputs.dry_run == false }}
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
         with:
-          fetch-depth: 0
+          name: cargo-manifests
+      - run: ./scripts/unpack-cargo-manifests.sh cargo-manifests.tar.gz
       - uses: dtolnay/rust-toolchain@1.95.0
       - uses: Swatinem/rust-cache@v2
-      - run: cargo install cargo-workspaces --locked
-      - run: cargo workspaces version --no-git-commit --exact --yes ${{ inputs.version }}
       - run: make publish
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
   build:
     name: Build — ${{ matrix.target }}
-    needs: test
+    needs: version
     strategy:
       matrix:
         include:
@@ -70,6 +116,11 @@ jobs:
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: cargo-manifests
+      - run: ./scripts/unpack-cargo-manifests.sh cargo-manifests.tar.gz
+        shell: bash
       - uses: dtolnay/rust-toolchain@1.95.0
         with:
           targets: ${{ matrix.target }}
@@ -101,7 +152,7 @@ jobs:
 
   release:
     name: GitHub Release
-    needs: [publish, build]
+    needs: [version, publish, build]
     runs-on: ubuntu-latest
     if: ${{ inputs.dry_run == false }}
     permissions:
@@ -117,34 +168,34 @@ jobs:
           mkdir -p release-assets
           cp scripts/install.sh scripts/install.ps1 release-assets/
           chmod +x release-assets/install.sh
-          find artifacts -type f | while read -r f; do
+          find artifacts -type f \( -name 'doido-*' ! -name 'cargo-manifests.tar.gz' \) | while read -r f; do
             cp "$f" "release-assets/$(basename "$f")"
           done
           ls -la release-assets
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ inputs.version }}
-          name: v${{ inputs.version }}
+          tag_name: v${{ needs.version.outputs.version }}
+          name: v${{ needs.version.outputs.version }}
           body: |
             ## Install
 
             **Linux / macOS**
 
             ```bash
-            curl -fsSL https://github.com/doido-rs/doido/releases/download/v${{ inputs.version }}/install.sh | bash
+            curl -fsSL https://github.com/doido-rs/doido/releases/download/v${{ needs.version.outputs.version }}/install.sh | bash
             ```
 
             Pin a version:
 
             ```bash
-            curl -fsSL https://github.com/doido-rs/doido/releases/download/v${{ inputs.version }}/install.sh | DOIDO_VERSION=${{ inputs.version }} bash
+            curl -fsSL https://github.com/doido-rs/doido/releases/download/v${{ needs.version.outputs.version }}/install.sh | DOIDO_VERSION=${{ needs.version.outputs.version }} bash
             ```
 
             **Windows (PowerShell)**
 
             ```powershell
-            irm https://github.com/doido-rs/doido/releases/download/v${{ inputs.version }}/install.ps1 | iex
+            irm https://github.com/doido-rs/doido/releases/download/v${{ needs.version.outputs.version }}/install.ps1 | iex
             ```
 
             Binaries are also attached as `doido-<target>` for manual install.

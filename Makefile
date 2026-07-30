@@ -102,7 +102,7 @@ publish: clean-package ## Upload the workspace to crates.io (resumable, rate-lim
 		fi; \
 		while :; do \
 			echo "==> publishing $$crate $(CRATE_VERSION)"; \
-			out=$$(CARGO_TARGET_DIR="$(PUBLISH_TARGET_DIR)" cargo publish -p "$$crate" $(PUBLISH_FLAGS) 2>&1); \
+			out=$$(CARGO_TARGET_DIR="$(PUBLISH_TARGET_DIR)" cargo publish --allow-dirty -p "$$crate" $(PUBLISH_FLAGS) 2>&1); \
 			code=$$?; \
 			printf '%s\n' "$$out"; \
 			if [ $$code -eq 0 ]; then \
