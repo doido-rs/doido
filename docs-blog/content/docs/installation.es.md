@@ -6,7 +6,9 @@ weight = 2
 
 ## Requisitos previos
 
-- **Rust 1.95.0 o superior.** El workspace fija la toolchain en
+- **Rust 1.95.0 o superior** — solo si compilas apps o la CLI desde el código
+  fuente. Los binarios precompilados de GitHub Releases **no** requieren Rust.
+  El workspace fija la toolchain en
   [`rust-toolchain.toml`](https://github.com/doido-rs/doido/blob/master/rust-toolchain.toml);
   al instalar con [rustup](https://rustup.rs) se detecta automáticamente.
 - Un driver de base de datos para tu objetivo: SQLite funciona de inmediato;
@@ -17,8 +19,57 @@ weight = 2
 
 ## Instala la CLI
 
-Mientras los crates se publican, instala el binario `doido` desde el código
-fuente:
+### Linux y macOS (recomendado)
+
+Descarga y ejecuta el instalador de release con `curl`. Detecta SO/arquitectura,
+obtiene el binario correspondiente de GitHub Releases, lo instala en `~/.local/bin`
+y muestra una pista de PATH cuando hace falta:
+
+```bash
+curl -fsSL https://github.com/doido-rs/doido/releases/latest/download/install.sh | bash
+```
+
+Fijar una versión:
+
+```bash
+curl -fsSL https://github.com/doido-rs/doido/releases/download/v0.0.9/install.sh | DOIDO_VERSION=0.0.9 bash
+```
+
+Directorio de instalación personalizado:
+
+```bash
+curl -fsSL https://github.com/doido-rs/doido/releases/latest/download/install.sh | DOIDO_INSTALL_DIR=$HOME/bin bash
+```
+
+### Windows
+
+En PowerShell:
+
+```powershell
+irm https://github.com/doido-rs/doido/releases/latest/download/install.ps1 | iex
+```
+
+Fijar una versión:
+
+```powershell
+$env:DOIDO_VERSION = "0.0.9"
+irm https://github.com/doido-rs/doido/releases/download/v0.0.9/install.ps1 | iex
+```
+
+El script instala `doido.exe` en `%USERPROFILE%\.local\bin` y añade esa carpeta al
+`PATH` del usuario si aún no está.
+
+### Desde crates.io
+
+Una vez publicado en crates.io:
+
+```bash
+cargo install doido
+```
+
+### Desde el código fuente
+
+Mientras desarrollas el framework:
 
 ```bash
 git clone https://github.com/doido-rs/doido
@@ -26,13 +77,7 @@ cd doido
 cargo install --path doido
 ```
 
-Una vez publicado en crates.io, esto se convierte en:
-
-```bash
-cargo install doido
-```
-
-Verifica la instalación:
+## Verifica la instalación
 
 ```bash
 doido --help
