@@ -3,7 +3,7 @@
 A static site (documentation + blog) for the Doido framework, built with
 [Zola](https://www.getzola.org/) — a static-site generator written in Rust that
 uses the `pulldown-cmark` markdown engine. It is deployed to GitHub Pages at
-**https://doido-rs.github.io/doido** by GitHub Actions.
+**https://doido-rs.github.io** by GitHub Actions.
 
 ```
 docs-blog/
@@ -124,7 +124,7 @@ The theme is **configurable** and **updatable**:
 [`.github/workflows/docs-blog.yml`](../.github/workflows/docs-blog.yml) builds the
 site with Zola and deploys it to GitHub Pages on every push to `master` that
 touches `docs-blog/**` (and on manual dispatch). `base_url` in `config.toml` points
-at the GitHub Pages URL `https://doido-rs.github.io/doido`.
+at the GitHub Pages URL `https://doido-rs.github.io`.
 
 ### One-time setup (repo settings)
 
