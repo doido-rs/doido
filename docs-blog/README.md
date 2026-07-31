@@ -3,7 +3,7 @@
 A static site (documentation + blog) for the Doido framework, built with
 [Zola](https://www.getzola.org/) — a static-site generator written in Rust that
 uses the `pulldown-cmark` markdown engine. It is deployed to GitHub Pages at
-**https://doido.rs** by GitHub Actions.
+**https://doido-rs.github.io** by GitHub Actions.
 
 ```
 docs-blog/
@@ -123,16 +123,11 @@ The theme is **configurable** and **updatable**:
 
 [`.github/workflows/docs-blog.yml`](../.github/workflows/docs-blog.yml) builds the
 site with Zola and deploys it to GitHub Pages on every push to `master` that
-touches `docs-blog/**` (and on manual dispatch). `base_url` in `config.toml` and
-the `static/CNAME` file pin the custom domain `doido.rs`.
+touches `docs-blog/**` (and on manual dispatch). `base_url` in `config.toml` points
+at the GitHub Pages URL `https://doido-rs.github.io`.
 
-### One-time setup (repo settings + DNS)
+### One-time setup (repo settings)
 
-These are configured once, outside the codebase:
+This is configured once, outside the codebase:
 
 1. **GitHub → Settings → Pages → Build and deployment → Source: GitHub Actions.**
-2. **Custom domain:** set `doido.rs` under the same Pages settings (it reads the
-   `CNAME` file). Enable **Enforce HTTPS** once the certificate is provisioned.
-3. **DNS for the apex domain `doido.rs`:** add `A`/`AAAA` records pointing at
-   GitHub Pages' IP addresses (or an `ALIAS`/`ANAME` to `doido-rs.github.io`). See
-   [GitHub's apex-domain guide](https://docs.github.com/en/pages/configuring-a-custom-domain-for-your-github-pages-site/managing-a-custom-domain-for-your-github-pages-site#configuring-an-apex-domain).
