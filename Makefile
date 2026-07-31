@@ -49,6 +49,15 @@ CRATE_VERSION := $(shell sed -nE 's/^version[[:space:]]*=[[:space:]]*"([^"]+)".*
 # Crates listed in dependency order (dependencies before dependents) so each is
 # already on the registry when its dependents are published. Keep this in sync
 # when adding/removing workspace members.
+#
+# Layer 0 — no first-party deps: core + proc-macro crates
+# Layer 1 — doido-core only: model, cache
+# Layer 2 — view (cache), jobs (jobs-macros; optional model)
+# Layer 3 — controller (model, view, cache, controller-macros)
+# Layer 4 — cable (controller), mailer (jobs, view)
+# Layer 5 — storage (controller, model; optional jobs)
+# Layer 6 — generators (controller, model, view, cache, jobs)
+# Layer 7 — metacrate (everything)
 PUBLISH_CRATES ?= \
 	doido-core \
 	doido-controller-macros \
@@ -59,8 +68,8 @@ PUBLISH_CRATES ?= \
 	doido-cache \
 	doido-view \
 	doido-jobs \
-	doido-cable \
 	doido-controller \
+	doido-cable \
 	doido-mailer \
 	doido-storage \
 	doido-generators \
