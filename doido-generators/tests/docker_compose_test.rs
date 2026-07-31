@@ -94,12 +94,7 @@ fn jobs_redis_adds_redis_service() {
 #[test]
 fn cable_and_jobs_redis_share_one_redis_service() {
     let files = ProjectGenerator
-        .generate(&[
-            "app",
-            "--database=sqlite",
-            "--cable",
-            "--jobs=redis",
-        ])
+        .generate(&["app", "--database=sqlite", "--cable", "--jobs=redis"])
         .unwrap();
     let compose = find_content(&files, "app/docker-compose.yml");
     assert_eq!(compose.matches("image: redis:").count(), 1);

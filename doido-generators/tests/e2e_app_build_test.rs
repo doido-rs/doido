@@ -42,7 +42,13 @@ fn every_generator_output_compiles() {
 
     // `doido new blog --database=sqlite --cable` (cable so channels are wired).
     doido(tmp.path())
-        .args(["new", "blog", "--non-interactive", "--database=sqlite", "--cable"])
+        .args([
+            "new",
+            "blog",
+            "--non-interactive",
+            "--database=sqlite",
+            "--cable",
+        ])
         .assert()
         .success();
     let app = tmp.path().join("blog");

@@ -145,14 +145,7 @@ pub async fn run(routes: Option<axum::Router>) {
             cache,
             jobs,
         } => {
-            run_new(
-                &name,
-                non_interactive,
-                database,
-                cable,
-                cache,
-                jobs,
-            );
+            run_new(&name, non_interactive, database, cable, cache, jobs);
         }
     }
 }

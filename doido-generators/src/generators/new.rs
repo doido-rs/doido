@@ -55,7 +55,6 @@ cargo test --bin {doido_name} chat
 ```
 "#;
 
-
 struct TemplateContext<'a> {
     name: &'a str,
     db_url: String,
@@ -214,7 +213,13 @@ fn compose_memcache_service() -> &'static str {
       - "11211:11211""#
 }
 
-fn compose_services(database: &str, name: &str, cable: bool, cache: CacheBackend, jobs: JobsBackend) -> String {
+fn compose_services(
+    database: &str,
+    name: &str,
+    cable: bool,
+    cache: CacheBackend,
+    jobs: JobsBackend,
+) -> String {
     let mut parts = Vec::new();
     match database {
         "postgres" => parts.push(compose_postgres_service(name)),
@@ -230,7 +235,12 @@ fn compose_services(database: &str, name: &str, cable: bool, cache: CacheBackend
     parts.join("\n\n")
 }
 
-fn compose_depends_on(database: &str, cable: bool, cache: CacheBackend, jobs: JobsBackend) -> String {
+fn compose_depends_on(
+    database: &str,
+    cable: bool,
+    cache: CacheBackend,
+    jobs: JobsBackend,
+) -> String {
     let mut deps = Vec::new();
     match database {
         "postgres" => deps.push("      postgres:\n        condition: service_healthy"),
@@ -491,7 +501,9 @@ mod tests {
     }
 
     fn assert_cargo_toml_parses(cargo_toml: &str) {
-        cargo_toml.parse::<toml::Table>().expect("valid Cargo.toml TOML");
+        cargo_toml
+            .parse::<toml::Table>()
+            .expect("valid Cargo.toml TOML");
     }
 
     fn minimal_cargo_with_doido_line(doido_line: &str) -> String {
@@ -578,21 +590,39 @@ edition = "2021"
 
     #[test]
     fn compose_includes_redis_for_cache_redis() {
-        let svc = compose_services("sqlite", "app", false, CacheBackend::Redis, JobsBackend::Memory);
+        let svc = compose_services(
+            "sqlite",
+            "app",
+            false,
+            CacheBackend::Redis,
+            JobsBackend::Memory,
+        );
         assert!(svc.contains("redis:8-alpine"));
         assert!(!svc.contains("postgres:"));
     }
 
     #[test]
     fn compose_includes_memcache_for_cache_memcache() {
-        let svc = compose_services("sqlite", "app", false, CacheBackend::Memcache, JobsBackend::Memory);
+        let svc = compose_services(
+            "sqlite",
+            "app",
+            false,
+            CacheBackend::Memcache,
+            JobsBackend::Memory,
+        );
         assert!(svc.contains("memcached:1.6-alpine"));
         assert!(!svc.contains("redis:"));
     }
 
     #[test]
     fn compose_deduplicates_redis_when_cable_and_jobs_redis() {
-        let svc = compose_services("sqlite", "app", true, CacheBackend::Memory, JobsBackend::Redis);
+        let svc = compose_services(
+            "sqlite",
+            "app",
+            true,
+            CacheBackend::Memory,
+            JobsBackend::Redis,
+        );
         assert_eq!(svc.matches("image: redis:").count(), 1);
     }
 

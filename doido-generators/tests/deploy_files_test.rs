@@ -19,6 +19,8 @@ fn new_app_includes_deploy_and_devcontainer_files() {
         .find(|f| f.path.ends_with("Dockerfile") && !f.path.ends_with("Dockerfile.dev"))
         .unwrap();
     assert!(dockerfile.content.contains("distroless/cc-debian12"));
-    assert!(dockerfile.content.contains("COPY Cargo.toml Cargo.lock* ./"));
+    assert!(dockerfile
+        .content
+        .contains("COPY Cargo.toml Cargo.lock* ./"));
     assert!(dockerfile.content.contains("cargo build --release"));
 }

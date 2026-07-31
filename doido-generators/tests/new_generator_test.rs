@@ -1,5 +1,7 @@
 use doido_generators::generators::new::ProjectGenerator;
-use doido_generators::{default_registry, Generator, DOIDO_VERSION, TEMPLATE_USE_PATH_DEPS, TEMPLATE_WORKSPACE_PATH};
+use doido_generators::{
+    default_registry, Generator, DOIDO_VERSION, TEMPLATE_USE_PATH_DEPS, TEMPLATE_WORKSPACE_PATH,
+};
 
 #[test]
 fn test_new_generates_all_expected_files() {
@@ -274,7 +276,15 @@ fn test_new_rejects_unknown_database() {
 fn test_new_registered_in_default_registry() {
     let registry = default_registry();
     let files = registry
-        .run("new", &["my-app", "--database=sqlite", "--cache=memory", "--jobs=memory"])
+        .run(
+            "new",
+            &[
+                "my-app",
+                "--database=sqlite",
+                "--cache=memory",
+                "--jobs=memory",
+            ],
+        )
         .unwrap();
     assert!(!files.is_empty());
 }
