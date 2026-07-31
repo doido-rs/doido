@@ -119,7 +119,8 @@ fn generate_inner(
                 let base_id_edit = format!("{}/{}/{{id}}/edit", prefix, name);
                 let ctrl = &controller;
 
-                let mut collection = quote! { doido_controller::axum::routing::MethodRouter::new() };
+                let mut collection =
+                    quote! { doido_controller::axum::routing::MethodRouter::new() };
                 if is_active("index", &filter) {
                     collection = quote! { #collection.get(#ctrl::index) };
                     descriptors.push(("GET".to_string(), base.clone()));
@@ -250,7 +251,9 @@ fn generate_inner(
                         .put(#ctrl::update)
                         .delete(#ctrl::destroy))
                 });
-                route_stmts.push(quote! { .route(#base_new, doido_controller::axum::routing::get(#ctrl::new)) });
+                route_stmts.push(
+                    quote! { .route(#base_new, doido_controller::axum::routing::get(#ctrl::new)) },
+                );
                 route_stmts.push(quote! { .route(#base_edit, doido_controller::axum::routing::get(#ctrl::edit)) });
 
                 let helper_base = match helper_prefix {

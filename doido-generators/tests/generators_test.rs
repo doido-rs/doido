@@ -106,7 +106,7 @@ fn test_model_generator_emits_columns_from_field_specs() {
     assert!(migration.content.contains("t.integer(\"views\");"));
     assert!(migration
         .content
-        .contains("use doido_model::migration::{add_index, create_table, drop_table};"));
+        .contains("use doido::model::migration::{add_index, create_table, drop_table};"));
     assert!(migration
         .content
         .contains("add_index(manager, \"posts\", &[\"views\"]).await?;"));
@@ -123,7 +123,7 @@ fn test_model_generator_without_fields_emits_empty_table() {
     assert!(migration.content.contains("|_t| {}).await"));
     assert!(migration
         .content
-        .contains("use doido_model::migration::{create_table, drop_table};"));
+        .contains("use doido::model::migration::{create_table, drop_table};"));
     assert!(!migration.content.contains("add_index"));
 }
 
@@ -204,7 +204,7 @@ fn test_migration_generator_create_pattern_uses_doido_model() {
     assert!(mig.content.contains("drop_table(manager, \"users\").await"));
     assert!(mig
         .content
-        .contains("use doido_model::migration::{create_table, drop_table};"));
+        .contains("use doido::model::migration::{create_table, drop_table};"));
     assert!(!mig.content.contains("Table::create()"));
     assert!(!mig.content.contains("ColumnDef"));
     // Registered in the Migrator's lib.rs, and a test stub is scaffolded.
@@ -229,7 +229,7 @@ fn test_migration_generator_add_columns_pattern() {
         .unwrap();
     assert!(mig
         .content
-        .contains("use doido_model::migration::alter_table;"));
+        .contains("use doido::model::migration::alter_table;"));
     assert!(mig
         .content
         .contains("alter_table(manager, \"posts\", |t| {"));

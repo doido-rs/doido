@@ -111,7 +111,8 @@ fn test_new_template_includes_json_hello_action() {
         .find(|f| f.path == "api/app/controllers/hello_controller.rs")
         .unwrap();
     assert!(hello.content.contains("Hello word!"));
-    assert!(hello.content.contains("json!("));
+    assert!(hello.content.contains("doido::controller::"));
+    assert!(!hello.content.contains("doido_controller::"));
 }
 
 #[test]
@@ -127,19 +128,25 @@ fn test_new_sqlite_cargo_toml_has_sqlite_feature() {
     assert!(cargo_toml.content.contains("doido-model ="));
     assert!(cargo_toml.content.contains("features = [\"sqlite\"]"));
     assert!(cargo_toml.content.contains("serde_json"));
-    assert!(cargo_toml.content.contains("axum"));
+    assert!(
+        cargo_toml.content.contains("doido-controller ="),
+        "generated app must depend on doido-controller (axum is re-exported there)"
+    );
+    assert!(
+        !cargo_toml.content.contains("\naxum ="),
+        "generated app must not depend on axum directly"
+    );
     let mode = DependencyMode::resolve();
     if mode.use_path {
         assert!(
-            cargo_toml.content.contains(&format!(
-                "doido = {{ path = \"{}/doido\" }}",
-                mode.workspace_path
-            )),
+            cargo_toml
+                .content
+                .contains(&format!("path = \"{}/doido\"", mode.workspace_path)),
             "generated Cargo.toml must point `doido` at the local workspace crate"
         );
         assert!(
             cargo_toml.content.contains(&format!(
-                "doido-controller = {{ path = \"{}/doido-controller\" }}",
+                "path = \"{}/doido-controller\"",
                 mode.workspace_path
             )),
             "generated Cargo.toml must point `doido-controller` at the local workspace crate"
@@ -208,12 +215,24 @@ fn test_new_migration_crate_uses_selected_backend() {
         "migration crate must not depend on sea-orm-migration directly"
     );
     assert!(
-        migration_cargo.content.contains("doido-model ="),
-        "migration crate must depend on doido-model"
+        migration_cargo.content.contains("doido ="),
+        "migration crate must depend on doido meta crate"
     );
     assert!(
-        migration_cargo.content.contains("features = [\"postgres\"]"),
-        "doido-model dependency must enable the postgres feature"
+        migration_cargo
+            .content
+            .contains("features = [\"postgres\"]"),
+        "doido dependency must enable the postgres feature"
+    );
+    let migration_lib = files
+        .iter()
+        .find(|f| f.path == "blog/db/migration/src/lib.rs")
+        .unwrap();
+    assert!(
+        migration_lib
+            .content
+            .contains("doido::model::sea_orm_migration"),
+        "migration lib must import sea_orm_migration via doido::model"
     );
 }
 
@@ -234,7 +253,7 @@ fn test_new_migration_crate_doido_model_feature_matches_database() {
             .unwrap_or_else(|| panic!("missing migration Cargo.toml for {database}"));
         assert!(
             migration_cargo.content.contains(model_feature),
-            "{database}: doido-model must declare {model_feature}"
+            "{database}: doido meta crate must declare {model_feature}"
         );
         assert!(
             !migration_cargo.content.contains("sea-orm-migration"),

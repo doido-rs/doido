@@ -117,7 +117,10 @@ fn doido_features(cache: CacheBackend, database: &str) -> String {
         CacheBackend::Memcache => feats.push("\"cache-memcache\"".to_string()),
         CacheBackend::Memory => {}
     }
-    format!(", default-features = false, features = [{}]", feats.join(", "))
+    format!(
+        ", default-features = false, features = [{}]",
+        feats.join(", ")
+    )
 }
 
 fn doido_jobs_features(jobs: JobsBackend, database: &str) -> String {
@@ -322,9 +325,11 @@ fn substitute_template(template: &str, ctx: &TemplateContext<'_>) -> String {
         )
         .replace(
             "{doido_controller_dep}",
-            &doido_dependency(&ctx.dep_mode, "doido-controller", &doido_model_features(
-                ctx.sqlx_feature,
-            )),
+            &doido_dependency(
+                &ctx.dep_mode,
+                "doido-controller",
+                &doido_model_features(ctx.sqlx_feature),
+            ),
         )
         .replace("{doido_jobs_dep}", &ctx.doido_jobs_dep)
         .replace(
@@ -457,7 +462,11 @@ impl Generator for ProjectGenerator {
             sqlx_feature,
             cable,
             doido_dep: doido_dependency(&dep_mode, "doido", &doido_features(cache, database)),
-            doido_jobs_dep: doido_dependency(&dep_mode, "doido-jobs", &doido_jobs_features(jobs, database)),
+            doido_jobs_dep: doido_dependency(
+                &dep_mode,
+                "doido-jobs",
+                &doido_jobs_features(jobs, database),
+            ),
             doido_model_dep: doido_dependency(
                 &dep_mode,
                 "doido-model",
@@ -581,10 +590,7 @@ edition = "2021"
 
     #[test]
     fn doido_model_features_match_database_backend() {
-        assert_eq!(
-            doido_model_features("sqlite"),
-            ", features = [\"sqlite\"]"
-        );
+        assert_eq!(doido_model_features("sqlite"), ", features = [\"sqlite\"]");
         assert_eq!(
             doido_model_features("postgres"),
             ", features = [\"postgres\"]"

@@ -1,6 +1,7 @@
 # Migration
 
 A [SeaORM](https://www.sea-ql.org/SeaORM/) migration project for this Doido app.
+Imports use `doido::model::sea_orm_migration` — not the upstream crate directly.
 
 ## Running migrations
 
@@ -12,13 +13,10 @@ cargo run --manifest-path db/migration/Cargo.toml -- up
 
 # Roll back the last migration
 cargo run --manifest-path db/migration/Cargo.toml -- down
-```
 
-Or, with the SeaORM CLI installed:
-
-```sh
-sea-orm-cli migrate up
-sea-orm-cli migrate down
+# Or via the Doido CLI (uses `doido::model::sea_orm_cli` under the hood)
+doido db migrate
+doido db rollback
 ```
 
 ## Adding migrations

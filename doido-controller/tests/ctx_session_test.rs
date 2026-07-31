@@ -28,8 +28,14 @@ impl SessionController {
 
 fn app() -> doido_controller::axum::Router {
     doido_controller::axum::Router::new()
-        .route("/bump", doido_controller::axum::routing::get(SessionController::bump))
-        .route("/read", doido_controller::axum::routing::get(SessionController::read))
+        .route(
+            "/bump",
+            doido_controller::axum::routing::get(SessionController::bump),
+        )
+        .route(
+            "/read",
+            doido_controller::axum::routing::get(SessionController::read),
+        )
 }
 
 /// Collapse a response's `Set-Cookie` headers into a `Cookie` request header.

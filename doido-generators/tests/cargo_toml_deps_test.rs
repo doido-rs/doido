@@ -127,14 +127,16 @@ fn doido_model_database_features_stay_on_migration_dependency_line() {
     ];
     for (database, feature) in cases {
         let cargo = migration_cargo_toml_for(&["app", &format!("--database={database}")]);
-        cargo.parse::<toml::Table>().expect("valid migration Cargo.toml");
+        cargo
+            .parse::<toml::Table>()
+            .expect("valid migration Cargo.toml");
         assert!(
-            cargo.contains("doido-model = {"),
-            "{database}: migration crate must declare doido-model"
+            cargo.contains("doido = {"),
+            "{database}: migration crate must declare doido meta crate"
         );
         assert!(
             cargo.contains(feature),
-            "{database}: doido-model line must include {feature}"
+            "{database}: doido line must include {feature}"
         );
         assert!(
             !cargo.contains("}, features ="),

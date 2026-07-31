@@ -1,4 +1,3 @@
-use crate::config::CorsConfig;
 use crate::axum::{
     body::Body,
     extract::{Request, State},
@@ -6,6 +5,7 @@ use crate::axum::{
     response::Response,
     Router,
 };
+use crate::config::CorsConfig;
 use http::{header, HeaderValue, Method, StatusCode};
 use std::sync::Arc;
 use tower_http::{

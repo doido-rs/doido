@@ -1,6 +1,8 @@
 //! Index operations: `add_index`, `remove_index`.
 
-use crate::sea_orm::sea_query::{Alias, Index as SqIndex, IndexCreateStatement, IndexDropStatement};
+use crate::sea_orm::sea_query::{
+    Alias, Index as SqIndex, IndexCreateStatement, IndexDropStatement,
+};
 use crate::sea_orm::{ConnectionTrait, DbErr};
 use crate::sea_orm_migration::SchemaManager;
 

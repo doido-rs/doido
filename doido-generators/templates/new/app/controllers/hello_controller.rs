@@ -1,4 +1,4 @@
-use doido_controller::controller;
+use doido::controller::controller;
 use serde_json::json;
 
 pub struct HelloController;
@@ -6,8 +6,8 @@ pub struct HelloController;
 #[controller]
 impl HelloController {
     pub async fn index(
-        ctx: doido_controller::Context,
-    ) -> doido_controller::Response {
+        ctx: doido::controller::Context,
+    ) -> doido::controller::Response {
         ctx.json(json!({ "message": "Hello word!" }))
     }
 }

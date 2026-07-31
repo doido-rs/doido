@@ -200,7 +200,8 @@ async fn test_resources_generates_destroy_route() {
 fn test_resources_url_helpers() {
     // URL helpers are generated as fn items inside the routes! block expression.
     // Verify the macro compiles and the router is produced:
-    let _app: doido_controller::axum::Router = doido_controller::routes! { resources!(posts, posts_controller) };
+    let _app: doido_controller::axum::Router =
+        doido_controller::routes! { resources!(posts, posts_controller) };
     // posts_path(), new_post_path(), post_path(id), edit_post_path(id) are
     // generated as fn items but are scoped to the routes! block expression.
     // Verified by successful compilation above.

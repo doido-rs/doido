@@ -2,10 +2,10 @@ pub use sea_orm;
 pub use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, ModelTrait, QueryFilter, Set,
 };
-pub use sea_orm_migration;
-pub use sea_orm_migration::SchemaManager;
 #[cfg(feature = "cli")]
 pub use sea_orm_cli;
+pub use sea_orm_migration;
+pub use sea_orm_migration::SchemaManager;
 
 pub mod association;
 pub mod callbacks;

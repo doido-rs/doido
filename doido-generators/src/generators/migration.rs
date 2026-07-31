@@ -124,7 +124,7 @@ impl MigrationOp {
                          \x20       let _ = manager;\n        Ok(())\n"
                     );
                     (
-                        "use doido_model::migration::drop_table;".to_string(),
+                        "use doido::model::migration::drop_table;".to_string(),
                         up,
                         down,
                     )
@@ -138,12 +138,12 @@ impl MigrationOp {
                 }
             }
             Self::AddColumns { table } => (
-                "use doido_model::migration::alter_table;".to_string(),
+                "use doido::model::migration::alter_table;".to_string(),
                 alter_body(table, &add_lines(fields)),
                 alter_body(table, &drop_lines(fields)),
             ),
             Self::RemoveColumns { table } => (
-                "use doido_model::migration::alter_table;".to_string(),
+                "use doido::model::migration::alter_table;".to_string(),
                 alter_body(table, &drop_lines(fields)),
                 alter_body(table, &add_lines(fields)),
             ),

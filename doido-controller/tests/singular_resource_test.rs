@@ -25,7 +25,11 @@ mod profile {
     }
 }
 
-async fn call(app: &doido_controller::axum::Router, method: &str, uri: &str) -> (StatusCode, String) {
+async fn call(
+    app: &doido_controller::axum::Router,
+    method: &str,
+    uri: &str,
+) -> (StatusCode, String) {
     let resp = app
         .clone()
         .oneshot(

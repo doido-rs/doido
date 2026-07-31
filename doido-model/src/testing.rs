@@ -1,6 +1,6 @@
+use crate::sea_orm::{Database, DatabaseConnection};
 use crate::sea_orm_migration::MigratorTrait;
 use doido_core::Result;
-use crate::sea_orm::{Database, DatabaseConnection};
 
 pub struct TestDb {
     conn: DatabaseConnection,

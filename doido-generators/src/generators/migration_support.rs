@@ -28,9 +28,9 @@ pub fn render_migration_file(imports: &str, up_body: &str, down_body: &str) -> S
 /// carries no unused imports.
 pub fn create_table_imports(fields: &[Field]) -> String {
     if fields.iter().any(Field::wants_index) {
-        "use doido_model::migration::{add_index, create_table, drop_table};".to_string()
+        "use doido::model::migration::{add_index, create_table, drop_table};".to_string()
     } else {
-        "use doido_model::migration::{create_table, drop_table};".to_string()
+        "use doido::model::migration::{create_table, drop_table};".to_string()
     }
 }
 

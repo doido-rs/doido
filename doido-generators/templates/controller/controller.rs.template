@@ -1,4 +1,4 @@
-use doido_controller::{controller, Context, Response};
+use doido::controller::{controller, Context, Response};
 use serde_json::json;
 
 /// Controller for `{pascal}`. Wire its actions up in `config/routes.rs`, e.g.
