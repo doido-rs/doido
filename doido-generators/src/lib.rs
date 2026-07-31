@@ -1,6 +1,7 @@
 mod banner;
 mod cli;
 pub mod commands;
+pub mod dev_workspace;
 pub mod generator;
 pub mod generators;
 pub mod new_options;
@@ -11,25 +12,11 @@ pub mod templates;
 // CLI entry point (merged in from the former `doido-cli` crate).
 pub use cli::run;
 
-/// Absolute path to the doido workspace root, captured when `doido-generators`
-/// was built. Generated apps point their `doido-*` path dependencies here so a
-/// freshly generated app builds against the local framework crates.
-pub const TEMPLATE_WORKSPACE_PATH: &str = env!("DOIDO_GENERATOR_TEMPLATE_WORKSPACE_PATH");
+pub use dev_workspace::DependencyMode;
 
-/// The doido release version generated apps depend on when this crate was built
-/// outside the workspace (i.e. from a published crates.io release). Mirrors the
-/// workspace version, so a published `doido-generators x.y.z` scaffolds apps
-/// that depend on `doido x.y.z`.
+/// The Doido release version generated apps depend on when this binary is
+/// isolated or published. Matches `CARGO_PKG_VERSION` of this crate.
 pub const DOIDO_VERSION: &str = env!("CARGO_PKG_VERSION");
-
-/// Whether generated apps should use local `path` dependencies (`true`, set when
-/// `doido-generators` is built inside the workspace) or crates.io `version`
-/// dependencies (`false`, set once the crate is packaged/published). Decided at
-/// build time by `build.rs` from whether the sibling framework crates are on disk.
-pub const TEMPLATE_USE_PATH_DEPS: bool = {
-    let flag = env!("DOIDO_GENERATOR_USE_PATH_DEPS").as_bytes();
-    flag.len() == 1 && flag[0] == b'1'
-};
 
 pub use generator::{GeneratedFile, Generator};
 pub use generators::{

@@ -1,10 +1,10 @@
 //! New application skeleton rendered from embedded files under `templates/new/`.
 //! Placeholders: `{doido_name}`, `{doido_db_url}`, `{doido_sqlx_feature}`,
-//! `{doido_path}` (absolute workspace root captured at compile time, used for
-//! local `doido-*` path dependencies), and the per-crate dependency specs
-//! `{doido_dep}` / `{doido_controller_dep}` / `{doido_model_dep}` which render as
-//! a local `path` dep in a workspace build or a crates.io `version` dep once
-//! `doido-generators` is published (see [`doido_dependency`]).
+//! `{doido_path}` (absolute workspace root when the running binary lives inside a
+//! local checkout), and the per-crate dependency specs `{doido_dep}` /
+//! `{doido_controller_dep}` / `{doido_model_dep}` which render as a local `path`
+//! dep when the binary runs from a development checkout or a crates.io `version`
+//! dep matching this binary's release otherwise (see [`DependencyMode`]).
 //!
 //! The optional doido-cable example lives inside this same template. Its channel
 //! files sit under `templates/new/app/channels/` (skipped unless `--cable` is
@@ -17,6 +17,7 @@
 //! have the suffix stripped on output; the suffix keeps `cargo package` from treating
 //! `templates/new/` as a nested crate and excluding it from the published tarball.
 
+use crate::dev_workspace::DependencyMode;
 use crate::generator::{GeneratedFile, Generator};
 use crate::new_options::{parse_cache, parse_database, parse_jobs, CacheBackend, JobsBackend};
 use doido_core::{anyhow, Result};
@@ -62,6 +63,7 @@ struct TemplateContext<'a> {
     db_url_production: String,
     sqlx_feature: &'a str,
     cable: bool,
+    dep_mode: DependencyMode,
     doido_dep: String,
     doido_jobs_dep: String,
     cache_section: String,
@@ -74,11 +76,11 @@ struct TemplateContext<'a> {
 }
 
 /// Renders a complete Cargo inline-table dependency for a first-party `doido-*` crate.
-fn doido_dependency(subdir: &str, features: &str) -> String {
+fn doido_dependency(mode: &DependencyMode, subdir: &str, features: &str) -> String {
     dependency_spec(
-        crate::TEMPLATE_USE_PATH_DEPS,
-        crate::TEMPLATE_WORKSPACE_PATH,
-        crate::DOIDO_VERSION,
+        mode.use_path,
+        &mode.workspace_path,
+        mode.version,
         subdir,
         features,
     )
@@ -287,7 +289,7 @@ fn substitute_template(template: &str, ctx: &TemplateContext<'_>) -> String {
         (
             format!(
                 "doido-cable = {}\nasync-trait = \"0.1\"\n",
-                doido_dependency("doido-cable", "")
+                doido_dependency(&ctx.dep_mode, "doido-cable", "")
             ),
             CABLE_MODULE_INCLUDE.to_string(),
             CABLE_README_SECTION.replace("{doido_name}", ctx.name),
@@ -303,14 +305,23 @@ fn substitute_template(template: &str, ctx: &TemplateContext<'_>) -> String {
         .replace("{doido_db_url}", &ctx.db_url)
         .replace("{doido_sqlx_feature}", ctx.sqlx_feature)
         .replace("{doido_dep}", &ctx.doido_dep)
-        .replace("{doido_core_dep}", &doido_dependency("doido-core", ""))
+        .replace(
+            "{doido_core_dep}",
+            &doido_dependency(&ctx.dep_mode, "doido-core", ""),
+        )
         .replace(
             "{doido_controller_dep}",
-            &doido_dependency("doido-controller", ""),
+            &doido_dependency(&ctx.dep_mode, "doido-controller", ""),
         )
         .replace("{doido_jobs_dep}", &ctx.doido_jobs_dep)
-        .replace("{doido_mailer_dep}", &doido_dependency("doido-mailer", ""))
-        .replace("{doido_model_dep}", &doido_dependency("doido-model", ""))
+        .replace(
+            "{doido_mailer_dep}",
+            &doido_dependency(&ctx.dep_mode, "doido-mailer", ""),
+        )
+        .replace(
+            "{doido_model_dep}",
+            &doido_dependency(&ctx.dep_mode, "doido-model", ""),
+        )
         .replace("{doido_cable_deps}", &cable_deps)
         .replace("{doido_channels_module}", &cable_module)
         .replace("{doido_cable_readme}", &cable_readme)
@@ -321,7 +332,7 @@ fn substitute_template(template: &str, ctx: &TemplateContext<'_>) -> String {
         .replace("{doido_compose_database_url}", &ctx.compose_database_url)
         .replace("{doido_compose_env_extras}", &ctx.compose_env_extras)
         .replace("{doido_compose_web_volumes}", &ctx.compose_web_volumes)
-        .replace("{doido_path}", crate::TEMPLATE_WORKSPACE_PATH)
+        .replace("{doido_path}", &ctx.dep_mode.workspace_path)
 }
 
 fn collect_from_dir(
@@ -426,6 +437,8 @@ impl Generator for ProjectGenerator {
             _ => "sqlite",
         };
 
+        let dep_mode = DependencyMode::resolve();
+
         let ctx = TemplateContext {
             name,
             db_url,
@@ -433,8 +446,9 @@ impl Generator for ProjectGenerator {
             db_url_production,
             sqlx_feature,
             cable,
-            doido_dep: doido_dependency("doido", &doido_features(cache)),
-            doido_jobs_dep: doido_dependency("doido-jobs", &doido_jobs_features(jobs)),
+            doido_dep: doido_dependency(&dep_mode, "doido", &doido_features(cache)),
+            doido_jobs_dep: doido_dependency(&dep_mode, "doido-jobs", &doido_jobs_features(jobs)),
+            dep_mode,
             cache_section: render_cache_section(cache, name),
             jobs_section: render_jobs_section(jobs, name),
             compose_services: compose_services(database, name, cable, cache, jobs),

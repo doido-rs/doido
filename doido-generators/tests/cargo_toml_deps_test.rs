@@ -1,8 +1,8 @@
-//! Tests that generated `Cargo.toml` dependency lines match the build mode
-//! (local path vs published version).
+//! Tests that generated `Cargo.toml` dependency lines match the runtime dependency
+//! mode (local path vs published version).
 
 use doido_generators::generators::new::ProjectGenerator;
-use doido_generators::{Generator, DOIDO_VERSION, TEMPLATE_USE_PATH_DEPS};
+use doido_generators::{DependencyMode, Generator, DOIDO_VERSION};
 
 fn cargo_toml_for(args: &[&str]) -> String {
     ProjectGenerator
@@ -21,30 +21,31 @@ fn generated_cargo_toml_parses_as_valid_toml() {
 }
 
 #[test]
-fn generated_deps_match_build_mode() {
+fn generated_deps_match_runtime_mode() {
     let cargo = cargo_toml_for(&["app", "--database=sqlite"]);
+    let mode = DependencyMode::resolve();
 
-    if TEMPLATE_USE_PATH_DEPS {
+    if mode.use_path {
         assert!(
             cargo.contains("doido = { path ="),
-            "workspace build should emit path dependencies for doido"
+            "dev checkout binary should emit path dependencies for doido"
         );
         assert!(
             !cargo.contains("doido = { version ="),
-            "workspace build should not emit version dependencies for doido"
+            "dev checkout binary should not emit version dependencies for doido"
         );
     } else {
         assert!(
             !cargo.contains("path ="),
-            "published build should not emit path dependencies"
+            "isolated/published binary should not emit path dependencies"
         );
         assert!(
             cargo.contains(DOIDO_VERSION),
-            "published build should pin crates.io version {DOIDO_VERSION}"
+            "isolated/published binary should pin version {DOIDO_VERSION}"
         );
         assert!(
             cargo.contains("doido = { version ="),
-            "published build should use version = for doido"
+            "isolated/published binary should use version = for doido"
         );
     }
 }
@@ -52,9 +53,10 @@ fn generated_deps_match_build_mode() {
 #[test]
 fn cache_redis_features_stay_on_doido_dependency_line() {
     let cargo = cargo_toml_for(&["app", "--database=sqlite", "--cache=redis"]);
+    let mode = DependencyMode::resolve();
     assert!(cargo.contains("cache-redis"));
 
-    if TEMPLATE_USE_PATH_DEPS {
+    if mode.use_path {
         assert!(cargo.contains("doido = { path ="));
     } else {
         assert!(cargo.contains("doido = { version ="));
