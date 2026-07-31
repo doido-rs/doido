@@ -11,7 +11,7 @@
 use crate::blob::{self, Blob};
 use crate::error::StorageError;
 use doido_core::Result;
-use doido_model::sea_orm::{
+use sea_orm::{
     ConnectionTrait, DatabaseConnection, DbBackend, Statement, Value as DbValue,
 };
 

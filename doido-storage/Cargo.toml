@@ -7,7 +7,10 @@ edition = "2021"
 
 [dependencies]
 doido-core.workspace = true
-doido-model.workspace = true          # sea-orm, connection pool, migration builders
+sea-orm = { version = "2.0.0", default-features = false, features = [
+    "runtime-tokio-rustls",
+    "macros",
+] }
 thiserror.workspace = true
 async-trait.workspace = true
 serde.workspace = true
@@ -52,6 +55,9 @@ doido-jobs = { workspace = true, optional = true }
 
 [features]
 default = []
+sqlite = ["sea-orm/sqlx-sqlite"]
+postgres = ["sea-orm/sqlx-postgres"]
+mysql = ["sea-orm/sqlx-mysql"]
 storage-s3 = ["dep:aws-sdk-s3"]        # covers both the `s3` and `r2` service kinds
 storage-azure = ["dep:azure_storage", "dep:azure_storage_blobs"]
 storage-gcs = ["dep:gcloud-storage"]   # Google Cloud Storage
@@ -59,7 +65,11 @@ storage-image = ["dep:imagesize"]      # image dimension analyzer
 storage-jobs = ["dep:doido-jobs"]      # purge_later / analyze_later via doido-jobs
 
 [dev-dependencies]
-doido-model.workspace = true           # sqlite in-memory pool + test helpers
+sea-orm = { version = "2.0.0", default-features = false, features = [
+    "runtime-tokio-rustls",
+    "macros",
+    "sqlx-sqlite",
+] }
 tokio = { workspace = true, features = ["macros", "rt", "fs", "io-util"] }
 tempfile.workspace = true
 serde_json.workspace = true

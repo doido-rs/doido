@@ -7,8 +7,13 @@ edition = "2021"
 
 [dependencies]
 doido-core.workspace = true
-sea-orm.workspace = true
-sea-orm-migration.workspace = true
+sea-orm = { version = "2.0.0", default-features = false, features = [
+    "runtime-tokio-rustls",
+    "macros",
+] }
+sea-orm-migration = { version = "2.0.0", default-features = false, features = [
+    "runtime-tokio-rustls",
+] }
 tokio.workspace = true
 serde.workspace = true
 serde_json.workspace = true
@@ -16,6 +21,21 @@ serde_norway.workspace = true
 url = "2"
 bcrypt = "0.19"
 uuid = { workspace = true }
+
+[features]
+default = ["sqlite"]
+sqlite = [
+    "sea-orm/sqlx-sqlite",
+    "sea-orm-migration/sqlx-sqlite",
+]
+postgres = [
+    "sea-orm/sqlx-postgres",
+    "sea-orm-migration/sqlx-postgres",
+]
+mysql = [
+    "sea-orm/sqlx-mysql",
+    "sea-orm-migration/sqlx-mysql",
+]
 
 [dev-dependencies]
 tokio.workspace = true

@@ -10,7 +10,7 @@
 //! and direct-upload endpoints on axum.
 //!
 //! ```no_run
-//! # async fn demo(conn: doido_model::sea_orm::DatabaseConnection) -> doido_core::Result<()> {
+//! # async fn demo(conn: sea_orm::DatabaseConnection) -> doido_core::Result<()> {
 //! use doido_storage::{Storage, MemoryService, Signer};
 //! use std::sync::Arc;
 //!

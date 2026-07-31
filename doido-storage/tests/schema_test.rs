@@ -1,8 +1,8 @@
 //! ensure_tables creates the three storage tables and is idempotent.
 
-use doido_model::sea_orm::{ConnectionTrait, DbBackend, Statement};
+use sea_orm::{ConnectionTrait, DbBackend, DatabaseConnection, Statement};
 
-async fn table_exists(conn: &doido_model::sea_orm::DatabaseConnection, name: &str) -> bool {
+async fn table_exists(conn: &DatabaseConnection, name: &str) -> bool {
     let stmt = Statement::from_sql_and_values(
         DbBackend::Sqlite,
         "SELECT name FROM sqlite_master WHERE type='table' AND name = ?",
@@ -13,7 +13,7 @@ async fn table_exists(conn: &doido_model::sea_orm::DatabaseConnection, name: &st
 
 #[tokio::test]
 async fn creates_tables_idempotently() {
-    let conn = doido_model::sea_orm::Database::connect("sqlite::memory:")
+    let conn = sea_orm::Database::connect("sqlite::memory:")
         .await
         .unwrap();
 

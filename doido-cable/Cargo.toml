@@ -16,9 +16,13 @@ tokio = { workspace = true, features = ["sync", "rt", "macros", "time"] }
 axum = { workspace = true, features = ["ws"] }
 futures-util = "0.3"
 redis = { workspace = true, optional = true }
-doido-model = { workspace = true, optional = true }
+doido-model = { workspace = true, optional = true, default-features = false }
 
 [features]
+default = []
+sqlite = ["doido-model?/sqlite"]
+postgres = ["doido-model?/postgres"]
+mysql = ["doido-model?/mysql"]
 cable-redis = ["dep:redis"]
 cable-db = ["dep:doido-model"]
 

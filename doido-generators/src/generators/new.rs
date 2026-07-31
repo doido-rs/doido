@@ -66,6 +66,7 @@ struct TemplateContext<'a> {
     dep_mode: DependencyMode,
     doido_dep: String,
     doido_jobs_dep: String,
+    doido_model_dep: String,
     cache_section: String,
     jobs_section: String,
     compose_services: String,
@@ -109,19 +110,29 @@ fn flag_value<'a>(args: &'a [&str], prefix: &str, default: &'a str) -> &'a str {
         .unwrap_or(default)
 }
 
-fn doido_features(cache: CacheBackend) -> String {
+fn doido_features(cache: CacheBackend, database: &str) -> String {
+    let mut feats = vec![format!("\"{database}\"")];
     match cache {
-        CacheBackend::Redis => ", features = [\"cache-redis\"]".to_string(),
-        CacheBackend::Memcache => ", features = [\"cache-memcache\"]".to_string(),
-        CacheBackend::Memory => String::new(),
+        CacheBackend::Redis => feats.push("\"cache-redis\"".to_string()),
+        CacheBackend::Memcache => feats.push("\"cache-memcache\"".to_string()),
+        CacheBackend::Memory => {}
+    }
+    format!(", default-features = false, features = [{}]", feats.join(", "))
+}
+
+fn doido_jobs_features(jobs: JobsBackend, database: &str) -> String {
+    match jobs {
+        JobsBackend::Db => format!(", features = [\"jobs-db\", \"{database}\"]"),
+        JobsBackend::Redis => ", features = [\"jobs-redis\"]".to_string(),
+        JobsBackend::Memory => String::new(),
     }
 }
 
-fn doido_jobs_features(jobs: JobsBackend) -> String {
-    match jobs {
-        JobsBackend::Db => ", features = [\"jobs-db\"]".to_string(),
-        JobsBackend::Redis => ", features = [\"jobs-redis\"]".to_string(),
-        JobsBackend::Memory => String::new(),
+fn doido_model_features(database: &str) -> String {
+    match database {
+        "postgres" => ", features = [\"postgres\"]".to_string(),
+        "mysql" => ", features = [\"mysql\"]".to_string(),
+        _ => ", features = [\"sqlite\"]".to_string(),
     }
 }
 
@@ -311,17 +322,16 @@ fn substitute_template(template: &str, ctx: &TemplateContext<'_>) -> String {
         )
         .replace(
             "{doido_controller_dep}",
-            &doido_dependency(&ctx.dep_mode, "doido-controller", ""),
+            &doido_dependency(&ctx.dep_mode, "doido-controller", &doido_model_features(
+                ctx.sqlx_feature,
+            )),
         )
         .replace("{doido_jobs_dep}", &ctx.doido_jobs_dep)
         .replace(
             "{doido_mailer_dep}",
             &doido_dependency(&ctx.dep_mode, "doido-mailer", ""),
         )
-        .replace(
-            "{doido_model_dep}",
-            &doido_dependency(&ctx.dep_mode, "doido-model", ""),
-        )
+        .replace("{doido_model_dep}", &ctx.doido_model_dep)
         .replace("{doido_cable_deps}", &cable_deps)
         .replace("{doido_channels_module}", &cable_module)
         .replace("{doido_cable_readme}", &cable_readme)
@@ -446,8 +456,13 @@ impl Generator for ProjectGenerator {
             db_url_production,
             sqlx_feature,
             cable,
-            doido_dep: doido_dependency(&dep_mode, "doido", &doido_features(cache)),
-            doido_jobs_dep: doido_dependency(&dep_mode, "doido-jobs", &doido_jobs_features(jobs)),
+            doido_dep: doido_dependency(&dep_mode, "doido", &doido_features(cache, database)),
+            doido_jobs_dep: doido_dependency(&dep_mode, "doido-jobs", &doido_jobs_features(jobs, database)),
+            doido_model_dep: doido_dependency(
+                &dep_mode,
+                "doido-model",
+                &doido_model_features(database),
+            ),
             dep_mode,
             cache_section: render_cache_section(cache, name),
             jobs_section: render_jobs_section(jobs, name),
@@ -468,7 +483,7 @@ impl Generator for ProjectGenerator {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::new_options::{parse_cache, parse_jobs};
+    use crate::new_options::{parse_cache, parse_jobs, JobsBackend};
 
     #[test]
     fn local_builds_emit_path_dependencies() {
@@ -534,6 +549,18 @@ edition = "2021"
     }
 
     #[test]
+    fn doido_features_include_database_and_cache() {
+        assert_eq!(
+            doido_features(CacheBackend::Memory, "postgres"),
+            ", default-features = false, features = [\"postgres\"]"
+        );
+        assert_eq!(
+            doido_features(CacheBackend::Redis, "sqlite"),
+            ", default-features = false, features = [\"sqlite\", \"cache-redis\"]"
+        );
+    }
+
+    #[test]
     fn published_cache_redis_line_is_valid_toml() {
         let line = format!(
             "doido = {}",
@@ -542,12 +569,56 @@ edition = "2021"
                 "/irrelevant",
                 "0.0.9",
                 "doido",
-                ", features = [\"cache-redis\"]",
+                &doido_features(CacheBackend::Redis, "sqlite"),
             )
         );
         assert!(!line.contains("path ="));
         assert!(line.contains("version = \"0.0.9\""));
         assert!(line.contains("cache-redis"));
+        assert!(line.contains("sqlite"));
+        assert_cargo_toml_parses(&minimal_cargo_with_doido_line(&line));
+    }
+
+    #[test]
+    fn doido_model_features_match_database_backend() {
+        assert_eq!(
+            doido_model_features("sqlite"),
+            ", features = [\"sqlite\"]"
+        );
+        assert_eq!(
+            doido_model_features("postgres"),
+            ", features = [\"postgres\"]"
+        );
+        assert_eq!(doido_model_features("mysql"), ", features = [\"mysql\"]");
+    }
+
+    #[test]
+    fn doido_jobs_db_features_include_database_driver() {
+        assert_eq!(
+            doido_jobs_features(JobsBackend::Db, "postgres"),
+            ", features = [\"jobs-db\", \"postgres\"]"
+        );
+        assert_eq!(
+            doido_jobs_features(JobsBackend::Redis, "sqlite"),
+            ", features = [\"jobs-redis\"]"
+        );
+        assert_eq!(doido_jobs_features(JobsBackend::Memory, "mysql"), "");
+    }
+
+    #[test]
+    fn path_doido_model_postgres_line_is_valid_toml() {
+        let line = format!(
+            "doido-model = {}",
+            dependency_spec(
+                true,
+                "/home/dev/doido",
+                "0.0.9",
+                "doido-model",
+                ", features = [\"postgres\"]",
+            )
+        );
+        assert!(line.contains("path = \"/home/dev/doido/doido-model\""));
+        assert!(line.contains("postgres"));
         assert_cargo_toml_parses(&minimal_cargo_with_doido_line(&line));
     }
 

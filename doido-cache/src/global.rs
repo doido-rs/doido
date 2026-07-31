@@ -1,6 +1,6 @@
 //! Process-global default cache store, built once from config at boot.
 //!
-//! Mirrors `doido-model`'s connection pool: [`init`] builds the store described
+//! Mirrors the framework boot pattern: [`init`] builds the store described
 //! by the current environment's `cache` config and installs it; handlers read it
 //! via [`store`]. Apps that want several named stores can still use
 //! [`crate::CacheRegistry`] directly.

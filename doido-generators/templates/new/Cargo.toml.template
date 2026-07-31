@@ -13,6 +13,7 @@ members = ["db/migration"]
 doido = {doido_dep}
 doido-core = {doido_core_dep}
 doido-controller = {doido_controller_dep}
+doido-model = {doido_model_dep}
 doido-jobs = {doido_jobs_dep}
 doido-mailer = {doido_mailer_dep}
 {doido_cable_deps}axum = "0.8"

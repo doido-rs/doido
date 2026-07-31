@@ -1703,7 +1703,6 @@ version = "0.0.9"
 dependencies = [
  "async-trait",
  "doido-core",
- "doido-model",
  "flate2",
  "memcache",
  "redis",
@@ -1881,11 +1880,11 @@ dependencies = [
  "chrono",
  "doido-core",
  "doido-jobs",
- "doido-model",
  "gcloud-storage",
  "hmac 0.13.0",
  "imagesize",
  "md-5",
+ "sea-orm",
  "serde",
  "serde_json",
  "serde_norway",
@@ -4631,8 +4630,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ef3576c5301b67ea7d2ce4515858d700066e51911c7d228a439c00ff258695c8"
 dependencies = [
  "async-trait",
- "clap",
- "dotenvy",
  "sea-orm",
  "sea-orm-cli",
  "sea-schema",

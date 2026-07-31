@@ -4,7 +4,7 @@ use doido_storage::{MemoryService, Signer, Storage};
 use std::sync::Arc;
 
 async fn storage() -> Storage {
-    let conn = doido_model::sea_orm::Database::connect("sqlite::memory:")
+    let conn = sea_orm::Database::connect("sqlite::memory:")
         .await
         .unwrap();
     let s = Storage::new(

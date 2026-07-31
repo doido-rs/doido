@@ -16,13 +16,13 @@ path = "src/main.rs"
 
 [dependencies]
 doido-core.workspace = true
-doido-controller.workspace = true
-doido-model.workspace = true
+doido-controller = { workspace = true, default-features = false, features = ["sqlite"] }
+doido-model = { workspace = true, default-features = false, features = ["sqlite"] }
 doido-view.workspace = true
 doido-cache.workspace = true
 # Enable the db + redis job backends so `doido worker`/`doido jobs` can honour a
 # non-default `jobs.type` in config/<env>.yml (not just the in-memory default).
-doido-jobs = { workspace = true, features = ["jobs-db", "jobs-redis"] }
+doido-jobs = { workspace = true, features = ["jobs-db", "jobs-redis", "sqlite"] }
 chrono.workspace = true
 figlet-rs.workspace = true
 clap.workspace = true
@@ -46,6 +46,7 @@ assert_cmd = "2"
 predicates = "3"
 tempfile.workspace = true
 toml = "0.8"
+doido-model = { workspace = true, features = ["sqlite"] }
 # Light HTTP client for the runtime CRUD e2e (make example).
 ureq = { version = "3", features = ["json"] }
 serde_json = "1"

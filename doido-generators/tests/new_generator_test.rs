@@ -124,7 +124,8 @@ fn test_new_sqlite_cargo_toml_has_sqlite_feature() {
         .find(|f| f.path == "my-app/Cargo.toml")
         .unwrap();
     assert!(cargo_toml.content.contains("my-app"));
-    assert!(cargo_toml.content.contains("sqlite"));
+    assert!(cargo_toml.content.contains("doido-model ="));
+    assert!(cargo_toml.content.contains("features = [\"sqlite\"]"));
     assert!(cargo_toml.content.contains("serde_json"));
     assert!(cargo_toml.content.contains("axum"));
     let mode = DependencyMode::resolve();
@@ -156,6 +157,44 @@ fn test_new_sqlite_cargo_toml_has_sqlite_feature() {
 }
 
 #[test]
+fn test_new_controller_dep_shares_database_feature() {
+    let files = ProjectGenerator
+        .generate(&["app", "--database=postgres"])
+        .unwrap();
+    let cargo = files.iter().find(|f| f.path == "app/Cargo.toml").unwrap();
+    assert!(
+        cargo.content.contains("doido-controller = {")
+            && cargo.content.contains("features = [\"postgres\"]")
+    );
+}
+
+#[test]
+fn test_new_app_cargo_toml_doido_model_feature_matches_database() {
+    let cases = [
+        ("sqlite", "features = [\"sqlite\"]"),
+        ("postgres", "features = [\"postgres\"]"),
+        ("mysql", "features = [\"mysql\"]"),
+    ];
+    for (database, model_feature) in cases {
+        let files = ProjectGenerator
+            .generate(&["app", &format!("--database={database}")])
+            .unwrap();
+        let cargo = files
+            .iter()
+            .find(|f| f.path == "app/Cargo.toml")
+            .unwrap_or_else(|| panic!("missing app Cargo.toml for {database}"));
+        assert!(
+            cargo.content.contains("doido-model ="),
+            "{database}: app must depend on doido-model"
+        );
+        assert!(
+            cargo.content.contains(model_feature),
+            "{database}: app doido-model must declare {model_feature}"
+        );
+    }
+}
+
+#[test]
 fn test_new_migration_crate_uses_selected_backend() {
     let files = ProjectGenerator
         .generate(&["blog", "--database=postgres"])
@@ -166,6 +205,40 @@ fn test_new_migration_crate_uses_selected_backend() {
         .unwrap();
     assert!(migration_cargo.content.contains("sea-orm-migration"));
     assert!(migration_cargo.content.contains("sqlx-postgres"));
+    assert!(
+        migration_cargo.content.contains("doido-model ="),
+        "migration crate must depend on doido-model"
+    );
+    assert!(
+        migration_cargo.content.contains("features = [\"postgres\"]"),
+        "doido-model dependency must enable the postgres feature"
+    );
+}
+
+#[test]
+fn test_new_migration_crate_doido_model_feature_matches_database() {
+    let cases = [
+        ("sqlite", "features = [\"sqlite\"]", "sqlx-sqlite"),
+        ("postgres", "features = [\"postgres\"]", "sqlx-postgres"),
+        ("mysql", "features = [\"mysql\"]", "sqlx-mysql"),
+    ];
+    for (database, model_feature, sqlx_feature) in cases {
+        let files = ProjectGenerator
+            .generate(&["app", &format!("--database={database}")])
+            .unwrap();
+        let migration_cargo = files
+            .iter()
+            .find(|f| f.path == "app/db/migration/Cargo.toml")
+            .unwrap_or_else(|| panic!("missing migration Cargo.toml for {database}"));
+        assert!(
+            migration_cargo.content.contains(model_feature),
+            "{database}: doido-model must declare {model_feature}"
+        );
+        assert!(
+            migration_cargo.content.contains(sqlx_feature),
+            "{database}: sea-orm-migration must declare {sqlx_feature}"
+        );
+    }
 }
 
 #[test]
