@@ -9,6 +9,15 @@ fn find_content<'a>(files: &'a [doido_generators::GeneratedFile], path: &str) ->
 }
 
 #[test]
+fn compose_fixes_project_name_from_app_name_not_directory() {
+    let files = ProjectGenerator
+        .generate(&["myblog", "--database=postgres"])
+        .unwrap();
+    let compose = find_content(&files, "myblog/docker-compose.yml");
+    assert!(compose.contains("name: myblog"));
+}
+
+#[test]
 fn sqlite_compose_has_web_without_database_service() {
     let files = ProjectGenerator
         .generate(&["app", "--database=sqlite"])
@@ -26,6 +35,7 @@ fn postgres_compose_includes_postgres_service() {
         .generate(&["blog", "--database=postgres"])
         .unwrap();
     let compose = find_content(&files, "blog/docker-compose.yml");
+    assert!(compose.contains("name: blog"));
     assert!(compose.contains("postgres:18-alpine"));
     assert!(compose.contains("@postgres:5432/blog_development"));
     assert!(!compose.contains("redis:"));
