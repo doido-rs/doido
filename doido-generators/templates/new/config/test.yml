@@ -11,3 +11,5 @@ logger:
 cache:
   # Tests use the in-process memory store for isolation and speed.
   type: memory
+jobs:
+  type: memory

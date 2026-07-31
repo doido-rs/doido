@@ -21,7 +21,7 @@ fn prompt_database() -> String {
     }
 }
 
-pub fn run_new(name: &str, database: Option<&str>, cable: bool) {
+pub fn run_new(name: &str, database: Option<&str>, cable: bool, cache: &str, jobs: &str) {
     let db = match database {
         Some(d) => d.to_string(),
         None => prompt_database(),
@@ -39,7 +39,9 @@ pub fn run_new(name: &str, database: Option<&str>, cable: bool) {
 
     let registry = default_registry();
     let db_arg = format!("--database={db}");
-    let mut new_args = vec![name, &db_arg];
+    let cache_arg = format!("--cache={cache}");
+    let jobs_arg = format!("--jobs={jobs}");
+    let mut new_args = vec![name, &db_arg, &cache_arg, &jobs_arg];
     if cable {
         new_args.push("--cable");
     }

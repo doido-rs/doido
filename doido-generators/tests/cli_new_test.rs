@@ -51,6 +51,23 @@ fn test_doido_new_cargo_toml_has_correct_name_and_database() {
 }
 
 #[test]
+fn test_doido_new_cargo_toml_has_cache_redis_feature() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut cmd = Command::cargo_bin("doido-generators").unwrap();
+    cmd.current_dir(dir.path())
+        .args(["new", "cache-app", "--database=sqlite", "--cache=redis"])
+        .assert()
+        .success();
+
+    let cargo_toml = fs::read_to_string(dir.path().join("cache-app/Cargo.toml")).unwrap();
+    assert!(cargo_toml.contains("cache-redis"));
+
+    let dev_yml =
+        fs::read_to_string(dir.path().join("cache-app/config/development.yml")).unwrap();
+    assert!(dev_yml.contains("type: redis"));
+}
+
+#[test]
 fn test_doido_new_creates_git_repository() {
     let dir = tempfile::tempdir().unwrap();
     let mut cmd = Command::cargo_bin("doido-generators").unwrap();

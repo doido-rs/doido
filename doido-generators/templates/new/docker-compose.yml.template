@@ -1,0 +1,23 @@
+# Dev stack for {doido_name}. Start with: docker compose up --build
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - cargo-registry:/usr/local/cargo/registry
+      - cargo-git:/usr/local/cargo/git
+{doido_compose_web_volumes}    environment:
+      DOIDO_ENV: development
+      DATABASE__URL: {doido_compose_database_url}
+{doido_compose_env_extras}
+{doido_compose_depends_on}
+
+{doido_compose_services}
+
+volumes:
+  cargo-registry:
+  cargo-git:

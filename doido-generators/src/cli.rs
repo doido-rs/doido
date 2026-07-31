@@ -70,6 +70,12 @@ enum Commands {
         /// Include a doido-cable example channel and its wiring
         #[arg(long)]
         cable: bool,
+        /// Cache backend: memory, redis, or memcache
+        #[arg(long, default_value = "memory")]
+        cache: String,
+        /// Jobs backend: memory, db, or redis
+        #[arg(long, default_value = "memory")]
+        jobs: String,
     },
 }
 
@@ -131,8 +137,10 @@ pub async fn run(routes: Option<axum::Router>) {
             name,
             database,
             cable,
+            cache,
+            jobs,
         } => {
-            run_new(&name, database.as_deref(), cable);
+            run_new(&name, database.as_deref(), cable, &cache, &jobs);
         }
     }
 }

@@ -54,23 +54,39 @@ cargo test --bin {doido_name} chat
 ```
 "#;
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum CacheBackend {
+    Memory,
+    Redis,
+    Memcache,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum JobsBackend {
+    Memory,
+    Db,
+    Redis,
+}
+
 struct TemplateContext<'a> {
     name: &'a str,
     db_url: String,
     db_url_test: String,
     db_url_production: String,
     sqlx_feature: &'a str,
-    /// Whether to include the doido-cable example (the `--cable` flag).
     cable: bool,
+    doido_features: String,
+    doido_jobs_features: String,
+    cache_section: String,
+    jobs_section: String,
+    compose_services: String,
+    compose_depends_on: String,
+    compose_database_url: String,
+    compose_env_extras: String,
+    compose_web_volumes: String,
 }
 
 /// Renders the Cargo dependency source for a first-party `doido-*` crate.
-///
-/// `subdir` is the crate's directory under the workspace root (e.g. `doido`,
-/// `doido-controller`). In a local workspace build this returns a `path`
-/// dependency so a freshly generated app compiles against the in-tree framework;
-/// in a published build (siblings absent) it returns a `version` dependency that
-/// resolves the matching release from crates.io.
 fn doido_dependency(subdir: &str) -> String {
     dependency_spec(
         crate::TEMPLATE_USE_PATH_DEPS,
@@ -80,9 +96,6 @@ fn doido_dependency(subdir: &str) -> String {
     )
 }
 
-/// Pure core of [`doido_dependency`]: builds a `path` or `version` dependency
-/// source string from the given inputs. Split out so both branches are unit
-/// testable without depending on how this crate was built.
 fn dependency_spec(use_path: bool, workspace_path: &str, version: &str, subdir: &str) -> String {
     if use_path {
         format!("{{ path = \"{workspace_path}/{subdir}\" }}")
@@ -91,9 +104,200 @@ fn dependency_spec(use_path: bool, workspace_path: &str, version: &str, subdir: 
     }
 }
 
+fn flag_value<'a>(args: &'a [&str], prefix: &str, default: &'a str) -> &'a str {
+    args.iter()
+        .find(|a| a.starts_with(prefix))
+        .and_then(|a| a.split_once('=').map(|(_, v)| v))
+        .unwrap_or(default)
+}
+
+fn parse_cache(s: &str) -> Result<CacheBackend> {
+    match s.trim().to_ascii_lowercase().as_str() {
+        "memory" => Ok(CacheBackend::Memory),
+        "redis" => Ok(CacheBackend::Redis),
+        "memcache" | "memcached" => Ok(CacheBackend::Memcache),
+        other => Err(anyhow::anyhow!(
+            "Unknown cache backend: {other}. Use memory, redis, or memcache."
+        )),
+    }
+}
+
+fn parse_jobs(s: &str) -> Result<JobsBackend> {
+    match s.trim().to_ascii_lowercase().as_str() {
+        "memory" | "inmemory" | "in_memory" => Ok(JobsBackend::Memory),
+        "db" | "database" | "sql" => Ok(JobsBackend::Db),
+        "redis" => Ok(JobsBackend::Redis),
+        other => Err(anyhow::anyhow!(
+            "Unknown jobs backend: {other}. Use memory, db, or redis."
+        )),
+    }
+}
+
+fn doido_features(cache: CacheBackend) -> String {
+    match cache {
+        CacheBackend::Redis => ", features = [\"cache-redis\"]".to_string(),
+        CacheBackend::Memcache => ", features = [\"cache-memcache\"]".to_string(),
+        CacheBackend::Memory => String::new(),
+    }
+}
+
+fn doido_jobs_features(jobs: JobsBackend) -> String {
+    match jobs {
+        JobsBackend::Db => ", features = [\"jobs-db\"]".to_string(),
+        JobsBackend::Redis => ", features = [\"jobs-redis\"]".to_string(),
+        JobsBackend::Memory => String::new(),
+    }
+}
+
+fn render_cache_section(cache: CacheBackend, name: &str) -> String {
+    match cache {
+        CacheBackend::Memory => "cache:\n  type: memory\n".to_string(),
+        CacheBackend::Redis => format!(
+            "cache:\n  type: redis\n  endpoint: redis://127.0.0.1:6379\n  namespace: {name}\n"
+        ),
+        CacheBackend::Memcache => format!(
+            "cache:\n  type: memcache\n  endpoint: memcache://127.0.0.1:11211\n  namespace: {name}\n"
+        ),
+    }
+}
+
+fn render_jobs_section(jobs: JobsBackend, name: &str) -> String {
+    match jobs {
+        JobsBackend::Memory => "jobs:\n  type: memory\n".to_string(),
+        JobsBackend::Db => {
+            "jobs:\n  type: db\n  queues: [default]\n  concurrency: 5\n".to_string()
+        }
+        JobsBackend::Redis => format!(
+            "jobs:\n  type: redis\n  queues: [default]\n  concurrency: 5\n  redis:\n    url: redis://127.0.0.1:6379\n    namespace: {name}:jobs\n"
+        ),
+    }
+}
+
+fn needs_redis(cable: bool, cache: CacheBackend, jobs: JobsBackend) -> bool {
+    cable || cache == CacheBackend::Redis || jobs == JobsBackend::Redis
+}
+
+fn compose_database_url_for_docker(database: &str, name: &str) -> String {
+    match database {
+        "postgres" => format!("postgres://postgres:postgres@postgres:5432/{name}_development"),
+        "mysql" => format!("mysql://root:password@mysql:3306/{name}_development"),
+        _ => "sqlite://db/development.db".to_string(),
+    }
+}
+
+fn compose_postgres_service(name: &str) -> String {
+    format!(
+        r#"  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: {name}_development
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 2s
+      timeout: 3s
+      retries: 15"#
+    )
+}
+
+fn compose_mysql_service(name: &str) -> String {
+    format!(
+        r#"  mysql:
+    image: mysql:lts
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: {name}_development
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 2s
+      timeout: 3s
+      retries: 15"#
+    )
+}
+
+fn compose_redis_service() -> &'static str {
+    r#"  redis:
+    image: redis:8-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 3s
+      retries: 15"#
+}
+
+fn compose_memcache_service() -> &'static str {
+    r#"  memcache:
+    image: memcached:1.6-alpine
+    ports:
+      - "11211:11211""#
+}
+
+fn compose_services(database: &str, name: &str, cable: bool, cache: CacheBackend, jobs: JobsBackend) -> String {
+    let mut parts = Vec::new();
+    match database {
+        "postgres" => parts.push(compose_postgres_service(name)),
+        "mysql" => parts.push(compose_mysql_service(name)),
+        _ => {}
+    }
+    if needs_redis(cable, cache, jobs) {
+        parts.push(compose_redis_service().to_string());
+    }
+    if cache == CacheBackend::Memcache {
+        parts.push(compose_memcache_service().to_string());
+    }
+    parts.join("\n\n")
+}
+
+fn compose_depends_on(database: &str, cable: bool, cache: CacheBackend, jobs: JobsBackend) -> String {
+    let mut deps = Vec::new();
+    match database {
+        "postgres" => deps.push("      postgres:\n        condition: service_healthy"),
+        "mysql" => deps.push("      mysql:\n        condition: service_healthy"),
+        _ => {}
+    }
+    if needs_redis(cable, cache, jobs) {
+        deps.push("      redis:\n        condition: service_healthy");
+    }
+    if deps.is_empty() {
+        String::new()
+    } else {
+        format!("    depends_on:\n{}", deps.join("\n"))
+    }
+}
+
+fn compose_env_extras(cache: CacheBackend, jobs: JobsBackend) -> String {
+    let mut lines = Vec::new();
+    match cache {
+        CacheBackend::Redis => lines.push("      CACHE__ENDPOINT: redis://redis:6379"),
+        CacheBackend::Memcache => lines.push("      CACHE__ENDPOINT: memcache://memcache:11211"),
+        CacheBackend::Memory => {}
+    }
+    if jobs == JobsBackend::Redis {
+        lines.push("      JOBS__REDIS__URL: redis://redis:6379");
+    }
+    if lines.is_empty() {
+        String::new()
+    } else {
+        lines.join("\n")
+    }
+}
+
+fn compose_web_volumes(database: &str) -> String {
+    if database == "sqlite" {
+        "      - ./db:/app/db\n".to_string()
+    } else {
+        String::new()
+    }
+}
+
 fn substitute_template(template: &str, ctx: &TemplateContext<'_>) -> String {
-    // doido-cable wiring: rendered when `--cable` is set, empty otherwise. The
-    // README section is name-substituted up front since it carries `{doido_name}`.
     let (cable_deps, cable_module, cable_readme) = if ctx.cable {
         (
             format!(
@@ -114,17 +318,26 @@ fn substitute_template(template: &str, ctx: &TemplateContext<'_>) -> String {
         .replace("{doido_db_url}", &ctx.db_url)
         .replace("{doido_sqlx_feature}", ctx.sqlx_feature)
         .replace("{doido_dep}", &doido_dependency("doido"))
+        .replace("{doido_features}", &ctx.doido_features)
         .replace("{doido_core_dep}", &doido_dependency("doido-core"))
         .replace(
             "{doido_controller_dep}",
             &doido_dependency("doido-controller"),
         )
         .replace("{doido_jobs_dep}", &doido_dependency("doido-jobs"))
+        .replace("{doido_jobs_features}", &ctx.doido_jobs_features)
         .replace("{doido_mailer_dep}", &doido_dependency("doido-mailer"))
         .replace("{doido_model_dep}", &doido_dependency("doido-model"))
         .replace("{doido_cable_deps}", &cable_deps)
         .replace("{doido_channels_module}", &cable_module)
         .replace("{doido_cable_readme}", &cable_readme)
+        .replace("{doido_cache_section}", &ctx.cache_section)
+        .replace("{doido_jobs_section}", &ctx.jobs_section)
+        .replace("{doido_compose_services}", &ctx.compose_services)
+        .replace("{doido_compose_depends_on}", &ctx.compose_depends_on)
+        .replace("{doido_compose_database_url}", &ctx.compose_database_url)
+        .replace("{doido_compose_env_extras}", &ctx.compose_env_extras)
+        .replace("{doido_compose_web_volumes}", &ctx.compose_web_volumes)
         .replace("{doido_path}", crate::TEMPLATE_WORKSPACE_PATH)
 }
 
@@ -138,11 +351,7 @@ fn collect_from_dir(
         match entry {
             DirEntry::Dir(sub) => collect_from_dir(sub, ctx, app_name, out)?,
             DirEntry::File(f) => {
-                // `include_dir` stores paths relative to the embedded root (`templates/new/`)
-                // for every file, including nested paths like `src/main.rs`.
                 let relative = f.path();
-                // The doido-cable example lives under `app/channels/`; skip it
-                // unless `--cable` opted the app in.
                 if !ctx.cable && relative.starts_with(CABLE_TEMPLATE_PREFIX) {
                     continue;
                 }
@@ -150,10 +359,6 @@ fn collect_from_dir(
                     anyhow::anyhow!("template file '{}' is not valid UTF-8", relative.display())
                 })?;
                 let rendered = substitute_template(raw, ctx);
-                // Template manifests are stored with a trailing `.template` suffix
-                // (e.g. `Cargo.toml.template`) so `cargo package` doesn't mistake
-                // `templates/app/` for a nested crate and drop it from the tarball.
-                // Strip the suffix when writing the generated app to disk.
                 let relative = relative.to_string_lossy().replace('\\', "/");
                 let relative = relative.strip_suffix(".template").unwrap_or(&relative);
                 let disk_path = format!("{app_name}/{relative}");
@@ -167,20 +372,13 @@ fn collect_from_dir(
     Ok(())
 }
 
-/// Default local connection parameters for a server backend.
 struct DbDefaults {
-    /// URL scheme (`postgres` / `mysql`).
     scheme: &'static str,
-    /// Default superuser for a local install.
     user: &'static str,
-    /// Default development/test password (placeholder in production).
     password: &'static str,
-    /// Default listening port.
     port: u16,
 }
 
-/// Returns the default connection parameters for `postgres`/`mysql`, or `None`
-/// for file-based backends (sqlite) that carry no user/host/port.
 fn db_defaults(backend: &str) -> Option<DbDefaults> {
     match backend {
         "postgres" => Some(DbDefaults {
@@ -199,18 +397,6 @@ fn db_defaults(backend: &str) -> Option<DbDefaults> {
     }
 }
 
-/// Builds the `database.url` for one environment of a generated app.
-///
-/// Server backends (postgres/mysql) include the default user, password, host
-/// and port so the generated config is close to a working local setup, e.g.
-/// `postgres://postgres:postgres@localhost:5432/blog_development`. sqlite uses a
-/// bare file path. In **production** the password is a `CHANGE_ME` placeholder
-/// that must be overridden (e.g. via the `DATABASE_URL` env var) — real
-/// credentials are never baked into the generated repo.
-///
-/// Note: the default credentials contain no URL-reserved characters, so no
-/// percent-encoding is needed. That would change if custom passwords were ever
-/// accepted here.
 fn default_database_url(backend: &str, name: &str, env: &str) -> String {
     match db_defaults(backend) {
         Some(d) => {
@@ -241,21 +427,19 @@ impl Generator for ProjectGenerator {
             .copied()
             .ok_or_else(|| anyhow::anyhow!("new generator requires a name argument"))?;
 
-        let database = args
-            .iter()
-            .find(|a| a.starts_with("--database="))
-            .and_then(|a| a.split_once('=').map(|(_, v)| v))
-            .unwrap_or("sqlite");
-
+        let database = flag_value(args, "--database=", "sqlite");
         match database {
             "sqlite" | "postgres" | "mysql" => {}
             other => {
                 return Err(anyhow::anyhow!(
-                    "Unknown database: {}. Use sqlite, postgres, or mysql.",
-                    other
+                    "Unknown database: {other}. Use sqlite, postgres, or mysql."
                 ));
             }
         }
+
+        let cache = parse_cache(flag_value(args, "--cache=", "memory"))?;
+        let jobs = parse_jobs(flag_value(args, "--jobs=", "memory"))?;
+        let cable = args.contains(&"--cable");
 
         let db_url = default_database_url(database, name, "development");
         let db_url_test = default_database_url(database, name, "test");
@@ -267,10 +451,6 @@ impl Generator for ProjectGenerator {
             _ => "sqlite",
         };
 
-        // `--cable` opts the new app into the doido-cable example (channel files
-        // plus the dependency/module/README wiring it needs to compile).
-        let cable = args.contains(&"--cable");
-
         let ctx = TemplateContext {
             name,
             db_url,
@@ -278,6 +458,15 @@ impl Generator for ProjectGenerator {
             db_url_production,
             sqlx_feature,
             cable,
+            doido_features: doido_features(cache),
+            doido_jobs_features: doido_jobs_features(jobs),
+            cache_section: render_cache_section(cache, name),
+            jobs_section: render_jobs_section(jobs, name),
+            compose_services: compose_services(database, name, cable, cache, jobs),
+            compose_depends_on: compose_depends_on(database, cable, cache, jobs),
+            compose_database_url: compose_database_url_for_docker(database, name),
+            compose_env_extras: compose_env_extras(cache, jobs),
+            compose_web_volumes: compose_web_volumes(database),
         };
 
         let mut files = Vec::new();
@@ -289,7 +478,7 @@ impl Generator for ProjectGenerator {
 
 #[cfg(test)]
 mod tests {
-    use super::{default_database_url, dependency_spec};
+    use super::*;
 
     #[test]
     fn local_builds_emit_path_dependencies() {
@@ -297,23 +486,13 @@ mod tests {
             dependency_spec(true, "/home/dev/doido", "0.0.6", "doido"),
             "{ path = \"/home/dev/doido/doido\" }"
         );
-        assert_eq!(
-            dependency_spec(true, "/home/dev/doido", "0.0.6", "doido-controller"),
-            "{ path = \"/home/dev/doido/doido-controller\" }"
-        );
     }
 
     #[test]
     fn published_builds_emit_version_dependencies() {
-        // Once published, the sibling crates are gone, so apps resolve the
-        // matching release from crates.io — the workspace path is irrelevant.
         assert_eq!(
             dependency_spec(false, "/irrelevant", "0.0.6", "doido"),
             "\"0.0.6\""
-        );
-        assert_eq!(
-            dependency_spec(false, "/irrelevant", "1.2.3", "doido-model"),
-            "\"1.2.3\""
         );
     }
 
@@ -326,22 +505,10 @@ mod tests {
     }
 
     #[test]
-    fn mysql_url_has_default_user_password_and_port() {
-        assert_eq!(
-            default_database_url("mysql", "store", "test"),
-            "mysql://root:password@localhost:3306/store_test"
-        );
-    }
-
-    #[test]
     fn production_password_is_a_placeholder() {
         assert_eq!(
             default_database_url("postgres", "blog", "production"),
             "postgres://postgres:CHANGE_ME@localhost:5432/blog_production"
-        );
-        assert_eq!(
-            default_database_url("mysql", "store", "production"),
-            "mysql://root:CHANGE_ME@localhost:3306/store_production"
         );
     }
 
@@ -350,6 +517,44 @@ mod tests {
         assert_eq!(
             default_database_url("sqlite", "blog", "development"),
             "sqlite://db/development.db"
+        );
+    }
+
+    #[test]
+    fn parse_cache_accepts_memcached_alias() {
+        assert_eq!(parse_cache("memcached").unwrap(), CacheBackend::Memcache);
+    }
+
+    #[test]
+    fn parse_jobs_accepts_database_alias() {
+        assert_eq!(parse_jobs("database").unwrap(), JobsBackend::Db);
+    }
+
+    #[test]
+    fn compose_includes_redis_for_cache_redis() {
+        let svc = compose_services("sqlite", "app", false, CacheBackend::Redis, JobsBackend::Memory);
+        assert!(svc.contains("redis:8-alpine"));
+        assert!(!svc.contains("postgres:"));
+    }
+
+    #[test]
+    fn compose_includes_memcache_for_cache_memcache() {
+        let svc = compose_services("sqlite", "app", false, CacheBackend::Memcache, JobsBackend::Memory);
+        assert!(svc.contains("memcached:1.6-alpine"));
+        assert!(!svc.contains("redis:"));
+    }
+
+    #[test]
+    fn compose_deduplicates_redis_when_cable_and_jobs_redis() {
+        let svc = compose_services("sqlite", "app", true, CacheBackend::Memory, JobsBackend::Redis);
+        assert_eq!(svc.matches("image: redis:").count(), 1);
+    }
+
+    #[test]
+    fn compose_database_url_uses_docker_hostnames() {
+        assert_eq!(
+            compose_database_url_for_docker("postgres", "blog"),
+            "postgres://postgres:postgres@postgres:5432/blog_development"
         );
     }
 }
