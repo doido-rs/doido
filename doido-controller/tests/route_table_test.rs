@@ -32,7 +32,7 @@ async fn about_handler() -> &'static str {
 
 #[test]
 fn routes_macro_registers_full_table() {
-    let _app: axum::Router = doido_controller::routes! {
+    let _app: doido_controller::axum::Router = doido_controller::routes! {
         get!("/about", about_handler)
         resources!(posts, posts_controller)
     };

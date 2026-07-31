@@ -4,8 +4,8 @@
 //! checksum, size…). The raw bytes live in a [`crate::Service`]; this module owns
 //! the `storage_blobs` row. Rows are addressed by the unique `key` (a UUID).
 //!
-//! Statements target SQLite with `?` placeholders, mirroring
-//! `doido_cache::DbCacheStore` (the established DB pattern in the framework).
+//! Statements target SQLite with `?` placeholders (portable raw-SQL pattern used
+//! across the framework's DB-backed stores).
 
 use crate::content_type;
 use crate::error::StorageError;

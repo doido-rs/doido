@@ -1,8 +1,8 @@
 //! Column operations: `add_column`, `remove_column`, `rename_column`.
 
-use sea_orm::sea_query::{Alias, ColumnDef, Table as SqTable, TableAlterStatement};
-use sea_orm::{ConnectionTrait, DbErr};
-use sea_orm_migration::SchemaManager;
+use crate::sea_orm::sea_query::{Alias, ColumnDef, Table as SqTable, TableAlterStatement};
+use crate::sea_orm::{ConnectionTrait, DbErr};
+use crate::sea_orm_migration::SchemaManager;
 
 fn add_column_statement(
     table: &str,
@@ -73,7 +73,7 @@ pub async fn rename_column(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use sea_orm::sea_query::PostgresQueryBuilder;
+    use crate::sea_orm::sea_query::PostgresQueryBuilder;
 
     #[test]
     fn add_column_alters_table() {

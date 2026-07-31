@@ -16,7 +16,7 @@ path = "src/main.rs"
 [dependencies]
 doido-core.workspace = true
 doido-controller.workspace = true
-doido-model.workspace = true
+doido-model = { workspace = true, default-features = false }
 doido-view.workspace = true
 doido-cache.workspace = true
 doido-storage.workspace = true
@@ -27,7 +27,28 @@ doido-generators.workspace = true
 tokio = { workspace = true, features = ["full"] }
 
 [features]
-default = []
+default = ["sqlite"]
+sqlite = [
+    "doido-model/sqlite",
+    "doido-controller/sqlite",
+    "doido-storage/sqlite",
+    "doido-cable/sqlite",
+    "doido-jobs/sqlite",
+]
+postgres = [
+    "doido-model/postgres",
+    "doido-controller/postgres",
+    "doido-storage/postgres",
+    "doido-cable/postgres",
+    "doido-jobs/postgres",
+]
+mysql = [
+    "doido-model/mysql",
+    "doido-controller/mysql",
+    "doido-storage/mysql",
+    "doido-cable/mysql",
+    "doido-jobs/mysql",
+]
 # Distributed cache backends, selected at runtime via `config/<env>.yml`.
 cache-redis = ["doido-cache/cache-redis"]
 cache-memcache = ["doido-cache/cache-memcache"]

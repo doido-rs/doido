@@ -7,7 +7,7 @@
 //!   * **PostgreSQL / MySQL** — connect to the server *without* selecting the
 //!     target database, then issue `CREATE DATABASE`.
 
-use sea_orm::{ConnectionTrait, Database, DatabaseBackend, DbErr};
+use crate::sea_orm::{ConnectionTrait, Database, DatabaseBackend, DbErr};
 
 /// Creates the database named in `url`.
 ///

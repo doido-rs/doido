@@ -8,11 +8,11 @@ edition = "2021"
 [dependencies]
 doido-core.workspace = true
 doido-controller-macros.workspace = true
-doido-model.workspace = true
+doido-model = { workspace = true, default-features = false }
 doido-view.workspace = true
 doido-cache.workspace = true
 async-trait.workspace = true
-axum.workspace = true
+axum = { workspace = true, features = ["ws"] }
 tokio = { workspace = true, features = ["full"] }
 tower = { workspace = true, features = ["full"] }
 tower-http.workspace = true
@@ -30,7 +30,14 @@ sha2.workspace = true
 base64.workspace = true
 subtle = "2"
 
+[features]
+default = []
+sqlite = ["doido-model/sqlite"]
+postgres = ["doido-model/postgres"]
+mysql = ["doido-model/mysql"]
+
 [dev-dependencies]
 http-body-util.workspace = true
 tokio.workspace = true
 tempfile.workspace = true
+doido-model = { workspace = true, features = ["sqlite"] }

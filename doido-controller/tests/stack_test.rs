@@ -1,4 +1,4 @@
-use axum::Router;
+use doido_controller::axum::Router;
 use doido_controller::stack::MiddlewareStack;
 
 #[test]

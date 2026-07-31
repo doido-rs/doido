@@ -4,7 +4,7 @@
 //! function or a closure. [`Scoped`] lets them chain fluently off a sea-orm
 //! `Select`, e.g. `Entity::find().scope(published).scope(recent)`.
 
-use sea_orm::{EntityTrait, Select};
+use crate::sea_orm::{EntityTrait, Select};
 
 /// Fluent application of named scopes to a query.
 pub trait Scoped: Sized {

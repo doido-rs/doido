@@ -1,5 +1,5 @@
-use axum::body::Body;
-use axum::response::Response;
+use doido_controller::axum::body::Body;
+use doido_controller::axum::response::Response;
 use doido_controller::rescue::RescueHandlers;
 use http::StatusCode;
 

@@ -1,4 +1,4 @@
-use axum::{body::Body, response::Response, routing::get, Router};
+use doido_controller::axum::{body::Body, response::Response, routing::get, Router};
 use doido_controller::{controller, Context};
 use http::{Request, StatusCode};
 use tower::ServiceExt;

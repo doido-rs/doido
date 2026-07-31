@@ -1,7 +1,7 @@
 //! `routes!` `constraints: { param: validator }` — a matched path param that
 //! fails its validator 404s before the handler runs.
 
-use axum::body::Body;
+use doido_controller::axum::body::Body;
 use doido_controller::constraints::numeric;
 use http::{Request, StatusCode};
 use tower::ServiceExt;

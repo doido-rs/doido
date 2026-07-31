@@ -1,4 +1,4 @@
-use axum::{routing::get, Router};
+use doido_controller::axum::{routing::get, Router};
 use doido_controller::{CookieSessionStore, MiddlewareStack, SessionStore};
 use http::{Request, StatusCode};
 use tower::ServiceExt;
@@ -8,7 +8,7 @@ async fn test_middleware_stack_processes_request() {
     let app = MiddlewareStack::new().apply(Router::new().route("/", get(|| async { "ok" })));
     let req = Request::builder()
         .uri("/")
-        .body(axum::body::Body::empty())
+        .body(doido_controller::axum::body::Body::empty())
         .unwrap();
     let resp = app.oneshot(req).await.unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
@@ -22,13 +22,13 @@ async fn test_logging_middleware_passes_response_through_unchanged() {
     let app = MiddlewareStack::new().apply(Router::new().route("/", get(handler)));
     let req = Request::builder()
         .uri("/")
-        .body(axum::body::Body::empty())
+        .body(doido_controller::axum::body::Body::empty())
         .unwrap();
 
     let resp = app.oneshot(req).await.unwrap();
     assert_eq!(resp.status(), StatusCode::IM_A_TEAPOT);
 
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+    let body = doido_controller::axum::body::to_bytes(resp.into_body(), usize::MAX)
         .await
         .unwrap();
     assert_eq!(&body[..], b"brewing");
@@ -41,7 +41,7 @@ async fn test_logging_middleware_sets_request_id_header() {
     let app = MiddlewareStack::new().apply(Router::new().route("/", get(|| async { "ok" })));
     let req = Request::builder()
         .uri("/")
-        .body(axum::body::Body::empty())
+        .body(doido_controller::axum::body::Body::empty())
         .unwrap();
 
     let resp = app.oneshot(req).await.unwrap();
@@ -59,7 +59,7 @@ async fn test_logging_middleware_preserves_inbound_request_id() {
     let req = Request::builder()
         .uri("/")
         .header("x-request-id", "upstream-123")
-        .body(axum::body::Body::empty())
+        .body(doido_controller::axum::body::Body::empty())
         .unwrap();
 
     let resp = app.oneshot(req).await.unwrap();

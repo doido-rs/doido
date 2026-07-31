@@ -7,13 +7,13 @@ edition = "2021"
 
 [dependencies]
 doido-core.workspace = true
-doido-model.workspace = true          # sea-orm, connection pool, migration builders
+doido-model = { workspace = true, default-features = false }
+doido-controller.workspace = true
 thiserror.workspace = true
 async-trait.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 serde_norway.workspace = true
-axum.workspace = true                  # serving handlers (redirect / proxy / direct upload)
 tokio = { workspace = true, features = ["fs", "io-util", "rt"] }
 uuid.workspace = true                  # blob keys
 chrono.workspace = true
@@ -52,6 +52,9 @@ doido-jobs = { workspace = true, optional = true }
 
 [features]
 default = []
+sqlite = ["doido-model/sqlite"]
+postgres = ["doido-model/postgres"]
+mysql = ["doido-model/mysql"]
 storage-s3 = ["dep:aws-sdk-s3"]        # covers both the `s3` and `r2` service kinds
 storage-azure = ["dep:azure_storage", "dep:azure_storage_blobs"]
 storage-gcs = ["dep:gcloud-storage"]   # Google Cloud Storage
@@ -59,9 +62,9 @@ storage-image = ["dep:imagesize"]      # image dimension analyzer
 storage-jobs = ["dep:doido-jobs"]      # purge_later / analyze_later via doido-jobs
 
 [dev-dependencies]
-doido-model.workspace = true           # sqlite in-memory pool + test helpers
+doido-model = { workspace = true, features = ["sqlite"] }
+doido-controller.workspace = true
 tokio = { workspace = true, features = ["macros", "rt", "fs", "io-util"] }
 tempfile.workspace = true
 serde_json.workspace = true
 tower = { workspace = true }           # ServiceExt::oneshot for handler tests
-axum.workspace = true

@@ -1,11 +1,11 @@
-use crate::config::CorsConfig;
-use axum::{
+use crate::axum::{
     body::Body,
     extract::{Request, State},
     middleware::{from_fn, from_fn_with_state, Next},
     response::Response,
     Router,
 };
+use crate::config::CorsConfig;
 use http::{header, HeaderValue, Method, StatusCode};
 use std::sync::Arc;
 use tower_http::{

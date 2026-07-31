@@ -1,5 +1,5 @@
 {migration_imports}
-use sea_orm_migration::prelude::*;
+use doido::model::sea_orm_migration::prelude::*;
 
 #[derive(DeriveMigrationName)]
 pub struct Migration;

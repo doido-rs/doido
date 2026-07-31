@@ -50,6 +50,25 @@ Legend: **Done** = implemented + tested · **Partial** = core works, spec featur
 These are the working defaults. Flagged items are genuine product decisions — override
 here and the backlog follows.
 
+## Dependency import conventions
+
+Third-party crates that Doido wraps are **never imported directly** from workspace
+crates (except inside the crate that owns the re-export). Application code generated
+by `doido new` uses the **`doido` meta crate**; first-party workspace code uses the
+specific crate path.
+
+| Upstream | Import through | Notes |
+|----------|----------------|-------|
+| `sea_orm` | `doido_model::sea_orm` | Enable `sqlite` / `postgres` / `mysql` on `doido-model` (or the meta `doido` feature) for the SQL driver |
+| `sea_orm_migration` | `doido_model::sea_orm_migration` | Migration crates depend on `doido-model` only — no direct `sea-orm-migration` dep |
+| `sea_orm_cli` | `doido_model::sea_orm_cli` | Feature `cli` on `doido-model`; used by `doido db` |
+| `axum` | `doido_controller::axum` | `doido-controller` re-exports axum (incl. `ws` for cable/storage serving) |
+| Other workspace crates | `doido_<crate>` directly | e.g. `doido_storage`, `doido_jobs` — **not** `doido::storage` inside this repo |
+| Meta crate `doido` | `doido::…` | **Generated apps and external consumers only** |
+
+Inside `doido-model` / `doido-controller`, use `crate::sea_orm`, `crate::sea_orm_migration`,
+and `crate::axum` respectively (the re-export layer).
+
 1. **Config — per-env YAML.** Reality is per-env `config/<env>.yml` (a `Config` trait +
    `YamlConfig` folded into `doido-controller` and `doido-model`). **Decision (US-085):**
    standardize on per-env **YAML**, the implemented and tested path; a base-then-env

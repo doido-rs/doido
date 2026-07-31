@@ -29,7 +29,11 @@ pub async fn run(once: bool) {
     );
 
     // The engine carries the application context handed to every job handler.
-    let engine = WorkerEngine::with_context(queue, config.engine_config(), JobContext::new());
+    let mut job_ctx = JobContext::new();
+    if let Some(conn) = doido_model::pool::try_pool() {
+        job_ctx.insert(conn.clone());
+    }
+    let engine = WorkerEngine::with_context(queue, config.engine_config(), job_ctx);
 
     // Every `#[job]` registers its handler at link time; build the lookup once and
     // route each reserved payload to its handler by `job_name`. An unknown name

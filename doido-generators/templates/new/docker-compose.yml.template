@@ -1,4 +1,6 @@
 # Dev stack for {doido_name}. Start with: docker compose up --build
+name: {doido_name}
+
 services:
   web:
     build:

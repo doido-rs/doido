@@ -2,6 +2,8 @@ pub use sea_orm;
 pub use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, ModelTrait, QueryFilter, Set,
 };
+#[cfg(feature = "cli")]
+pub use sea_orm_cli;
 pub use sea_orm_migration;
 pub use sea_orm_migration::SchemaManager;
 

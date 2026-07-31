@@ -1,10 +1,10 @@
 //! Foreign-key operations: `add_foreign_key`, `remove_foreign_key`.
 
-use sea_orm::sea_query::{
+use crate::sea_orm::sea_query::{
     Alias, ForeignKey as SqForeignKey, ForeignKeyCreateStatement, ForeignKeyDropStatement,
 };
-use sea_orm::{ConnectionTrait, DbErr};
-use sea_orm_migration::SchemaManager;
+use crate::sea_orm::{ConnectionTrait, DbErr};
+use crate::sea_orm_migration::SchemaManager;
 
 /// Default foreign-key constraint name: `fk_<table>_<column>`.
 fn foreign_key_name(table: &str, column: &str) -> String {
@@ -72,7 +72,7 @@ pub async fn remove_foreign_key(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use sea_orm::sea_query::PostgresQueryBuilder;
+    use crate::sea_orm::sea_query::PostgresQueryBuilder;
 
     #[test]
     fn foreign_key_name_is_derived() {

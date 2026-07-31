@@ -140,7 +140,7 @@ pub fn expand_controller(_attr: TokenStream, item: TokenStream) -> Result<TokenS
         // used on the extracted action fn so `?` resolves and the error type is pinned.
         let ret_ty = match &method.sig.output {
             syn::ReturnType::Type(_, ty) => quote! { #ty },
-            syn::ReturnType::Default => quote! { ::axum::response::Response },
+            syn::ReturnType::Default => quote! { ::doido_controller::axum::response::Response },
         };
         // The action body is moved into a private `async fn` taking `&mut Context`.
         // Using a real `&mut Context` parameter (rather than an `async {}` block,
@@ -208,8 +208,8 @@ pub fn expand_controller(_attr: TokenStream, item: TokenStream) -> Result<TokenS
 
         handler_fns.push(quote! {
             pub async fn #fn_name(
-                req: ::axum::extract::Request,
-            ) -> ::axum::response::Response {
+                req: ::doido_controller::axum::extract::Request,
+            ) -> ::doido_controller::axum::response::Response {
                 #[allow(unused_mut)]
                 let mut ctx = ::doido_controller::Context::build(req).await;
                 #(#before_chain)*

@@ -1,12 +1,12 @@
-use crate::cookies::CookieJar;
-use crate::flash::Flash;
-use crate::session::{CookieSessionStore, EncryptedCookieSessionStore, Session};
-use axum::{
+use crate::axum::{
     body::Body,
     extract::{FromRequestParts, RawPathParams, Request},
     http::{header, HeaderValue, StatusCode},
     response::Response,
 };
+use crate::cookies::CookieJar;
+use crate::flash::Flash;
+use crate::session::{CookieSessionStore, EncryptedCookieSessionStore, Session};
 use doido_model::sea_orm::DatabaseConnection;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
@@ -120,7 +120,7 @@ impl Context {
             .body
             .take()
             .ok_or_else(|| doido_core::anyhow::anyhow!("request body already consumed"))?;
-        let bytes = axum::body::to_bytes(body, MAX_BODY_BYTES)
+        let bytes = crate::axum::body::to_bytes(body, MAX_BODY_BYTES)
             .await
             .map_err(|e| doido_core::anyhow::anyhow!("failed to read request body: {e}"))?;
         Ok(bytes.to_vec())

@@ -1,4 +1,4 @@
-use axum::{routing::get, routing::post, Router};
+use doido_controller::axum::{routing::get, routing::post, Router};
 use doido_controller::testing::send;
 use http::StatusCode;
 

@@ -2,8 +2,8 @@
 //! response (Rails integration/system tests). Pair with `doido_model` factories
 //! and `TestDb` for full-stack tests.
 
-use axum::body::Body;
-use axum::Router;
+use crate::axum::body::Body;
+use crate::axum::Router;
 use http::{Request, StatusCode};
 use tower::ServiceExt;
 
@@ -25,7 +25,7 @@ pub async fn send(router: Router, method: &str, uri: &str, body: &str) -> TestRe
         .await
         .expect("router handled the request");
     let status = response.status();
-    let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+    let bytes = crate::axum::body::to_bytes(response.into_body(), usize::MAX)
         .await
         .expect("read response body");
     TestResponse {

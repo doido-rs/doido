@@ -14,7 +14,7 @@ use doido_core::Result;
 
 pub struct StorageInstallGenerator;
 
-const IMPORTS: &str = "use doido_model::migration::{add_index, create_table, drop_table};";
+const IMPORTS: &str = "use doido::model::migration::{add_index, create_table, drop_table};";
 
 const UP_BODY: &str = r#"        create_table(manager, "storage_blobs", |t| {
             t.string("key").not_null().unique_key();

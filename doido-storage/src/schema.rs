@@ -1,10 +1,9 @@
 //! Metadata tables for blobs, attachments and variant records.
 //!
-//! [`ensure_tables`] creates them with `CREATE TABLE IF NOT EXISTS` (SQLite-shaped,
-//! like `doido_cache::DbCacheStore::connect`) — a convenience for tests and quick
-//! development. The canonical path in a real app is the migration emitted by the
-//! `storage:install` generator (which uses the portable `doido_model::migration`
-//! builders).
+//! [`ensure_tables`] creates them with `CREATE TABLE IF NOT EXISTS` (SQLite-shaped
+//! raw SQL) — a convenience for tests and quick development. The canonical path in
+//! a real app is the migration emitted by the `storage:install` generator (which
+//! uses the portable `doido_model::migration` builders in generated apps).
 //!
 //! Blobs are linked to attachments and variant records by their unique `key`
 //! (a UUID), not by the numeric `id`, so inserts never need the auto-increment

@@ -46,9 +46,9 @@ doido/                  ← workspace root (Cargo.toml)
 
 ## Interview Status
 
-- [x] 01-router — **Macro DSL, `resources!` with all 7 REST routes, `only:`/`except:`, namespace/scope**
-- [x] 02-controller — **`#[controller]` macro + trait, `#[before_action]`/`#[after_action]` attrs, Tower middleware layers**
-- [x] 03-model — **Re-exports sea-orm fully, adds only connection pool + test helpers (SQLite in-memory)**
+- [x] 01-router — **Macro DSL, `resources!` with all 7 REST routes, `only:`/`except:`, namespace/scope; axum via `doido_controller::axum`**
+- [x] 02-controller — **`#[controller]` macro + trait, `#[before_action]`/`#[after_action]` attrs, Tower middleware layers; re-exports axum**
+- [x] 03-model — **Re-exports sea-orm + sea-orm-migration + sea-orm-cli (`cli` feature); connection pool + test helpers (SQLite in-memory). Import only via `doido_model::sea_orm*` — never direct upstream deps**
 - [x] 04-view — **Tera default engine, swappable via `TemplateEngine` trait, convention-based template resolution**
 - [x] 05-config — **Per-env YAML (`config/<env>.yml`), AES-256-GCM encrypted credentials (`credentials.yml.enc` + `master.key`), `SECTION__KEY` env override; layered TOML dropped (US-085)**
 - [x] 06-cli — **Runtime commands only; `doido generate` delegates to `doido-generators`**

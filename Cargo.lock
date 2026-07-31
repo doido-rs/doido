@@ -1675,8 +1675,8 @@ name = "doido-cable"
 version = "0.0.9"
 dependencies = [
  "async-trait",
- "axum",
  "doido-cable-macros",
+ "doido-controller",
  "doido-core",
  "doido-model",
  "futures-util",
@@ -1703,7 +1703,6 @@ version = "0.0.9"
 dependencies = [
  "async-trait",
  "doido-core",
- "doido-model",
  "flate2",
  "memcache",
  "redis",
@@ -1786,7 +1785,6 @@ dependencies = [
  "figlet-rs",
  "include_dir",
  "predicates",
- "sea-orm-cli",
  "serde_json",
  "tempfile",
  "tokio",
@@ -1858,6 +1856,7 @@ dependencies = [
  "bcrypt",
  "doido-core",
  "sea-orm",
+ "sea-orm-cli",
  "sea-orm-migration",
  "serde",
  "serde_json",
@@ -1874,11 +1873,11 @@ version = "0.0.9"
 dependencies = [
  "async-trait",
  "aws-sdk-s3",
- "axum",
  "azure_storage",
  "azure_storage_blobs",
  "base64 0.23.0",
  "chrono",
+ "doido-controller",
  "doido-core",
  "doido-jobs",
  "doido-model",
@@ -4631,8 +4630,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ef3576c5301b67ea7d2ce4515858d700066e51911c7d228a439c00ff258695c8"
 dependencies = [
  "async-trait",
- "clap",
- "dotenvy",
  "sea-orm",
  "sea-orm-cli",
  "sea-schema",

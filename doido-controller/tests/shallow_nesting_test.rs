@@ -1,5 +1,5 @@
-use axum::body::Body;
-use axum::extract::Path;
+use doido_controller::axum::body::Body;
+use doido_controller::axum::extract::Path;
 use http::{Request, StatusCode};
 use tower::ServiceExt;
 
@@ -30,7 +30,7 @@ mod comments {
     }
 }
 
-async fn status(app: &axum::Router, method: &str, uri: &str) -> StatusCode {
+async fn status(app: &doido_controller::axum::Router, method: &str, uri: &str) -> StatusCode {
     app.clone()
         .oneshot(
             Request::builder()

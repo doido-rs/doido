@@ -54,7 +54,7 @@ async fn subscribe_then_receive_broadcast_over_websocket() {
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let addr = listener.local_addr().unwrap();
     tokio::spawn(async move {
-        axum::serve(listener, app).await.unwrap();
+        doido_controller::axum::serve(listener, app).await.unwrap();
     });
 
     let (mut ws, _) = tokio_tungstenite::connect_async(format!("ws://{addr}/cable"))

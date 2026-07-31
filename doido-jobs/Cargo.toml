@@ -16,16 +16,19 @@ async-trait.workspace = true
 uuid.workspace = true
 inventory.workspace = true
 chrono = { workspace = true, features = ["serde"] }
-doido-model = { workspace = true, optional = true }
+doido-model = { workspace = true, optional = true, default-features = false }
 redis = { workspace = true, optional = true }
 
 [features]
 default = []
+sqlite = ["doido-model?/sqlite"]
+postgres = ["doido-model?/postgres"]
+mysql = ["doido-model?/mysql"]
 jobs-db = ["dep:doido-model"]
 jobs-redis = ["dep:redis"]
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["rt-multi-thread", "macros", "time"] }
-doido-model.workspace = true
+doido-model = { workspace = true, features = ["sqlite"] }
 uuid.workspace = true
 tempfile = "3"

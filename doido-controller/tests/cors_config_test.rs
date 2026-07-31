@@ -1,4 +1,4 @@
-use axum::{routing::get, Router};
+use doido_controller::axum::{routing::get, Router};
 use doido_controller::config::Config;
 use doido_controller::{MiddlewareStack, YamlConfig};
 use http::{Request, StatusCode};
@@ -14,7 +14,7 @@ async fn cors_enabled_from_config_sets_allow_origin() {
     let req = Request::builder()
         .uri("/")
         .header("origin", "https://app.example")
-        .body(axum::body::Body::empty())
+        .body(doido_controller::axum::body::Body::empty())
         .unwrap();
     let resp = app.oneshot(req).await.unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
