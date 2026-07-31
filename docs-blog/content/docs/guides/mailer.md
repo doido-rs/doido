@@ -37,7 +37,7 @@ impl UserMailer {
         ).unwrap_or_default();
 
         Mail::new()
-            .from("noreply@doido.rs")
+            .from("noreply@example.com")
             .to(&user.email)
             .subject("Welcome!")
             .body_html(html)
@@ -52,7 +52,7 @@ attachments. Provide both an HTML and a text body for a proper multipart message
 
 ```rust
 let mail = Mail::new()
-    .from("noreply@doido.rs")
+    .from("noreply@example.com")
     .to("alice@example.com")
     .subject("Your report")
     .body_html("<h1>Report</h1>")

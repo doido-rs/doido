@@ -7,7 +7,7 @@
 # Local preview:  zola serve      (http://127.0.0.1:1111)
 # Production build: zola build     (outputs ./public)
 
-base_url = "https://doido.rs"
+base_url = "https://doido-rs.github.io/doido"
 title = "Doido"
 description = "A Rails-inspired web framework for Rust — batteries included, async-native."
 

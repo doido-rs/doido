@@ -3,7 +3,7 @@ description = "Minimal, configurable docs + blog theme for the Doido framework."
 license = "MIT"
 homepage = "https://github.com/doido-rs/doido"
 min_version = "0.19.0"
-demo = "https://doido.rs"
+demo = "https://doido-rs.github.io/doido"
 
 [author]
 name = "Doido contributors"

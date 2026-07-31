@@ -34,7 +34,7 @@ jobs:
         with:
           tool: zola@0.19.2
 
-      # base_url is already set to the custom domain in config.toml.
+      # base_url is already set to the GitHub Pages URL in config.toml.
       - name: Build site
         working-directory: docs-blog
         run: zola build

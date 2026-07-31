@@ -30,7 +30,7 @@ let app = MiddlewareStack::new()
     .with_csrf()            // double-submit CSRF token validation
     .with_cors()            // permissive CORS (or with_cors_config(...))
     .with_force_ssl()       // redirect http→https (via X-Forwarded-Proto)
-    .with_allowed_hosts(vec!["doido.rs".into()]) // host authorization
+    .with_allowed_hosts(vec!["example.com".into()]) // host authorization
     .apply(router());       // wrap your routes! router
 ```
 

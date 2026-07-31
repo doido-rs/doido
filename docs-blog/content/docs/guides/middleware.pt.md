@@ -32,7 +32,7 @@ let app = MiddlewareStack::new()
     .with_csrf()            // validação de token CSRF double-submit
     .with_cors()            // CORS permissivo (ou with_cors_config(...))
     .with_force_ssl()       // redireciona http→https (via X-Forwarded-Proto)
-    .with_allowed_hosts(vec!["doido.rs".into()]) // autorização de host
+    .with_allowed_hosts(vec!["example.com".into()]) // autorização de host
     .apply(router());       // envolve o seu router do routes!
 ```
 
