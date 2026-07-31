@@ -6,7 +6,7 @@ fn test_doido_new_creates_project_files() {
     let dir = tempfile::tempdir().unwrap();
     let mut cmd = Command::cargo_bin("doido-generators").unwrap();
     cmd.current_dir(dir.path())
-        .args(["new", "my-app", "--database=sqlite"])
+        .args(["new", "my-app", "--non-interactive", "--database=sqlite"])
         .assert()
         .success();
 
@@ -37,7 +37,7 @@ fn test_doido_new_cargo_toml_has_correct_name_and_database() {
     let dir = tempfile::tempdir().unwrap();
     let mut cmd = Command::cargo_bin("doido-generators").unwrap();
     cmd.current_dir(dir.path())
-        .args(["new", "blog-app", "--database=postgres"])
+        .args(["new", "blog-app", "--non-interactive", "--database=postgres"])
         .assert()
         .success();
 
@@ -55,7 +55,13 @@ fn test_doido_new_cargo_toml_has_cache_redis_feature() {
     let dir = tempfile::tempdir().unwrap();
     let mut cmd = Command::cargo_bin("doido-generators").unwrap();
     cmd.current_dir(dir.path())
-        .args(["new", "cache-app", "--database=sqlite", "--cache=redis"])
+        .args([
+            "new",
+            "cache-app",
+            "--non-interactive",
+            "--database=sqlite",
+            "--cache=redis",
+        ])
         .assert()
         .success();
 
@@ -72,7 +78,7 @@ fn test_doido_new_creates_git_repository() {
     let dir = tempfile::tempdir().unwrap();
     let mut cmd = Command::cargo_bin("doido-generators").unwrap();
     cmd.current_dir(dir.path())
-        .args(["new", "my-app", "--database=sqlite"])
+        .args(["new", "my-app", "--non-interactive", "--database=sqlite"])
         .assert()
         .success();
 

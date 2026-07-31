@@ -3,6 +3,7 @@ mod cli;
 pub mod commands;
 pub mod generator;
 pub mod generators;
+pub mod new_options;
 pub mod project_generator;
 pub mod registry;
 pub mod templates;

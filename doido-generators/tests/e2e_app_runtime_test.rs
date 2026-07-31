@@ -46,7 +46,7 @@ fn free_port() -> u16 {
 fn generated_app_serves_crud_over_http() {
     let tmp = e2e_tempdir();
     doido(tmp.path())
-        .args(["new", "blog", "--database=sqlite"])
+        .args(["new", "blog", "--non-interactive", "--database=sqlite"])
         .assert()
         .success();
     let app = tmp.path().join("blog");

@@ -18,6 +18,7 @@
 //! `templates/new/` as a nested crate and excluding it from the published tarball.
 
 use crate::generator::{GeneratedFile, Generator};
+use crate::new_options::{parse_cache, parse_database, parse_jobs, CacheBackend, JobsBackend};
 use doido_core::{anyhow, Result};
 use include_dir::{include_dir, Dir, DirEntry};
 
@@ -54,19 +55,6 @@ cargo test --bin {doido_name} chat
 ```
 "#;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum CacheBackend {
-    Memory,
-    Redis,
-    Memcache,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum JobsBackend {
-    Memory,
-    Db,
-    Redis,
-}
 
 struct TemplateContext<'a> {
     name: &'a str,
@@ -109,28 +97,6 @@ fn flag_value<'a>(args: &'a [&str], prefix: &str, default: &'a str) -> &'a str {
         .find(|a| a.starts_with(prefix))
         .and_then(|a| a.split_once('=').map(|(_, v)| v))
         .unwrap_or(default)
-}
-
-fn parse_cache(s: &str) -> Result<CacheBackend> {
-    match s.trim().to_ascii_lowercase().as_str() {
-        "memory" => Ok(CacheBackend::Memory),
-        "redis" => Ok(CacheBackend::Redis),
-        "memcache" | "memcached" => Ok(CacheBackend::Memcache),
-        other => Err(anyhow::anyhow!(
-            "Unknown cache backend: {other}. Use memory, redis, or memcache."
-        )),
-    }
-}
-
-fn parse_jobs(s: &str) -> Result<JobsBackend> {
-    match s.trim().to_ascii_lowercase().as_str() {
-        "memory" | "inmemory" | "in_memory" => Ok(JobsBackend::Memory),
-        "db" | "database" | "sql" => Ok(JobsBackend::Db),
-        "redis" => Ok(JobsBackend::Redis),
-        other => Err(anyhow::anyhow!(
-            "Unknown jobs backend: {other}. Use memory, db, or redis."
-        )),
-    }
 }
 
 fn doido_features(cache: CacheBackend) -> String {
@@ -427,20 +393,12 @@ impl Generator for ProjectGenerator {
             .copied()
             .ok_or_else(|| anyhow::anyhow!("new generator requires a name argument"))?;
 
-        let database = flag_value(args, "--database=", "sqlite");
-        match database {
-            "sqlite" | "postgres" | "mysql" => {}
-            other => {
-                return Err(anyhow::anyhow!(
-                    "Unknown database: {other}. Use sqlite, postgres, or mysql."
-                ));
-            }
-        }
-
+        let database = parse_database(flag_value(args, "--database=", "sqlite"))?;
         let cache = parse_cache(flag_value(args, "--cache=", "memory"))?;
         let jobs = parse_jobs(flag_value(args, "--jobs=", "memory"))?;
         let cable = args.contains(&"--cable");
 
+        let database = database.as_str();
         let db_url = default_database_url(database, name, "development");
         let db_url_test = default_database_url(database, name, "test");
         let db_url_production = default_database_url(database, name, "production");
@@ -479,6 +437,7 @@ impl Generator for ProjectGenerator {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::new_options::{parse_cache, parse_jobs};
 
     #[test]
     fn local_builds_emit_path_dependencies() {

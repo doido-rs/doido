@@ -1,46 +1,104 @@
 use crate::commands::write_files;
 use crate::default_registry;
+use crate::new_options::{
+    parse_cache, parse_database, parse_jobs, CacheBackend, DatabaseBackend, JobsBackend,
+};
 use std::io::{self, Write};
 use std::path::Path;
 use std::process::Command;
 
-fn prompt_database() -> String {
-    // Interactive prompt: written directly to stdout (not the logger) so it
-    // appears inline before the user's input on the same line.
-    print!("Which database? [sqlite/postgres/mysql] (default: sqlite): ");
+fn prompt_line(prompt: &str, default: &str) -> String {
+    print!("{prompt} (default: {default}): ");
     io::stdout().flush().expect("failed to flush stdout");
     let mut input = String::new();
     io::stdin()
         .read_line(&mut input)
         .expect("failed to read input");
-    let trimmed = input.trim().to_lowercase();
+    let trimmed = input.trim();
     if trimmed.is_empty() {
-        "sqlite".to_string()
+        default.to_string()
     } else {
-        trimmed
+        trimmed.to_string()
     }
 }
 
-pub fn run_new(name: &str, database: Option<&str>, cable: bool, cache: &str, jobs: &str) {
-    let db = match database {
-        Some(d) => d.to_string(),
-        None => prompt_database(),
-    };
-
-    match db.as_str() {
-        "sqlite" | "postgres" | "mysql" => {}
-        other => {
-            doido_core::tracing::error!(
-                "unknown database '{other}'. Use sqlite, postgres, or mysql."
-            );
-            std::process::exit(1);
+fn prompt_database() -> DatabaseBackend {
+    loop {
+        let answer = prompt_line(
+            "Which database? [sqlite/postgres/mysql]",
+            DatabaseBackend::Sqlite.as_str(),
+        );
+        match parse_database(&answer) {
+            Ok(db) => return db,
+            Err(e) => eprintln!("{e}"),
         }
     }
+}
+
+fn prompt_cache() -> CacheBackend {
+    loop {
+        let answer = prompt_line(
+            "Which cache backend? [memory/redis/memcache]",
+            CacheBackend::Memory.as_str(),
+        );
+        match parse_cache(&answer) {
+            Ok(cache) => return cache,
+            Err(e) => eprintln!("{e}"),
+        }
+    }
+}
+
+fn prompt_jobs() -> JobsBackend {
+    loop {
+        let answer = prompt_line(
+            "Which jobs backend? [memory/db/redis]",
+            JobsBackend::Memory.as_str(),
+        );
+        match parse_jobs(&answer) {
+            Ok(jobs) => return jobs,
+            Err(e) => eprintln!("{e}"),
+        }
+    }
+}
+
+fn prompt_cable() -> bool {
+    print!("Include doido-cable example channel? [y/N]: ");
+    io::stdout().flush().expect("failed to flush stdout");
+    let mut input = String::new();
+    io::stdin()
+        .read_line(&mut input)
+        .expect("failed to read input");
+    matches!(input.trim().to_ascii_lowercase().as_str(), "y" | "yes")
+}
+
+pub fn run_new(
+    name: &str,
+    non_interactive: bool,
+    database: Option<DatabaseBackend>,
+    cable: bool,
+    cache: Option<CacheBackend>,
+    jobs: Option<JobsBackend>,
+) {
+    let (database, cache, jobs, cable) = if non_interactive {
+        (
+            database.unwrap_or(DatabaseBackend::Sqlite),
+            cache.unwrap_or(CacheBackend::Memory),
+            jobs.unwrap_or(JobsBackend::Memory),
+            cable,
+        )
+    } else {
+        (
+            database.unwrap_or_else(prompt_database),
+            cache.unwrap_or_else(prompt_cache),
+            jobs.unwrap_or_else(prompt_jobs),
+            if cable { true } else { prompt_cable() },
+        )
+    };
 
     let registry = default_registry();
-    let db_arg = format!("--database={db}");
-    let cache_arg = format!("--cache={cache}");
-    let jobs_arg = format!("--jobs={jobs}");
+    let db_arg = format!("--database={}", database.as_str());
+    let cache_arg = format!("--cache={}", cache.as_str());
+    let jobs_arg = format!("--jobs={}", jobs.as_str());
     let mut new_args = vec![name, &db_arg, &cache_arg, &jobs_arg];
     if cable {
         new_args.push("--cable");
