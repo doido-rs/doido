@@ -1,4 +1,5 @@
 use crate::commands::{self, jobs::JobsCommand, new::run_new};
+use crate::new_options::{CacheBackend, DatabaseBackend, JobsBackend};
 use clap::{Parser, Subcommand};
 use doido_controller::axum;
 
@@ -64,12 +65,21 @@ enum Commands {
     New {
         /// Application name
         name: String,
-        /// Database backend: sqlite, postgres, or mysql (prompted if omitted)
+        /// Skip interactive prompts; use flag values or defaults
         #[arg(long)]
-        database: Option<String>,
+        non_interactive: bool,
+        /// Database backend (prompted when omitted in interactive mode)
+        #[arg(long, value_enum)]
+        database: Option<DatabaseBackend>,
         /// Include a doido-cable example channel and its wiring
         #[arg(long)]
         cable: bool,
+        /// Cache backend (prompted when omitted in interactive mode)
+        #[arg(long, value_enum)]
+        cache: Option<CacheBackend>,
+        /// Jobs backend (prompted when omitted in interactive mode)
+        #[arg(long, value_enum)]
+        jobs: Option<JobsBackend>,
     },
 }
 
@@ -129,10 +139,13 @@ pub async fn run(routes: Option<axum::Router>) {
         Commands::Generate { args } => commands::generate::run(&args),
         Commands::New {
             name,
+            non_interactive,
             database,
             cable,
+            cache,
+            jobs,
         } => {
-            run_new(&name, database.as_deref(), cable);
+            run_new(&name, non_interactive, database, cable, cache, jobs);
         }
     }
 }

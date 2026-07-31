@@ -65,4 +65,18 @@ are git-ignored by default.
 ```bash
 cargo test
 ```
+
+## Docker
+
+```bash
+# Dev stack (web + database [+ redis/memcache when configured])
+docker compose up --build
+
+# Production image (distroless runtime)
+docker build -t {doido_name} .
+```
+
+When using `docker compose`, the `web` service overrides `DATABASE__URL` (and
+cache/jobs endpoints when applicable) to reach backends by Docker service name.
+Run migrations first if needed: `doido db create && doido db migrate`.
 {doido_cable_readme}

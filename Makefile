@@ -67,7 +67,7 @@ PUBLISH_CRATES ?= \
 	doido
 
 .PHONY: help publish publish-dry-run clean-package check supply-chain yank unyank \
-        fmt test verify example install-check services-up services-down test-backends \
+        fmt test verify example install-check verify-published-generator services-up services-down test-backends \
         coverage coverage-check \
         blog blog-build blog-install
 
@@ -88,6 +88,10 @@ publish-dry-run: clean-package ## Validate the whole workspace without uploading
 	# resolves inter-crate deps within the batch, so unpublished members are
 	# satisfied from the local package set instead of the live crates.io index.
 	CARGO_TARGET_DIR="$(PUBLISH_TARGET_DIR)" cargo publish --workspace --dry-run $(PUBLISH_FLAGS)
+	./scripts/verify-published-generator.sh
+
+verify-published-generator: ## Build packaged doido-generators and assert version deps in `doido new`
+	./scripts/verify-published-generator.sh
 
 publish: clean-package ## Upload the workspace to crates.io (resumable, rate-limit aware)
 	@command -v cargo >/dev/null || { echo "error: cargo not found in PATH" >&2; exit 1; }

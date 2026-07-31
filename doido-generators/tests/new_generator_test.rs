@@ -1,5 +1,5 @@
 use doido_generators::generators::new::ProjectGenerator;
-use doido_generators::{default_registry, Generator, TEMPLATE_WORKSPACE_PATH};
+use doido_generators::{default_registry, DependencyMode, Generator, DOIDO_VERSION};
 
 #[test]
 fn test_new_generates_all_expected_files() {
@@ -127,20 +127,32 @@ fn test_new_sqlite_cargo_toml_has_sqlite_feature() {
     assert!(cargo_toml.content.contains("sqlite"));
     assert!(cargo_toml.content.contains("serde_json"));
     assert!(cargo_toml.content.contains("axum"));
-    assert!(
-        cargo_toml.content.contains(&format!(
-            "doido = {{ path = \"{}/doido\" }}",
-            TEMPLATE_WORKSPACE_PATH
-        )),
-        "generated Cargo.toml must point `doido` at the local workspace crate"
-    );
-    assert!(
-        cargo_toml.content.contains(&format!(
-            "doido-controller = {{ path = \"{}/doido-controller\" }}",
-            TEMPLATE_WORKSPACE_PATH
-        )),
-        "generated Cargo.toml must point `doido-controller` at the local workspace crate"
-    );
+    let mode = DependencyMode::resolve();
+    if mode.use_path {
+        assert!(
+            cargo_toml.content.contains(&format!(
+                "doido = {{ path = \"{}/doido\" }}",
+                mode.workspace_path
+            )),
+            "generated Cargo.toml must point `doido` at the local workspace crate"
+        );
+        assert!(
+            cargo_toml.content.contains(&format!(
+                "doido-controller = {{ path = \"{}/doido-controller\" }}",
+                mode.workspace_path
+            )),
+            "generated Cargo.toml must point `doido-controller` at the local workspace crate"
+        );
+    } else {
+        assert!(
+            !cargo_toml.content.contains("path ="),
+            "isolated/published binary must not emit path dependencies"
+        );
+        assert!(
+            cargo_toml.content.contains(DOIDO_VERSION),
+            "isolated/published binary must pin crates.io version"
+        );
+    }
 }
 
 #[test]
@@ -263,7 +275,15 @@ fn test_new_rejects_unknown_database() {
 fn test_new_registered_in_default_registry() {
     let registry = default_registry();
     let files = registry
-        .run("new", &["my-app", "--database=sqlite"])
+        .run(
+            "new",
+            &[
+                "my-app",
+                "--database=sqlite",
+                "--cache=memory",
+                "--jobs=memory",
+            ],
+        )
         .unwrap();
     assert!(!files.is_empty());
 }

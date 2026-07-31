@@ -99,7 +99,7 @@ fn test_new_app_with_sqlite_database() {
     let dir = tempfile::tempdir().unwrap();
     cmd()
         .current_dir(dir.path())
-        .args(["new", "blog", "--database", "sqlite"])
+        .args(["new", "blog", "--non-interactive", "--database", "sqlite"])
         .timeout(std::time::Duration::from_secs(60))
         .assert()
         .success()
@@ -112,10 +112,10 @@ fn test_new_rejects_unknown_database() {
     let dir = tempfile::tempdir().unwrap();
     cmd()
         .current_dir(dir.path())
-        .args(["new", "bad", "--database", "mongodb"])
+        .args(["new", "bad", "--non-interactive", "--database", "mongodb"])
         .assert()
         .failure()
-        .stdout(predicate::str::contains("unknown database"));
+        .stderr(predicate::str::contains("invalid value"));
 }
 
 #[test]
