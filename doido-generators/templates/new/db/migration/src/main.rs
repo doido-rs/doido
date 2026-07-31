@@ -1,4 +1,4 @@
-use sea_orm_migration::prelude::*;
+use doido_model::sea_orm_migration::prelude::*;
 
 #[tokio::main]
 async fn main() {

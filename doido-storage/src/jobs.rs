@@ -2,13 +2,14 @@
 //! analogues, built on `doido-jobs`.
 //!
 //! Each `#[job]` handler rebuilds a [`Storage`](crate::Storage) from the current
-//! environment's config and a [`sea_orm::DatabaseConnection`] registered on the
-//! worker's [`JobContext`], so a worker can dispatch it by queue name. Register
-//! the connection at worker boot (see `doido-generators` worker command).
+//! environment's config and a [`doido_model::sea_orm::DatabaseConnection`]
+//! registered on the worker's [`JobContext`], so a worker can dispatch it by
+//! queue name. Register the connection at worker boot (see `doido-generators`
+//! worker command).
 
 use doido_core::Result;
 use doido_jobs::{JobContext, JobId, JobQueue};
-use sea_orm::DatabaseConnection;
+use doido_model::sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
 
 /// Payload for a deferred blob purge.
@@ -30,7 +31,7 @@ fn db_from_context(ctx: &JobContext) -> Result<DatabaseConnection> {
         .map(|conn| conn.as_ref().clone())
         .ok_or_else(|| {
             doido_core::anyhow::anyhow!(
-                "storage job requires a sea_orm::DatabaseConnection registered in JobContext"
+                "storage job requires a doido_model::sea_orm::DatabaseConnection registered in JobContext"
             )
         })
 }

@@ -5,7 +5,7 @@
 //! return), surfacing errors as [`doido_core::Result`].
 
 use doido_core::Result;
-use sea_orm::{DatabaseConnection, DatabaseTransaction, TransactionTrait};
+use crate::sea_orm::{DatabaseConnection, DatabaseTransaction, TransactionTrait};
 
 /// Run `work` inside a transaction: commit on `Ok`, roll back on `Err`.
 pub async fn transaction<T>(

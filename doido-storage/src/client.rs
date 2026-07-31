@@ -13,7 +13,7 @@ use crate::config;
 use crate::service::{Service, UrlOptions};
 use crate::signing::{Disposition, Signer};
 use doido_core::Result;
-use sea_orm::DatabaseConnection;
+use doido_model::sea_orm::DatabaseConnection;
 use serde_json::Value;
 use std::sync::Arc;
 use std::time::Duration;

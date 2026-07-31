@@ -1,4 +1,4 @@
-pub use sea_orm_migration::prelude::*;
+pub use doido_model::sea_orm_migration::prelude::*;
 
 // @generated-migrations-mod — `doido generate model` inserts `mod` declarations above this line. Do not remove.
 

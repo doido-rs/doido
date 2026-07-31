@@ -8,7 +8,7 @@ use std::sync::Arc;
 use tower::ServiceExt;
 
 async fn storage() -> Storage {
-    let conn = sea_orm::Database::connect("sqlite::memory:")
+    let conn = doido_model::sea_orm::Database::connect("sqlite::memory:")
         .await
         .unwrap();
     let s = Storage::new(

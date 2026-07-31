@@ -5,7 +5,7 @@
 //! (reading) connection; [`Databases::connection`] routes by [`Role`], falling
 //! back to the writer when no replica is configured.
 
-use sea_orm::DatabaseConnection;
+use crate::sea_orm::DatabaseConnection;
 
 /// Which connection a query should use.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

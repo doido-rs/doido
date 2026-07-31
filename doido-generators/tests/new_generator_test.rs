@@ -203,8 +203,10 @@ fn test_new_migration_crate_uses_selected_backend() {
         .iter()
         .find(|f| f.path == "blog/db/migration/Cargo.toml")
         .unwrap();
-    assert!(migration_cargo.content.contains("sea-orm-migration"));
-    assert!(migration_cargo.content.contains("sqlx-postgres"));
+    assert!(
+        !migration_cargo.content.contains("sea-orm-migration"),
+        "migration crate must not depend on sea-orm-migration directly"
+    );
     assert!(
         migration_cargo.content.contains("doido-model ="),
         "migration crate must depend on doido-model"
@@ -218,11 +220,11 @@ fn test_new_migration_crate_uses_selected_backend() {
 #[test]
 fn test_new_migration_crate_doido_model_feature_matches_database() {
     let cases = [
-        ("sqlite", "features = [\"sqlite\"]", "sqlx-sqlite"),
-        ("postgres", "features = [\"postgres\"]", "sqlx-postgres"),
-        ("mysql", "features = [\"mysql\"]", "sqlx-mysql"),
+        ("sqlite", "features = [\"sqlite\"]"),
+        ("postgres", "features = [\"postgres\"]"),
+        ("mysql", "features = [\"mysql\"]"),
     ];
-    for (database, model_feature, sqlx_feature) in cases {
+    for (database, model_feature) in cases {
         let files = ProjectGenerator
             .generate(&["app", &format!("--database={database}")])
             .unwrap();
@@ -235,8 +237,8 @@ fn test_new_migration_crate_doido_model_feature_matches_database() {
             "{database}: doido-model must declare {model_feature}"
         );
         assert!(
-            migration_cargo.content.contains(sqlx_feature),
-            "{database}: sea-orm-migration must declare {sqlx_feature}"
+            !migration_cargo.content.contains("sea-orm-migration"),
+            "{database}: migration crate must not declare sea-orm-migration directly"
         );
     }
 }

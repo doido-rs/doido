@@ -11,7 +11,7 @@
 //! A user-supplied `-d/--migration-dir` or `-o/--output-dir` always wins.
 
 use clap::Subcommand;
-use sea_orm_cli::{
+use doido_model::sea_orm_cli::{
     handle_error, run_generate_command, run_migrate_command, Commands, GenerateSubcommands,
 };
 

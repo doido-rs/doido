@@ -10,7 +10,7 @@
 //! value back.
 
 use doido_core::Result;
-use sea_orm::{ConnectionTrait, DatabaseConnection};
+use doido_model::sea_orm::{ConnectionTrait, DatabaseConnection};
 
 /// Table holding one row per stored object.
 pub const BLOBS_TABLE: &str = "storage_blobs";

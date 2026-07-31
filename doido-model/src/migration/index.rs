@@ -1,8 +1,8 @@
 //! Index operations: `add_index`, `remove_index`.
 
-use sea_orm::sea_query::{Alias, Index as SqIndex, IndexCreateStatement, IndexDropStatement};
-use sea_orm::{ConnectionTrait, DbErr};
-use sea_orm_migration::SchemaManager;
+use crate::sea_orm::sea_query::{Alias, Index as SqIndex, IndexCreateStatement, IndexDropStatement};
+use crate::sea_orm::{ConnectionTrait, DbErr};
+use crate::sea_orm_migration::SchemaManager;
 
 /// Default index name for a `(table, columns)` pair: `idx_<table>_<col>_<col>`.
 fn index_name(table: &str, columns: &[&str]) -> String {
@@ -55,7 +55,7 @@ pub async fn remove_index(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use sea_orm::sea_query::PostgresQueryBuilder;
+    use crate::sea_orm::sea_query::PostgresQueryBuilder;
 
     #[test]
     fn index_name_is_derived_from_table_and_columns() {

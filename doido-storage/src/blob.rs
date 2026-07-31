@@ -10,7 +10,7 @@
 use crate::content_type;
 use crate::error::StorageError;
 use doido_core::Result;
-use sea_orm::{
+use doido_model::sea_orm::{
     ConnectionTrait, DatabaseConnection, DbBackend, Statement, Value as DbValue,
 };
 use serde_json::Value;

@@ -2,12 +2,12 @@
 //! [`rename_table`], [`alter_table`] — plus the column-definition builders they
 //! use ([`TableBuilder`] for create, [`AlterTableBuilder`] for alter).
 
-use sea_orm::sea_query::{
+use crate::sea_orm::sea_query::{
     Alias, ColumnDef, Expr, Table as SqTable, TableAlterStatement, TableCreateStatement,
     TableDropStatement, TableRenameStatement,
 };
-use sea_orm::{ConnectionTrait, DbErr};
-use sea_orm_migration::SchemaManager;
+use crate::sea_orm::{ConnectionTrait, DbErr};
+use crate::sea_orm_migration::SchemaManager;
 
 /// Collects column definitions inside [`create_table`].
 ///
@@ -261,7 +261,7 @@ pub async fn alter_table(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use sea_orm::sea_query::PostgresQueryBuilder;
+    use crate::sea_orm::sea_query::PostgresQueryBuilder;
 
     #[test]
     fn create_table_adds_implicit_id_and_columns() {

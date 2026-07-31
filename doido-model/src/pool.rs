@@ -6,7 +6,7 @@
 //! through `Context::db()`.
 
 use crate::config;
-use sea_orm::{ConnectOptions, Database, DatabaseConnection, DbErr};
+use crate::sea_orm::{ConnectOptions, Database, DatabaseConnection, DbErr};
 use std::sync::OnceLock;
 
 /// Process-global connection, installed by [`init`]/[`set_pool`].
