@@ -1,6 +1,8 @@
 name: docs-blog
 
-# Build the docs + blog site with Zola and deploy it to GitHub Pages.
+# Build the docs + blog site with Zola and publish it to the organisation
+# root-site repo doido-rs/doido-rs.github.io, which GitHub Pages serves at the
+# domain root https://doido-rs.github.io/.
 # Runs only when the site (or this workflow) changes, plus on manual dispatch.
 on:
   push:
@@ -10,11 +12,9 @@ on:
       - ".github/workflows/docs-blog.yml"
   workflow_dispatch:
 
-# Least-privilege token, plus the permissions the Pages deploy needs.
+# Only needs to read this repo; the cross-repo push authenticates with a deploy key.
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 # Serialize deploys; don't cancel an in-flight one.
 concurrency:
@@ -22,8 +22,8 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  build:
-    name: Build
+  build-and-deploy:
+    name: Build and deploy
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -34,24 +34,20 @@ jobs:
         with:
           tool: zola@0.19.2
 
-      # base_url is already set to the GitHub Pages URL in config.toml.
+      # base_url is already set to https://doido-rs.github.io in config.toml.
       - name: Build site
         working-directory: docs-blog
         run: zola build
 
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
+      # Publish the built site to the org root-site repo. That repo is named
+      # doido-rs.github.io, so GitHub Pages serves it at the domain root. The
+      # cross-repo push authenticates with the ACTIONS_DEPLOY_KEY deploy key
+      # (private half stored here as a secret, public half installed on the target).
+      - name: Publish to doido-rs.github.io
+        uses: peaceiris/actions-gh-pages@v4
         with:
-          path: docs-blog/public
-
-  deploy:
-    name: Deploy
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          deploy_key: ${{ secrets.ACTIONS_DEPLOY_KEY }}
+          external_repository: doido-rs/doido-rs.github.io
+          publish_branch: main
+          publish_dir: docs-blog/public
+          force_orphan: true
