@@ -122,12 +122,18 @@ The theme is **configurable** and **updatable**:
 ## Deployment
 
 [`.github/workflows/docs-blog.yml`](../.github/workflows/docs-blog.yml) builds the
-site with Zola and deploys it to GitHub Pages on every push to `master` that
-touches `docs-blog/**` (and on manual dispatch). `base_url` in `config.toml` points
-at the GitHub Pages URL `https://doido-rs.github.io`.
+site with Zola and publishes the output to the organisation root-site repo
+[`doido-rs/doido-rs.github.io`](https://github.com/doido-rs/doido-rs.github.io),
+which GitHub Pages serves at the domain root **https://doido-rs.github.io**. It runs
+on every push to `master` that touches `docs-blog/**` (and on manual dispatch).
+`base_url` in `config.toml` matches that URL.
 
-### One-time setup (repo settings)
+### One-time setup (already configured)
 
-This is configured once, outside the codebase:
+Done once, outside the codebase:
 
-1. **GitHub → Settings → Pages → Build and deployment → Source: GitHub Actions.**
+1. **Deploy key:** the `doido-rs.github.io` repo has a read-write deploy key whose
+   private half is stored in this repo as the `ACTIONS_DEPLOY_KEY` secret; the
+   workflow pushes the built site with it.
+2. **Pages source:** on `doido-rs.github.io`, GitHub → Settings → Pages → Source:
+   "Deploy from a branch" → `main` / `/` (root).
