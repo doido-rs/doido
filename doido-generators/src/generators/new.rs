@@ -63,8 +63,8 @@ struct TemplateContext<'a> {
     db_url_production: String,
     sqlx_feature: &'a str,
     cable: bool,
-    doido_features: String,
-    doido_jobs_features: String,
+    doido_dep: String,
+    doido_jobs_dep: String,
     cache_section: String,
     jobs_section: String,
     compose_services: String,
@@ -74,22 +74,31 @@ struct TemplateContext<'a> {
     compose_web_volumes: String,
 }
 
-/// Renders the Cargo dependency source for a first-party `doido-*` crate.
-fn doido_dependency(subdir: &str) -> String {
+/// Renders a complete Cargo inline-table dependency for a first-party `doido-*` crate.
+fn doido_dependency(subdir: &str, features: &str) -> String {
     dependency_spec(
         crate::TEMPLATE_USE_PATH_DEPS,
         crate::TEMPLATE_WORKSPACE_PATH,
         crate::DOIDO_VERSION,
         subdir,
+        features,
     )
 }
 
-fn dependency_spec(use_path: bool, workspace_path: &str, version: &str, subdir: &str) -> String {
-    if use_path {
-        format!("{{ path = \"{workspace_path}/{subdir}\" }}")
+/// `features` is an optional suffix such as `, features = ["cache-redis"]` (empty when none).
+fn dependency_spec(
+    use_path: bool,
+    workspace_path: &str,
+    version: &str,
+    subdir: &str,
+    features: &str,
+) -> String {
+    let inner = if use_path {
+        format!("path = \"{workspace_path}/{subdir}\"")
     } else {
-        format!("\"{version}\"")
-    }
+        format!("version = \"{version}\"")
+    };
+    format!("{{ {inner}{features} }}")
 }
 
 fn flag_value<'a>(args: &'a [&str], prefix: &str, default: &'a str) -> &'a str {
@@ -268,7 +277,7 @@ fn substitute_template(template: &str, ctx: &TemplateContext<'_>) -> String {
         (
             format!(
                 "doido-cable = {}\nasync-trait = \"0.1\"\n",
-                doido_dependency("doido-cable")
+                doido_dependency("doido-cable", "")
             ),
             CABLE_MODULE_INCLUDE.to_string(),
             CABLE_README_SECTION.replace("{doido_name}", ctx.name),
@@ -283,17 +292,15 @@ fn substitute_template(template: &str, ctx: &TemplateContext<'_>) -> String {
         .replace("{doido_db_url_production}", &ctx.db_url_production)
         .replace("{doido_db_url}", &ctx.db_url)
         .replace("{doido_sqlx_feature}", ctx.sqlx_feature)
-        .replace("{doido_dep}", &doido_dependency("doido"))
-        .replace("{doido_features}", &ctx.doido_features)
-        .replace("{doido_core_dep}", &doido_dependency("doido-core"))
+        .replace("{doido_dep}", &ctx.doido_dep)
+        .replace("{doido_core_dep}", &doido_dependency("doido-core", ""))
         .replace(
             "{doido_controller_dep}",
-            &doido_dependency("doido-controller"),
+            &doido_dependency("doido-controller", ""),
         )
-        .replace("{doido_jobs_dep}", &doido_dependency("doido-jobs"))
-        .replace("{doido_jobs_features}", &ctx.doido_jobs_features)
-        .replace("{doido_mailer_dep}", &doido_dependency("doido-mailer"))
-        .replace("{doido_model_dep}", &doido_dependency("doido-model"))
+        .replace("{doido_jobs_dep}", &ctx.doido_jobs_dep)
+        .replace("{doido_mailer_dep}", &doido_dependency("doido-mailer", ""))
+        .replace("{doido_model_dep}", &doido_dependency("doido-model", ""))
         .replace("{doido_cable_deps}", &cable_deps)
         .replace("{doido_channels_module}", &cable_module)
         .replace("{doido_cable_readme}", &cable_readme)
@@ -416,8 +423,8 @@ impl Generator for ProjectGenerator {
             db_url_production,
             sqlx_feature,
             cable,
-            doido_features: doido_features(cache),
-            doido_jobs_features: doido_jobs_features(jobs),
+            doido_dep: doido_dependency("doido", &doido_features(cache)),
+            doido_jobs_dep: doido_dependency("doido-jobs", &doido_jobs_features(jobs)),
             cache_section: render_cache_section(cache, name),
             jobs_section: render_jobs_section(jobs, name),
             compose_services: compose_services(database, name, cable, cache, jobs),
@@ -442,7 +449,7 @@ mod tests {
     #[test]
     fn local_builds_emit_path_dependencies() {
         assert_eq!(
-            dependency_spec(true, "/home/dev/doido", "0.0.6", "doido"),
+            dependency_spec(true, "/home/dev/doido", "0.0.6", "doido", ""),
             "{ path = \"/home/dev/doido/doido\" }"
         );
     }
@@ -450,9 +457,89 @@ mod tests {
     #[test]
     fn published_builds_emit_version_dependencies() {
         assert_eq!(
-            dependency_spec(false, "/irrelevant", "0.0.6", "doido"),
-            "\"0.0.6\""
+            dependency_spec(false, "/irrelevant", "0.0.6", "doido", ""),
+            "{ version = \"0.0.6\" }"
         );
+    }
+
+    #[test]
+    fn path_dependency_with_features_stays_inside_inline_table() {
+        assert_eq!(
+            dependency_spec(
+                true,
+                "/home/dev/doido",
+                "0.0.6",
+                "doido",
+                ", features = [\"cache-redis\"]",
+            ),
+            "{ path = \"/home/dev/doido/doido\", features = [\"cache-redis\"] }"
+        );
+    }
+
+    #[test]
+    fn published_dependency_with_features_stays_inside_inline_table() {
+        assert_eq!(
+            dependency_spec(
+                false,
+                "/irrelevant",
+                "0.0.6",
+                "doido-jobs",
+                ", features = [\"jobs-redis\"]",
+            ),
+            "{ version = \"0.0.6\", features = [\"jobs-redis\"] }"
+        );
+    }
+
+    fn assert_cargo_toml_parses(cargo_toml: &str) {
+        cargo_toml.parse::<toml::Table>().expect("valid Cargo.toml TOML");
+    }
+
+    fn minimal_cargo_with_doido_line(doido_line: &str) -> String {
+        format!(
+            r#"[package]
+name = "app"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+{doido_line}
+"#
+        )
+    }
+
+    #[test]
+    fn published_cache_redis_line_is_valid_toml() {
+        let line = format!(
+            "doido = {}",
+            dependency_spec(
+                false,
+                "/irrelevant",
+                "0.0.9",
+                "doido",
+                ", features = [\"cache-redis\"]",
+            )
+        );
+        assert!(!line.contains("path ="));
+        assert!(line.contains("version = \"0.0.9\""));
+        assert!(line.contains("cache-redis"));
+        assert_cargo_toml_parses(&minimal_cargo_with_doido_line(&line));
+    }
+
+    #[test]
+    fn path_jobs_redis_line_is_valid_toml() {
+        let line = format!(
+            "doido-jobs = {}",
+            dependency_spec(
+                true,
+                "/home/dev/doido",
+                "0.0.9",
+                "doido-jobs",
+                ", features = [\"jobs-redis\"]",
+            )
+        );
+        assert!(line.contains("path = \"/home/dev/doido/doido-jobs\""));
+        assert!(line.contains("jobs-redis"));
+        assert_cargo_toml_parses(&minimal_cargo_with_doido_line(&line));
     }
 
     #[test]
