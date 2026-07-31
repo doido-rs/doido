@@ -67,7 +67,7 @@ PUBLISH_CRATES ?= \
 	doido
 
 .PHONY: help publish publish-dry-run clean-package check supply-chain yank unyank \
-        fmt test verify example services-up services-down test-backends \
+        fmt test verify example install-check services-up services-down test-backends \
         coverage coverage-check \
         blog blog-build blog-install
 
@@ -102,7 +102,7 @@ publish: clean-package ## Upload the workspace to crates.io (resumable, rate-lim
 		fi; \
 		while :; do \
 			echo "==> publishing $$crate $(CRATE_VERSION)"; \
-			out=$$(CARGO_TARGET_DIR="$(PUBLISH_TARGET_DIR)" cargo publish -p "$$crate" $(PUBLISH_FLAGS) 2>&1); \
+			out=$$(CARGO_TARGET_DIR="$(PUBLISH_TARGET_DIR)" cargo publish --allow-dirty -p "$$crate" $(PUBLISH_FLAGS) 2>&1); \
 			code=$$?; \
 			printf '%s\n' "$$out"; \
 			if [ $$code -eq 0 ]; then \
@@ -192,8 +192,13 @@ coverage-check: ## Fail if any workspace crate is below COVERAGE_THRESHOLD (defa
 example: ## Slow e2e: generate apps in a tempdir, compile them, and serve CRUD
 	cargo test -p doido-generators --test e2e_app_build_test --test e2e_app_runtime_test -- --ignored --nocapture
 
+# Release installer harness: build a local binary, curl-install it, run doido --help.
+install-check: ## Validate scripts/install.sh (+ static checks for install.ps1)
+	./scripts/verify-install.sh
+	./scripts/verify-install-ps1.sh
+
 # Coverage gate: every non-macro workspace crate must meet COVERAGE_THRESHOLD.
-verify: check test coverage-check ## Lint + tests + per-crate line coverage (80%)
+verify: check test coverage-check install-check ## Lint + tests + coverage + installer harness
 	@echo "==> verify: OK"
 
 # ---------------------------------------------------------------------------

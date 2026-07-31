@@ -23,7 +23,8 @@ the green baseline (`make verify`).
 Everything hinges on one deterministic command:
 
 ```sh
-make verify        # fmt + clippy + tests (~12s); must exit 0
+make verify        # fmt + clippy + tests + installer harness (~12s); must exit 0
+make install-check # validate curl installer (build local binary + install + doido --help)
 make coverage      # line-coverage summary (requires cargo-llvm-cov)
 make coverage-check # fail if any crate < 80% (see coverage-plan.md)
 make example       # slow generate-and-build e2e (out of verify by design)
