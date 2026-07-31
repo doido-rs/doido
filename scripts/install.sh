@@ -105,7 +105,7 @@ main() {
 			die "DOIDO_DOWNLOAD_BASE is set; you must also set DOIDO_VERSION"
 		fi
 		info "resolving latest release"
-		DIDO_VERSION="$(fetch_latest_version)"
+		DOIDO_VERSION="$(fetch_latest_version)"
 		[ -n "$DOIDO_VERSION" ] || die "could not resolve latest release version"
 	fi
 	version="$DOIDO_VERSION"

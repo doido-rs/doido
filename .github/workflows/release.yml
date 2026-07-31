@@ -136,6 +136,22 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+      - name: Tag the released commit
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          tag="v${VERSION}"
+          # Idempotent: a re-run of an already-tagged release must not fail or
+          # move an existing tag (release tags are immutable once published).
+          if git ls-remote --exit-code --tags origin "refs/tags/${tag}" >/dev/null 2>&1; then
+            echo "==> ${tag} already exists on origin; leaving it untouched"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "${tag}" -m "Release ${tag}"
+          git push origin "refs/tags/${tag}"
+          echo "==> tagged $(git rev-parse HEAD) as ${tag}"
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
