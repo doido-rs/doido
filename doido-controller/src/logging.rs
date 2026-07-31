@@ -12,7 +12,7 @@
 //! method, path, query and request headers; the `response` line carries the
 //! status, latency and response headers.
 
-use axum::{extract::Request, middleware::Next, response::Response};
+use crate::axum::{extract::Request, middleware::Next, response::Response};
 use doido_core::tracing::Instrument;
 use http::{HeaderMap, HeaderName, HeaderValue};
 use std::time::Instant;

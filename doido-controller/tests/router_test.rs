@@ -1,8 +1,9 @@
-use axum::body::Body;
+use doido_controller::axum::body::Body;
 use http::{Request, StatusCode};
 use tower::ServiceExt;
 
 mod posts_controller {
+    use doido_controller::axum::extract::Path;
     pub async fn index() -> &'static str {
         "index"
     }
@@ -12,16 +13,16 @@ mod posts_controller {
     pub async fn create() -> &'static str {
         "create"
     }
-    pub async fn show(axum::extract::Path(_id): axum::extract::Path<u64>) -> &'static str {
+    pub async fn show(Path(_id): Path<u64>) -> &'static str {
         "show"
     }
-    pub async fn edit(axum::extract::Path(_id): axum::extract::Path<u64>) -> &'static str {
+    pub async fn edit(Path(_id): Path<u64>) -> &'static str {
         "edit"
     }
-    pub async fn update(axum::extract::Path(_id): axum::extract::Path<u64>) -> &'static str {
+    pub async fn update(Path(_id): Path<u64>) -> &'static str {
         "update"
     }
-    pub async fn destroy(axum::extract::Path(_id): axum::extract::Path<u64>) -> &'static str {
+    pub async fn destroy(Path(_id): Path<u64>) -> &'static str {
         "destroy"
     }
 }
@@ -199,7 +200,7 @@ async fn test_resources_generates_destroy_route() {
 fn test_resources_url_helpers() {
     // URL helpers are generated as fn items inside the routes! block expression.
     // Verify the macro compiles and the router is produced:
-    let _app: axum::Router = doido_controller::routes! { resources!(posts, posts_controller) };
+    let _app: doido_controller::axum::Router = doido_controller::routes! { resources!(posts, posts_controller) };
     // posts_path(), new_post_path(), post_path(id), edit_post_path(id) are
     // generated as fn items but are scoped to the routes! block expression.
     // Verified by successful compilation above.
@@ -269,10 +270,11 @@ async fn test_resources_except_excludes_listed_actions() {
 }
 
 mod users_controller {
+    use doido_controller::axum::extract::Path;
     pub async fn index() -> &'static str {
         "users"
     }
-    pub async fn show(axum::extract::Path(_id): axum::extract::Path<u64>) -> &'static str {
+    pub async fn show(Path(_id): Path<u64>) -> &'static str {
         "user"
     }
     pub async fn create() -> &'static str {
@@ -281,13 +283,13 @@ mod users_controller {
     pub async fn new() -> &'static str {
         "new user"
     }
-    pub async fn edit(axum::extract::Path(_id): axum::extract::Path<u64>) -> &'static str {
+    pub async fn edit(Path(_id): Path<u64>) -> &'static str {
         "edit user"
     }
-    pub async fn update(axum::extract::Path(_id): axum::extract::Path<u64>) -> &'static str {
+    pub async fn update(Path(_id): Path<u64>) -> &'static str {
         "update user"
     }
-    pub async fn destroy(axum::extract::Path(_id): axum::extract::Path<u64>) -> &'static str {
+    pub async fn destroy(Path(_id): Path<u64>) -> &'static str {
         "del user"
     }
 }

@@ -1,4 +1,4 @@
-use axum::Router;
+use doido_controller::axum::Router;
 use doido_controller::health::with_health;
 use doido_controller::testing::send;
 use http::StatusCode;

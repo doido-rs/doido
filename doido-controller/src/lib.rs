@@ -22,8 +22,9 @@ pub mod session;
 pub mod stack;
 pub mod testing;
 
-// Re-exported so `routes!`-generated code and application crates can reach axum
-// through doido-controller (the former `doido-router` crate lived here).
+// Re-exported so `routes!`-generated code and application crates reach axum through
+// `doido_controller::axum` (generated apps: `doido::controller::axum`). Do not depend
+// on the `axum` crate directly outside this module.
 pub use axum;
 pub use config::{Config, LoggerConfig, ServerConfig, YamlConfig};
 pub use context::{Context, IntoActionResponse};

@@ -28,6 +28,11 @@ git history, `harness/progress.txt`, and the checkboxes in
 
 ## Hard rules
 
+- **Import conventions** (see `docs/ARCHITECTURE.md` — *Dependency import conventions*):
+  - `sea_orm` / `sea_orm_migration` / `sea_orm_cli` → only via `doido-model` (`doido_model::sea_orm*`)
+  - `axum` → only via `doido-controller` (`doido_controller::axum`)
+  - sibling workspace crates → `doido_<name>` directly; **`doido::` meta crate is for generated/external apps only**
+  - never add direct `sea-orm`, `sea-orm-migration`, `sea-orm-cli`, or `axum` deps to workspace crates except inside `doido-model` / `doido-controller` manifests
 - **One story per iteration.** Do not start a second, even if there is time. (Tightly
   coupled features may land in the same diff — e.g. sessions↔flash↔cookies — but each
   keeps its own failing-first test, its own checkbox, and its own `passes` flip.)

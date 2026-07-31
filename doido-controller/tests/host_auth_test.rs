@@ -1,4 +1,4 @@
-use axum::{routing::get, Router};
+use doido_controller::axum::{routing::get, Router};
 use doido_controller::MiddlewareStack;
 use http::{Request, StatusCode};
 use tower::ServiceExt;
@@ -14,7 +14,7 @@ async fn status_for(hosts: &[&str], host_header: Option<&str>) -> StatusCode {
     if let Some(h) = host_header {
         b = b.header("host", h);
     }
-    let req = b.body(axum::body::Body::empty()).unwrap();
+    let req = b.body(doido_controller::axum::body::Body::empty()).unwrap();
     app(hosts).oneshot(req).await.unwrap().status()
 }
 

@@ -6,11 +6,11 @@
 use crate::channel::{Channel, ChannelContext, ChannelName};
 use crate::protocol::{CableFrame, ServerFrame};
 use crate::pubsub::PubSub;
-use axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
-use axum::extract::State;
-use axum::response::Response;
-use axum::routing::get;
-use axum::Router;
+use doido_controller::axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
+use doido_controller::axum::extract::State;
+use doido_controller::axum::response::Response;
+use doido_controller::axum::routing::get;
+use doido_controller::axum::Router;
 use futures_util::{SinkExt, StreamExt};
 use std::collections::HashMap;
 use std::sync::Arc;

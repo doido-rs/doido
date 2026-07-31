@@ -1,4 +1,4 @@
-use axum::body::Body;
+use doido_controller::axum::body::Body;
 use doido_controller::Context;
 use http::{Request, StatusCode};
 use http_body_util::BodyExt;
@@ -83,7 +83,7 @@ impl HelloController {
 
 #[tokio::test]
 async fn test_controller_index_action_via_axum() {
-    let app = axum::Router::new().route("/hello", axum::routing::get(HelloController::index));
+    let app = doido_controller::axum::Router::new().route("/hello", doido_controller::axum::routing::get(HelloController::index));
 
     let resp = app
         .oneshot(
@@ -103,7 +103,7 @@ async fn test_controller_index_action_via_axum() {
 
 #[tokio::test]
 async fn test_controller_show_action_via_axum() {
-    let app = axum::Router::new().route("/hello/{id}", axum::routing::get(HelloController::show));
+    let app = doido_controller::axum::Router::new().route("/hello/{id}", doido_controller::axum::routing::get(HelloController::show));
 
     let resp = app
         .oneshot(
@@ -148,7 +148,7 @@ impl SecureController {
 
 #[tokio::test]
 async fn test_before_action_halts_when_filter_returns_err() {
-    let app = axum::Router::new().route("/secret", axum::routing::get(SecureController::secret));
+    let app = doido_controller::axum::Router::new().route("/secret", doido_controller::axum::routing::get(SecureController::secret));
 
     // No auth token — filter should return 401
     let resp = app
@@ -179,9 +179,9 @@ async fn test_before_action_halts_when_filter_returns_err() {
 
 #[tokio::test]
 async fn test_multiple_before_actions_run_in_order() {
-    let app = axum::Router::new().route(
+    let app = doido_controller::axum::Router::new().route(
         "/double",
-        axum::routing::get(SecureController::double_filtered),
+        doido_controller::axum::routing::get(SecureController::double_filtered),
     );
 
     // Without auth — first filter halts
@@ -242,12 +242,12 @@ impl ScopedController {
 
 #[tokio::test]
 async fn test_before_action_only_fires_for_specified_actions() {
-    let app = axum::Router::new()
-        .route("/items", axum::routing::get(ScopedController::index))
-        .route("/items/{id}", axum::routing::get(ScopedController::show))
+    let app = doido_controller::axum::Router::new()
+        .route("/items", doido_controller::axum::routing::get(ScopedController::index))
+        .route("/items/{id}", doido_controller::axum::routing::get(ScopedController::show))
         .route(
             "/items/{id}/edit",
-            axum::routing::get(ScopedController::edit),
+            doido_controller::axum::routing::get(ScopedController::edit),
         );
 
     // index — filter NOT in `only` list → 200 even with x-id: 0
@@ -314,7 +314,7 @@ impl LoggedController {
 async fn test_after_action_fires_after_action_body() {
     AFTER_FIRED.with(|f| f.set(false));
 
-    let app = axum::Router::new().route("/logged", axum::routing::get(LoggedController::index));
+    let app = doido_controller::axum::Router::new().route("/logged", doido_controller::axum::routing::get(LoggedController::index));
 
     let resp = app
         .oneshot(
@@ -343,7 +343,7 @@ impl ParamController {
 
 #[tokio::test]
 async fn test_ctx_param_reads_matched_path_segment() {
-    let app = axum::Router::new().route("/widgets/{id}", axum::routing::get(ParamController::show));
+    let app = doido_controller::axum::Router::new().route("/widgets/{id}", doido_controller::axum::routing::get(ParamController::show));
     let resp = app
         .oneshot(
             Request::builder()
@@ -382,7 +382,7 @@ impl BodyController {
 
 #[tokio::test]
 async fn test_ctx_form_parses_urlencoded_body() {
-    let app = axum::Router::new().route("/widgets", axum::routing::post(BodyController::create));
+    let app = doido_controller::axum::Router::new().route("/widgets", doido_controller::axum::routing::post(BodyController::create));
     let resp = app
         .oneshot(
             Request::builder()
@@ -402,9 +402,9 @@ async fn test_ctx_form_parses_urlencoded_body() {
 
 #[tokio::test]
 async fn test_ctx_body_json_parses_json_body() {
-    let app = axum::Router::new().route(
+    let app = doido_controller::axum::Router::new().route(
         "/widgets.json",
-        axum::routing::post(BodyController::create_json),
+        doido_controller::axum::routing::post(BodyController::create_json),
     );
     let resp = app
         .oneshot(
@@ -427,7 +427,7 @@ async fn test_ctx_body_json_parses_json_body() {
 async fn test_action_returning_err_becomes_500() {
     // Missing/garbage body → form() errors → IntoActionResponse maps to 500.
     let app =
-        axum::Router::new().route("/widgets", axum::routing::post(BodyController::create_json));
+        doido_controller::axum::Router::new().route("/widgets", doido_controller::axum::routing::post(BodyController::create_json));
     let resp = app
         .oneshot(
             Request::builder()
@@ -465,11 +465,11 @@ impl ArticlesController {
 
 #[tokio::test]
 async fn test_full_stack_controller_with_filters_via_axum_router() {
-    let app = axum::Router::new()
-        .route("/articles", axum::routing::get(ArticlesController::index))
+    let app = doido_controller::axum::Router::new()
+        .route("/articles", doido_controller::axum::routing::get(ArticlesController::index))
         .route(
             "/articles/{id}",
-            axum::routing::get(ArticlesController::show),
+            doido_controller::axum::routing::get(ArticlesController::show),
         );
 
     // No auth — before_action halts with 401

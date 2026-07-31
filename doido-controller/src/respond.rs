@@ -5,8 +5,8 @@
 //! `Accept` header), and [`Context::respond_to`](crate::Context::respond_to)
 //! returns a [`RespondTo`] builder that runs the branch matching that format.
 
-use axum::body::Body;
-use axum::response::Response;
+use crate::axum::body::Body;
+use crate::axum::response::Response;
 use http::StatusCode;
 
 /// A negotiated response format. `Any` matches the first branch offered.

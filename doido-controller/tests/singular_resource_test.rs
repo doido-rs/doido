@@ -1,4 +1,4 @@
-use axum::body::Body;
+use doido_controller::axum::body::Body;
 use http::{Request, StatusCode};
 use http_body_util::BodyExt;
 use tower::ServiceExt;
@@ -25,7 +25,7 @@ mod profile {
     }
 }
 
-async fn call(app: &axum::Router, method: &str, uri: &str) -> (StatusCode, String) {
+async fn call(app: &doido_controller::axum::Router, method: &str, uri: &str) -> (StatusCode, String) {
     let resp = app
         .clone()
         .oneshot(

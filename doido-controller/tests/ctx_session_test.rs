@@ -1,7 +1,7 @@
 //! Session/flash/cookies surfaced on `Context` and flushed to `Set-Cookie` by
 //! the `#[controller]` macro. Exercises the full two-request round trip.
 
-use axum::body::Body;
+use doido_controller::axum::body::Body;
 use http::{header, Request, StatusCode};
 use http_body_util::BodyExt;
 use tower::ServiceExt;
@@ -26,14 +26,14 @@ impl SessionController {
     }
 }
 
-fn app() -> axum::Router {
-    axum::Router::new()
-        .route("/bump", axum::routing::get(SessionController::bump))
-        .route("/read", axum::routing::get(SessionController::read))
+fn app() -> doido_controller::axum::Router {
+    doido_controller::axum::Router::new()
+        .route("/bump", doido_controller::axum::routing::get(SessionController::bump))
+        .route("/read", doido_controller::axum::routing::get(SessionController::read))
 }
 
 /// Collapse a response's `Set-Cookie` headers into a `Cookie` request header.
-fn cookies_from(resp: &axum::response::Response) -> String {
+fn cookies_from(resp: &doido_controller::axum::response::Response) -> String {
     resp.headers()
         .get_all(header::SET_COOKIE)
         .iter()
@@ -43,7 +43,7 @@ fn cookies_from(resp: &axum::response::Response) -> String {
         .join("; ")
 }
 
-async fn body_json(resp: axum::response::Response) -> serde_json::Value {
+async fn body_json(resp: doido_controller::axum::response::Response) -> serde_json::Value {
     let bytes = resp.into_body().collect().await.unwrap().to_bytes();
     serde_json::from_slice(&bytes).unwrap()
 }

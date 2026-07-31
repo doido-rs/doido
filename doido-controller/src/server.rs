@@ -14,14 +14,14 @@ fn resolve_addr(server: &ServerConfig, bind: Option<&str>, port: Option<u16>) ->
 /// Boots the HTTP server for `router` using `config/<env>.yml` (the environment
 /// comes from [`doido_core::Environment::get_env`]). Missing config falls back
 /// to `0.0.0.0:3000`.
-pub async fn start_server(router: axum::Router) -> std::io::Result<()> {
+pub async fn start_server(router: crate::axum::Router) -> std::io::Result<()> {
     start_server_with(router, None, None).await
 }
 
 /// Like [`start_server`], but with optional `bind`/`port` overrides that take
 /// precedence over the config file (used by `doido server --port`/`--bind`).
 pub async fn start_server_with(
-    router: axum::Router,
+    router: crate::axum::Router,
     bind: Option<String>,
     port: Option<u16>,
 ) -> std::io::Result<()> {
@@ -35,7 +35,7 @@ pub async fn start_server_with(
     let listener = tokio::net::TcpListener::bind(&addr).await?;
     tracing::info!("listening on http://{addr}");
     tracing::info!("routes:\n{}", crate::route_table::format_routes());
-    axum::serve(listener, router).await
+    crate::axum::serve(listener, router).await
 }
 
 #[cfg(test)]

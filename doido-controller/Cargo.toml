@@ -12,7 +12,7 @@ doido-model = { workspace = true, default-features = false }
 doido-view.workspace = true
 doido-cache.workspace = true
 async-trait.workspace = true
-axum.workspace = true
+axum = { workspace = true, features = ["ws"] }
 tokio = { workspace = true, features = ["full"] }
 tower = { workspace = true, features = ["full"] }
 tower-http.workspace = true

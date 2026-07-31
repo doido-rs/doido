@@ -39,7 +39,7 @@ fn generate_inner(
                 descriptors.push((method.to_uppercase(), full_path.value()));
                 let path_value = full_path.value();
                 let method_router = if constraints.is_empty() {
-                    quote! { axum::routing::#axum_method(#handler) }
+                    quote! { doido_controller::axum::routing::#axum_method(#handler) }
                 } else {
                     // Each `param: validator` becomes a check against the matched
                     // path params; any miss/failure 404s before the handler runs.
@@ -53,11 +53,11 @@ fn generate_inner(
                         }
                     });
                     quote! {
-                        axum::routing::#axum_method(#handler).layer(axum::middleware::from_fn(
-                            |__req: axum::extract::Request, __next: axum::middleware::Next| async move {
-                                use axum::extract::FromRequestParts as _;
+                        doido_controller::axum::routing::#axum_method(#handler).layer(doido_controller::axum::middleware::from_fn(
+                            |__req: doido_controller::axum::extract::Request, __next: doido_controller::axum::middleware::Next| async move {
+                                use doido_controller::axum::extract::FromRequestParts as _;
                                 let (mut __parts, __body) = __req.into_parts();
-                                let __ok = match axum::extract::RawPathParams::from_request_parts(&mut __parts, &()).await {
+                                let __ok = match doido_controller::axum::extract::RawPathParams::from_request_parts(&mut __parts, &()).await {
                                     Ok(__params) => {
                                         let mut __ok = true;
                                         #(#checks)*
@@ -65,12 +65,12 @@ fn generate_inner(
                                     }
                                     Err(_) => false,
                                 };
-                                let __req = axum::extract::Request::from_parts(__parts, __body);
+                                let __req = doido_controller::axum::extract::Request::from_parts(__parts, __body);
                                 if __ok {
                                     __next.run(__req).await
                                 } else {
-                                    axum::response::IntoResponse::into_response(
-                                        axum::http::StatusCode::NOT_FOUND,
+                                    doido_controller::axum::response::IntoResponse::into_response(
+                                        doido_controller::axum::http::StatusCode::NOT_FOUND,
                                     )
                                 }
                             },
@@ -96,7 +96,7 @@ fn generate_inner(
                 };
                 descriptors.push(("GET".to_string(), full_path.clone()));
                 route_stmts.push(quote! {
-                    .route(#full_path, axum::routing::get(#handler))
+                    .route(#full_path, doido_controller::axum::routing::get(#handler))
                 });
                 helper_fns.push(quote! {
                     #[allow(dead_code)]
@@ -119,7 +119,7 @@ fn generate_inner(
                 let base_id_edit = format!("{}/{}/{{id}}/edit", prefix, name);
                 let ctrl = &controller;
 
-                let mut collection = quote! { axum::routing::MethodRouter::new() };
+                let mut collection = quote! { doido_controller::axum::routing::MethodRouter::new() };
                 if is_active("index", &filter) {
                     collection = quote! { #collection.get(#ctrl::index) };
                     descriptors.push(("GET".to_string(), base.clone()));
@@ -132,10 +132,10 @@ fn generate_inner(
 
                 if is_active("new", &filter) {
                     descriptors.push(("GET".to_string(), base_new.clone()));
-                    route_stmts.push(quote! { .route(#base_new, axum::routing::get(#ctrl::new)) });
+                    route_stmts.push(quote! { .route(#base_new, doido_controller::axum::routing::get(#ctrl::new)) });
                 }
 
-                let mut member = quote! { axum::routing::MethodRouter::new() };
+                let mut member = quote! { doido_controller::axum::routing::MethodRouter::new() };
                 if is_active("show", &filter) {
                     member = quote! { #member.get(#ctrl::show) };
                     descriptors.push(("GET".to_string(), base_id.clone()));
@@ -153,7 +153,7 @@ fn generate_inner(
                 if is_active("edit", &filter) {
                     descriptors.push(("GET".to_string(), base_id_edit.clone()));
                     route_stmts
-                        .push(quote! { .route(#base_id_edit, axum::routing::get(#ctrl::edit)) });
+                        .push(quote! { .route(#base_id_edit, doido_controller::axum::routing::get(#ctrl::edit)) });
                 }
 
                 // Collection routes: `GET /{resource}/<action>` (Rails `collection`).
@@ -162,7 +162,7 @@ fn generate_inner(
                     let action_ident = format_ident!("{}", action);
                     descriptors.push(("GET".to_string(), path.clone()));
                     route_stmts
-                        .push(quote! { .route(#path, axum::routing::get(#ctrl::#action_ident)) });
+                        .push(quote! { .route(#path, doido_controller::axum::routing::get(#ctrl::#action_ident)) });
                 }
                 // Member routes: `GET /{resource}/{id}/<action>` (Rails `member`).
                 for action in &member_actions {
@@ -170,7 +170,7 @@ fn generate_inner(
                     let action_ident = format_ident!("{}", action);
                     descriptors.push(("GET".to_string(), path.clone()));
                     route_stmts
-                        .push(quote! { .route(#path, axum::routing::get(#ctrl::#action_ident)) });
+                        .push(quote! { .route(#path, doido_controller::axum::routing::get(#ctrl::#action_ident)) });
                 }
 
                 // URL helpers with optional prefix
@@ -210,11 +210,11 @@ fn generate_inner(
                 };
                 descriptors.push(("GET".to_string(), full_from.value()));
                 route_stmts.push(quote! {
-                    .route(#full_from, axum::routing::get(|| async move {
-                        axum::response::Response::builder()
+                    .route(#full_from, doido_controller::axum::routing::get(|| async move {
+                        doido_controller::axum::response::Response::builder()
                             .status(301)
-                            .header(axum::http::header::LOCATION, #to)
-                            .body(axum::body::Body::empty())
+                            .header(doido_controller::axum::http::header::LOCATION, #to)
+                            .body(doido_controller::axum::body::Body::empty())
                             .expect("valid redirect response")
                     }))
                 });
@@ -243,15 +243,15 @@ fn generate_inner(
                 descriptors.push(("GET".to_string(), base_edit.clone()));
 
                 route_stmts.push(quote! {
-                    .route(#base, axum::routing::MethodRouter::new()
+                    .route(#base, doido_controller::axum::routing::MethodRouter::new()
                         .get(#ctrl::show)
                         .post(#ctrl::create)
                         .patch(#ctrl::update)
                         .put(#ctrl::update)
                         .delete(#ctrl::destroy))
                 });
-                route_stmts.push(quote! { .route(#base_new, axum::routing::get(#ctrl::new)) });
-                route_stmts.push(quote! { .route(#base_edit, axum::routing::get(#ctrl::edit)) });
+                route_stmts.push(quote! { .route(#base_new, doido_controller::axum::routing::get(#ctrl::new)) });
+                route_stmts.push(quote! { .route(#base_edit, doido_controller::axum::routing::get(#ctrl::edit)) });
 
                 let helper_base = match helper_prefix {
                     Some(pfx) => format!("{}_{}", pfx, n),
@@ -299,19 +299,19 @@ fn generate_inner(
                 descriptors.push(("GET".to_string(), member_edit.clone()));
 
                 route_stmts.push(quote! {
-                    .route(#nested, axum::routing::MethodRouter::new()
+                    .route(#nested, doido_controller::axum::routing::MethodRouter::new()
                         .get(#ctrl::index)
                         .post(#ctrl::create))
                 });
-                route_stmts.push(quote! { .route(#nested_new, axum::routing::get(#ctrl::new)) });
+                route_stmts.push(quote! { .route(#nested_new, doido_controller::axum::routing::get(#ctrl::new)) });
                 route_stmts.push(quote! {
-                    .route(#member, axum::routing::MethodRouter::new()
+                    .route(#member, doido_controller::axum::routing::MethodRouter::new()
                         .get(#ctrl::show)
                         .patch(#ctrl::update)
                         .put(#ctrl::update)
                         .delete(#ctrl::destroy))
                 });
-                route_stmts.push(quote! { .route(#member_edit, axum::routing::get(#ctrl::edit)) });
+                route_stmts.push(quote! { .route(#member_edit, doido_controller::axum::routing::get(#ctrl::edit)) });
             }
             RouteDecl::Namespace { name, body } => {
                 let ns_str = name.to_string();
@@ -344,7 +344,7 @@ fn generate_inner(
     quote! {
         {
             #(#helper_fns)*
-            axum::Router::new()
+            doido_controller::axum::Router::new()
             #(#route_stmts)*
         }
     }

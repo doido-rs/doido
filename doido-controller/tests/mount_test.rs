@@ -1,4 +1,4 @@
-use axum::body::Body;
+use doido_controller::axum::body::Body;
 use http::{Request, StatusCode};
 use http_body_util::BodyExt;
 use tower::ServiceExt;

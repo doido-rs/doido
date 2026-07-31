@@ -1,4 +1,4 @@
-use axum::{
+use doido_controller::axum::{
     routing::{get, post},
     Router,
 };
@@ -22,7 +22,7 @@ async fn post_status(cookie: Option<&str>, header: Option<&str>) -> StatusCode {
     if let Some(h) = header {
         b = b.header("x-csrf-token", h);
     }
-    let req = b.body(axum::body::Body::empty()).unwrap();
+    let req = b.body(doido_controller::axum::body::Body::empty()).unwrap();
     app().oneshot(req).await.unwrap().status()
 }
 
@@ -30,7 +30,7 @@ async fn post_status(cookie: Option<&str>, header: Option<&str>) -> StatusCode {
 async fn safe_get_needs_no_token() {
     let req = http::Request::builder()
         .uri("/")
-        .body(axum::body::Body::empty())
+        .body(doido_controller::axum::body::Body::empty())
         .unwrap();
     assert_eq!(app().oneshot(req).await.unwrap().status(), StatusCode::OK);
 }

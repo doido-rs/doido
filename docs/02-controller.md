@@ -14,6 +14,7 @@ Rails analogue: **Action Controller**
 
 - **Controller abstraction:** `#[controller]` derive macro generates the `Controller` trait impl boilerplate; actions are plain `async fn` on the struct
 - **Filters:** both attribute macros on action methods **and** Tower middleware layers at router level — two complementary mechanisms
+- **axum import path:** workspace crates and `routes!`/`#[controller]` generated code use `doido_controller::axum`; generated apps may use `doido::controller::axum`. Do not depend on `axum` directly outside `doido-controller`.
 
 ## Macro Design
 

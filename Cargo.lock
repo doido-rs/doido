@@ -1675,8 +1675,8 @@ name = "doido-cable"
 version = "0.0.9"
 dependencies = [
  "async-trait",
- "axum",
  "doido-cable-macros",
+ "doido-controller",
  "doido-core",
  "doido-model",
  "futures-util",
@@ -1873,11 +1873,11 @@ version = "0.0.9"
 dependencies = [
  "async-trait",
  "aws-sdk-s3",
- "axum",
  "azure_storage",
  "azure_storage_blobs",
  "base64 0.23.0",
  "chrono",
+ "doido-controller",
  "doido-core",
  "doido-jobs",
  "doido-model",

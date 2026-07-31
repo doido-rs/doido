@@ -1,5 +1,5 @@
-use axum::body::Body;
-use axum::extract::Path;
+use doido_controller::axum::body::Body;
+use doido_controller::axum::extract::Path;
 use http::{Request, StatusCode};
 use http_body_util::BodyExt;
 use tower::ServiceExt;
@@ -36,7 +36,7 @@ mod posts {
     }
 }
 
-async fn body_of(resp: axum::response::Response) -> String {
+async fn body_of(resp: doido_controller::axum::response::Response) -> String {
     let bytes = resp.into_body().collect().await.unwrap().to_bytes();
     String::from_utf8(bytes.to_vec()).unwrap()
 }

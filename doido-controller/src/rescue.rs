@@ -6,7 +6,7 @@
 //! The first that matches produces the response; if none match, the caller falls
 //! back to the default `500`.
 
-use axum::response::Response;
+use crate::axum::response::Response;
 use doido_core::anyhow;
 
 type Handler = Box<dyn Fn(&anyhow::Error) -> Option<Response> + Send + Sync>;

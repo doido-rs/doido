@@ -13,6 +13,7 @@ Rails analogue: **rails runtime commands** (`rails server`, `rails console`, `ra
 ## Decisions (resolved in interview)
 
 - **Runtime commands only** — generators live in the separate `doido-generators` crate
+- **SeaORM CLI** — `doido db migrate|generate …` delegates to `doido_model::sea_orm_cli` (feature `cli` on `doido-model`); never import `sea_orm_cli` directly
 - `doido-cli` depends on `doido-generators` to dispatch `doido generate` commands, but does not own generator logic
 
 ## Responsibility
@@ -28,7 +29,7 @@ doido console                 ← interactive REPL with app context loaded
 
 doido routes                  ← print all registered routes as a table
 
-doido db migrate              ← run pending migrations (sea-orm-migration)
+doido db migrate              ← run pending migrations (via doido_model::sea_orm_migration / sea_orm_cli)
 doido db rollback
 doido db rollback --step 3
 doido db status

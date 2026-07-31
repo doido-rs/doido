@@ -17,14 +17,22 @@ Rails analogue: **Active Record** (thin abstraction, not a full replacement)
 
 ## What doido-model Provides
 
-### 1. Re-exports
+### 1. Re-exports (mandatory import path)
+
+Workspace and generated code must **not** depend on `sea_orm`, `sea_orm_migration`, or
+`sea_orm_cli` directly. Import through `doido-model`:
 
 ```rust
-// users import from doido_model, not sea_orm directly
-pub use sea_orm::*;
+use doido_model::sea_orm::{EntityTrait, DatabaseConnection, …};
+use doido_model::sea_orm_migration::prelude::*;
+use doido_model::sea_orm_cli::{Commands, …};  // feature `cli` on doido-model
 ```
 
-All sea-orm traits, macros, types, and query builders are available through `doido_model`.
+Inside `doido-model` itself, use `crate::sea_orm` / `crate::sea_orm_migration`.
+
+All sea-orm traits, macros, types, and query builders are available through those paths.
+Enable the `sqlite` / `postgres` / `mysql` feature matching your database (on
+`doido-model` or the meta `doido` crate).
 
 ### 2. Framework Integration
 
@@ -80,9 +88,10 @@ let posts = Entity::find()
 
 ## Migrations
 
-- Use sea-orm CLI and migration crate (`sea-orm-migration`) directly
-- `doido-cli` wraps `sea-orm-cli` commands under `doido db migrate / rollback / status`
-- Migration files live in `db/migrations/` by convention
+- Migration crates depend on **`doido-model`** only (with the database feature); use
+  `doido_model::sea_orm_migration::prelude::*` — not a direct `sea-orm-migration` dep
+- `doido db` embeds the SeaORM CLI via `doido_model::sea_orm_cli` (feature `cli`)
+- Migration files live in `db/migration/` by convention
 
 ## Open Questions (remaining)
 

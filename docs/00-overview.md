@@ -14,13 +14,24 @@ and a modular architecture where each sub-crate can be used independently.
 
 ## Technology Choices
 
-| Concern        | Library       | Rails analogue         |
-|----------------|---------------|------------------------|
-| HTTP server    | axum          | Puma / Rack            |
-| ORM            | sea-orm       | Active Record          |
-| Async runtime  | tokio         | (implicit in Rails)    |
-| Serialization  | serde         | (implicit in Rails)    |
-| Tracing        | tracing       | Rails logger           |
+| Concern        | Library       | Rails analogue         | Import via (workspace) |
+|----------------|---------------|------------------------|-------------------------|
+| HTTP server    | axum          | Puma / Rack            | `doido_controller::axum` |
+| ORM            | sea-orm       | Active Record          | `doido_model::sea_orm` |
+| Migrations     | sea-orm-migration | (Active Record)    | `doido_model::sea_orm_migration` |
+| DB CLI         | sea-orm-cli   | `rails db:migrate`     | `doido_model::sea_orm_cli` (`cli` feature) |
+| Async runtime  | tokio         | (implicit in Rails)    | direct (no wrapper) |
+| Serialization  | serde         | (implicit in Rails)    | direct |
+| Tracing        | tracing       | Rails logger           | `doido_core::tracing` |
+
+## Dependency import conventions
+
+- **Workspace crates** import sibling crates by name (`doido_model`, `doido_controller`, …).
+  Do **not** use the `doido` meta crate inside the workspace.
+- **Generated / external apps** depend on `doido` and use `doido::model`, `doido::controller`, etc.
+- **SeaORM stack** (`sea_orm`, `sea_orm_migration`, `sea_orm_cli`) is always reached through
+  `doido-model` (with the matching database + `cli` features where needed).
+- **axum** is always reached through `doido-controller`.
 
 ## Workspace Crates
 

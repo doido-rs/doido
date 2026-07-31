@@ -18,6 +18,13 @@ the green baseline (`make verify`).
 - `archive/` — the previous finishing run (a different US-001..009 backlog + its
   progress log), kept for history.
 
+## Guardrails
+
+Stories must follow the workspace **dependency import conventions** documented in
+[`docs/ARCHITECTURE.md`](../docs/ARCHITECTURE.md) (*Dependency import conventions*):
+SeaORM (`doido_model::sea_orm*`), axum (`doido_controller::axum`), no direct upstream
+deps, and no `doido::` meta-crate imports inside the workspace.
+
 ## The gate
 
 Everything hinges on one deterministic command:

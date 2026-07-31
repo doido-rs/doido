@@ -8,12 +8,12 @@ edition = "2021"
 [dependencies]
 doido-core.workspace = true
 doido-model = { workspace = true, default-features = false }
+doido-controller.workspace = true
 thiserror.workspace = true
 async-trait.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 serde_norway.workspace = true
-axum.workspace = true                  # serving handlers (redirect / proxy / direct upload)
 tokio = { workspace = true, features = ["fs", "io-util", "rt"] }
 uuid.workspace = true                  # blob keys
 chrono.workspace = true
@@ -63,8 +63,8 @@ storage-jobs = ["dep:doido-jobs"]      # purge_later / analyze_later via doido-j
 
 [dev-dependencies]
 doido-model = { workspace = true, features = ["sqlite"] }
+doido-controller.workspace = true
 tokio = { workspace = true, features = ["macros", "rt", "fs", "io-util"] }
 tempfile.workspace = true
 serde_json.workspace = true
 tower = { workspace = true }           # ServiceExt::oneshot for handler tests
-axum.workspace = true

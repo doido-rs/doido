@@ -1,4 +1,4 @@
-use axum::{
+use doido_controller::axum::{
     extract::Request, middleware::from_fn, middleware::Next, response::Response, routing::get,
     Router,
 };
@@ -27,7 +27,7 @@ async fn insert_before_and_after_both_fire() {
 
     let req = http::Request::builder()
         .uri("/")
-        .body(axum::body::Body::empty())
+        .body(doido_controller::axum::body::Body::empty())
         .unwrap();
     let resp = app.oneshot(req).await.unwrap();
 

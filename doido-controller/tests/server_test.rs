@@ -1,4 +1,4 @@
-use axum::{routing::get, Router};
+use doido_controller::axum::{routing::get, Router};
 use std::time::Duration;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
