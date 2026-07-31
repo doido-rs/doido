@@ -1,10 +1,11 @@
 use crate::commands::{self, jobs::JobsCommand, new::run_new};
 use crate::new_options::{CacheBackend, DatabaseBackend, JobsBackend};
+use crate::DOIDO_VERSION;
 use clap::{Parser, Subcommand};
 use doido_controller::axum;
 
 #[derive(Parser)]
-#[command(name = "doido", version = "0.1.0", about = "Doido framework CLI")]
+#[command(name = "doido", version = DOIDO_VERSION, about = "Doido framework CLI")]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
