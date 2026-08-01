@@ -64,13 +64,25 @@ pub fn fork_scenario(scenario: &str, profile: BaseProfile) -> PathBuf {
     fs::create_dir_all(e2e_apps_root()).expect("create e2e apps root");
     let base = ensure_base_app(profile);
     let dest = e2e_apps_root().join(scenario);
-    if dest.exists() && std::env::var_os("E2E_KEEP").is_none() {
+    if dest.exists() {
+        if std::env::var_os("E2E_KEEP").is_some() {
+            return dest;
+        }
         fs::remove_dir_all(&dest).ok();
     }
-    if !dest.exists() {
-        copy_dir_excluding(&base, &dest, &["target", "db"]).expect("fork scenario app");
-    }
+    copy_dir_excluding(&base, &dest, &["target"]).expect("fork scenario app");
+    clear_sqlite_databases(&dest.join("blog"));
     dest
+}
+
+/// Remove per-env SQLite files so each scenario starts with a clean database.
+fn clear_sqlite_databases(app: &Path) {
+    for name in ["development.db", "test.db", "production.db"] {
+        let path = app.join("db").join(name);
+        if path.is_file() {
+            fs::remove_file(path).ok();
+        }
+    }
 }
 
 fn ensure_base_app(profile: BaseProfile) -> PathBuf {
