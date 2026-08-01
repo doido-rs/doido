@@ -1,4 +1,4 @@
-use doido::model::sea_orm_migration::prelude::*;
+use doido::model::sea_orm_migration::cli::run_cli;
 
 #[tokio::main]
 async fn main() {
@@ -6,5 +6,5 @@ async fn main() {
     //   cargo run -- up
     //   cargo run -- down
     // or via `doido db migrate` from the application root.
-    cli::run_cli(migration::Migrator).await;
+    run_cli(migration::Migrator).await;
 }

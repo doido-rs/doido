@@ -4630,6 +4630,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ef3576c5301b67ea7d2ce4515858d700066e51911c7d228a439c00ff258695c8"
 dependencies = [
  "async-trait",
+ "clap",
+ "dotenvy",
  "sea-orm",
  "sea-orm-cli",
  "sea-schema",

@@ -121,9 +121,9 @@ fn doido_model_database_features_stay_on_app_dependency_line() {
 #[test]
 fn doido_model_database_features_stay_on_migration_dependency_line() {
     let cases = [
-        ("sqlite", "features = [\"sqlite\"]"),
-        ("postgres", "features = [\"postgres\"]"),
-        ("mysql", "features = [\"mysql\"]"),
+        ("sqlite", "features = [\"sqlite\", \"cli\"]"),
+        ("postgres", "features = [\"postgres\", \"cli\"]"),
+        ("mysql", "features = [\"mysql\", \"cli\"]"),
     ];
     for (database, feature) in cases {
         let cargo = migration_cargo_toml_for(&["app", &format!("--database={database}")]);

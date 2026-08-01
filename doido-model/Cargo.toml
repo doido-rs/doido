@@ -29,7 +29,7 @@ uuid = { workspace = true }
 
 [features]
 default = ["sqlite"]
-cli = ["dep:sea-orm-cli"]
+cli = ["dep:sea-orm-cli", "sea-orm-migration/cli"]
 sqlite = [
     "sea-orm/sqlx-sqlite",
     "sea-orm-migration/sqlx-sqlite",
