@@ -1,10 +1,4 @@
-mod kitchen_sink;
 mod migration_add_remove;
-mod model_fields;
-mod new_baseline;
-mod new_cable;
 mod resource;
 mod scaffold_api;
 mod scaffold_html;
-mod smoke_generators;
-mod storage_install;
