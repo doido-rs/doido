@@ -46,6 +46,9 @@ newer = "Newer"
 older = "Older"
 posts_tagged = "Posts tagged"
 tags = "Tags"
+sidebar_introduction = "Introduction"
+sidebar_modules = "Modules"
+sidebar_architecture = "Architecture"
 
 [languages.pt]
 title = "Doido"
@@ -75,6 +78,9 @@ newer = "Mais recentes"
 older = "Mais antigos"
 posts_tagged = "Publicações com a tag"
 tags = "Tags"
+sidebar_introduction = "Introdução"
+sidebar_modules = "Módulos"
+sidebar_architecture = "Arquitetura"
 
 [languages.es]
 title = "Doido"
@@ -104,6 +110,9 @@ newer = "Más recientes"
 older = "Más antiguos"
 posts_tagged = "Entradas etiquetadas"
 tags = "Etiquetas"
+sidebar_introduction = "Introducción"
+sidebar_modules = "Módulos"
+sidebar_architecture = "Arquitectura"
 
 [markdown]
 highlight_code = true
@@ -116,11 +125,11 @@ smart_punctuation = true
 [extra]
 theme_default = "light"
 
-# Warm cream background, terracotta accent (Anthropic-adjacent editorial palette).
-accent = "#c96442"
-accent_dark = "#e07a5a"
-accent2 = "#141413"
-accent2_dark = "#faf9f5"
+# Brand palette — Brazilian flag green + lemon yellow.
+accent = "#0ca84d"
+accent_dark = "#12d65a"
+accent2 = "#f9f60a"
+accent2_dark = "#fbf338"
 
 font_sans = "'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif"
 font_serif = "'Newsreader', 'Georgia', 'Times New Roman', serif"
@@ -151,3 +160,69 @@ trans_key = "blog"
 name = "GitHub"
 url = "https://github.com/doido-rs/doido"
 external = true
+
+# Documentation sidebar — Introduction, one group per module, Architecture.
+[[extra.docs_sidebar]]
+kind = "introduction"
+trans_key = "sidebar_introduction"
+pages = [
+    "docs/tutorials/getting-started.md",
+    "docs/setup/installation.md",
+    "docs/reference/cli.md",
+]
+
+[[extra.docs_sidebar]]
+kind = "module"
+page = "docs/reference/core.md"
+
+[[extra.docs_sidebar]]
+kind = "module"
+page = "docs/reference/configuration.md"
+
+[[extra.docs_sidebar]]
+kind = "module"
+page = "docs/reference/models.md"
+
+[[extra.docs_sidebar]]
+kind = "module"
+page = "docs/reference/controllers.md"
+
+[[extra.docs_sidebar]]
+kind = "module"
+page = "docs/reference/middleware.md"
+
+[[extra.docs_sidebar]]
+kind = "module"
+page = "docs/reference/views.md"
+
+[[extra.docs_sidebar]]
+kind = "module"
+page = "docs/reference/generators.md"
+
+[[extra.docs_sidebar]]
+kind = "module"
+page = "docs/reference/jobs.md"
+
+[[extra.docs_sidebar]]
+kind = "module"
+page = "docs/reference/mailer.md"
+
+[[extra.docs_sidebar]]
+kind = "module"
+page = "docs/reference/cache.md"
+
+[[extra.docs_sidebar]]
+kind = "module"
+page = "docs/reference/cable.md"
+
+[[extra.docs_sidebar]]
+kind = "module"
+page = "docs/reference/storage.md"
+
+[[extra.docs_sidebar]]
+kind = "architecture"
+trans_key = "sidebar_architecture"
+pages = [
+    "docs/explanation/architecture.md",
+    "docs/resources/specs.md",
+]

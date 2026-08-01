@@ -14,8 +14,10 @@ homepage = "https://github.com/doido-rs/doido"
 # dropped into another site.
 [extra]
 theme_default = "auto"
-accent = "#e5484d"
-accent_dark = "#ff7a7f"
+accent = "#0ca84d"
+accent_dark = "#12d65a"
+accent2 = "#f9f60a"
+accent2_dark = "#fbf338"
 font_sans = "system-ui, sans-serif"
 font_mono = "ui-monospace, monospace"
 logo_text = "doido"

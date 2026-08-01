@@ -1,23 +1,65 @@
-{# Documentation sidebar — Loco-style grouped navigation. #}
+{# Documentation sidebar — grouped blocks: Introduction, Modules, Architecture. #}
 {% set lang = lang | default(value=config.default_language) %}
 {% set docs = get_section(path="docs/_index.md", lang=lang) %}
 <aside class="sidebar">
   <nav class="sidebar-nav" aria-label="Documentation">
     <a class="sidebar-title" href="{{ docs.permalink }}">{{ docs.title }}</a>
-    <ul class="sidebar-list">
-      {% for sub in docs.subsections %}
-        {% set subsec = get_section(path=sub) %}
-        <li class="sidebar-group">
-          <a class="sidebar-group-title sidebar-group-link" href="{{ subsec.permalink }}">{{ subsec.title }}</a>
-          <ul class="sidebar-list">
-            {% for p in subsec.pages %}
+
+    {% set module_open = false %}
+    {% for group in config.extra.docs_sidebar %}
+      {% if group.kind == "module" %}
+        {% if not module_open %}
+          {% set_global module_open = true %}
+          <section class="sidebar-block sidebar-block--modules">
+            <h2 class="sidebar-block-heading">{{ trans(key='sidebar_modules', lang=lang) }}</h2>
+            <ul class="sidebar-block-list">
+        {% endif %}
+              {% set page = get_page(path=group.page, lang=config.default_language) %}
+              {% set link = page.permalink %}
+              {% set label = page.title %}
+              {% if lang != config.default_language %}
+                {% for t in page.translations %}
+                  {% if t.lang == lang %}
+                    {% set_global link = t.permalink %}
+                    {% set_global label = t.title %}
+                  {% endif %}
+                {% endfor %}
+              {% endif %}
               <li>
-                <a href="{{ p.permalink }}"{% if p.permalink == current_url %} class="active" aria-current="page"{% endif %}>{{ p.title }}</a>
+                <a href="{{ link }}"{% if link == current_url %} class="active" aria-current="page"{% endif %}>{{ label }}</a>
+              </li>
+      {% else %}
+        {% if module_open %}
+            </ul>
+          </section>
+          {% set_global module_open = false %}
+        {% endif %}
+        <section class="sidebar-block sidebar-block--{{ group.kind }}">
+          <h2 class="sidebar-block-heading">{{ trans(key=group.trans_key, lang=lang) }}</h2>
+          <ul class="sidebar-block-list">
+            {% for page_path in group.pages %}
+              {% set page = get_page(path=page_path, lang=config.default_language) %}
+              {% set link = page.permalink %}
+              {% set label = page.title %}
+              {% if lang != config.default_language %}
+                {% for t in page.translations %}
+                  {% if t.lang == lang %}
+                    {% set_global link = t.permalink %}
+                    {% set_global label = t.title %}
+                  {% endif %}
+                {% endfor %}
+              {% endif %}
+              <li>
+                <a href="{{ link }}"{% if link == current_url %} class="active" aria-current="page"{% endif %}>{{ label }}</a>
               </li>
             {% endfor %}
           </ul>
-        </li>
-      {% endfor %}
-    </ul>
+        </section>
+      {% endif %}
+    {% endfor %}
+    {% if module_open %}
+            </ul>
+          </section>
+    {% endif %}
   </nav>
 </aside>
