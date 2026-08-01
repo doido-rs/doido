@@ -1,3 +1,6 @@
+//! Generated channel stub — register in `Cable` once real-time routes are wired.
+#![allow(dead_code)]
+
 use doido_cable::{channel, Channel, ChannelContext};
 use serde_json::Value;
 

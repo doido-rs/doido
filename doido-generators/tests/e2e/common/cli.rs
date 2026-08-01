@@ -38,6 +38,7 @@ pub fn cargo_build(app: &Path) {
         .args(["build", "--workspace", "--manifest-path"])
         .arg(app.join("Cargo.toml"))
         .env("CARGO_TARGET_DIR", &target)
+        .env("RUSTFLAGS", "-D warnings")
         .status()
         .expect("cargo build");
     assert!(status.success(), "generated app failed to build");

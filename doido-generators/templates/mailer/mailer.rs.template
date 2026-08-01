@@ -1,14 +1,17 @@
+//! Generated mailer stub — wired at boot once you call its methods.
+#![allow(dead_code)]
+
 use doido_mailer::{mailer, Mail};
 
 /// Mailer for `{pascal}`. Build a message and deliver it:
 ///
 /// ```ignore
-/// {pascal}Mailer::welcome("user@example.com").deliver_now().await?;
+/// {pascal}::welcome("user@example.com").deliver_now().await?;
 /// ```
 #[mailer]
-pub struct {pascal}Mailer;
+pub struct {pascal};
 
-impl {pascal}Mailer {
+impl {pascal} {
     /// Example message. Customize the subject and body, or add more builders.
     pub fn welcome(to: &str) -> Mail {
         Mail::new()

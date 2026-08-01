@@ -10,14 +10,11 @@ use super::workspace::{self, BaseProfile};
 
 pub struct RunningApp {
     pub base_url: String,
-    pub app: PathBuf,
-    pub bin: PathBuf,
 }
 
 pub struct AppHarness {
-    pub scenario_dir: PathBuf,
     pub app: PathBuf,
-    pub app_name: &'static str,
+    app_name: &'static str,
     port: u16,
 }
 
@@ -27,7 +24,6 @@ impl AppHarness {
         let scenario_dir = workspace::fork_scenario(scenario, profile);
         let app = scenario_dir.join("blog");
         Self {
-            scenario_dir,
             app,
             app_name: "blog",
             port: server::free_port(),
@@ -77,11 +73,7 @@ impl AppHarness {
         let running = server::spawn(&bin, &self.app);
         server::wait_until_http_ok(&format!("{base_url}/"), Duration::from_secs(60));
 
-        let app = RunningApp {
-            base_url,
-            app: self.app.clone(),
-            bin,
-        };
+        let app = RunningApp { base_url };
         let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| interact(app)));
         running.shutdown();
         if let Err(e) = result {
