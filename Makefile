@@ -198,12 +198,14 @@ coverage: ## Generate workspace line-coverage summary (requires cargo-llvm-cov)
 coverage-check: ## Fail if any workspace crate is below COVERAGE_THRESHOLD (default 80%)
 	COVERAGE_THRESHOLD=$(COVERAGE_THRESHOLD) ./scripts/coverage-check.sh
 
-# End-to-end proof that `doido new` scaffolds a compiling app (the framework's
-# definition-of-done). It builds the whole framework, so — like supply-chain — it
-# is kept OUT of `verify`: a ~3min build must not gate the fast loop. Run in CI
-# and on demand. The test itself is #[ignore]d.
-example: ## Slow e2e: generate apps in a tempdir, compile them, and serve CRUD
-	cargo test -p doido-generators --test e2e_app_build_test --test e2e_app_runtime_test -- --ignored --nocapture
+# Release e2e gate: every generator flag validated with server boot, real HTTP
+# (or CLI/worker where HTTP does not apply), and clean SQLite migrations.
+# Kept OUT of `verify` — run before publishing (`release.yml`) and on demand.
+release-e2e: ## Slow release e2e: generators + server + HTTP + migrations
+	CARGO_TARGET_DIR=target/e2e-cargo cargo test -p doido-generators --test e2e -- --ignored --nocapture --test-threads=1
+
+# Alias kept for docs that still mention `make example`.
+example: release-e2e ## Alias for release-e2e
 
 # Release installer harness: build a local binary, curl-install it, run doido --help.
 install-check: ## Validate scripts/install.sh (+ static checks for install.ps1)
