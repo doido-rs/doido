@@ -16,9 +16,9 @@ associações, serialização, factories e um banco de dados de teste em memóri
 ## Visão geral
 
 ```rust
-use doido_model::{connect, connect_with_url, pool, TestDb};
-use doido_model::{ActiveModelTrait, EntityTrait, ColumnTrait, QueryFilter, Set};
-use doido_model::migration::{create_table, alter_table, add_index, add_foreign_key};
+use doido::model::{connect, connect_with_url, pool, TestDb};
+use doido::model::{ActiveModelTrait, EntityTrait, ColumnTrait, QueryFilter, Set};
+use doido::model::migration::{create_table, alter_table, add_index, add_foreign_key};
 ```
 
 ## Definindo um model
@@ -27,7 +27,7 @@ Models são entidades sea-orm puras. `doido-model` reexporta tudo o que o sea-or
 então não há nada específico do Doido para aprender aqui.
 
 ```rust
-use doido_model::sea_orm::entity::prelude::*;
+use doido::model::sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
 #[sea_orm(table_name = "posts")]
@@ -51,7 +51,7 @@ impl ActiveModelBehavior for ActiveModel {}
 Faça queries direto com o sea-orm (não existe, intencionalmente, um `Model::find_by_id`):
 
 ```rust
-use doido_model::{EntityTrait, ColumnTrait, QueryFilter};
+use doido::model::{EntityTrait, ColumnTrait, QueryFilter};
 
 let published = post::Entity::find()
     .filter(post::Column::Published.eq(true))
@@ -71,11 +71,11 @@ de volta com `pool::pool()` (dá panic se não definido) ou `pool::try_pool()` (
 
 ```rust
 // No boot:
-let conn = doido_model::connect().await?;   // lê config/<env>.yml → [database]
-doido_model::pool::set_pool(conn).ok();
+let conn = doido::model::connect().await?;   // lê config/<env>.yml → [database]
+doido::model::pool::set_pool(conn).ok();
 
 // Em qualquer lugar depois:
-let db = doido_model::pool::pool();          // &'static DatabaseConnection
+let db = doido::model::pool::pool();          // &'static DatabaseConnection
 ```
 
 ```yaml
@@ -95,7 +95,7 @@ builder de colunas com helpers tipados (`string`, `text`, `integer`, `big_intege
 de uma migration.
 
 ```rust
-use doido_model::migration::{create_table, alter_table, add_index, add_foreign_key, drop_table};
+use doido::model::migration::{create_table, alter_table, add_index, add_foreign_key, drop_table};
 
 create_table(manager, "users", |t| {
     t.string("email").not_null().unique_key();
@@ -121,7 +121,7 @@ Implemente `Validate` para coletar erros em um acumulador `Errors` com helpers c
 `presence` e `length`; `is_valid()` e `full_messages()` vêm de graça.
 
 ```rust
-use doido_model::validation::{Validate, Errors};
+use doido::model::validation::{Validate, Errors};
 
 struct Post { title: String, body: String }
 
@@ -145,7 +145,7 @@ Hash bcrypt com um trait no estilo `has_secure_password`. `hash_password` usa o 
 padrão; `verify_password` verifica um candidato; `generate_token` gera um token aleatório.
 
 ```rust
-use doido_model::password::{hash_password, verify_password, generate_token};
+use doido::model::password::{hash_password, verify_password, generate_token};
 
 let digest = hash_password("s3cret")?;
 assert!(verify_password("s3cret", &digest));
@@ -160,7 +160,7 @@ Normalize valores de atributos antes de persistir com um `Normalizer` combináve
 (`strip`, `downcase`, `upcase`, `squish`, `custom`).
 
 ```rust
-use doido_model::normalization::Normalizer;
+use doido::model::normalization::Normalizer;
 
 let email = Normalizer::new().strip().downcase();
 assert_eq!(email.apply("  Foo@Bar.COM  "), "foo@bar.com");
@@ -177,7 +177,7 @@ também oferece descritores de associação (`belongs_to`, `has_one`, `has_many`
 `join_table`) usados pelos geradores e por attachments polimórficos.
 
 ```rust
-use doido_model::association::{Association, join_table};
+use doido::model::association::{Association, join_table};
 
 let a = Association::has_many("Author", "posts");
 let b = Association::belongs_to("author");
@@ -190,7 +190,7 @@ Transforme qualquer model `Serialize` em JSON, opcionalmente mascarando ou selec
 colunas — útil para respostas de API.
 
 ```rust
-use doido_model::serialization::{as_json, as_json_only, as_json_except};
+use doido::model::serialization::{as_json, as_json_only, as_json_except};
 
 let full = as_json(&user);
 let public = as_json_only(&user, &["id", "name"]);       // apenas estas chaves
@@ -202,7 +202,7 @@ let safe = as_json_except(&user, &["password_digest"]);  // esconde chaves sens�
 Construa registros de teste com valores de sequência únicos.
 
 ```rust
-use doido_model::factory::{sequence, Factory};
+use doido::model::factory::{sequence, Factory};
 
 impl Factory for User {
     fn build() -> Self {
@@ -221,7 +221,7 @@ let three = User::build_list(3); // registros distintos
 por `Role`.
 
 ```rust
-use doido_model::databases::{Databases, Role};
+use doido::model::databases::{Databases, Role};
 
 let dbs = Databases::new(writing_conn).with_reading(replica_conn);
 let read = dbs.connection(Role::Reading); // usa a de escrita quando não há réplica
@@ -232,7 +232,7 @@ let read = dbs.connection(Role::Reading); // usa a de escrita quando não há r�
 `TestDb` sobe uma conexão SQLite em memória para testes rápidos e isolados.
 
 ```rust
-use doido_model::TestDb;
+use doido::model::TestDb;
 
 #[tokio::test]
 async fn creates_a_user() {
@@ -246,7 +246,7 @@ async fn creates_a_user() {
 
 > As queries usam o sea-orm nativamente — **não** existe atalho `Model::find_by_id(db, id)`;
 > use `Entity::find_by_id(id).one(db)`. Callbacks, scopes, seeds, transações, enums e tasks
-> têm cada um seu módulo (`doido_model::{callbacks, scope, seeds, transaction, enums,
+> têm cada um seu módulo (`doido::model::{callbacks, scope, seeds, transaction, enums,
 > tasks}`) espelhando seus equivalentes no Active Record.
 
 ## Veja também

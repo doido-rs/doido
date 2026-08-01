@@ -17,11 +17,11 @@ todo el framework comparte, para que los crates downstream dependan solo de `doi
 ## Vistazo general
 
 ```rust
-use doido_core::{Inflector, Result, Environment};
-use doido_core::{init_logger, load_inflections};
+use doido::Result;
+use doido::core::{Inflector, Environment, init_logger, load_inflections};
 
 // Reexportado para crates downstream (depende de doido-core, no de estos directamente):
-use doido_core::{anyhow, async_trait, serde, thiserror, tracing};
+use doido::core::{anyhow, async_trait, serde, thiserror, tracing};
 ```
 
 ## Inflexión de strings
@@ -31,7 +31,7 @@ Impulsa los generadores (nombres de tabla, nombres de clase, helpers de ruta) y 
 disponible en cualquier parte de tu app.
 
 ```rust
-use doido_core::Inflector;
+use doido::core::Inflector;
 
 Inflector::pluralize("post");        // "posts"
 Inflector::singularize("comments");  // "comment"
@@ -59,7 +59,7 @@ cuando el archivo no existe, así que es seguro llamarlo incondicionalmente):
 
 ```rust
 // Carga config/inflection.yaml si existe; Ok(true) cuando se aplica, Ok(false) cuando falta.
-doido_core::load_inflections("config/inflection.yaml")?;
+doido::core::load_inflections("config/inflection.yaml")?;
 ```
 
 ```yaml
@@ -79,7 +79,7 @@ O configura las reglas en código con `init_inflections`, usando el builder `Inf
 (`irregular`, `uncountable`, `acronym`, `plural`, `singular`):
 
 ```rust
-doido_core::init_inflections(|i| {
+doido::core::init_inflections(|i| {
     i.irregular("person", "people");
     i.uncountable("equipment");
     i.acronym("API");
@@ -94,7 +94,8 @@ crate define sus propios errores tipados con `thiserror`. `anyhow`, `bail` y el 
 sin configuración.
 
 ```rust
-use doido_core::{Result, anyhow::Context};
+use doido::Result;
+use doido::core::anyhow::Context;
 
 fn load_settings() -> Result<Settings> {
     let raw = std::fs::read_to_string("config/settings.toml")
@@ -107,7 +108,7 @@ fn load_settings() -> Result<Settings> {
 Para un crate de biblioteca, define un error tipado con el `thiserror` reexportado:
 
 ```rust
-use doido_core::thiserror;
+use doido::core::thiserror;
 
 #[derive(Debug, thiserror::Error)]
 pub enum StoreError {
@@ -127,12 +128,12 @@ defecto sensatos) y es idempotente.
 
 ```rust
 // Forma más simple — respeta RUST_LOG, con fallback a valores por defecto sensatos.
-doido_core::init_logger();
+doido::core::init_logger();
 
 // O contrólalo desde la config (config/<env>.yml → [logger]):
-use doido_core::LoggerConfig;
+use doido::core::LoggerConfig;
 let cfg = LoggerConfig { level: "debug".into(), ..Default::default() };
-doido_core::logger::init_with_config(&cfg);
+doido::core::logger::init_with_config(&cfg);
 ```
 
 ```yaml
@@ -155,7 +156,7 @@ JSON por respuesta HTTP — logs de acceso y métricas de latencia).
 entorno del proceso.
 
 ```rust
-use doido_core::Environment;
+use doido::core::Environment;
 
 match Environment::get_env() {
     Environment::Development => { /* errores verbosos, hot reload */ }
@@ -173,8 +174,8 @@ let name = Environment::get_env().as_str(); // "development" | "test" | "product
 relativo al estilo Rails.
 
 ```rust
-use doido_core::core_ext::Blank;
-use doido_core::time_ext::{days_ago, beginning_of_day};
+use doido::core::core_ext::Blank;
+use doido::core::time_ext::{days_ago, beginning_of_day};
 
 "".is_blank();                 // true
 "  ".is_blank();               // true (solo espacios)
@@ -189,7 +190,7 @@ framework (peticiones, jobs, queries, correo), y `notifications` ofrece un pub/s
 para instrumentación en proceso.
 
 ```rust
-use doido_core::notifications::Notifications;
+use doido::core::notifications::Notifications;
 
 let notifications = Notifications::new();
 notifications.subscribe("post.created", |payload| {
@@ -204,7 +205,7 @@ notifications.instrument("post.created", "{\"id\":1}");
 dependiente del tiempo.
 
 ```rust
-use doido_core::test_time::TestClock;
+use doido::core::test_time::TestClock;
 
 let clock = TestClock::new(chrono::Utc::now());
 clock.travel(chrono::Duration::hours(2)); // avanza en el tiempo

@@ -16,7 +16,7 @@ trabajas mediante la macro `routes!` y la macro `#[controller]`, no con axum en 
 ## Vistazo general
 
 ```rust
-use doido_controller::{controller, routes, Context, Response};
+use doido::controller::{controller, routes, Context, Response};
 ```
 
 ## La DSL `routes!`
@@ -26,9 +26,9 @@ RESTful, recursos singulares, agrupación por path/módulo, una ruta raíz, redi
 montaje de sub-routers.
 
 ```rust
-use doido_controller::routes;
+use doido::controller::{routes, axum};
 
-pub fn router() -> doido_controller::axum::Router {
+pub fn router() -> axum::Router {
     routes! {
         root!(PagesController::home);              // GET /
         get!("/about", PagesController::about);
@@ -81,7 +81,7 @@ Context) -> Response`. La ruta despacha a la action cuyo nombre de método coinc
 (convención sobre configuración).
 
 ```rust
-use doido_controller::{controller, Context, Response};
+use doido::controller::{controller, Context, Response};
 use serde_json::json;
 
 pub struct PostsController;
@@ -90,7 +90,7 @@ pub struct PostsController;
 impl PostsController {
     async fn index(ctx: Context) -> Response {
         let posts = post::Entity::find().all(ctx.db()).await.unwrap_or_default();
-        ctx.render("posts/index", json!({ "posts": doido_model::serialization::as_json(&posts) }))
+        ctx.render("posts/index", json!({ "posts": doido::model::serialization::as_json(&posts) }))
     }
 
     async fn show(ctx: Context) -> Response {

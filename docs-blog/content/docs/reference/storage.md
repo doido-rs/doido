@@ -17,7 +17,7 @@ facade bundles a service, a database connection, and a signer.
 ## At a glance
 
 ```rust
-use doido_storage::{Storage, DiskService, MemoryService, Signer, Blob, Disposition};
+use doido::storage::{Storage, DiskService, MemoryService, Signer, Blob, Disposition};
 ```
 
 ## Services
@@ -43,7 +43,7 @@ storage:
 Custom adapter:
 
 ```rust
-use doido_storage::register_adapter;
+use doido::storage::register_adapter;
 
 register_adapter("dropbox", my_dropbox_factory);
 ```
@@ -55,7 +55,7 @@ Build a `Storage` from a connection, a service, and a `Signer`, or from config w
 tables if missing.
 
 ```rust
-use doido_storage::{Storage, MemoryService, Signer};
+use doido::storage::{Storage, MemoryService, Signer};
 use std::sync::Arc;
 
 let storage = Storage::new(conn, Arc::new(MemoryService::new("test")), Signer::from_env());
@@ -105,7 +105,7 @@ returns a native presigned URL (S3/Azure/GCS) or a signed application route (dis
 with an inline or attachment `Disposition`.
 
 ```rust
-use doido_storage::Disposition;
+use doido::storage::Disposition;
 
 let signed = storage.signed_id(&blob.key);           // opaque, verifiable id
 let key = storage.verify_signed_id(&signed)?;        // back to the key (errors if tampered)
@@ -127,7 +127,7 @@ With feature `storage-jobs`, `purge_later` enqueues cleanup onto [doido-jobs](@/
 instead of blocking the request.
 
 ```rust
-use doido_storage::jobs::purge_later;
+use doido::storage::jobs::purge_later;
 
 purge_later(job_queue.as_ref(), &blob.key).await?;
 ```
@@ -138,7 +138,7 @@ purge_later(job_queue.as_ref(), &blob.key).await?;
 isolated.
 
 ```rust
-use doido_storage::{DiskService, Service};
+use doido::storage::{DiskService, Service};
 
 let service = DiskService::new("local", std::env::temp_dir());
 service.upload("k", b"bytes".to_vec(), Some("text/plain")).await?;

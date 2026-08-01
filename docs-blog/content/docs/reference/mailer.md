@@ -17,7 +17,7 @@ through the same [Tera engine](@/docs/reference/views.md) as views.
 ## At a glance
 
 ```rust
-use doido_mailer::{mailer, Mail, Deliverer, SmtpDeliverer, LogDeliverer, TestDeliverer};
+use doido::mailer::{mailer, Mail, Deliverer, SmtpDeliverer, LogDeliverer, TestDeliverer};
 ```
 
 ## Defining a mailer
@@ -26,14 +26,14 @@ use doido_mailer::{mailer, Mail, Deliverer, SmtpDeliverer, LogDeliverer, TestDel
 (`UserMailer` → `mailers/user_mailer/<action>`). Actions build and return a `Mail`.
 
 ```rust
-use doido_mailer::{mailer, Mail};
+use doido::mailer::{mailer, Mail};
 
 #[mailer]
 struct UserMailer;
 
 impl UserMailer {
     fn welcome(user: &User) -> Mail {
-        let html = doido_view::render(
+        let html = doido::view::render(
             "mailers/user_mailer/welcome",
             &serde_json::json!({ "name": user.name }),
         ).unwrap_or_default();
@@ -82,7 +82,7 @@ UserMailer::welcome(&user).deliver_later(job_queue.as_ref()).await?;
 
 ```rust
 use std::sync::Arc;
-use doido_mailer::{Deliverer, SmtpDeliverer, LogDeliverer};
+use doido::mailer::{Deliverer, SmtpDeliverer, LogDeliverer};
 
 let deliverer: Arc<dyn Deliverer> = if production {
     Arc::new(SmtpDeliverer::new("smtp://localhost:25"))
@@ -116,7 +116,7 @@ redirect all mail to a catch-all in staging), and register `MailerPreviews` to r
 in the browser without sending.
 
 ```rust
-use doido_mailer::interceptors::InterceptingDeliverer;
+use doido::mailer::interceptors::InterceptingDeliverer;
 
 let deliverer = InterceptingDeliverer::new(LogDeliverer)
     .intercept(|mail| { /* rewrite recipients, etc. */ })
@@ -129,7 +129,7 @@ let deliverer = InterceptingDeliverer::new(LogDeliverer)
 bodies.
 
 ```rust
-use doido_mailer::TestDeliverer;
+use doido::mailer::TestDeliverer;
 
 let deliverer = TestDeliverer::new();
 UserMailer::welcome(&user).deliver_now(&deliverer).await?;

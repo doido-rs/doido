@@ -15,7 +15,7 @@ con backoff, el leasing confiable y una dead-letter queue.
 ## Vistazo general
 
 ```rust
-use doido_jobs::{job, JobQueue, JobPayload, MemoryQueue, Worker};
+use doido::jobs::{job, JobQueue, JobPayload, MemoryQueue, Worker};
 use std::sync::Arc;
 ```
 
@@ -26,10 +26,10 @@ el job y genera un helper `<name>_enqueue`. El payload del job es su último par
 (por defecto `serde_json::Value`), que debe ser `Serialize`.
 
 ```rust
-use doido_jobs::job;
+use doido::jobs::job;
 
 #[job(queue = "emails", max_retries = 5, backoff = "exponential", backoff_base = 5, timeout = 30, priority = 7)]
-async fn send_welcome(user_id: i64) -> doido_core::Result<()> {
+async fn send_welcome(user_id: i64) -> doido::Result<()> {
     // …entregar el correo de bienvenida…
     Ok(())
 }
@@ -49,7 +49,7 @@ Para entrega **diferida** o **programada**, construye un `JobPayload` y usa los 
 fluidos (`with_wait`, `with_run_at`, `with_priority`, …):
 
 ```rust
-use doido_jobs::JobPayload;
+use doido::jobs::JobPayload;
 
 let job = JobPayload::new("emails", serde_json::json!({ "user_id": 42 }), 5)
     .with_wait(300)          // se ejecuta en 5 minutos
@@ -68,7 +68,7 @@ disponible; `DbQueue` (feature `jobs-db`) y `RedisQueue` (feature `jobs-redis`) 
 durabilidad.
 
 ```rust
-use doido_jobs::{build_queue, JobsConfig};
+use doido::jobs::{build_queue, JobsConfig};
 
 let queue = build_queue(&JobsConfig::default()).await?; // Arc<dyn JobQueue>
 ```
@@ -90,7 +90,7 @@ para una sola cola; `run_once` vacía una vez (ideal para pruebas), `run` itera 
 shutdown. El comando `doido worker` lo ejecuta como proceso.
 
 ```rust
-use doido_jobs::{Worker, WorkerEngine, EngineConfig};
+use doido::jobs::{Worker, WorkerEngine, EngineConfig};
 
 // Cola única:
 Worker::new(queue.clone(), "emails")
@@ -119,7 +119,7 @@ los leases perdidos por una caída.
 
 ```rust
 #[job(max_retries = 5, backoff = "exponential", backoff_base = 10)]
-async fn charge_card(order_id: i64) -> doido_core::Result<()> { Ok(()) }
+async fn charge_card(order_id: i64) -> doido::Result<()> { Ok(()) }
 ```
 
 ## Dead-letter queue
@@ -145,7 +145,7 @@ Un `JobContext` transporta estado compartido (y una conexión a la base de datos
 estado de la aplicación.
 
 ```rust
-use doido_jobs::{JobContext, WorkerEngine, EngineConfig};
+use doido::jobs::{JobContext, WorkerEngine, EngineConfig};
 
 let engine = WorkerEngine::with_context(queue, EngineConfig::default(), JobContext::new());
 ```

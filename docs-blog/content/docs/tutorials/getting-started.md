@@ -34,14 +34,14 @@ doido server
 A controller is a plain `impl` block annotated with `#[controller]`:
 
 ```rust
-use doido_controller::controller;
+use doido::controller::{controller, Context, Response};
 use serde_json::json;
 
 pub struct HelloController;
 
 #[controller]
 impl HelloController {
-    pub async fn index(ctx: doido_controller::Context) -> doido_controller::Response {
+    pub async fn index(ctx: Context) -> Response {
         ctx.json(json!({ "message": "Hello word!" }))
     }
 }

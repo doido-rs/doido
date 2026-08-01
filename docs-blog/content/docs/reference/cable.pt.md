@@ -15,7 +15,7 @@ assinantes. O Pub/Sub é plugável (em memória, Redis ou banco de dados).
 ## Visão geral
 
 ```rust
-use doido_cable::{channel, Channel, ChannelContext, Cable, MemoryPubSub, CableConnection};
+use doido::cable::{channel, Channel, ChannelContext, Cable, MemoryPubSub, CableConnection};
 ```
 
 ## Definindo um canal
@@ -25,8 +25,8 @@ trait `Channel`: `subscribed` (na assinatura), `unsubscribed` (na desconexão) e
 (uma mensagem recebida). Faça o roteamento pelo payload da mensagem dentro de `received`.
 
 ```rust
-use doido_cable::{channel, Channel, ChannelContext};
-use doido_core::Result;
+use doido::cable::{channel, Channel, ChannelContext};
+use doido::Result;
 use serde_json::Value;
 
 #[channel]
@@ -56,7 +56,7 @@ ActionCable estruturada (identifier + JSON), `broadcast_to` envia uma string cru
 `streams::stream_from` para montar nomes de stream consistentes.
 
 ```rust
-use doido_cable::{Cable, MemoryPubSub, streams};
+use doido::cable::{Cable, MemoryPubSub, streams};
 use std::sync::Arc;
 use serde_json::json;
 
@@ -84,7 +84,7 @@ padrão; `RedisPubSub` (feature `cable-redis`) distribui entre processos; `DbPub
 `cable-db`) faz polling do banco.
 
 ```rust
-use doido_cable::{Cable, MemoryPubSub};
+use doido::cable::{Cable, MemoryPubSub};
 let cable = Cable::new(std::sync::Arc::new(MemoryPubSub::new()));
 ```
 
@@ -95,7 +95,7 @@ let cable = Cable::new(std::sync::Arc::new(MemoryPubSub::new()));
 socket conecta e rejeite as não autorizadas antes de qualquer canal rodar.
 
 ```rust
-use doido_cable::CableConnection;
+use doido::cable::CableConnection;
 
 let mut conn = CableConnection::new();
 conn.identify("current_user", &user.id.to_string());
@@ -121,7 +121,7 @@ JavaScript padrão `@rails/actioncable`.
 verifique o `ServerMessage` recebido.
 
 ```rust
-use doido_cable::{Cable, MemoryPubSub, ServerMessage};
+use doido::cable::{Cable, MemoryPubSub, ServerMessage};
 use std::sync::Arc;
 use serde_json::json;
 

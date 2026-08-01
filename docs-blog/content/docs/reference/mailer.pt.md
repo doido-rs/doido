@@ -15,7 +15,7 @@ pela mesma [engine Tera](@/docs/reference/views.pt.md) das views.
 ## Visão geral
 
 ```rust
-use doido_mailer::{mailer, Mail, Deliverer, SmtpDeliverer, LogDeliverer, TestDeliverer};
+use doido::mailer::{mailer, Mail, Deliverer, SmtpDeliverer, LogDeliverer, TestDeliverer};
 ```
 
 ## Definindo um mailer
@@ -24,14 +24,14 @@ use doido_mailer::{mailer, Mail, Deliverer, SmtpDeliverer, LogDeliverer, TestDel
 (`UserMailer` → `mailers/user_mailer/<action>`). As actions constroem e retornam um `Mail`.
 
 ```rust
-use doido_mailer::{mailer, Mail};
+use doido::mailer::{mailer, Mail};
 
 #[mailer]
 struct UserMailer;
 
 impl UserMailer {
     fn welcome(user: &User) -> Mail {
-        let html = doido_view::render(
+        let html = doido::view::render(
             "mailers/user_mailer/welcome",
             &serde_json::json!({ "name": user.name }),
         ).unwrap_or_default();
@@ -80,7 +80,7 @@ UserMailer::welcome(&user).deliver_later(job_queue.as_ref()).await?;
 
 ```rust
 use std::sync::Arc;
-use doido_mailer::{Deliverer, SmtpDeliverer, LogDeliverer};
+use doido::mailer::{Deliverer, SmtpDeliverer, LogDeliverer};
 
 let deliverer: Arc<dyn Deliverer> = if production {
     Arc::new(SmtpDeliverer::new("smtp://localhost:25"))
@@ -114,7 +114,7 @@ mensagem (ex.: redirecionar todo e-mail para um catch-all em staging), e registr
 `MailerPreviews` para renderizar o e-mail no navegador sem enviar.
 
 ```rust
-use doido_mailer::interceptors::InterceptingDeliverer;
+use doido::mailer::interceptors::InterceptingDeliverer;
 
 let deliverer = InterceptingDeliverer::new(LogDeliverer)
     .intercept(|mail| { /* reescreve destinatários, etc. */ })
@@ -127,7 +127,7 @@ let deliverer = InterceptingDeliverer::new(LogDeliverer)
 destinatários, assuntos e corpos.
 
 ```rust
-use doido_mailer::TestDeliverer;
+use doido::mailer::TestDeliverer;
 
 let deliverer = TestDeliverer::new();
 UserMailer::welcome(&user).deliver_now(&deliverer).await?;

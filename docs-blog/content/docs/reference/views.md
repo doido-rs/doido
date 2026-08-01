@@ -17,8 +17,8 @@ blocks, and fragment caching.
 ## At a glance
 
 ```rust
-use doido_view::{init, render, set_engine, TemplateEngine, TeraEngine, ViewResponse};
-use doido_view::{render_partial, render_collection};
+use doido::view::{init, render, set_engine, TemplateEngine, TeraEngine, ViewResponse};
+use doido::view::{render_partial, render_collection};
 ```
 
 ## Setup
@@ -26,7 +26,7 @@ use doido_view::{render_partial, render_collection};
 Install the global engine once at boot, pointing at your templates directory.
 
 ```rust
-doido_view::init("app/views")?; // load all *.html.tera under app/views
+doido::view::init("app/views")?; // load all *.html.tera under app/views
 ```
 
 ## Rendering from controllers
@@ -62,7 +62,7 @@ the page with `{{ content_for_layout }}`. Override or skip the layout per render
 ```
 
 ```rust
-use doido_view::ViewResponse;
+use doido::view::ViewResponse;
 
 ViewResponse::new("posts/index", json!({}));               // default layout
 ViewResponse::new("posts/index", json!({})).layout("admin"); // layouts/admin.html.tera
@@ -76,7 +76,7 @@ Reuse fragments with Tera's `{% include %}`, or render one directly. `render_col
 renders a partial once per item, binding each to a variable name.
 
 ```rust
-use doido_view::{render_partial, render_collection};
+use doido::view::{render_partial, render_collection};
 
 let html = render_partial("shared/_card", &json!({ "title": "Hi" }))?;
 let list = render_collection("posts/_post", &posts, "post")?; // one render per post
@@ -92,7 +92,7 @@ Capture named content in a template (e.g. a page title or extra `<head>` tags) a
 elsewhere in the layout with `ContentFor`.
 
 ```rust
-use doido_view::ContentFor;
+use doido::view::ContentFor;
 
 let mut content = ContentFor::new();
 content.set("title", "Dashboard");
@@ -101,10 +101,10 @@ let title = content.get("title"); // "Dashboard"
 
 ## View helpers
 
-`doido_view::helpers` provides Rails-style HTML helpers that return escaped HTML strings:
+`doido::view::helpers` provides Rails-style HTML helpers that return escaped HTML strings:
 
 ```rust
-use doido_view::helpers::{link, form, asset, number, sanitize, tag, hotwire};
+use doido::view::helpers::{link, form, asset, number, sanitize, tag, hotwire};
 
 link::link_to("Home", "/");                       // <a href="/">Home</a>
 link::button_to("Delete", "/posts/1", "delete");  // form-wrapped button
@@ -125,7 +125,7 @@ hotwire::turbo_frame("messages", "…");            // Turbo frame
 backed by any [cache store](@/docs/reference/cache.md).
 
 ```rust
-use doido_view::fragment::cache_fragment;
+use doido::view::fragment::cache_fragment;
 
 let html = cache_fragment(&cache_store, "posts/1", || {
     render_partial("posts/_post", &post).unwrap()
@@ -138,15 +138,15 @@ Tera is the default, but any type implementing `TemplateEngine` (`render` + `rel
 replace it via `set_engine`.
 
 ```rust
-use doido_view::{TemplateEngine, set_engine};
+use doido::view::{TemplateEngine, set_engine};
 use std::sync::Arc;
 
 struct MyEngine;
 impl TemplateEngine for MyEngine {
-    fn render(&self, template: &str, ctx: &serde_json::Value) -> doido_core::Result<String> {
+    fn render(&self, template: &str, ctx: &serde_json::Value) -> doido::Result<String> {
         Ok(format!("rendered:{template}"))
     }
-    fn reload(&self) -> doido_core::Result<()> { Ok(()) }
+    fn reload(&self) -> doido::Result<()> { Ok(()) }
 }
 
 set_engine(Arc::new(MyEngine));

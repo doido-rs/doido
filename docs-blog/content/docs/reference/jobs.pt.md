@@ -15,7 +15,7 @@ leasing confiável e uma dead-letter queue.
 ## Visão geral
 
 ```rust
-use doido_jobs::{job, JobQueue, JobPayload, MemoryQueue, Worker};
+use doido::jobs::{job, JobQueue, JobPayload, MemoryQueue, Worker};
 use std::sync::Arc;
 ```
 
@@ -26,10 +26,10 @@ gera um helper `<name>_enqueue`. O payload do job é seu último parâmetro tipa
 `serde_json::Value`), que precisa ser `Serialize`.
 
 ```rust
-use doido_jobs::job;
+use doido::jobs::job;
 
 #[job(queue = "emails", max_retries = 5, backoff = "exponential", backoff_base = 5, timeout = 30, priority = 7)]
-async fn send_welcome(user_id: i64) -> doido_core::Result<()> {
+async fn send_welcome(user_id: i64) -> doido::Result<()> {
     // …envia o e-mail de boas-vindas…
     Ok(())
 }
@@ -49,7 +49,7 @@ Para entrega **adiada** ou **agendada**, construa um `JobPayload` e use os sette
 (`with_wait`, `with_run_at`, `with_priority`, …):
 
 ```rust
-use doido_jobs::JobPayload;
+use doido::jobs::JobPayload;
 
 let job = JobPayload::new("emails", serde_json::json!({ "user_id": 42 }), 5)
     .with_wait(300)          // roda em 5 minutos
@@ -67,7 +67,7 @@ queue.enqueue_at(JobPayload::new("emails", payload, 5), when).await?;
 (feature `jobs-db`) e `RedisQueue` (feature `jobs-redis`) adicionam durabilidade.
 
 ```rust
-use doido_jobs::{build_queue, JobsConfig};
+use doido::jobs::{build_queue, JobsConfig};
 
 let queue = build_queue(&JobsConfig::default()).await?; // Arc<dyn JobQueue>
 ```
@@ -90,7 +90,7 @@ testes), `run` roda em loop até o shutdown. O comando `doido worker` o executa 
 processo.
 
 ```rust
-use doido_jobs::{Worker, WorkerEngine, EngineConfig};
+use doido::jobs::{Worker, WorkerEngine, EngineConfig};
 
 // Fila única:
 Worker::new(queue.clone(), "emails")
@@ -119,7 +119,7 @@ perdidos por uma queda.
 
 ```rust
 #[job(max_retries = 5, backoff = "exponential", backoff_base = 10)]
-async fn charge_card(order_id: i64) -> doido_core::Result<()> { Ok(()) }
+async fn charge_card(order_id: i64) -> doido::Result<()> { Ok(()) }
 ```
 
 ## Dead-letter queue
@@ -144,7 +144,7 @@ Um `JobContext` carrega estado compartilhado (e uma conexão de banco com `jobs-
 handlers; um `WorkerEngine` pode ser construído `with_context` para injetar estado da app.
 
 ```rust
-use doido_jobs::{JobContext, WorkerEngine, EngineConfig};
+use doido::jobs::{JobContext, WorkerEngine, EngineConfig};
 
 let engine = WorkerEngine::with_context(queue, EngineConfig::default(), JobContext::new());
 ```

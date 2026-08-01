@@ -15,7 +15,7 @@ assinadas. A fachada `Storage` reúne um service, uma conexão de banco e um sig
 ## Visão geral
 
 ```rust
-use doido_storage::{Storage, DiskService, MemoryService, Signer, Blob, Disposition};
+use doido::storage::{Storage, DiskService, MemoryService, Signer, Blob, Disposition};
 ```
 
 ## Services
@@ -41,7 +41,7 @@ storage:
 Adapter customizado:
 
 ```rust
-use doido_storage::register_adapter;
+use doido::storage::register_adapter;
 
 register_adapter("dropbox", my_dropbox_factory);
 ```
@@ -53,7 +53,7 @@ config com `from_config`. `ensure_tables` cria as tabelas de metadados `storage_
 `storage_attachments` se ausentes.
 
 ```rust
-use doido_storage::{Storage, MemoryService, Signer};
+use doido::storage::{Storage, MemoryService, Signer};
 use std::sync::Arc;
 
 let storage = Storage::new(conn, Arc::new(MemoryService::new("test")), Signer::from_env());
@@ -103,7 +103,7 @@ O `Signer` gera IDs assinados à prova de adulteração e opcionalmente expiráv
 assinada da aplicação (disk/memory), com um `Disposition` inline ou attachment.
 
 ```rust
-use doido_storage::Disposition;
+use doido::storage::Disposition;
 
 let signed = storage.signed_id(&blob.key);           // id opaco e verificável
 let key = storage.verify_signed_id(&signed)?;        // volta à key (erro se adulterado)
@@ -125,7 +125,7 @@ Com a feature `storage-jobs`, `purge_later` enfileira a limpeza em
 [doido-jobs](@/docs/reference/jobs.pt.md) em vez de bloquear a requisição.
 
 ```rust
-use doido_storage::jobs::purge_later;
+use doido::storage::jobs::purge_later;
 
 purge_later(job_queue.as_ref(), &blob.key).await?;
 ```
@@ -136,7 +136,7 @@ purge_later(job_queue.as_ref(), &blob.key).await?;
 são rápidos e isolados.
 
 ```rust
-use doido_storage::{DiskService, Service};
+use doido::storage::{DiskService, Service};
 
 let service = DiskService::new("local", std::env::temp_dir());
 service.upload("k", b"bytes".to_vec(), Some("text/plain")).await?;

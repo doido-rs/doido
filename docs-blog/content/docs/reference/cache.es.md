@@ -16,8 +16,8 @@ las [sesiones](@/docs/reference/middleware.es.md), el rate limiting y la
 ## Vistazo general
 
 ```rust
-use doido_cache::{CacheStore, MemoryStore, NamespacedStore, CacheRegistry};
-use doido_cache::fetch::fetch;
+use doido::cache::{CacheStore, MemoryStore, NamespacedStore, CacheRegistry};
+use doido::cache::fetch::fetch;
 ```
 
 ## El trait del store
@@ -26,7 +26,7 @@ use doido_cache::fetch::fetch;
 `increment`, `decrement` y `clear`. Los valores son `serde_json::Value`.
 
 ```rust
-use doido_cache::{CacheStore, MemoryStore};
+use doido::cache::{CacheStore, MemoryStore};
 use serde_json::json;
 
 let store = MemoryStore::new();
@@ -52,7 +52,7 @@ cache:
 ```
 
 ```rust
-use doido_cache::CacheConfig;
+use doido::cache::CacheConfig;
 
 let store = CacheConfig::default().build(); // Arc<dyn CacheStore>
 ```
@@ -63,7 +63,7 @@ let store = CacheConfig::default().build(); // Arc<dyn CacheStore>
 pueden compartir un backend sin colisiones.
 
 ```rust
-use doido_cache::{MemoryStore, NamespacedStore};
+use doido::cache::{MemoryStore, NamespacedStore};
 
 let store = NamespacedStore::new(MemoryStore::new(), "myapp:production");
 store.set("posts/all", json!([]), None).await?; // almacenado como "myapp:production:posts/all"
@@ -75,7 +75,7 @@ store.set("posts/all", json!([]), None).await?; // almacenado como "myapp:produc
 calcularlo, almacenarlo y devolverlo — la closure se ejecuta solo en un miss.
 
 ```rust
-use doido_cache::fetch::fetch;
+use doido::cache::fetch::fetch;
 
 let posts = fetch(&store, "posts/all", Some(60), async || {
     // query costosa, solo en un cache miss
@@ -90,7 +90,7 @@ Registra múltiples stores por nombre en un `CacheRegistry` (p. ej. un store `de
 `global::store()`.
 
 ```rust
-use doido_cache::CacheRegistry;
+use doido::cache::CacheRegistry;
 use std::sync::Arc;
 
 let mut registry = CacheRegistry::new();

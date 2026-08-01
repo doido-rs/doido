@@ -16,7 +16,7 @@ de datos).
 ## Vistazo general
 
 ```rust
-use doido_cable::{channel, Channel, ChannelContext, Cable, MemoryPubSub, CableConnection};
+use doido::cable::{channel, Channel, ChannelContext, Cable, MemoryPubSub, CableConnection};
 ```
 
 ## Definir un canal
@@ -26,8 +26,8 @@ del trait `Channel`: `subscribed` (al suscribirse), `unsubscribed` (al desconect
 `received` (un mensaje entrante). Enruta según el payload del mensaje dentro de `received`.
 
 ```rust
-use doido_cable::{channel, Channel, ChannelContext};
-use doido_core::Result;
+use doido::cable::{channel, Channel, ChannelContext};
+use doido::Result;
 use serde_json::Value;
 
 #[channel]
@@ -57,7 +57,7 @@ un mensaje ActionCable estructurado (identifier + JSON), `broadcast_to` envía u
 cruda. Usa `streams::stream_from` para construir nombres de stream consistentes.
 
 ```rust
-use doido_cable::{Cable, MemoryPubSub, streams};
+use doido::cable::{Cable, MemoryPubSub, streams};
 use std::sync::Arc;
 use serde_json::json;
 
@@ -85,7 +85,7 @@ por defecto; `RedisPubSub` (feature `cable-redis`) distribuye entre procesos; `D
 (feature `cable-db`) hace polling de la base de datos.
 
 ```rust
-use doido_cable::{Cable, MemoryPubSub};
+use doido::cable::{Cable, MemoryPubSub};
 let cable = Cable::new(std::sync::Arc::new(MemoryPubSub::new()));
 ```
 
@@ -96,7 +96,7 @@ let cable = Cable::new(std::sync::Arc::new(MemoryPubSub::new()));
 socket conecta y rechaza las no autorizadas antes de que corra cualquier canal.
 
 ```rust
-use doido_cable::CableConnection;
+use doido::cable::CableConnection;
 
 let mut conn = CableConnection::new();
 conn.identify("current_user", &user.id.to_string());
@@ -122,7 +122,7 @@ cliente JavaScript estándar `@rails/actioncable`.
 verifica el `ServerMessage` recibido.
 
 ```rust
-use doido_cable::{Cable, MemoryPubSub, ServerMessage};
+use doido::cable::{Cable, MemoryPubSub, ServerMessage};
 use std::sync::Arc;
 use serde_json::json;
 

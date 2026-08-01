@@ -17,8 +17,8 @@ JSON-serialized, and a read-through `fetch` computes-on-miss. The same store bac
 ## At a glance
 
 ```rust
-use doido_cache::{CacheStore, MemoryStore, NamespacedStore, CacheRegistry};
-use doido_cache::fetch::fetch;
+use doido::cache::{CacheStore, MemoryStore, NamespacedStore, CacheRegistry};
+use doido::cache::fetch::fetch;
 ```
 
 ## The store trait
@@ -27,7 +27,7 @@ use doido_cache::fetch::fetch;
 `increment`, `decrement`, and `clear`. Values are `serde_json::Value`.
 
 ```rust
-use doido_cache::{CacheStore, MemoryStore};
+use doido::cache::{CacheStore, MemoryStore};
 use serde_json::json;
 
 let store = MemoryStore::new();
@@ -53,7 +53,7 @@ cache:
 ```
 
 ```rust
-use doido_cache::CacheConfig;
+use doido::cache::CacheConfig;
 
 let store = CacheConfig::default().build(); // Arc<dyn CacheStore>
 ```
@@ -64,7 +64,7 @@ let store = CacheConfig::default().build(); // Arc<dyn CacheStore>
 share a backend without collisions.
 
 ```rust
-use doido_cache::{MemoryStore, NamespacedStore};
+use doido::cache::{MemoryStore, NamespacedStore};
 
 let store = NamespacedStore::new(MemoryStore::new(), "myapp:production");
 store.set("posts/all", json!([]), None).await?; // stored as "myapp:production:posts/all"
@@ -76,7 +76,7 @@ store.set("posts/all", json!([]), None).await?; // stored as "myapp:production:p
 it, and returns it — the closure runs only on a miss.
 
 ```rust
-use doido_cache::fetch::fetch;
+use doido::cache::fetch::fetch;
 
 let posts = fetch(&store, "posts/all", Some(60), async || {
     // expensive query, only on a cache miss
@@ -91,7 +91,7 @@ Register multiple stores by name in a `CacheRegistry` (e.g. a `default` store an
 with `global::store()`.
 
 ```rust
-use doido_cache::CacheRegistry;
+use doido::cache::CacheRegistry;
 use std::sync::Arc;
 
 let mut registry = CacheRegistry::new();

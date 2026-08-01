@@ -12,7 +12,7 @@ weight = 7
 **Análogo no Rails: o binário `rails` + geradores.** `doido-generators` alimenta o único
 binário `doido` — tanto os comandos de runtime (`server`, `db`, `worker`, …) quanto os
 geradores de código (`generate scaffold`, `generate model`, …). Uma app gerada inicializa
-chamando `doido_generators::run(Some(routes))`.
+chamando `doido::generators::run(Some(routes))`.
 
 ## Visão geral
 
@@ -20,7 +20,7 @@ chamando `doido_generators::run(Some(routes))`.
 // src/main.rs de uma app gerada
 #[tokio::main]
 async fn main() {
-    doido_generators::run(Some(config::routes::router())).await;
+    doido::generators::run(Some(config::routes::router())).await;
 }
 ```
 
@@ -121,8 +121,8 @@ O sistema de geradores é um registro extensível. Implemente o trait `Generator
 você.
 
 ```rust
-use doido_generators::{Generator, GeneratedFile};
-use doido_core::Result;
+use doido::generators::{Generator, GeneratedFile};
+use doido::Result;
 
 struct PolicyGenerator;
 
@@ -139,7 +139,7 @@ impl Generator for PolicyGenerator {
 }
 
 // Registre-o, depois rode/liste pelo registro:
-let mut registry = doido_generators::default_registry();
+let mut registry = doido::generators::default_registry();
 registry.register(Box::new(PolicyGenerator));
 let files = registry.run("policy", &["post"])?;
 let names = registry.list(); // inclui "policy"

@@ -16,8 +16,8 @@ fora do arquivo. O tipo de config vive em `doido-controller`.
 ## Visão geral
 
 ```rust
-use doido_controller::{Config, YamlConfig, ServerConfig};
-use doido_controller::env_override::{apply_env_overrides, from_process_env};
+use doido::controller::{Config, YamlConfig, ServerConfig};
+use doido::controller::env_override::{apply_env_overrides, from_process_env};
 ```
 
 ## YAML por ambiente
@@ -52,7 +52,7 @@ diretamente com `from_yaml()`. Acesse as seções pelo trait `Config`: `server()
 `logger()`, `middleware()`.
 
 ```rust
-use doido_controller::{Config, YamlConfig};
+use doido::controller::{Config, YamlConfig};
 
 // Carrega config/<env-atual>.yml (ex.: config/development.yml).
 let config = YamlConfig::load()?;
@@ -62,7 +62,7 @@ let level = &config.logger().level;                                      // "deb
 let cors_on = config.middleware().cors.enabled;                          // true
 
 // Ou nunca falhe — fallback para os padrões quando o arquivo está ausente/inválido:
-let config = doido_controller::config::load(); // Box<dyn Config>
+let config = doido::controller::config::load(); // Box<dyn Config>
 ```
 
 `ServerConfig` tem padrão `0.0.0.0:3000`; `LoggerConfig` tem padrão `info` (veja
@@ -85,7 +85,7 @@ Os overrides são aplicados ao valor de config já parseado, antes da desseriali
 tipada:
 
 ```rust
-use doido_controller::env_override::{apply_env_overrides, from_process_env};
+use doido::controller::env_override::{apply_env_overrides, from_process_env};
 
 let mut value: serde_json::Value = serde_json::to_value(&raw_config)?;
 

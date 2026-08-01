@@ -18,7 +18,7 @@ through the `routes!` macro DSL and the `#[controller]` macro rather than raw ax
 ## At a glance
 
 ```rust
-use doido_controller::{controller, routes, Context, Response};
+use doido::controller::{controller, routes, Context, Response};
 ```
 
 ## The `routes!` DSL
@@ -28,9 +28,9 @@ resources, singular resources, path/module grouping, a root route, redirects, an
 sub-routers.
 
 ```rust
-use doido_controller::routes;
+use doido::controller::{routes, axum};
 
-pub fn router() -> doido_controller::axum::Router {
+pub fn router() -> axum::Router {
     routes! {
         root!(PagesController::home);              // GET /
         get!("/about", PagesController::about);
@@ -83,7 +83,7 @@ Context) -> Response`. The route dispatches to the action whose method name matc
 (convention over configuration).
 
 ```rust
-use doido_controller::{controller, Context, Response};
+use doido::controller::{controller, Context, Response};
 use serde_json::json;
 
 pub struct PostsController;
@@ -92,7 +92,7 @@ pub struct PostsController;
 impl PostsController {
     async fn index(ctx: Context) -> Response {
         let posts = post::Entity::find().all(ctx.db()).await.unwrap_or_default();
-        ctx.render("posts/index", json!({ "posts": doido_model::serialization::as_json(&posts) }))
+        ctx.render("posts/index", json!({ "posts": doido::model::serialization::as_json(&posts) }))
     }
 
     async fn show(ctx: Context) -> Response {

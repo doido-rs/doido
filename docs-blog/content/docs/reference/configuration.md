@@ -18,8 +18,8 @@ type lives in `doido-controller`.
 ## At a glance
 
 ```rust
-use doido_controller::{Config, YamlConfig, ServerConfig};
-use doido_controller::env_override::{apply_env_overrides, from_process_env};
+use doido::controller::{Config, YamlConfig, ServerConfig};
+use doido::controller::env_override::{apply_env_overrides, from_process_env};
 ```
 
 ## Per-environment YAML
@@ -53,7 +53,7 @@ a specific environment with `load_env()`, or parse a string directly with `from_
 Access sections through the `Config` trait: `server()`, `logger()`, `middleware()`.
 
 ```rust
-use doido_controller::{Config, YamlConfig};
+use doido::controller::{Config, YamlConfig};
 
 // Load config/<current-env>.yml (e.g. config/development.yml).
 let config = YamlConfig::load()?;
@@ -63,7 +63,7 @@ let level = &config.logger().level;                                      // "deb
 let cors_on = config.middleware().cors.enabled;                          // true
 
 // Or never fail — fall back to defaults when the file is missing/invalid:
-let config = doido_controller::config::load(); // Box<dyn Config>
+let config = doido::controller::config::load(); // Box<dyn Config>
 ```
 
 `ServerConfig` defaults to `0.0.0.0:3000`; `LoggerConfig` defaults to `info` (see
@@ -84,7 +84,7 @@ SERVER__PORT=4000 LOGGER__LEVEL=warn DATABASE__URL=postgres://... doido server
 Overrides are applied to the parsed config value before typed deserialization:
 
 ```rust
-use doido_controller::env_override::{apply_env_overrides, from_process_env};
+use doido::controller::env_override::{apply_env_overrides, from_process_env};
 
 let mut value: serde_json::Value = serde_json::to_value(&raw_config)?;
 

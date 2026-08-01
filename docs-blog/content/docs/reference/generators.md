@@ -14,7 +14,7 @@ aliases = ['/docs/guides/generators/']
 **Rails analogue: the `rails` binary + generators.** `doido-generators` powers the single
 `doido` binary — both the runtime commands (`server`, `db`, `worker`, …) and the code
 generators (`generate scaffold`, `generate model`, …). A generated app boots by calling
-`doido_generators::run(Some(routes))`.
+`doido::generators::run(Some(routes))`.
 
 ## At a glance
 
@@ -22,7 +22,7 @@ generators (`generate scaffold`, `generate model`, …). A generated app boots b
 // src/main.rs of a generated app
 #[tokio::main]
 async fn main() {
-    doido_generators::run(Some(config::routes::router())).await;
+    doido::generators::run(Some(config::routes::router())).await;
 }
 ```
 
@@ -122,8 +122,8 @@ The generator system is an extensible registry. Implement the `Generator` trait 
 `GeneratedFile`s) and register it; `doido generate generator <name>` scaffolds one for you.
 
 ```rust
-use doido_generators::{Generator, GeneratedFile};
-use doido_core::Result;
+use doido::generators::{Generator, GeneratedFile};
+use doido::Result;
 
 struct PolicyGenerator;
 
@@ -140,7 +140,7 @@ impl Generator for PolicyGenerator {
 }
 
 // Register it, then run/list through the registry:
-let mut registry = doido_generators::default_registry();
+let mut registry = doido::generators::default_registry();
 registry.register(Box::new(PolicyGenerator));
 let files = registry.run("policy", &["post"])?;
 let names = registry.list(); // includes "policy"

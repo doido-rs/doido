@@ -17,7 +17,7 @@ Pub/Sub is pluggable (in-memory, Redis, or database).
 ## At a glance
 
 ```rust
-use doido_cable::{channel, Channel, ChannelContext, Cable, MemoryPubSub, CableConnection};
+use doido::cable::{channel, Channel, ChannelContext, Cable, MemoryPubSub, CableConnection};
 ```
 
 ## Defining a channel
@@ -27,8 +27,8 @@ lifecycle hooks: `subscribed` (on subscribe), `unsubscribed` (on disconnect), an
 (an inbound message). Route on the message payload inside `received`.
 
 ```rust
-use doido_cable::{channel, Channel, ChannelContext};
-use doido_core::Result;
+use doido::cable::{channel, Channel, ChannelContext};
+use doido::Result;
 use serde_json::Value;
 
 #[channel]
@@ -58,7 +58,7 @@ ActionCable message (identifier + JSON), `broadcast_to` sends a raw string. Use
 `streams::stream_from` to build consistent stream names.
 
 ```rust
-use doido_cable::{Cable, MemoryPubSub, streams};
+use doido::cable::{Cable, MemoryPubSub, streams};
 use std::sync::Arc;
 use serde_json::json;
 
@@ -86,7 +86,7 @@ default; `RedisPubSub` (feature `cable-redis`) fans out across processes; `DbPub
 `cable-db`) polls the database.
 
 ```rust
-use doido_cable::{Cable, MemoryPubSub};
+use doido::cable::{Cable, MemoryPubSub};
 let cable = Cable::new(std::sync::Arc::new(MemoryPubSub::new()));
 ```
 
@@ -97,7 +97,7 @@ let cable = Cable::new(std::sync::Arc::new(MemoryPubSub::new()));
 connects and reject unauthorized ones before any channel runs.
 
 ```rust
-use doido_cable::CableConnection;
+use doido::cable::CableConnection;
 
 let mut conn = CableConnection::new();
 conn.identify("current_user", &user.id.to_string());
@@ -123,7 +123,7 @@ heartbeat ping keeps connections alive. This is wire-compatible with the standar
 the received `ServerMessage`.
 
 ```rust
-use doido_cable::{Cable, MemoryPubSub, ServerMessage};
+use doido::cable::{Cable, MemoryPubSub, ServerMessage};
 use std::sync::Arc;
 use serde_json::json;
 

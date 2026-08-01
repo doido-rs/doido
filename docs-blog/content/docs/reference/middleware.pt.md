@@ -15,7 +15,7 @@ assinadas.
 ## Visão geral
 
 ```rust
-use doido_controller::{MiddlewareStack, Session, SessionStore, CookieSessionStore, Flash};
+use doido::controller::{MiddlewareStack, Session, SessionStore, CookieSessionStore, Flash};
 ```
 
 ## A stack de middleware
@@ -26,7 +26,7 @@ requisição/resposta** e **recuperação de panic** (panics viram `500`) são s
 recuperados. Habilite o resto de forma fluente.
 
 ```rust
-use doido_controller::MiddlewareStack;
+use doido::controller::MiddlewareStack;
 
 let app = MiddlewareStack::new()
     .with_csrf()            // validação de token CSRF double-submit
@@ -47,7 +47,7 @@ qualquer [cache store](@/docs/reference/cache.pt.md). `Session` guarda valores t
 `set`/`get`.
 
 ```rust
-use doido_controller::{Session, CookieSessionStore, SessionStore};
+use doido::controller::{Session, CookieSessionStore, SessionStore};
 
 let store = CookieSessionStore::new(secret_key_bytes);
 
@@ -64,7 +64,7 @@ let restored = store.decode(&cookie_value);
 Sessões no servidor apoiadas por um cache store, com expiração:
 
 ```rust
-use doido_controller::CacheSessionStore;
+use doido::controller::CacheSessionStore;
 
 let store = CacheSessionStore::new(cache_store).with_ttl(3600); // 1 hora
 ```
@@ -75,7 +75,7 @@ Mensagens de uso único que sobrevivem a exatamente um redirect, carregadas em u
 assinado.
 
 ```rust
-use doido_controller::Flash;
+use doido::controller::Flash;
 
 let mut flash = Flash::new();
 flash.set("notice", "Post created.");
@@ -105,7 +105,7 @@ Habilite CORS permissivo, ou controle pela seção de config `middleware.cors` (
 `enabled`, `allowed_origins`, `allowed_methods`).
 
 ```rust
-use doido_controller::{MiddlewareStack, YamlConfig, Config};
+use doido::controller::{MiddlewareStack, YamlConfig, Config};
 
 let cfg = YamlConfig::load()?;
 let app = MiddlewareStack::new()
@@ -119,7 +119,7 @@ let app = MiddlewareStack::new()
 [cache store](@/docs/reference/cache.pt.md) como contador de apoio.
 
 ```rust
-use doido_controller::rate_limit::RateLimiter;
+use doido::controller::rate_limit::RateLimiter;
 
 let limiter = RateLimiter::new(cache_store, 100, 60); // 100 requisições / 60s
 ```
@@ -129,7 +129,7 @@ let limiter = RateLimiter::new(cache_store, 100, 60); // 100 requisições / 60s
 `with_health()` monta um endpoint de health-check para load balancers e sondas de uptime.
 
 ```rust
-use doido_controller::health::with_health;
+use doido::controller::health::with_health;
 
 let app = with_health(router());
 ```
@@ -139,7 +139,7 @@ let app = with_health(router());
 `RescueHandlers` mapeia tipos de erro para respostas — o análogo ao `rescue_from` do Rails.
 
 ```rust
-use doido_controller::RescueHandlers;
+use doido::controller::RescueHandlers;
 
 let handlers = RescueHandlers::new()
     .on::<NotFound>(|_e| /* Response 404 */ unimplemented!())
@@ -156,7 +156,7 @@ Valide parâmetros de path antes de a action rodar, com validadores embutidos (`
 `alpha`, `alphanumeric`, `uuid_like`) ou os seus próprios.
 
 ```rust
-use doido_controller::constraints::{Constraints, numeric, uuid_like};
+use doido::controller::constraints::{Constraints, numeric, uuid_like};
 
 let constraints = Constraints::new()
     .param("id", numeric)

@@ -17,7 +17,7 @@ leasing, and a dead-letter queue.
 ## At a glance
 
 ```rust
-use doido_jobs::{job, JobQueue, JobPayload, MemoryQueue, Worker};
+use doido::jobs::{job, JobQueue, JobPayload, MemoryQueue, Worker};
 use std::sync::Arc;
 ```
 
@@ -28,10 +28,10 @@ generates a `<name>_enqueue` helper. The job's payload is its last typed paramet
 (defaulting to `serde_json::Value`), which must be `Serialize`.
 
 ```rust
-use doido_jobs::job;
+use doido::jobs::job;
 
 #[job(queue = "emails", max_retries = 5, backoff = "exponential", backoff_base = 5, timeout = 30, priority = 7)]
-async fn send_welcome(user_id: i64) -> doido_core::Result<()> {
+async fn send_welcome(user_id: i64) -> doido::Result<()> {
     // …deliver the welcome email…
     Ok(())
 }
@@ -51,7 +51,7 @@ For **delayed** or **scheduled** delivery, build a `JobPayload` and use the queu
 fluent setters (`with_wait`, `with_run_at`, `with_priority`, …):
 
 ```rust
-use doido_jobs::JobPayload;
+use doido::jobs::JobPayload;
 
 let job = JobPayload::new("emails", serde_json::json!({ "user_id": 42 }), 5)
     .with_wait(300)          // run in 5 minutes
@@ -69,7 +69,7 @@ the `jobs` config section) or construct one directly. `MemoryQueue` is always av
 `DbQueue` (feature `jobs-db`) and `RedisQueue` (feature `jobs-redis`) add durability.
 
 ```rust
-use doido_jobs::{build_queue, JobsConfig};
+use doido::jobs::{build_queue, JobsConfig};
 
 let queue = build_queue(&JobsConfig::default()).await?; // Arc<dyn JobQueue>
 ```
@@ -91,7 +91,7 @@ single queue; `run_once` drains once (great for tests), `run` loops until shutdo
 `doido worker` command runs it as a process.
 
 ```rust
-use doido_jobs::{Worker, WorkerEngine, EngineConfig};
+use doido::jobs::{Worker, WorkerEngine, EngineConfig};
 
 // Single queue:
 Worker::new(queue.clone(), "emails")
@@ -120,7 +120,7 @@ lost to a crash.
 
 ```rust
 #[job(max_retries = 5, backoff = "exponential", backoff_base = 10)]
-async fn charge_card(order_id: i64) -> doido_core::Result<()> { Ok(()) }
+async fn charge_card(order_id: i64) -> doido::Result<()> { Ok(()) }
 ```
 
 ## Dead-letter queue
@@ -145,7 +145,7 @@ A `JobContext` carries shared state (and a DB connection with `jobs-db`) into ha
 `WorkerEngine` can be built `with_context` to inject application state.
 
 ```rust
-use doido_jobs::{JobContext, WorkerEngine, EngineConfig};
+use doido::jobs::{JobContext, WorkerEngine, EngineConfig};
 
 let engine = WorkerEngine::with_context(queue, EngineConfig::default(), JobContext::new());
 ```
