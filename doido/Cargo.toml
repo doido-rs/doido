@@ -49,6 +49,8 @@ mysql = [
     "doido-cable/mysql",
     "doido-jobs/mysql",
 ]
+# SeaORM migration binary (`db/migration`): `sea_orm_migration::cli::run_cli`.
+cli = ["doido-model/cli"]
 # Distributed cache backends, selected at runtime via `config/<env>.yml`.
 cache-redis = ["doido-cache/cache-redis"]
 cache-memcache = ["doido-cache/cache-memcache"]

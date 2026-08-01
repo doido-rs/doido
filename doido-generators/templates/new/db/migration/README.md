@@ -3,6 +3,9 @@
 A [SeaORM](https://www.sea-ql.org/SeaORM/) migration project for this Doido app.
 Imports use `doido::model::sea_orm_migration` — not the upstream crate directly.
 
+The migration crate depends on `doido` with the selected database feature **and**
+`cli`, which enables `doido::model::sea_orm_migration::cli::run_cli` in `src/main.rs`.
+
 ## Running migrations
 
 From the application root:

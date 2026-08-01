@@ -26,6 +26,7 @@ fn render(name: &str) -> String {
 //!   services:
 //!     files: {{ type: {snake}, token: "...", root: "/app" }}
 //! ```
+#![allow(dead_code)]
 
 use doido::core::Result;
 use doido::storage::{{register_adapter, Service, ServiceConfig}};

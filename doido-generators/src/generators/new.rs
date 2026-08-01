@@ -2,7 +2,7 @@
 //! Placeholders: `{doido_name}`, `{doido_db_url}`, `{doido_sqlx_feature}`,
 //! `{doido_path}` (absolute workspace root when the running binary lives inside a
 //! local checkout), and the per-crate dependency specs `{doido_dep}` /
-//! `{doido_controller_dep}` / `{doido_model_dep}` which render as a local `path`
+//! `{doido_controller_dep}` / `{doido_model_dep}` / `{doido_migration_dep}` which render as a local `path`
 //! dep when the binary runs from a development checkout or a crates.io `version`
 //! dep matching this binary's release otherwise (see [`DependencyMode`]).
 //!
@@ -65,6 +65,7 @@ struct TemplateContext<'a> {
     cable: bool,
     dep_mode: DependencyMode,
     doido_dep: String,
+    doido_migration_dep: String,
     doido_jobs_dep: String,
     doido_model_dep: String,
     cache_section: String,
@@ -129,6 +130,10 @@ fn doido_jobs_features(jobs: JobsBackend, database: &str) -> String {
         JobsBackend::Redis => ", features = [\"jobs-redis\"]".to_string(),
         JobsBackend::Memory => String::new(),
     }
+}
+
+fn doido_migration_features(database: &str) -> String {
+    format!(", default-features = false, features = [\"{database}\", \"cli\"]")
 }
 
 fn doido_model_features(database: &str) -> String {
@@ -319,6 +324,7 @@ fn substitute_template(template: &str, ctx: &TemplateContext<'_>) -> String {
         .replace("{doido_db_url}", &ctx.db_url)
         .replace("{doido_sqlx_feature}", ctx.sqlx_feature)
         .replace("{doido_dep}", &ctx.doido_dep)
+        .replace("{doido_migration_dep}", &ctx.doido_migration_dep)
         .replace(
             "{doido_core_dep}",
             &doido_dependency(&ctx.dep_mode, "doido-core", ""),
@@ -462,6 +468,11 @@ impl Generator for ProjectGenerator {
             sqlx_feature,
             cable,
             doido_dep: doido_dependency(&dep_mode, "doido", &doido_features(cache, database)),
+            doido_migration_dep: doido_dependency(
+                &dep_mode,
+                "doido",
+                &doido_migration_features(database),
+            ),
             doido_jobs_dep: doido_dependency(
                 &dep_mode,
                 "doido-jobs",
@@ -586,6 +597,18 @@ edition = "2021"
         assert!(line.contains("cache-redis"));
         assert!(line.contains("sqlite"));
         assert_cargo_toml_parses(&minimal_cargo_with_doido_line(&line));
+    }
+
+    #[test]
+    fn doido_migration_features_include_database_and_cli() {
+        assert_eq!(
+            doido_migration_features("sqlite"),
+            ", default-features = false, features = [\"sqlite\", \"cli\"]"
+        );
+        assert_eq!(
+            doido_migration_features("postgres"),
+            ", default-features = false, features = [\"postgres\", \"cli\"]"
+        );
     }
 
     #[test]

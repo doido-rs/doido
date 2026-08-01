@@ -1,3 +1,6 @@
+//! Generated model — compiled with the app even before it is wired into controllers.
+#![allow(dead_code)]
+
 use doido::model::sea_orm;
 use doido::model::sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};

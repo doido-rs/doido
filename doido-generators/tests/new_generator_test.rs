@@ -221,8 +221,8 @@ fn test_new_migration_crate_uses_selected_backend() {
     assert!(
         migration_cargo
             .content
-            .contains("features = [\"postgres\"]"),
-        "doido dependency must enable the postgres feature"
+            .contains("features = [\"postgres\", \"cli\"]"),
+        "doido dependency must enable postgres and cli for the migration binary"
     );
     let migration_lib = files
         .iter()
@@ -239,9 +239,9 @@ fn test_new_migration_crate_uses_selected_backend() {
 #[test]
 fn test_new_migration_crate_doido_model_feature_matches_database() {
     let cases = [
-        ("sqlite", "features = [\"sqlite\"]"),
-        ("postgres", "features = [\"postgres\"]"),
-        ("mysql", "features = [\"mysql\"]"),
+        ("sqlite", "features = [\"sqlite\", \"cli\"]"),
+        ("postgres", "features = [\"postgres\", \"cli\"]"),
+        ("mysql", "features = [\"mysql\", \"cli\"]"),
     ];
     for (database, model_feature) in cases {
         let files = ProjectGenerator
