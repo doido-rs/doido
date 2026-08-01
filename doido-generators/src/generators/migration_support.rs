@@ -16,8 +16,14 @@ pub const MIGRATION_LIB_BASE: &str = include_str!("../../templates/new/db/migrat
 
 /// Renders a full migration file from the imports line and the `up`/`down`
 /// bodies (each already indented as an `async fn` body ending in a newline).
-pub fn render_migration_file(imports: &str, up_body: &str, down_body: &str) -> String {
+pub fn render_migration_file(
+    migration_name: &str,
+    imports: &str,
+    up_body: &str,
+    down_body: &str,
+) -> String {
     crate::templates::get("migration/migration.rs.template")
+        .replace("{migration_name}", migration_name)
         .replace("{migration_imports}", imports)
         .replace("{up_body}", up_body)
         .replace("{down_body}", down_body)

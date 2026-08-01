@@ -86,10 +86,9 @@ impl Generator for StorageInstallGenerator {
     }
 
     fn generate(&self, _args: &[&str]) -> Result<Vec<GeneratedFile>> {
-        let migration = render_migration_file(IMPORTS, UP_BODY, DOWN_BODY);
-
         let timestamp = Utc::now().format("%Y%m%d_%H%M%S");
         let migration_module = format!("m{timestamp}_create_storage_tables");
+        let migration = render_migration_file(&migration_module, IMPORTS, UP_BODY, DOWN_BODY);
 
         let lib_path = format!("{MIGRATION_SRC_DIR}/lib.rs");
         let existing =
@@ -134,6 +133,17 @@ mod tests {
         assert!(migration.content.contains("storage_blobs"));
         assert!(migration.content.contains("storage_attachments"));
         assert!(migration.content.contains("storage_variant_records"));
+        assert!(migration
+            .content
+            .contains("impl MigrationName for Migration"));
+        assert!(!migration.content.contains("DeriveMigrationName"));
+        let module = migration
+            .path
+            .strip_prefix("db/migration/src/")
+            .unwrap()
+            .strip_suffix(".rs")
+            .unwrap();
+        assert!(migration.content.contains(&format!("\"{module}\"")));
 
         let lib = files
             .iter()

@@ -24,14 +24,13 @@ impl Generator for MigrationGenerator {
         let fields = Field::parse_all(&args[1..])?;
 
         // Infer the operation from the name (Rails-style) and render the file
-        // using the `doido_model::migration` builders.
+        // using the `doido::model::migration` builders.
         let (imports, up_body, down_body) = MigrationOp::parse(&snake).render(&fields);
-        let migration = render_migration_file(&imports, &up_body, &down_body);
-
-        // Same convention as the model generator: the module name doubles as the
-        // migration id (SeaORM's `DeriveMigrationName` derives it from the path).
         let timestamp = Utc::now().format("%Y%m%d_%H%M%S");
         let migration_module = format!("m{timestamp}_{snake}");
+        let migration = render_migration_file(&migration_module, &imports, &up_body, &down_body);
+
+        // The module/file name is the migration id registered in lib.rs.
 
         // Register the migration in db/migration/src/lib.rs, preserving any
         // migrations already registered there.
