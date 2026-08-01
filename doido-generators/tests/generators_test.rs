@@ -48,6 +48,22 @@ fn test_model_generator_produces_model_migration_and_updates_lib() {
     assert!(lib.content.contains("_create_users_table;"));
     assert!(lib.content.contains("Box::new(m"));
     assert!(lib.content.contains("_create_users_table::Migration),"));
+
+    let migration = files
+        .iter()
+        .find(|f| f.path.ends_with("_create_users_table.rs"))
+        .unwrap();
+    let module = migration
+        .path
+        .strip_prefix("db/migration/src/")
+        .unwrap()
+        .strip_suffix(".rs")
+        .unwrap();
+    assert!(migration.content.contains("impl MigrationName for Migration"));
+    assert!(!migration.content.contains("DeriveMigrationName"));
+    assert!(migration
+        .content
+        .contains(&format!("\"{module}\"")));
 }
 
 #[test]
@@ -207,6 +223,15 @@ fn test_migration_generator_create_pattern_uses_doido_model() {
         .contains("use doido::model::migration::{create_table, drop_table};"));
     assert!(!mig.content.contains("Table::create()"));
     assert!(!mig.content.contains("ColumnDef"));
+    let module = mig
+        .path
+        .strip_prefix("db/migration/src/")
+        .unwrap()
+        .strip_suffix(".rs")
+        .unwrap();
+    assert!(mig.content.contains("impl MigrationName for Migration"));
+    assert!(!mig.content.contains("DeriveMigrationName"));
+    assert!(mig.content.contains(&format!("\"{module}\"")));
     // Registered in the Migrator's lib.rs, and a test stub is scaffolded.
     let lib = files
         .iter()

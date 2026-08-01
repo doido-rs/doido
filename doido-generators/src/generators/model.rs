@@ -37,11 +37,11 @@ impl Generator for ModelGenerator {
             .replace("{table_name}", &table_name)
             .replace("{fields}", &model_fields(&fields));
 
-        // Migration file. The SeaORM `DeriveMigrationName` derives the name from
-        // the module path, so the file/module name doubles as the migration id.
+        // Migration file. The module/file name is the migration id (`MigrationName::name`).
         let timestamp = Utc::now().format("%Y%m%d_%H%M%S");
         let migration_module = format!("m{timestamp}_create_{table_name}_table");
         let migration = crate::templates::get("models/migration.rs.template")
+            .replace("{migration_name}", &migration_module)
             .replace("{migration_imports}", &create_table_imports(&fields))
             .replace("{up_body}", &create_table_up(&table_name, &fields))
             .replace("{table_name}", &table_name);
