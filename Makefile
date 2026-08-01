@@ -171,7 +171,7 @@ unyank: yank
 # `make verify` is the single green gate the (autonomous) harness relies on: it
 # must exit 0 on a clean checkout. It chains the lint gate, the test suite, and
 # — once it exists — the end-to-end example app. Keep these mirrored with the CI
-# lint/test jobs in .github/workflows/ci.yml.
+# lint/test jobs in .github/workflows/ci.yml (release-e2e runs after coverage).
 # ---------------------------------------------------------------------------
 
 fmt: ## Format the whole workspace
