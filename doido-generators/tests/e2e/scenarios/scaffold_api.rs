@@ -1,7 +1,7 @@
 //! `doido generate scaffold --api` — JSON CRUD over HTTP with migrations applied.
 
-use crate::common::{AppHarness, BaseProfile};
 use crate::common::http;
+use crate::common::{AppHarness, BaseProfile};
 
 #[test]
 #[ignore = "slow: release e2e — run via `make release-e2e`"]

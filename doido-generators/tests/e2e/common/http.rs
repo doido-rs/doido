@@ -30,7 +30,11 @@ pub fn patch_json(url: &str, body: Value) -> Value {
 }
 
 pub fn get_status(url: &str) -> u16 {
-    ureq::get(url).call().expect("GET request").status().as_u16()
+    ureq::get(url)
+        .call()
+        .expect("GET request")
+        .status()
+        .as_u16()
 }
 
 pub fn delete_status(url: &str) -> u16 {

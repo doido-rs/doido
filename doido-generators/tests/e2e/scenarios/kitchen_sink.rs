@@ -11,7 +11,14 @@ fn every_generator_compiles_migrates_and_serves() {
     let h = AppHarness::new("kitchen_sink", BaseProfile::WithCable);
 
     let generators: [&[&str]; 13] = [
-        &["generate", "scaffold", "Post", "title:string", "body:text", "--api"],
+        &[
+            "generate",
+            "scaffold",
+            "Post",
+            "title:string",
+            "body:text",
+            "--api",
+        ],
         &["generate", "model", "Comment", "body:text"],
         &["generate", "controller", "Pages"],
         &["generate", "job", "SendEmail"],

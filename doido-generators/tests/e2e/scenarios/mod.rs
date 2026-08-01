@@ -6,4 +6,5 @@ mod new_cable;
 mod resource;
 mod scaffold_api;
 mod scaffold_html;
+mod smoke_generators;
 mod storage_install;

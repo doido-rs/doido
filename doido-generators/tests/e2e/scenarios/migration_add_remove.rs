@@ -8,13 +8,7 @@ use crate::common::{AppHarness, BaseProfile};
 #[ignore = "slow: release e2e — run via `make release-e2e`"]
 fn migration_add_and_remove_column() {
     let h = AppHarness::new("migration_add_remove", BaseProfile::Default);
-    h.generate(&[
-        "generate",
-        "scaffold",
-        "Post",
-        "title:string",
-        "--api",
-    ]);
+    h.generate(&["generate", "scaffold", "Post", "title:string", "--api"]);
     h.generate(&[
         "generate",
         "migration",

@@ -46,12 +46,7 @@ impl BaseProfile {
     }
 
     fn new_args(self) -> Vec<&'static str> {
-        let mut args = vec![
-            "new",
-            "blog",
-            "--non-interactive",
-            "--database=sqlite",
-        ];
+        let mut args = vec!["new", "blog", "--non-interactive", "--database=sqlite"];
         if self == Self::WithCable {
             args.push("--cable");
         }
@@ -94,10 +89,7 @@ fn ensure_base_app(profile: BaseProfile) -> PathBuf {
         let app = dir.join("blog");
         if !app.join("Cargo.toml").is_file() {
             fs::create_dir_all(&dir).expect("create base dir");
-            doido(&dir)
-                .args(&profile.new_args())
-                .assert()
-                .success();
+            doido(&dir).args(&profile.new_args()).assert().success();
         }
         dir
     };

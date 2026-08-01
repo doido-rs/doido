@@ -5,10 +5,7 @@ use crate::common::{AppHarness, BaseProfile};
 use std::path::Path;
 
 fn assert_file(app: &Path, rel: &str) {
-    assert!(
-        app.join(rel).is_file(),
-        "expected generated file `{rel}`"
-    );
+    assert!(app.join(rel).is_file(), "expected generated file `{rel}`");
 }
 
 #[test]
