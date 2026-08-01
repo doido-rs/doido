@@ -47,12 +47,30 @@ body {
   height: 4rem;
 }
 .brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
   font-family: var(--font-serif);
   font-weight: 500;
   font-size: 1.25rem;
   letter-spacing: -0.02em;
   color: var(--fg);
   text-decoration: none;
+}
+.brand-logo {
+  display: block;
+  flex-shrink: 0;
+  width: auto;
+}
+.brand-logo--desktop {
+  height: 2.25rem;
+}
+.brand-logo--mobile {
+  display: none;
+  height: 2rem;
+}
+.brand-text {
+  line-height: 1;
 }
 .nav {
   display: flex;
@@ -574,4 +592,7 @@ body {
   .hero { padding: 3rem 0 2.5rem; }
   .nav { gap: 0.75rem; flex-wrap: wrap; justify-content: flex-end; }
   .header-inner { height: auto; min-height: 4rem; padding: 0.75rem 0; flex-wrap: wrap; gap: 0.75rem; }
+  .brand-logo--desktop,
+  .brand-text { display: none; }
+  .brand-logo--mobile { display: block; }
 }

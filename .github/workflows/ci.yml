@@ -3,8 +3,24 @@ name: CI
 on:
   push:
     branches: ["master", "production","development"]
+    paths:
+      - "**/*.rs"
+      - "**/Cargo.toml"
+      - "Cargo.lock"
+      - "rust-toolchain.toml"
+      - "deny.toml"
+      - ".cargo/**"
+      - ".github/workflows/ci.yml"
   pull_request:
     branches: ["**"]
+    paths:
+      - "**/*.rs"
+      - "**/Cargo.toml"
+      - "Cargo.lock"
+      - "rust-toolchain.toml"
+      - "deny.toml"
+      - ".cargo/**"
+      - ".github/workflows/ci.yml"
 
 jobs:
   lint:

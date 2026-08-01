@@ -1,0 +1,19 @@
+{
+  "name": "Doido",
+  "short_name": "Doido",
+  "description": "A Rails-inspired web framework for Rust",
+  "icons": [
+    {
+      "src": "/img/logo-favicon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/img/logo-favicon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "theme_color": "#0ca84d",
+  "background_color": "#faf9f5"
+}
