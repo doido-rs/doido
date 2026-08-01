@@ -1,8 +1,10 @@
 name: CI
 
+# Run only when Rust-related files change. docs-blog/ is ignored even if listed
+# in the same commit (see paths + paths-ignore interaction in GitHub docs).
 on:
   push:
-    branches: ["master", "production","development"]
+    branches: ["master", "production", "development"]
     paths:
       - "**/*.rs"
       - "**/Cargo.toml"
@@ -10,7 +12,10 @@ on:
       - "rust-toolchain.toml"
       - "deny.toml"
       - ".cargo/**"
+      - "Makefile"
       - ".github/workflows/ci.yml"
+    paths-ignore:
+      - "docs-blog/**"
   pull_request:
     branches: ["**"]
     paths:
@@ -20,7 +25,10 @@ on:
       - "rust-toolchain.toml"
       - "deny.toml"
       - ".cargo/**"
+      - "Makefile"
       - ".github/workflows/ci.yml"
+    paths-ignore:
+      - "docs-blog/**"
 
 jobs:
   lint:
