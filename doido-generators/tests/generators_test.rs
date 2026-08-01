@@ -59,11 +59,11 @@ fn test_model_generator_produces_model_migration_and_updates_lib() {
         .unwrap()
         .strip_suffix(".rs")
         .unwrap();
-    assert!(migration.content.contains("impl MigrationName for Migration"));
-    assert!(!migration.content.contains("DeriveMigrationName"));
     assert!(migration
         .content
-        .contains(&format!("\"{module}\"")));
+        .contains("impl MigrationName for Migration"));
+    assert!(!migration.content.contains("DeriveMigrationName"));
+    assert!(migration.content.contains(&format!("\"{module}\"")));
 }
 
 #[test]

@@ -133,7 +133,9 @@ mod tests {
         assert!(migration.content.contains("storage_blobs"));
         assert!(migration.content.contains("storage_attachments"));
         assert!(migration.content.contains("storage_variant_records"));
-        assert!(migration.content.contains("impl MigrationName for Migration"));
+        assert!(migration
+            .content
+            .contains("impl MigrationName for Migration"));
         assert!(!migration.content.contains("DeriveMigrationName"));
         let module = migration
             .path
