@@ -48,14 +48,3 @@ pub fn app_bin(app_name: &str) -> std::path::PathBuf {
         .join("debug")
         .join(app_name)
 }
-
-pub fn cargo_run(app: &Path, bin: &Path, args: &[&str]) -> std::process::Output {
-    let target = super::workspace::shared_cargo_target();
-    std::fs::create_dir_all(&target).expect("create cargo target dir");
-    std::process::Command::new(bin)
-        .args(args)
-        .current_dir(app)
-        .env("CARGO_TARGET_DIR", &target)
-        .output()
-        .unwrap_or_else(|e| panic!("run app {args:?}: {e}"))
-}

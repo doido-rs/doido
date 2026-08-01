@@ -1,3 +1,4 @@
+mod kitchen_sink;
 mod migration_add_remove;
 mod model_fields;
 mod new_baseline;
