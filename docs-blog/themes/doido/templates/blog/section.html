@@ -5,28 +5,32 @@
 
 {% block content %}
 <div class="container blog-layout">
-  <header class="blog-header prose">
+  <header class="blog-header">
     <h1>{{ section.title }}</h1>
-    {{ section.content | safe }}
+    {% if section.content %}
+      <div class="prose hero-subtitle">{{ section.content | safe }}</div>
+    {% endif %}
   </header>
 
   {% if paginator %}{% set posts = paginator.pages %}{% else %}{% set posts = section.pages %}{% endif %}
-  <ul class="post-list">
+  <div class="card-grid card-grid--releases">
     {% for page in posts %}
-      <li class="post-item">
-        <time class="post-date muted" datetime="{{ page.date }}">{{ page.date | date(format='%b %d, %Y') }}</time>
-        <a class="post-link" href="{{ page.permalink }}">{{ page.title }}</a>
-        {% if page.description %}<p class="post-desc muted">{{ page.description }}</p>{% endif %}
-        {% if page.taxonomies.tags %}
-          <div class="tags">
-            {% for tag in page.taxonomies.tags %}
-              <a class="tag" href="{{ get_taxonomy_url(kind='tags', name=tag) }}">#{{ tag }}</a>
-            {% endfor %}
-          </div>
-        {% endif %}
-      </li>
+      <article class="card card--release">
+        <h2 class="card-title"><a href="{{ page.permalink }}">{{ page.title }}</a></h2>
+        {% if page.description %}<p class="card-desc">{{ page.description }}</p>{% endif %}
+        <div class="card-meta">
+          <time datetime="{{ page.date }}">{{ page.date | date(format='%B %d, %Y') }}</time>
+          {% if page.taxonomies.tags %}
+            <span class="card-category">{{ page.taxonomies.tags | first }}</span>
+          {% endif %}
+        </div>
+        <a class="card-link" href="{{ page.permalink }}">
+          {{ trans(key='read_post', lang=lang) }}
+          <span aria-hidden="true">→</span>
+        </a>
+      </article>
     {% endfor %}
-  </ul>
+  </div>
 
   {% if paginator and (paginator.previous or paginator.next) %}
     <nav class="pagination">

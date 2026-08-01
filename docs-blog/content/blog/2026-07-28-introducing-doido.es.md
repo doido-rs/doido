@@ -30,14 +30,13 @@ El sitio es deliberadamente aburrido de operar:
 - **Markdown de principio a fin.** Cada página de doc y entrada es un archivo `.md`.
 - **GitHub Actions** construye el sitio y lo publica en GitHub Pages en cada push a
   `master` que toca `docs-blog/`.
-- **Un tema configurable.** Colores, fuentes, navegación y el modo claro/oscuro por
-  defecto están todos en `config.toml` — restilizar nunca significa editar una
-  plantilla.
+- **El tema after-dark.** Un tema oscuro robusto para Zola con búsqueda, portapapeles
+  en bloques de código y resaltado de sintaxis.
 
 ## Publicar es un archivo
 
 Añadir una entrada es deliberadamente trivial. Coloca un archivo Markdown en
-`docs-blog/content/blog/` con el nombre `AAAA-MM-DD-tu-slug.md`:
+`docs-blog/content/` con el nombre `AAAA-MM-DD-tu-slug.md`:
 
 ```markdown
 +++
@@ -45,6 +44,7 @@ title = "Título de mi entrada"
 date = 2026-08-01
 
 [taxonomies]
+categories = ["release"]
 tags = ["release"]
 +++
 
@@ -57,4 +57,4 @@ Haz push a `master`, y GitHub Actions construye y publica. Ese es todo el flujo.
 
 Más guías de subsistemas, notas de release a medida que los crates llegan a
 crates.io, y lo que valga la pena documentar. Sigue el proyecto por el
-[feed Atom](/es/blog/atom.xml) o en [GitHub](https://github.com/doido-rs/doido).
+[feed Atom](/es/atom.xml) o en [GitHub](https://github.com/doido-rs/doido).

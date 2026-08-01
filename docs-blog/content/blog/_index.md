@@ -8,5 +8,4 @@ page_template = "blog/page.html"
 generate_feeds = true
 +++
 
-News, releases, and notes from the people building Doido. Subscribe via the
-[Atom feed](/blog/atom.xml).
+News, releases, and notes from the people building Doido.

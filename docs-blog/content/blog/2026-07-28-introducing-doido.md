@@ -29,8 +29,8 @@ The site is intentionally boring to operate:
 - **Markdown all the way down.** Every doc page and blog post is a `.md` file.
 - **GitHub Actions** builds the site and deploys it to GitHub Pages on every push
   to `master` that touches `docs-blog/`.
-- **A configurable theme.** Colours, fonts, navigation, and the default light/dark
-  mode all live in `config.toml` — restyling never means editing a template.
+- **An editorial theme.** Clean layout inspired by modern product sites — serif
+  headlines, card grids, and generous whitespace.
 
 ## Publishing is one file
 

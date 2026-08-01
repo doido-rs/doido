@@ -4,16 +4,96 @@
 {% set lang = lang | default(value=config.default_language) %}
 {% set langprefix = "" %}
 {% if lang != config.default_language %}{% set langprefix = "/" ~ lang %}{% endif %}
+
+{% set blog_path = "blog/_index.md" %}
+{% set docs_path = "docs/_index.md" %}
+{% set blog_section = get_section(path=blog_path, lang=lang) %}
+{% set docs_section = get_section(path=docs_path, lang=lang) %}
+
+{# Hero — large serif headline like Anthropic homepage #}
 <section class="hero">
-  <div class="container">
-    <div class="prose hero-prose">
-      {{ section.content | safe }}
-    </div>
-    <div class="hero-actions">
-      <a class="btn btn-primary" href="{{ get_url(path=langprefix ~ '/docs/') }}">{{ trans(key='read_the_docs', lang=lang) }}</a>
-      <a class="btn" href="{{ get_url(path=langprefix ~ '/blog/') }}">{{ trans(key='blog', lang=lang) }}</a>
-      <a class="btn" href="{{ config.extra.repo_url }}" rel="noopener" target="_blank">GitHub</a>
+  <div class="container hero-inner">
+    <div class="hero-copy">
+      {% set hero_lines = section.content | split(pat="\n\n") %}
+      {% if hero_lines %}
+        {% set hero_headline = hero_lines | first | trim | markdown(inline=true) | replace(from="<p>", to="") | replace(from="</p>", to="") %}
+        <h1 class="hero-title">{{ hero_headline | safe }}</h1>
+        {% if hero_lines | length > 1 %}
+          <div class="hero-subtitle prose">{{ hero_lines | slice(start=1) | join(sep="\n\n") | markdown | safe }}</div>
+        {% endif %}
+      {% else %}
+        <div class="hero-subtitle prose">{{ section.content | safe }}</div>
+      {% endif %}
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="{{ get_url(path=langprefix ~ '/docs/') }}">
+          {{ trans(key='learn_more', lang=lang) }}
+          <span class="btn-arrow" aria-hidden="true">→</span>
+        </a>
+      </div>
     </div>
   </div>
 </section>
+
+{# Latest posts — card grid #}
+{% if blog_section.pages %}
+<section class="section releases">
+  <div class="container">
+    <h2 class="section-title">{{ trans(key='latest_posts', lang=lang) }}</h2>
+    <div class="card-grid card-grid--releases">
+      {% for page in blog_section.pages %}
+        {% if loop.index <= 3 %}
+        <article class="card card--release">
+          <h3 class="card-title"><a href="{{ page.permalink }}">{{ page.title }}</a></h3>
+          {% if page.description %}
+            <p class="card-desc">{{ page.description }}</p>
+          {% endif %}
+          <div class="card-meta">
+            {% if page.date %}
+              <time datetime="{{ page.date }}">{{ page.date | date(format='%B %d, %Y') }}</time>
+            {% endif %}
+            {% if page.taxonomies.tags %}
+              <span class="card-category">{{ page.taxonomies.tags | first }}</span>
+            {% endif %}
+          </div>
+          <a class="card-link" href="{{ page.permalink }}">
+            {{ trans(key='read_post', lang=lang) }}
+            <span aria-hidden="true">→</span>
+          </a>
+        </article>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{# Mission statement #}
+<section class="section mission">
+  <div class="container">
+    <p class="mission-text">{{ trans(key='home_mission', lang=lang) }}</p>
+  </div>
+</section>
+
+{# Featured docs — smaller card grid #}
+{% if docs_section.pages %}
+<section class="section featured">
+  <div class="container">
+    <h2 class="section-title section-title--small">{{ trans(key='featured', lang=lang) }}</h2>
+    <div class="card-grid card-grid--featured">
+      {% for page in docs_section.pages %}
+        {% if loop.index <= 4 %}
+        <a class="card card--featured" href="{{ page.permalink }}">
+          {% if page.taxonomies.tags %}
+            <span class="card-label">{{ page.taxonomies.tags | first }}</span>
+          {% else %}
+            <span class="card-label">{{ trans(key='docs', lang=lang) }}</span>
+          {% endif %}
+          <h3 class="card-title">{{ page.title }}</h3>
+        </a>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
 {% endblock content %}

@@ -5,19 +5,18 @@
 <link rel="icon" href="{{ get_url(path='favicon.svg') }}" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Ubuntu+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{{ get_url(path='main.css') }}">
 {% if config.generate_feeds %}
 <link rel="alternate" type="application/atom+xml" title="{{ config.title }}" href="{{ get_url(path='atom.xml') }}">
 {% endif %}
 
-{# Config-driven palette knobs. Structural light/dark colours live in the SASS;
-   these are the values pulled straight from config.toml [extra]. #}
 <style>
   :root {
     --accent: {{ config.extra.accent }};
     --accent2: {{ config.extra.accent2 }};
     --font-sans: {{ config.extra.font_sans }};
+    --font-serif: {{ config.extra.font_serif | default(value="'Newsreader', Georgia, serif") }};
     --font-mono: {{ config.extra.font_mono }};
   }
   [data-theme="dark"] {
@@ -26,8 +25,6 @@
   }
 </style>
 
-{# Set the theme before first paint to avoid a flash of the wrong mode. Only
-   "light" and "dark" are ever stored; "auto" just seeds the first visit. #}
 <script>
   (function () {
     try {
