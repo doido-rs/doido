@@ -62,7 +62,7 @@ pub fn get_text(url: &str) -> String {
         .expect("response body")
 }
 
-pub fn api_crud_cycle(base: &str, collection: &str, create_body: Value) {
+pub fn api_crud_cycle(base: &str, collection: &str, create_body: Value, update_body: Value) {
     let created = post_json(&format!("{base}/{collection}"), create_body);
     let id = created["id"].as_i64().expect("created id");
 
@@ -71,11 +71,12 @@ pub fn api_crud_cycle(base: &str, collection: &str, create_body: Value) {
 
     assert_eq!(get_status(&format!("{base}/{collection}/{id}")), 200);
 
-    let updated = patch_json(
-        &format!("{base}/{collection}/{id}"),
-        serde_json::json!({ "title": "Updated" }),
-    );
-    assert_eq!(updated["title"], "Updated");
+    let updated = patch_json(&format!("{base}/{collection}/{id}"), update_body.clone());
+    if let Some(expected) = update_body.as_object() {
+        for (key, value) in expected {
+            assert_eq!(&updated[key], value, "PATCH should persist `{key}`");
+        }
+    }
 
     assert_eq!(delete_status(&format!("{base}/{collection}/{id}")), 204);
 }

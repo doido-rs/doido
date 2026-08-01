@@ -25,6 +25,7 @@ fn scaffold_api_crud_over_http() {
                 &app.base_url,
                 "posts",
                 serde_json::json!({ "title": "Hello", "body": "world" }),
+                serde_json::json!({ "title": "Updated", "body": "world" }),
             );
         },
     );
