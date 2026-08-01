@@ -147,4 +147,4 @@ assert_eq!(sent[0].subject, "Welcome!");
 
 - [Jobs](@/docs/reference/jobs.pt.md) — a fila `mailers` e o worker por trás do `deliver_later`.
 - [Views](@/docs/reference/views.pt.md) — a engine que renderiza os templates de e-mail.
-- [Geradores & CLI](@/docs/reference/generators.pt.md) — `doido generate mailer`.
+- [Geradores & CLI](@/docs/reference/generators.pt.md) — `cargo doido generate mailer`.

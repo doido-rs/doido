@@ -78,7 +78,7 @@ parse, otherwise kept as strings — and a new section is created if it doesn't 
 
 ```bash
 # Override at launch — ideal for secrets and per-deployment values:
-SERVER__PORT=4000 LOGGER__LEVEL=warn DATABASE__URL=postgres://... doido server
+SERVER__PORT=4000 LOGGER__LEVEL=warn DATABASE__URL=postgres://... cargo doido server
 ```
 
 Overrides are applied to the parsed config value before typed deserialization:

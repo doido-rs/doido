@@ -148,4 +148,4 @@ assert_eq!(sent[0].subject, "Welcome!");
 
 - [Jobs](@/docs/reference/jobs.es.md) — la cola `mailers` y el worker detrás de `deliver_later`.
 - [Vistas](@/docs/reference/views.es.md) — el engine que renderiza las plantillas de correo.
-- [Generadores y CLI](@/docs/reference/generators.es.md) — `doido generate mailer`.
+- [Generadores y CLI](@/docs/reference/generators.es.md) — `cargo doido generate mailer`.

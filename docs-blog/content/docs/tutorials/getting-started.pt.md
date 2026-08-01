@@ -4,9 +4,9 @@ description = "Crie, rode e entenda sua primeira aplicação Doido."
 weight = 1
 +++
 
-O Doido segue convenções no estilo Rails: um único binário `doido` cria a
-aplicação, roda o servidor, gerencia o banco de dados e executa os geradores de
-código.
+O Doido segue convenções no estilo Rails: o CLI global `doido` cria novas
+aplicações; dentro do projeto, `cargo doido` roda o servidor, gerencia o banco
+de dados e executa os geradores de código.
 
 ## Crie uma aplicação
 
@@ -16,11 +16,11 @@ doido new blog
 cd blog
 
 # Configura o banco e roda as migrations pendentes
-doido db create
-doido db migrate
+cargo doido db create
+cargo doido db migrate
 
 # Sobe o servidor HTTP em http://0.0.0.0:3000
-doido server
+cargo doido server
 ```
 
 `GET /` responde com JSON vindo do `HelloController` gerado:

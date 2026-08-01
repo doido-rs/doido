@@ -5,8 +5,9 @@ weight = 1
 aliases = ["/docs/getting-started/"]
 +++
 
-Doido follows Rails-style conventions: a single `doido` binary scaffolds an
-application, runs the server, manages the database, and drives code generators.
+Doido follows Rails-style conventions: the global `doido` CLI scaffolds new
+applications; inside a project, `cargo doido` runs the server, manages the
+database, and drives code generators.
 
 ## Create an application
 
@@ -16,11 +17,11 @@ doido new blog
 cd blog
 
 # Set up the database and run pending migrations
-doido db create
-doido db migrate
+cargo doido db create
+cargo doido db migrate
 
 # Boot the HTTP server on http://0.0.0.0:3000
-doido server
+cargo doido server
 ```
 
 `GET /` answers with JSON from the generated `HelloController`:

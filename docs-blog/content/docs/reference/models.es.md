@@ -254,4 +254,4 @@ async fn creates_a_user() {
 
 - [Configuración](@/docs/reference/configuration.es.md) — la sección `database`.
 - [Controladores y enrutamiento](@/docs/reference/controllers.es.md) — `ctx.db()` dentro de las actions.
-- [Generadores y CLI](@/docs/reference/generators.es.md) — `doido generate model` y `doido db migrate`.
+- [Generadores y CLI](@/docs/reference/generators.es.md) — `cargo doido generate model` y `cargo doido db migrate`.
