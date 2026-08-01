@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}{{ section.title }} · {{ config.title }}{% endblock title %}
+{% block description %}{{ section.description | default(value=config.description) }}{% endblock description %}
+
+{% block content %}
+{% set lang = lang | default(value=config.default_language) %}
+<div class="container docs-hub">
+  <header class="docs-hub-header prose">
+    <h1>{{ section.title }}</h1>
+    {{ section.content | safe }}
+  </header>
+
+  {# "New to Doido?" — tutorial cards #}
+  {% for sub_path in section.subsections %}
+    {% set sub = get_section(path=sub_path) %}
+    {% if sub.extra.hub_group == "new" %}
+    <section class="docs-hub-group">
+      <h2 class="docs-hub-group-title">{{ trans(key='docs_new_to', lang=lang) }}</h2>
+      <div class="docs-card-grid">
+        {% for page in sub.pages %}
+        <a class="docs-card docs-card--tutorial" href="{{ page.permalink }}">
+          <span class="docs-card-badge">{{ trans(key='tutorial', lang=lang) }}</span>
+          <h3 class="docs-card-title">{{ page.title }}</h3>
+          {% if page.description %}<p class="docs-card-desc">{{ page.description }}</p>{% endif %}
+        </a>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+  {% endfor %}
+
+  {# "Browse the docs" — section cards #}
+  <section class="docs-hub-group">
+    <h2 class="docs-hub-group-title">{{ trans(key='docs_browse', lang=lang) }}</h2>
+    <div class="docs-card-grid docs-card-grid--sections">
+      {% for sub_path in section.subsections %}
+        {% set sub = get_section(path=sub_path) %}
+        {% if sub.extra.hub_group == "browse" %}
+        <a class="docs-card docs-card--section" href="{{ sub.permalink }}">
+          <h3 class="docs-card-title">{{ sub.title }}</h3>
+          {% if sub.extra.card_subtitle %}
+            <p class="docs-card-subtitle">{{ sub.extra.card_subtitle }}</p>
+          {% endif %}
+          {% if sub.description %}<p class="docs-card-desc">{{ sub.description }}</p>{% endif %}
+        </a>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </section>
+</div>
+{% endblock content %}

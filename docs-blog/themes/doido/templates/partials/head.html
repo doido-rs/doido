@@ -2,22 +2,40 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{% block title %}{{ config.title }}{% endblock title %}</title>
 <meta name="description" content="{% block description %}{{ config.description }}{% endblock description %}">
-<link rel="icon" href="{{ get_url(path='favicon.svg') }}" type="image/svg+xml">
+
+{# Favicons & app icons — generated from docs-blog/logo.png #}
+<link rel="icon" href="{{ get_url(path='favicon.png') }}" type="image/png" sizes="32x32">
+<link rel="icon" href="{{ get_url(path='img/logo-favicon-16.png') }}" type="image/png" sizes="16x16">
+<link rel="icon" href="{{ get_url(path='img/logo-favicon-32.png') }}" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="{{ get_url(path='img/logo-apple-touch.png') }}" sizes="180x180">
+<link rel="manifest" href="{{ get_url(path='site.webmanifest') }}">
+<meta name="theme-color" content="{{ config.extra.accent | default(value='#0ca84d') }}">
+
+{# Open Graph / social preview #}
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="{{ config.title }}">
+<meta property="og:title" content="{% block og_title %}{{ config.title }}{% endblock og_title %}">
+<meta property="og:description" content="{% block og_description %}{{ config.description }}{% endblock og_description %}">
+<meta property="og:image" content="{{ get_url(path='img/logo-og.png') | safe }}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="{{ get_url(path='img/logo-og.png') | safe }}">
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Ubuntu+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{{ get_url(path='main.css') }}">
 {% if config.generate_feeds %}
 <link rel="alternate" type="application/atom+xml" title="{{ config.title }}" href="{{ get_url(path='atom.xml') }}">
 {% endif %}
 
-{# Config-driven palette knobs. Structural light/dark colours live in the SASS;
-   these are the values pulled straight from config.toml [extra]. #}
 <style>
   :root {
     --accent: {{ config.extra.accent }};
     --accent2: {{ config.extra.accent2 }};
     --font-sans: {{ config.extra.font_sans }};
+    --font-serif: {{ config.extra.font_serif | default(value="'Newsreader', Georgia, serif") }};
     --font-mono: {{ config.extra.font_mono }};
   }
   [data-theme="dark"] {
@@ -26,8 +44,6 @@
   }
 </style>
 
-{# Set the theme before first paint to avoid a flash of the wrong mode. Only
-   "light" and "dark" are ever stored; "auto" just seeds the first visit. #}
 <script>
   (function () {
     try {

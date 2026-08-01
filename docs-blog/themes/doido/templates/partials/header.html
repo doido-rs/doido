@@ -4,7 +4,27 @@
 {% if page %}{% set translations = page.translations %}{% elif section %}{% set translations = section.translations %}{% else %}{% set translations = [] %}{% endif %}
 <header class="site-header">
   <div class="container header-inner">
-    <a class="brand" href="{{ get_url(path=langprefix ~ '/') }}">{{ config.extra.logo_text | default(value=config.title) }}</a>
+    <a class="brand" href="{{ get_url(path=langprefix ~ '/') }}" aria-label="{{ config.extra.logo_text | default(value=config.title) }}">
+      <img
+        class="brand-logo brand-logo--desktop"
+        src="{{ get_url(path='img/logo-header.png') }}"
+        srcset="{{ get_url(path='img/logo-header.png') }} 1x, {{ get_url(path='img/logo-header@2x.png') }} 2x"
+        width="36"
+        height="36"
+        alt=""
+        decoding="async"
+      >
+      <img
+        class="brand-logo brand-logo--mobile"
+        src="{{ get_url(path='img/logo-icon.png') }}"
+        srcset="{{ get_url(path='img/logo-icon.png') }} 1x, {{ get_url(path='img/logo-icon@2x.png') }} 2x"
+        width="32"
+        height="32"
+        alt=""
+        decoding="async"
+      >
+      <span class="brand-text">{{ config.extra.logo_text | default(value=config.title) }}</span>
+    </a>
     <nav class="nav">
       {% for item in config.extra.nav %}
         {% if item.trans_key %}{% set label = trans(key=item.trans_key, lang=lang) %}{% else %}{% set label = item.name %}{% endif %}
@@ -15,8 +35,6 @@
         {% endif %}
       {% endfor %}
 
-      {# Language switcher: link to the current page in each language when a
-         translation exists, otherwise to that language's home. #}
       <div class="lang-switcher" role="group" aria-label="Language">
         {% for l in config.extra.languages %}
           {% if l.code == config.default_language %}
@@ -29,8 +47,6 @@
         {% endfor %}
       </div>
 
-      {# Theme selector: Light / Dark, chosen by the user and persisted in
-         localStorage by static/js/theme.js. #}
       <div class="theme-switcher" role="group" aria-label="{{ trans(key='theme', lang=lang) }}">
         <button class="theme-option" type="button" data-theme-value="light" title="{{ trans(key='theme_light', lang=lang) }}" aria-label="{{ trans(key='theme_light', lang=lang) }}"><span aria-hidden="true">☀</span></button>
         <button class="theme-option" type="button" data-theme-value="dark" title="{{ trans(key='theme_dark', lang=lang) }}" aria-label="{{ trans(key='theme_dark', lang=lang) }}"><span aria-hidden="true">☾</span></button>

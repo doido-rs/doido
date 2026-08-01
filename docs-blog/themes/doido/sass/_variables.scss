@@ -1,39 +1,36 @@
-// Structural palette as CSS custom properties.
+// Anthropic-inspired editorial palette.
 //
-// `--accent`, `--font-sans`, and `--font-mono` are injected from config.toml
-// [extra] in partials/head.html; everything below is the light/dark scaffolding.
-// To extend what is configurable from config.toml, inject more values there.
+// `--accent`, `--font-sans`, `--font-serif`, and `--font-mono` are injected
+// from config.toml [extra] in partials/head.html.
 
 :root {
-  --bg: #ffffff;
-  --bg-alt: #f6f7f9;
+  --bg: #faf9f5;
+  --bg-alt: #f4f3ee;
   --bg-elevated: #ffffff;
-  --fg: #1a1d21;
-  --fg-muted: #5c6672;
-  --border: #e5e8ec;
+  --fg: #141413;
+  --fg-muted: #6b6860;
+  --border: #e8e6e1;
   --link: var(--accent);
 
-  // Code blocks keep a consistent dark surface in both modes (the syntax
-  // colours come from the Zola highlight theme in config.toml).
-  --code-bg: #2b303b;
-  --code-fg: #c0c5ce;
-  --inline-code-bg: #eef0f3;
-  --inline-code-fg: #00792e;
+  --code-bg: #1e1e1e;
+  --code-fg: #d4d4d4;
+  --inline-code-bg: #f0eeea;
+  --inline-code-fg: #0ca84d;
 
-  --max-width: 1120px;
-  --content-width: 760px;
-  --sidebar-width: 250px;
-  --radius: 10px;
-  --radius-sm: 6px;
+  --max-width: 1200px;
+  --content-width: 720px;
+  --sidebar-width: 268px;
+  --radius: 12px;
+  --radius-sm: 8px;
 }
 
 [data-theme="dark"] {
-  --bg: #0f1115;
-  --bg-alt: #161922;
-  --bg-elevated: #171a21;
-  --fg: #e6e8eb;
-  --fg-muted: #9aa4b2;
-  --border: #262b36;
-  --inline-code-bg: #14231a;
-  --inline-code-fg: #7be0a0;
+  --bg: #141413;
+  --bg-alt: #1c1c1a;
+  --bg-elevated: #222220;
+  --fg: #faf9f5;
+  --fg-muted: #a8a59e;
+  --border: #2e2e2b;
+  --inline-code-bg: #2a2a27;
+  --inline-code-fg: #12d65a;
 }

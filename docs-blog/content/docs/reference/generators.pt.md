@@ -1,0 +1,152 @@
++++
+title = "Geradores & CLI"
+description = "O binário doido: comandos de runtime, geradores de código, a DSL de campos, injeção automática de rotas e geradores customizados."
+weight = 7
++++
+
+> **Especificação de design:** [`docs/06-cli.md`](https://github.com/doido-rs/doido/blob/master/docs/06-cli.md)
+> e [`docs/06b-generators.md`](https://github.com/doido-rs/doido/blob/master/docs/06b-generators.md).
+> Este guia documenta a API como implementada em `doido-generators`. Para uma tabela rápida
+> de comandos, veja [CLI & geradores](@/docs/reference/cli.pt.md).
+
+**Análogo no Rails: o binário `rails` + geradores.** `doido-generators` alimenta o único
+binário `doido` — tanto os comandos de runtime (`server`, `db`, `worker`, …) quanto os
+geradores de código (`generate scaffold`, `generate model`, …). Uma app gerada inicializa
+chamando `doido::generators::run(Some(routes))`.
+
+## Visão geral
+
+```rust
+// src/main.rs de uma app gerada
+#[tokio::main]
+async fn main() {
+    doido::generators::run(Some(config::routes::router())).await;
+}
+```
+
+## Comandos de runtime
+
+| Comando | Descrição |
+|---------|-----------|
+| `doido server` | Inicia o servidor HTTP axum |
+| `doido routes` | Imprime a tabela de rotas |
+| `doido console` | Console interativo com o contexto da app |
+| `doido db <cmd>` | `migrate`, `rollback`, `reset`, `status`, `seed` |
+| `doido worker [--once]` | Roda o worker de jobs em background |
+| `doido jobs <cmd>` | Inspeciona/retenta/descarta jobs em background |
+| `doido credentials <cmd>` | Gerencia credenciais |
+| `doido generate <name> …` | Roda um gerador de código |
+| `doido destroy <name> …` | Reverte um gerador |
+| `doido new <app>` | Cria uma nova aplicação |
+
+```bash
+doido db migrate          # roda as migrations pendentes
+doido worker --once       # drena a fila e sai
+doido routes              # imprime todas as rotas registradas
+```
+
+## Criando uma aplicação
+
+`doido new` cria um projeto no estilo Rails; escolha o driver de banco com `--database`.
+
+```bash
+doido new blog --database=sqlite   # ou postgres | mysql
+cd blog
+doido db create && doido db migrate
+doido server
+```
+
+## Geradores de código
+
+Rode `doido generate` sem argumentos para listar todos os geradores registrados. Cada um
+escreve arquivos (e alguns injetam rotas):
+
+| Gerador | Gera |
+|---------|------|
+| `model` | `app/models/<name>.rs` + migration |
+| `migration` | uma migration isolada |
+| `controller` | um `#[controller]` com stubs de action (+ rota) |
+| `scaffold` | model + migration + controller + views + rota |
+| `resource` | model + migration + controller + rota (sem views) |
+| `mailer` | um mailer + templates |
+| `job` | um job em background |
+| `channel` | um canal WebSocket |
+| `templates` | templates de view para um controller existente |
+| `locale` | um arquivo de locale |
+| `generator` | o esqueleto de um novo gerador customizado |
+| `storage:install` | tabelas de storage + config |
+| `storage:adapter` | o esqueleto de um adapter de storage customizado |
+
+```bash
+doido generate model Post title:string body:text
+doido generate scaffold Post title:string body:text     # CRUD completo
+doido generate controller Pages home about
+doido generate mailer User welcome
+```
+
+## A DSL de campos
+
+Os geradores de model, scaffold e resource recebem campos como `name:type[:modifier…]`. Os
+tipos mapeiam para colunas de migration; os modificadores adicionam constraints e índices.
+
+```bash
+doido generate model Post \
+  title:string:not_null \
+  slug:string:unique \
+  body:text \
+  author:references \
+  views:integer:index
+```
+
+## Injeção automática de rotas
+
+Geradores que produzem um controller (`scaffold`, `resource`, `controller`) fazem o parse
+de `config/routes.rs`, inserem a rota correspondente (ex.: `resources!(posts,
+PostsController);`) dentro do bloco `routes! { … }` e pulam controllers já registrados — de
+modo que um resource gerado fica acessível sem editar as rotas manualmente.
+
+## Revertendo um gerador
+
+`doido destroy` remove o que o `generate` correspondente criou.
+
+```bash
+doido generate scaffold Post title:string
+doido destroy  scaffold Post           # remove os arquivos gerados (e a rota)
+```
+
+## Geradores customizados
+
+O sistema de geradores é um registro extensível. Implemente o trait `Generator` (retornando
+`GeneratedFile`s) e registre-o; `doido generate generator <name>` cria um esqueleto para
+você.
+
+```rust
+use doido::generators::{Generator, GeneratedFile};
+use doido::Result;
+
+struct PolicyGenerator;
+
+impl Generator for PolicyGenerator {
+    fn name(&self) -> &str { "policy" }
+
+    fn generate(&self, args: &[&str]) -> Result<Vec<GeneratedFile>> {
+        let name = args.first().copied().unwrap_or("application");
+        Ok(vec![GeneratedFile {
+            path: format!("app/policies/{name}_policy.rs"),
+            content: format!("// {name} policy\n"),
+        }])
+    }
+}
+
+// Registre-o, depois rode/liste pelo registro:
+let mut registry = doido::generators::default_registry();
+registry.register(Box::new(PolicyGenerator));
+let files = registry.run("policy", &["post"])?;
+let names = registry.list(); // inclui "policy"
+```
+
+## Veja também
+
+- [Models](@/docs/reference/models.pt.md) — o que `generate model`/`migration` produzem.
+- [Controllers & roteamento](@/docs/reference/controllers.pt.md) — o bloco `routes!` que os geradores editam.
+- [Jobs](@/docs/reference/jobs.pt.md), [Mailer](@/docs/reference/mailer.pt.md), [Cable](@/docs/reference/cable.pt.md) — seus geradores.
