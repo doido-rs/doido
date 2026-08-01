@@ -25,10 +25,11 @@
         <div class="hero-subtitle prose">{{ section.content | safe }}</div>
       {% endif %}
       <div class="hero-actions">
-        <a class="btn btn-primary" href="{{ get_url(path=langprefix ~ '/docs/') }}">
+        <a class="btn btn-primary" href="{{ get_url(path=langprefix ~ '/docs/tutorials/getting-started/') }}">
           {{ trans(key='learn_more', lang=lang) }}
           <span class="btn-arrow" aria-hidden="true">→</span>
         </a>
+        <a class="btn" href="{{ get_url(path=langprefix ~ '/docs/') }}">{{ trans(key='docs', lang=lang) }}</a>
       </div>
     </div>
   </div>
@@ -74,21 +75,23 @@
   </div>
 </section>
 
-{# Featured docs — smaller card grid #}
-{% if docs_section.pages %}
+{# Featured doc sections — hub cards #}
+{% set docs_section = get_section(path=docs_path, lang=lang) %}
+{% if docs_section.subsections %}
 <section class="section featured">
   <div class="container">
-    <h2 class="section-title section-title--small">{{ trans(key='featured', lang=lang) }}</h2>
+    <h2 class="section-title section-title--small">{{ trans(key='docs_browse', lang=lang) }}</h2>
     <div class="card-grid card-grid--featured">
-      {% for page in docs_section.pages %}
+      {% for sub_path in docs_section.subsections %}
         {% if loop.index <= 4 %}
-        <a class="card card--featured" href="{{ page.permalink }}">
-          {% if page.taxonomies.tags %}
-            <span class="card-label">{{ page.taxonomies.tags | first }}</span>
+        {% set sub = get_section(path=sub_path) %}
+        <a class="card card--featured" href="{{ sub.permalink }}">
+          {% if sub.extra.card_subtitle %}
+            <span class="card-label">{{ sub.extra.card_subtitle }}</span>
           {% else %}
             <span class="card-label">{{ trans(key='docs', lang=lang) }}</span>
           {% endif %}
-          <h3 class="card-title">{{ page.title }}</h3>
+          <h3 class="card-title">{{ sub.title }}</h3>
         </a>
         {% endif %}
       {% endfor %}
