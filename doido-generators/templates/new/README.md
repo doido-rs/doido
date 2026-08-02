@@ -10,13 +10,16 @@ Rails-inspired, Rust-powered (axum + sea-orm).
 
 ## Getting started
 
+From the project root, use the globally installed `doido` CLI or the local Cargo
+alias (`cargo doido` is equivalent to `cargo run --bin {doido_name}`):
+
 ```bash
 # Create the database and run any pending migrations
-doido db create
-doido db migrate
+cargo doido db create
+cargo doido db migrate
 
 # Boot the HTTP server on http://0.0.0.0:3000
-doido server
+cargo doido server
 ```
 
 Visit <http://0.0.0.0:3000> — `GET /` answers with JSON from `HelloController`:
@@ -29,12 +32,12 @@ Visit <http://0.0.0.0:3000> — `GET /` answers with JSON from `HelloController`
 
 | Command | Description |
 |---------|-------------|
-| `doido server` | Start the web server |
-| `doido routes` | Print the route table |
-| `doido console` | Start an interactive console |
-| `doido db migrate` | Run pending migrations |
-| `doido worker` | Run the background job worker |
-| `doido generate <gen>` | Run a code generator (run with no args to list them) |
+| `cargo doido server` | Start the web server |
+| `cargo doido routes` | Print the route table |
+| `cargo doido console` | Start an interactive console |
+| `cargo doido db migrate` | Run pending migrations |
+| `cargo doido worker` | Run the background job worker |
+| `cargo doido generate <gen>` | Run a code generator (run with no args to list them) |
 
 ## Layout
 
@@ -78,5 +81,5 @@ docker build -t {doido_name} .
 
 When using `docker compose`, the `web` service overrides `DATABASE__URL` (and
 cache/jobs endpoints when applicable) to reach backends by Docker service name.
-Run migrations first if needed: `doido db create && doido db migrate`.
+Run migrations first if needed: `cargo doido db create && cargo doido db migrate`.
 {doido_cable_readme}

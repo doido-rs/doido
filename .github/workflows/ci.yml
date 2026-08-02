@@ -5,28 +5,10 @@ name: CI
 on:
   push:
     branches: ["master", "production", "development"]
-    paths:
-      - "**/*.rs"
-      - "**/Cargo.toml"
-      - "Cargo.lock"
-      - "rust-toolchain.toml"
-      - "deny.toml"
-      - ".cargo/**"
-      - "Makefile"
-      - ".github/workflows/ci.yml"
     paths-ignore:
       - "docs-blog/**"
   pull_request:
     branches: ["**"]
-    paths:
-      - "**/*.rs"
-      - "**/Cargo.toml"
-      - "Cargo.lock"
-      - "rust-toolchain.toml"
-      - "deny.toml"
-      - ".cargo/**"
-      - "Makefile"
-      - ".github/workflows/ci.yml"
     paths-ignore:
       - "docs-blog/**"
 

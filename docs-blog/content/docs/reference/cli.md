@@ -5,26 +5,27 @@ weight = 1
 aliases = ["/docs/cli/"]
 +++
 
-The `doido` binary is the single entry point for both runtime commands and code
-generation.
+The global `doido` CLI creates new applications. Inside a generated project,
+`cargo doido` (a Cargo alias set up by `doido new`) is the entry point for
+runtime commands and code generation.
 
 ## Runtime commands
 
 | Command | Description |
 |---------|-------------|
 | `doido new <name>` | Create a new application (`--database=sqlite\|postgres\|mysql`) |
-| `doido server` | Start the web server |
-| `doido routes` | Print the route table |
-| `doido console` | Start an interactive console |
-| `doido db <cmd>` | Create databases, run SeaORM migrations, generate entities |
-| `doido jobs <cmd>` | Inspect and manage background jobs |
-| `doido worker` | Run the background job worker (`--once` to drain and exit) |
-| `doido credentials <cmd>` | Manage AES-256-GCM encrypted credentials |
-| `doido generate <gen>` | Run a code generator (see below) |
+| `cargo doido server` | Start the web server |
+| `cargo doido routes` | Print the route table |
+| `cargo doido console` | Start an interactive console |
+| `cargo doido db <cmd>` | Create databases, run SeaORM migrations, generate entities |
+| `cargo doido jobs <cmd>` | Inspect and manage background jobs |
+| `cargo doido worker` | Run the background job worker (`--once` to drain and exit) |
+| `cargo doido credentials <cmd>` | Manage AES-256-GCM encrypted credentials |
+| `cargo doido generate <gen>` | Run a code generator (see below) |
 
 ## Generators
 
-Run `doido generate` with no arguments to list every registered generator:
+Run `cargo doido generate` with no arguments to list every registered generator:
 
 | Generator | Generates |
 |-----------|-----------|

@@ -78,7 +78,7 @@ sección si aún no existe.
 
 ```bash
 # Override en el arranque — ideal para secretos y valores por despliegue:
-SERVER__PORT=4000 LOGGER__LEVEL=warn DATABASE__URL=postgres://... doido server
+SERVER__PORT=4000 LOGGER__LEVEL=warn DATABASE__URL=postgres://... cargo doido server
 ```
 
 Los overrides se aplican al valor de config ya parseado, antes de la deserialización

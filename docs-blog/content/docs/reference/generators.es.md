@@ -9,10 +9,10 @@ weight = 7
 > Esta guía documenta la API tal como está implementada en `doido-generators`. Para una
 > tabla rápida de comandos, ve [CLI y generadores](@/docs/reference/cli.es.md).
 
-**Análogo en Rails: el binario `rails` + generadores.** `doido-generators` impulsa el único
-binario `doido` — tanto los comandos de runtime (`server`, `db`, `worker`, …) como los
-generadores de código (`generate scaffold`, `generate model`, …). Una app generada arranca
-llamando a `doido::generators::run(Some(routes))`.
+**Análogo en Rails: el binario `rails` + generadores.** `doido-generators` impulsa
+`doido new` y el alias local `cargo doido` — comandos de runtime (`server`, `db`,
+`worker`, …) y generadores de código (`generate scaffold`, `generate model`, …).
+Una app generada arranca llamando a `doido::generators::run(Some(routes))`.
 
 ## Vistazo general
 
@@ -28,21 +28,21 @@ async fn main() {
 
 | Comando | Descripción |
 |---------|-------------|
-| `doido server` | Inicia el servidor HTTP axum |
-| `doido routes` | Imprime la tabla de rutas |
-| `doido console` | Consola interactiva con el contexto de la app |
-| `doido db <cmd>` | `migrate`, `rollback`, `reset`, `status`, `seed` |
-| `doido worker [--once]` | Ejecuta el worker de jobs en segundo plano |
-| `doido jobs <cmd>` | Inspecciona/reintenta/descarta jobs en segundo plano |
-| `doido credentials <cmd>` | Gestiona credenciales |
-| `doido generate <name> …` | Ejecuta un generador de código |
-| `doido destroy <name> …` | Revierte un generador |
+| `cargo doido server` | Inicia el servidor HTTP axum |
+| `cargo doido routes` | Imprime la tabla de rutas |
+| `cargo doido console` | Consola interactiva con el contexto de la app |
+| `cargo doido db <cmd>` | `migrate`, `rollback`, `reset`, `status`, `seed` |
+| `cargo doido worker [--once]` | Ejecuta el worker de jobs en segundo plano |
+| `cargo doido jobs <cmd>` | Inspecciona/reintenta/descarta jobs en segundo plano |
+| `cargo doido credentials <cmd>` | Gestiona credenciales |
+| `cargo doido generate <name> …` | Ejecuta un generador de código |
+| `cargo doido destroy <name> …` | Revierte un generador |
 | `doido new <app>` | Crea una nueva aplicación |
 
 ```bash
-doido db migrate          # ejecuta las migraciones pendientes
-doido worker --once       # vacía la cola y sale
-doido routes              # imprime todas las rutas registradas
+cargo doido db migrate          # ejecuta las migraciones pendientes
+cargo doido worker --once       # vacía la cola y sale
+cargo doido routes              # imprime todas las rutas registradas
 ```
 
 ## Crear una aplicación
@@ -53,13 +53,13 @@ doido routes              # imprime todas las rutas registradas
 ```bash
 doido new blog --database=sqlite   # o postgres | mysql
 cd blog
-doido db create && doido db migrate
-doido server
+cargo doido db create && cargo doido db migrate
+cargo doido server
 ```
 
 ## Generadores de código
 
-Ejecuta `doido generate` sin argumentos para listar todos los generadores registrados. Cada
+Ejecuta `cargo doido generate` sin argumentos para listar todos los generadores registrados. Cada
 uno escribe archivos (y algunos inyectan rutas):
 
 | Generador | Genera |
@@ -79,10 +79,10 @@ uno escribe archivos (y algunos inyectan rutas):
 | `storage:adapter` | el esqueleto de un adapter de storage personalizado |
 
 ```bash
-doido generate model Post title:string body:text
-doido generate scaffold Post title:string body:text     # CRUD completo
-doido generate controller Pages home about
-doido generate mailer User welcome
+cargo doido generate model Post title:string body:text
+cargo doido generate scaffold Post title:string body:text     # CRUD completo
+cargo doido generate controller Pages home about
+cargo doido generate mailer User welcome
 ```
 
 ## La DSL de campos
@@ -91,7 +91,7 @@ Los generadores de model, scaffold y resource reciben campos como `name:type[:mo
 Los tipos mapean a columnas de migración; los modificadores añaden constraints e índices.
 
 ```bash
-doido generate model Post \
+cargo doido generate model Post \
   title:string:not_null \
   slug:string:unique \
   body:text \
@@ -108,17 +108,17 @@ registrados — de modo que un resource generado queda accesible sin editar las 
 
 ## Revertir un generador
 
-`doido destroy` elimina lo que el `generate` correspondiente creó.
+`cargo doido destroy` elimina lo que el `generate` correspondiente creó.
 
 ```bash
-doido generate scaffold Post title:string
-doido destroy  scaffold Post           # elimina los archivos generados (y la ruta)
+cargo doido generate scaffold Post title:string
+cargo doido destroy  scaffold Post           # elimina los archivos generados (y la ruta)
 ```
 
 ## Generadores personalizados
 
 El sistema de generadores es un registro extensible. Implementa el trait `Generator`
-(devolviendo `GeneratedFile`s) y regístralo; `doido generate generator <name>` genera un
+(devolviendo `GeneratedFile`s) y regístralo; `cargo doido generate generator <name>` genera un
 esqueleto por ti.
 
 ```rust

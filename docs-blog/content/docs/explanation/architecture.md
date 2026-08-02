@@ -20,7 +20,7 @@ wire them together into a conventional application layout.
 | `doido-controller` | Action Dispatch + Controller | Routes, controllers, middleware |
 | `doido-model` | Active Record | sea-orm re-exports, pool, test helpers |
 | `doido-view` | Action View | Tera templates, layouts, helpers |
-| `doido-generators` | Rails generators + CLI | Scaffolds, `doido server`, `doido db` |
+| `doido-generators` | Rails generators + CLI | Scaffolds, `cargo doido server`, `cargo doido db` |
 | `doido-mailer` | Action Mailer | Email composition and delivery |
 | `doido-jobs` | Active Job | Background jobs and queues |
 | `doido-cache` | Active Support Cache | Pluggable cache stores |
@@ -50,7 +50,7 @@ local development, Redis/Postgres/S3 in production.
 2. Connect the database pool (`doido-model`).
 3. Build the axum router from `config/routes.rs` (`doido-controller`).
 4. Layer middleware (logging, sessions, CORS, …) from config.
-5. Bind and serve (`doido server`).
+5. Bind and serve (`cargo doido server`).
 
 See **[Getting started](/docs/tutorials/getting-started/)** to walk through this
 in a real app, or browse the **[Reference](/docs/reference/)** for subsystem APIs.

@@ -88,8 +88,8 @@ doido --help
 ```bash
 doido new blog --database=sqlite
 cd blog
-doido db create && doido db migrate
-doido server
+cargo doido db create && cargo doido db migrate
+cargo doido server
 ```
 
 Continúa en **[Primeros pasos](@/docs/tutorials/getting-started.es.md)**.

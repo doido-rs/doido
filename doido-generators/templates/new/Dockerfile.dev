@@ -3,4 +3,4 @@ FROM rust:1-bookworm
 RUN cargo install cargo-watch --locked
 WORKDIR /app
 EXPOSE 3000
-CMD ["cargo", "watch", "-w", "src", "-w", "app", "-w", "config", "-w", "db", "-x", "run -- server"]
+CMD ["cargo", "watch", "-w", "src", "-w", "app", "-w", "config", "-w", "db", "-x", "doido server"]

@@ -4,26 +4,27 @@ description = "Todos os comandos de runtime e geradores de código do binário d
 weight = 3
 +++
 
-O binário `doido` é o ponto de entrada único tanto para comandos de runtime
-quanto para geração de código.
+O CLI global `doido` cria novas aplicações. Dentro de um projeto gerado,
+`cargo doido` (um alias do Cargo configurado pelo `doido new`) é o ponto de
+entrada para comandos de runtime e geração de código.
 
 ## Comandos de runtime
 
 | Comando | Descrição |
 |---------|-----------|
 | `doido new <name>` | Cria uma nova aplicação (`--database=sqlite\|postgres\|mysql`) |
-| `doido server` | Inicia o servidor web |
-| `doido routes` | Imprime a tabela de rotas |
-| `doido console` | Inicia um console interativo |
-| `doido db <cmd>` | Cria bancos, roda migrations do SeaORM, gera entidades |
-| `doido jobs <cmd>` | Inspeciona e gerencia jobs em background |
-| `doido worker` | Roda o worker de jobs (`--once` para drenar e sair) |
-| `doido credentials <cmd>` | Gerencia credenciais criptografadas com AES-256-GCM |
-| `doido generate <gen>` | Roda um gerador de código (veja abaixo) |
+| `cargo doido server` | Inicia o servidor web |
+| `cargo doido routes` | Imprime a tabela de rotas |
+| `cargo doido console` | Inicia um console interativo |
+| `cargo doido db <cmd>` | Cria bancos, roda migrations do SeaORM, gera entidades |
+| `cargo doido jobs <cmd>` | Inspeciona e gerencia jobs em background |
+| `cargo doido worker` | Roda o worker de jobs (`--once` para drenar e sair) |
+| `cargo doido credentials <cmd>` | Gerencia credenciais criptografadas com AES-256-GCM |
+| `cargo doido generate <gen>` | Roda um gerador de código (veja abaixo) |
 
 ## Geradores
 
-Rode `doido generate` sem argumentos para listar todos os geradores registrados:
+Rode `cargo doido generate` sem argumentos para listar todos os geradores registrados:
 
 | Gerador | Gera |
 |---------|------|

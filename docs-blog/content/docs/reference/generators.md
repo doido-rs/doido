@@ -11,9 +11,10 @@ aliases = ['/docs/guides/generators/']
 > This guide documents the API as implemented in `doido-generators`. For a quick command
 > table see [CLI & generators](@/docs/reference/cli.md).
 
-**Rails analogue: the `rails` binary + generators.** `doido-generators` powers the single
-`doido` binary — both the runtime commands (`server`, `db`, `worker`, …) and the code
-generators (`generate scaffold`, `generate model`, …). A generated app boots by calling
+**Rails analogue: the `rails` binary + generators.** `doido-generators` powers
+`doido new` and the project-local `cargo doido` alias — runtime commands
+(`server`, `db`, `worker`, …) and code generators (`generate scaffold`,
+`generate model`, …). A generated app boots by calling
 `doido::generators::run(Some(routes))`.
 
 ## At a glance
@@ -30,21 +31,21 @@ async fn main() {
 
 | Command | Description |
 |---------|-------------|
-| `doido server` | Start the axum HTTP server |
-| `doido routes` | Print the route table |
-| `doido console` | Interactive console with app context |
-| `doido db <cmd>` | `migrate`, `rollback`, `reset`, `status`, `seed` |
-| `doido worker [--once]` | Run the background job worker |
-| `doido jobs <cmd>` | Inspect/retry/discard background jobs |
-| `doido credentials <cmd>` | Manage credentials |
-| `doido generate <name> …` | Run a code generator |
-| `doido destroy <name> …` | Reverse a generator |
+| `cargo doido server` | Start the axum HTTP server |
+| `cargo doido routes` | Print the route table |
+| `cargo doido console` | Interactive console with app context |
+| `cargo doido db <cmd>` | `migrate`, `rollback`, `reset`, `status`, `seed` |
+| `cargo doido worker [--once]` | Run the background job worker |
+| `cargo doido jobs <cmd>` | Inspect/retry/discard background jobs |
+| `cargo doido credentials <cmd>` | Manage credentials |
+| `cargo doido generate <name> …` | Run a code generator |
+| `cargo doido destroy <name> …` | Reverse a generator |
 | `doido new <app>` | Create a new application |
 
 ```bash
-doido db migrate          # run pending migrations
-doido worker --once       # drain the queue and exit
-doido routes              # print every registered route
+cargo doido db migrate          # run pending migrations
+cargo doido worker --once       # drain the queue and exit
+cargo doido routes              # print every registered route
 ```
 
 ## Creating an application
@@ -54,13 +55,13 @@ doido routes              # print every registered route
 ```bash
 doido new blog --database=sqlite   # or postgres | mysql
 cd blog
-doido db create && doido db migrate
-doido server
+cargo doido db create && cargo doido db migrate
+cargo doido server
 ```
 
 ## Code generators
 
-Run `doido generate` with no arguments to list every registered generator. Each writes
+Run `cargo doido generate` with no arguments to list every registered generator. Each writes
 files (and some inject routes):
 
 | Generator | Generates |
@@ -80,10 +81,10 @@ files (and some inject routes):
 | `storage:adapter` | a custom storage adapter skeleton |
 
 ```bash
-doido generate model Post title:string body:text
-doido generate scaffold Post title:string body:text     # full CRUD stack
-doido generate controller Pages home about
-doido generate mailer User welcome
+cargo doido generate model Post title:string body:text
+cargo doido generate scaffold Post title:string body:text     # full CRUD stack
+cargo doido generate controller Pages home about
+cargo doido generate mailer User welcome
 ```
 
 ## The field DSL
@@ -92,7 +93,7 @@ Model, scaffold, and resource generators take fields as `name:type[:modifier…]
 to migration columns; modifiers add constraints and indexes.
 
 ```bash
-doido generate model Post \
+cargo doido generate model Post \
   title:string:not_null \
   slug:string:unique \
   body:text \
@@ -109,17 +110,17 @@ resource is reachable without editing routes by hand.
 
 ## Reversing a generator
 
-`doido destroy` removes what the matching `generate` created.
+`cargo doido destroy` removes what the matching `generate` created.
 
 ```bash
-doido generate scaffold Post title:string
-doido destroy  scaffold Post           # remove the generated files (and route)
+cargo doido generate scaffold Post title:string
+cargo doido destroy  scaffold Post           # remove the generated files (and route)
 ```
 
 ## Custom generators
 
 The generator system is an extensible registry. Implement the `Generator` trait (returning
-`GeneratedFile`s) and register it; `doido generate generator <name>` scaffolds one for you.
+`GeneratedFile`s) and register it; `cargo doido generate generator <name>` scaffolds one for you.
 
 ```rust
 use doido::generators::{Generator, GeneratedFile};

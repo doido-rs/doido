@@ -20,7 +20,7 @@ layout convencional de aplicação.
 | `doido-controller` | Action Dispatch + Controller | Rotas, controllers, middleware |
 | `doido-model` | Active Record | Re-exports sea-orm, pool, helpers de teste |
 | `doido-view` | Action View | Templates Tera, layouts, helpers |
-| `doido-generators` | Generators + CLI | Scaffolds, `doido server`, `doido db` |
+| `doido-generators` | Generators + CLI | Scaffolds, `cargo doido server`, `cargo doido db` |
 | `doido-mailer` | Action Mailer | Composição e entrega de e-mail |
 | `doido-jobs` | Active Job | Jobs em background e filas |
 | `doido-cache` | Active Support Cache | Cache stores plugáveis |
@@ -46,7 +46,7 @@ intercambiáveis — memória/SQLite no dev, Redis/Postgres/S3 em produção.
 2. Conectar o pool do banco (`doido-model`).
 3. Montar o router axum a partir de `config/routes.rs` (`doido-controller`).
 4. Empilhar middleware (logging, sessões, CORS, …) conforme config.
-5. Bind e servir (`doido server`).
+5. Bind e servir (`cargo doido server`).
 
 Veja **[Primeiros passos](/pt/docs/tutorials/getting-started/)** na prática ou a
 **[Referência](/pt/docs/reference/)** para APIs de subsistemas.

@@ -143,4 +143,4 @@ let raw = rx.recv().await?;
 
 - [Middleware y sesiones](@/docs/reference/middleware.es.md) — autenticar el upgrade del WebSocket.
 - [Cache](@/docs/reference/cache.es.md) — el backend Redis se comparte con el pub/sub.
-- [Generadores y CLI](@/docs/reference/generators.es.md) — `doido generate channel`.
+- [Generadores y CLI](@/docs/reference/generators.es.md) — `cargo doido generate channel`.

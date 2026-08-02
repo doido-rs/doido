@@ -86,7 +86,7 @@ jobs:
 O worker reserva jobs (fazendo lease, de modo que os jobs de um worker que caiu sejam
 recuperados) e roda o seu handler. Use `WorkerEngine` para controle de multi-fila/
 concorrência, ou `Worker` para uma única fila; `run_once` drena uma vez (ótimo para
-testes), `run` roda em loop até o shutdown. O comando `doido worker` o executa como
+testes), `run` roda em loop até o shutdown. O comando `cargo doido worker` o executa como
 processo.
 
 ```rust
@@ -106,8 +106,8 @@ engine.run(handler, tokio::signal::ctrl_c().map(|_| ())).await?;
 ```
 
 ```bash
-doido worker            # processa jobs continuamente
-doido worker --once     # drena a fila e sai
+cargo doido worker            # processa jobs continuamente
+cargo doido worker --once     # drena a fila e sai
 ```
 
 ## Retries & backoff
@@ -128,9 +128,9 @@ Jobs que esgotam seus retries são movidos para um store de dead-letter, inspeci
 reexecutável via CLI.
 
 ```bash
-doido jobs:failed            # lista jobs na dead-letter
-doido jobs:retry <job_id>    # reenfileira um
-doido jobs:discard <job_id>  # descarta um
+cargo doido jobs:failed            # lista jobs na dead-letter
+cargo doido jobs:retry <job_id>    # reenfileira um
+cargo doido jobs:discard <job_id>  # descarta um
 ```
 
 ## Prioridade & agendamento
@@ -171,4 +171,4 @@ assert!(reserved.is_some());
 
 - [Mailer](@/docs/reference/mailer.pt.md) — `deliver_later` enfileira na fila `mailers`.
 - [Cache](@/docs/reference/cache.pt.md) & [Models](@/docs/reference/models.pt.md) — backends Redis/DB.
-- [Geradores & CLI](@/docs/reference/generators.pt.md) — `doido generate job` e `doido worker`.
+- [Geradores & CLI](@/docs/reference/generators.pt.md) — `cargo doido generate job` e `cargo doido worker`.

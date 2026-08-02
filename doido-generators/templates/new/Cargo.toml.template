@@ -3,6 +3,9 @@ name = "{doido_name}"
 description = "Starter Doido web application: Axum server, routed hello endpoint, templating scaffolding."
 version = "0.1.0"
 edition = "2021"
+# Default binary when running `cargo run` from the app root (workspace also has
+# `db/migration`). Equivalent to `cargo run --bin {doido_name}` / `cargo doido`.
+default-run = "{doido_name}"
 
 # The SeaORM migration project lives in `db/migration` and is built as part of
 # this workspace.

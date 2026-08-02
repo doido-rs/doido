@@ -156,4 +156,4 @@ assert_eq!(service.download("k").await?, b"bytes");
 
 - [Modelos](@/docs/reference/models.es.md) — los attachments referencian tus registros; `ensure_tables`.
 - [Jobs](@/docs/reference/jobs.es.md) — `purge_later` y limpieza en segundo plano.
-- [Generadores y CLI](@/docs/reference/generators.es.md) — `doido generate storage:install` / `storage:adapter`.
+- [Generadores y CLI](@/docs/reference/generators.es.md) — `cargo doido generate storage:install` / `storage:adapter`.

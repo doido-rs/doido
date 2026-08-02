@@ -29,6 +29,7 @@ fn test_new_generates_all_expected_files() {
     assert!(paths.contains(&"my-app/.gitignore"));
     assert!(paths.contains(&"my-app/README.md"));
     assert!(paths.contains(&"my-app/mise.toml"));
+    assert!(paths.contains(&"my-app/.cargo/config.toml"));
 }
 
 #[test]
@@ -113,6 +114,36 @@ fn test_new_template_includes_json_hello_action() {
     assert!(hello.content.contains("Hello word!"));
     assert!(hello.content.contains("doido::controller::"));
     assert!(!hello.content.contains("doido_controller::"));
+}
+
+#[test]
+fn test_new_cargo_config_aliases_doido_to_app_binary() {
+    let files = ProjectGenerator
+        .generate(&["my-app", "--database=sqlite"])
+        .unwrap();
+    let cargo_toml = files
+        .iter()
+        .find(|f| f.path == "my-app/Cargo.toml")
+        .unwrap();
+    assert!(
+        cargo_toml.content.contains("default-run = \"my-app\""),
+        "generated Cargo.toml must default to the app binary"
+    );
+
+    let cargo_config = files
+        .iter()
+        .find(|f| f.path == "my-app/.cargo/config.toml")
+        .unwrap();
+    assert!(
+        cargo_config
+            .content
+            .contains("doido = \"run --bin my-app --\""),
+        "cargo doido must delegate to the app binary"
+    );
+    cargo_config
+        .content
+        .parse::<toml::Table>()
+        .expect("valid .cargo/config.toml");
 }
 
 #[test]

@@ -88,7 +88,7 @@ jobs:
 The worker reserves jobs (leasing them so a crashed worker's jobs are reclaimed) and runs
 your handler. Use `WorkerEngine` for multi-queue/concurrency control, or `Worker` for a
 single queue; `run_once` drains once (great for tests), `run` loops until shutdown. The
-`doido worker` command runs it as a process.
+`cargo doido worker` command runs it as a process.
 
 ```rust
 use doido::jobs::{Worker, WorkerEngine, EngineConfig};
@@ -107,8 +107,8 @@ engine.run(handler, tokio::signal::ctrl_c().map(|_| ())).await?;
 ```
 
 ```bash
-doido worker            # process jobs continuously
-doido worker --once     # drain the queue and exit
+cargo doido worker            # process jobs continuously
+cargo doido worker --once     # drain the queue and exit
 ```
 
 ## Retries & backoff
@@ -129,9 +129,9 @@ Jobs that exhaust their retries are moved to a dead-letter store, inspectable an
 re-runnable via the CLI.
 
 ```bash
-doido jobs:failed            # list dead-lettered jobs
-doido jobs:retry <job_id>    # requeue one
-doido jobs:discard <job_id>  # drop one
+cargo doido jobs:failed            # list dead-lettered jobs
+cargo doido jobs:retry <job_id>    # requeue one
+cargo doido jobs:discard <job_id>  # drop one
 ```
 
 ## Priority & scheduling
@@ -172,4 +172,4 @@ assert!(reserved.is_some());
 
 - [Mailer](@/docs/reference/mailer.md) — `deliver_later` enqueues onto the `mailers` queue.
 - [Cache](@/docs/reference/cache.md) & [Models](@/docs/reference/models.md) — Redis/DB backends.
-- [Generators & CLI](@/docs/reference/generators.md) — `doido generate job` and `doido worker`.
+- [Generators & CLI](@/docs/reference/generators.md) — `cargo doido generate job` and `cargo doido worker`.

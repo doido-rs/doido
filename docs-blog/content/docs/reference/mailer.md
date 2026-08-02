@@ -149,4 +149,4 @@ assert_eq!(sent[0].subject, "Welcome!");
 
 - [Jobs](@/docs/reference/jobs.md) — the `mailers` queue and worker behind `deliver_later`.
 - [Views](@/docs/reference/views.md) — the engine that renders email templates.
-- [Generators & CLI](@/docs/reference/generators.md) — `doido generate mailer`.
+- [Generators & CLI](@/docs/reference/generators.md) — `cargo doido generate mailer`.

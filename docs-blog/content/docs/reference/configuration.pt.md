@@ -78,7 +78,7 @@ e uma nova seção é criada se ainda não existir.
 
 ```bash
 # Override no boot — ideal para segredos e valores por deploy:
-SERVER__PORT=4000 LOGGER__LEVEL=warn DATABASE__URL=postgres://... doido server
+SERVER__PORT=4000 LOGGER__LEVEL=warn DATABASE__URL=postgres://... cargo doido server
 ```
 
 Os overrides são aplicados ao valor de config já parseado, antes da desserialização

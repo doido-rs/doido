@@ -9,10 +9,10 @@ weight = 7
 > Este guia documenta a API como implementada em `doido-generators`. Para uma tabela rápida
 > de comandos, veja [CLI & geradores](@/docs/reference/cli.pt.md).
 
-**Análogo no Rails: o binário `rails` + geradores.** `doido-generators` alimenta o único
-binário `doido` — tanto os comandos de runtime (`server`, `db`, `worker`, …) quanto os
-geradores de código (`generate scaffold`, `generate model`, …). Uma app gerada inicializa
-chamando `doido::generators::run(Some(routes))`.
+**Análogo no Rails: o binário `rails` + geradores.** `doido-generators` alimenta
+`doido new` e o alias local `cargo doido` — comandos de runtime (`server`, `db`,
+`worker`, …) e geradores de código (`generate scaffold`, `generate model`, …).
+Uma app gerada inicializa chamando `doido::generators::run(Some(routes))`.
 
 ## Visão geral
 
@@ -28,21 +28,21 @@ async fn main() {
 
 | Comando | Descrição |
 |---------|-----------|
-| `doido server` | Inicia o servidor HTTP axum |
-| `doido routes` | Imprime a tabela de rotas |
-| `doido console` | Console interativo com o contexto da app |
-| `doido db <cmd>` | `migrate`, `rollback`, `reset`, `status`, `seed` |
-| `doido worker [--once]` | Roda o worker de jobs em background |
-| `doido jobs <cmd>` | Inspeciona/retenta/descarta jobs em background |
-| `doido credentials <cmd>` | Gerencia credenciais |
-| `doido generate <name> …` | Roda um gerador de código |
-| `doido destroy <name> …` | Reverte um gerador |
+| `cargo doido server` | Inicia o servidor HTTP axum |
+| `cargo doido routes` | Imprime a tabela de rotas |
+| `cargo doido console` | Console interativo com o contexto da app |
+| `cargo doido db <cmd>` | `migrate`, `rollback`, `reset`, `status`, `seed` |
+| `cargo doido worker [--once]` | Roda o worker de jobs em background |
+| `cargo doido jobs <cmd>` | Inspeciona/retenta/descarta jobs em background |
+| `cargo doido credentials <cmd>` | Gerencia credenciais |
+| `cargo doido generate <name> …` | Roda um gerador de código |
+| `cargo doido destroy <name> …` | Reverte um gerador |
 | `doido new <app>` | Cria uma nova aplicação |
 
 ```bash
-doido db migrate          # roda as migrations pendentes
-doido worker --once       # drena a fila e sai
-doido routes              # imprime todas as rotas registradas
+cargo doido db migrate          # roda as migrations pendentes
+cargo doido worker --once       # drena a fila e sai
+cargo doido routes              # imprime todas as rotas registradas
 ```
 
 ## Criando uma aplicação
@@ -52,13 +52,13 @@ doido routes              # imprime todas as rotas registradas
 ```bash
 doido new blog --database=sqlite   # ou postgres | mysql
 cd blog
-doido db create && doido db migrate
-doido server
+cargo doido db create && cargo doido db migrate
+cargo doido server
 ```
 
 ## Geradores de código
 
-Rode `doido generate` sem argumentos para listar todos os geradores registrados. Cada um
+Rode `cargo doido generate` sem argumentos para listar todos os geradores registrados. Cada um
 escreve arquivos (e alguns injetam rotas):
 
 | Gerador | Gera |
@@ -78,10 +78,10 @@ escreve arquivos (e alguns injetam rotas):
 | `storage:adapter` | o esqueleto de um adapter de storage customizado |
 
 ```bash
-doido generate model Post title:string body:text
-doido generate scaffold Post title:string body:text     # CRUD completo
-doido generate controller Pages home about
-doido generate mailer User welcome
+cargo doido generate model Post title:string body:text
+cargo doido generate scaffold Post title:string body:text     # CRUD completo
+cargo doido generate controller Pages home about
+cargo doido generate mailer User welcome
 ```
 
 ## A DSL de campos
@@ -90,7 +90,7 @@ Os geradores de model, scaffold e resource recebem campos como `name:type[:modif
 tipos mapeiam para colunas de migration; os modificadores adicionam constraints e índices.
 
 ```bash
-doido generate model Post \
+cargo doido generate model Post \
   title:string:not_null \
   slug:string:unique \
   body:text \
@@ -107,17 +107,17 @@ modo que um resource gerado fica acessível sem editar as rotas manualmente.
 
 ## Revertendo um gerador
 
-`doido destroy` remove o que o `generate` correspondente criou.
+`cargo doido destroy` remove o que o `generate` correspondente criou.
 
 ```bash
-doido generate scaffold Post title:string
-doido destroy  scaffold Post           # remove os arquivos gerados (e a rota)
+cargo doido generate scaffold Post title:string
+cargo doido destroy  scaffold Post           # remove os arquivos gerados (e a rota)
 ```
 
 ## Geradores customizados
 
 O sistema de geradores é um registro extensível. Implemente o trait `Generator` (retornando
-`GeneratedFile`s) e registre-o; `doido generate generator <name>` cria um esqueleto para
+`GeneratedFile`s) e registre-o; `cargo doido generate generator <name>` cria um esqueleto para
 você.
 
 ```rust
