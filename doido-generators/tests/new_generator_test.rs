@@ -135,7 +135,9 @@ fn test_new_cargo_config_aliases_doido_to_app_binary() {
         .find(|f| f.path == "my-app/.cargo/config.toml")
         .unwrap();
     assert!(
-        cargo_config.content.contains("doido = \"run --bin my-app --\""),
+        cargo_config
+            .content
+            .contains("doido = \"run --bin my-app --\""),
         "cargo doido must delegate to the app binary"
     );
     cargo_config
