@@ -8,6 +8,10 @@ Rails analogue: **rails generate** (`rails generate model`, `rails generate scaf
 - **All Rails generator targets ship in v1**
 - **Extensible registry** — apps and plugins register custom generators
 - **Route auto-injection** — appends to `config/routes.rs` when relevant
+- **Optional crate generators** — generators owned by optional workspace crates
+  (e.g. `doido-auth`) register via that crate's `generators::register()` and appear
+  in `doido generate` **only when** the current project's `Cargo.toml` lists the
+  crate as a dependency. They are never part of `default_registry()`.
 
 ## Responsibility
 
@@ -84,9 +88,36 @@ doido_generators::registry().register(Box::new(MyGenerator));
 // List all
 doido_generators::registry().list();  // → Vec<(&str, &str)>  (name, description)
 
-// Dispatch
+// Dispatch (built-in + project-local + optional crate generators when installed)
 doido_generators::dispatch("scaffold", args)?;
 ```
+
+### Optional crate generators (`doido-auth`, …)
+
+Some generators live in optional first-party crates rather than in
+`doido-generators`. The CLI builds the effective registry per project:
+
+1. Start with `default_registry()` (built-in generators only).
+2. Parse the project's `Cargo.toml` for optional crate deps (e.g. `doido-auth`, or
+   `doido` with feature `auth`).
+3. When present, call `<crate>::generators::register(&mut reg)` to merge crate-owned
+   generators into the registry for this invocation.
+4. When absent, those generators are **not listed** and **not dispatchable**.
+
+```rust
+// doido-generators/src/commands/generate.rs (target behaviour)
+fn registry_for_project() -> GeneratorRegistry {
+    let mut reg = default_registry();
+    if project_has_doido_auth("Cargo.toml") {
+        doido_auth::generators::register(&mut reg);
+    }
+    reg
+}
+```
+
+Auth generators (`auth:install`, `auth:controller`, `auth:scaffold`) are specified
+in [16-auth.md](16-auth.md). See that doc for bootstrap via `doido new --auth` or
+`cargo add doido-auth`.
 
 ## Built-in Generators (v1)
 
@@ -100,6 +131,12 @@ doido_generators::dispatch("scaffold", args)?;
 | `mailer` | `mailers/<name>_mailer.rs`, view templates | No |
 | `job` | `jobs/<name>_job.rs` | No |
 | `channel` | `channels/<name>_channel.rs` | No (prints hint to add `cable!(...)` manually) |
+| `storage:install` | storage tables migration + `storage:` config | No |
+| `storage:adapter` | `app/storage/<name>_service.rs` | No |
+
+Auth generators (`auth:install`, `auth:controller`, `auth:scaffold`) are **not**
+built-in — they live in `doido-auth` and appear only when that crate is a project
+dependency. See [16-auth.md](16-auth.md).
 
 ## Field Specs (`model`, `scaffold`, `resource`)
 
@@ -175,6 +212,17 @@ to a `500`. Request data is read via `ctx.param("id")`, `ctx.form::<T>()`, and
 `ctx.body_json::<T>()`. The global DB pool is installed at server boot
 (`doido_model::pool::init`).
 
+## Auth generators (owned by `doido-auth`, not built-in)
+
+Auth generators are implemented in `doido-auth/src/generators/` and registered via
+`doido_auth::generators::register()`. They are visible to `doido generate` **if and
+only if** the project's `Cargo.toml` lists `doido-auth` (directly or via `doido`
+with feature `auth`). Full spec: [16-auth.md](16-auth.md).
+
+Bootstrap for new apps: `doido new --auth` adds the dependency and runs
+`auth:install`. For existing apps: `cargo add doido-auth`, then
+`doido generate auth:install`.
+
 ## Route Auto-Injection into `config/routes.rs`
 
 ```rust
@@ -226,4 +274,5 @@ With `--dry-run` flag, prints files without writing anything.
 - Test `--force` overwrites without prompting
 - Test custom generator registered and dispatched via registry
 - Test field type mapping for all supported types
+- Test `project_has_doido_auth` — auth generators listed only when `doido-auth` is in Cargo.toml
 - Integration test: generate scaffold → `cargo check` compiles without errors

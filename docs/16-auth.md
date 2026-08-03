@@ -1,0 +1,508 @@
+# 16 — Auth (`doido-auth`)
+
+Unified authentication for Doido — the **Devise + OmniAuth + JWT** analogue. It
+provides a generic `AuthUser` trait bound to your SeaORM model, pluggable
+**strategies** (cookie session, JWT bearer, OAuth/OAuth2), optional **2FA** (TOTP),
+and **pre-built session/registration routes** that work after a single line in
+`config/routes.rs`. Axum **extractors** (`CurrentUser`, `MaybeUser`, `RequireAuth`)
+compose with the existing `doido-controller` session stack and `#[controller]`
+filters.
+
+> **Status (2026-08-03): not started.** Spec only — crate, extractors, strategies,
+> routes, and generators are backlog items in `harness/prd.json` (US-105→US-113).
+> Auth generators live in this crate and appear in `doido generate` only when
+> `doido-auth` is a project dependency (see *Generators* below).
+> Password hashing today lives in `doido-model::password`; auth will build on it.
+
+## Crate map
+
+| Module | Responsibility |
+|--------|----------------|
+| `user` | `AuthUser` trait — the generic contract your User model implements |
+| `config` | `auth:` section of `config/<env>.yml` → `AuthConfig` (strategies, 2FA, OAuth clients) |
+| `session` | Cookie/session strategy — integrates with `doido_controller::session` |
+| `jwt` | JWT bearer strategy — sign/verify access + refresh tokens |
+| `oauth` | OAuth 1.0a + OAuth2/OIDC provider registry and callback handlers |
+| `two_factor` | Optional TOTP 2FA — enroll, verify, backup codes (feature `auth-2fa`) |
+| `extractors` | Axum `FromRequestParts` impls: `CurrentUser`, `MaybeUser`, `RequireAuth` |
+| `routes` | Pre-built `AuthRoutes` controller + route table for sessions/registration/2FA |
+| `generators` | **`auth:install` / `auth:controller` / `auth:scaffold`** — owned by this crate; registered into the CLI only when the app depends on `doido-auth` |
+| `registry` | Custom strategy registration (`register_strategy`) |
+| `testing` | In-memory fakes, test helpers, signed-token fixtures |
+
+Proc-macro crate **`doido-auth/macros`** (optional v1 follow-up): `#[auth_user]`
+derives `AuthUser` from a SeaORM model with conventional column names.
+
+## Rails analogue
+
+| Doido | Rails |
+|-------|-------|
+| `doido generate auth:install` | `rails generate devise:install` + `devise User` |
+| `AuthRoutes` (sessions/registration) | Devise routes (`/users/sign_in`, `/users/sign_up`, …) |
+| `CurrentUser` extractor | `current_user` helper in controllers |
+| `MaybeUser` extractor | `user_signed_in?` + optional user |
+| OAuth providers | OmniAuth strategies |
+| JWT strategy | `devise-jwt` / doorkeeper-style bearer tokens |
+| 2FA (TOTP) | Devise two-factor / ROTP |
+| `auth:scaffold` | Devise + scaffold for a resource with auth-aware CRUD |
+
+## Decisions (resolved in interview)
+
+- **Separate crate** — `doido-auth` is independently usable and testable; not merged
+  into `doido-controller` (sessions stay in controller; auth *uses* them).
+- **Generic user model** — apps configure one SeaORM entity as the auth subject via
+  `AuthUser`; no hard-coded User struct in the framework.
+- **Strategies are pluggable and composable** — cookie session is the default;
+  JWT and OAuth are opt-in via config; multiple strategies can be active (e.g.
+  session for HTML, JWT for API).
+- **Extractors, not globals** — `CurrentUser<U>` is an axum extractor; no thread-local
+  `current_user()` magic (controllers can still use `#[before_action]` wrappers).
+- **Pre-built routes** — session sign-in/out, registration, password reset, OAuth
+  callbacks, and 2FA challenge endpoints ship as a mountable route group; apps only
+  register `auth_routes!(User);` in `config/routes.rs`.
+- **Password hashing** — reuse `doido_model::password` (`HasSecurePassword`); auth
+  does not re-implement bcrypt.
+- **2FA is optional** — behind feature `auth-2fa`; disabled by default in generated apps.
+- **Generators live in this crate** — `auth:install`, `auth:controller`, and
+  `auth:scaffold` are implemented under `doido-auth/src/generators/`, **not** in
+  `doido-generators`. They appear in `doido generate` **if and only if** the current
+  project's `Cargo.toml` lists `doido-auth` as a dependency (directly or via the
+  `doido` meta crate with the `auth` feature). Without that dependency the auth
+  generators are absent from the list and dispatch returns *unknown generator*.
+- **Bootstrap** — `doido new --auth` adds `doido-auth` to the generated app and runs
+  `auth:install`; for existing apps, `cargo add doido-auth` (or equivalent) must
+  happen before auth generators become available.
+
+## `AuthUser` trait
+
+Your User model implements this trait (manually or via `#[auth_user]`):
+
+```rust
+use doido_auth::AuthUser;
+use doido_model::sea_orm::prelude::*;
+
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
+#[sea_orm(table_name = "users")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i64,
+    pub email: String,
+    #[sea_orm(column_name = "password_digest")]
+    pub password_digest: String,
+    pub two_factor_secret: Option<String>,  // when 2FA enabled
+    pub two_factor_enabled: bool,
+}
+
+impl AuthUser for Model {
+    type Id = i64;
+
+    fn id(&self) -> Self::Id { self.id }
+    fn email(&self) -> &str { &self.email }
+    fn password_digest(&self) -> Option<&str> { Some(&self.password_digest) }
+
+    // Optional overrides (defaults use conventional column names above)
+    fn find_by_email(db: &DatabaseConnection, email: &str) -> impl Future<Output = Result<Option<Self>>> + Send {
+        Entity::find().filter(Column::Email.eq(email)).one(db)
+    }
+    fn find_by_id(db: &DatabaseConnection, id: Self::Id) -> impl Future<Output = Result<Option<Self>>> + Send {
+        Entity::find_by_id(id).one(db)
+    }
+}
+```
+
+`AuthUser` requires `Clone + Send + Sync + 'static` and integrates with
+`doido_model::password::HasSecurePassword` for credential verification.
+
+## Configuration
+
+Configured in the `auth` section of `config/<env>.yml`:
+
+```yaml
+auth:
+  user_model: User                    # Rust type name (for codegen hints)
+  strategies:
+    - cookie                          # default — uses controller session store
+    - jwt                             # Authorization: Bearer <token>
+  jwt:
+    secret: "${JWT_SECRET}"            # or credentials
+    access_ttl: 900                    # seconds (15 min)
+    refresh_ttl: 604800                # seconds (7 days)
+    issuer: myapp
+  oauth:
+    google:
+      type: oauth2
+      client_id: "${GOOGLE_CLIENT_ID}"
+      client_secret: "${GOOGLE_CLIENT_SECRET}"
+      redirect_uri: "/auth/google/callback"
+      scopes: [openid, email, profile]
+    twitter:
+      type: oauth1
+      consumer_key: "${TWITTER_KEY}"
+      consumer_secret: "${TWITTER_SECRET}"
+  two_factor:
+    enabled: false                     # opt-in; requires feature auth-2fa
+    issuer: MyApp                      # TOTP label
+  routes:
+    prefix: /users                     # Devise-style path prefix
+    sign_in: sign_in
+    sign_out: sign_out
+    sign_up: sign_up
+    password_reset: password           # /users/password
+```
+
+Credentials come from `config/credentials.yml.enc` or environment variables and
+must not be committed.
+
+## Strategies
+
+### Cookie / session (default)
+
+Uses the existing `doido_controller::session` stack. On successful sign-in, auth
+stores `user_id` (typed via `AuthUser::Id`) in the session. The `CurrentUser`
+extractor loads the user from the DB on each request.
+
+```rust
+// Boot (generated by auth:install)
+doido_auth::init(&db, AuthConfig::from_yaml(&config)).await?;
+```
+
+### JWT bearer
+
+For API-only or SPA clients. Issues signed access + refresh token pairs; the
+`Authorization: Bearer` header is parsed by the JWT strategy before the cookie
+strategy. Refresh tokens can be rotated and stored server-side (optional table
+emitted by `auth:install`).
+
+```rust
+// Protected API route — JWT or session both work when both strategies enabled
+async fn profile(CurrentUser(user): CurrentUser<User>) -> impl IntoResponse {
+    Json(Profile { email: user.email().to_string() })
+}
+```
+
+### OAuth / OAuth2
+
+Provider registry with built-in Google, GitHub, and generic OAuth2/OIDC templates.
+Custom providers register at boot:
+
+```rust
+doido_auth::oauth::register_provider("custom", CustomProvider::new(config));
+```
+
+Callback routes are part of `AuthRoutes` (`GET /auth/:provider/callback`).
+
+## Axum extractors
+
+All extractors live in `doido_auth::extractors` and work with `doido_controller::axum`:
+
+| Extractor | Behaviour | HTTP status on failure |
+|-----------|-----------|------------------------|
+| `CurrentUser<U>` | Requires authenticated user via any enabled strategy | `401 Unauthorized` |
+| `MaybeUser<U>` | `Option<U>` — never fails | — |
+| `RequireAuth` | Ensures *some* identity without loading the full model | `401 Unauthorized` |
+| `AuthToken` | Raw bearer/JWT string (for token refresh endpoints) | `401` if missing |
+
+Extractors consult strategies in config order; the first strategy that resolves an
+identity wins.
+
+```rust
+use doido_auth::extractors::{CurrentUser, MaybeUser};
+use doido_controller::axum::{Router, routing::get};
+
+async fn dashboard(CurrentUser(user): CurrentUser<User>) -> impl IntoResponse {
+    format!("Hello, {}", user.email())
+}
+
+async fn home(MaybeUser(user): MaybeUser<User>) -> impl IntoResponse {
+    match user {
+        Some(u) => format!("Welcome back, {}", u.email()),
+        None => "Guest".into(),
+    }
+}
+```
+
+Inside `#[controller]` actions, use the same types as handler parameters or call
+`doido_auth::current_user::<User>(&ctx)` which reads from request extensions set
+by the auth middleware layer.
+
+## Optional 2FA (feature `auth-2fa`)
+
+When enabled in config and the feature is compiled in:
+
+1. **Enroll** — `POST /users/two_factor` generates a TOTP secret + QR URI.
+2. **Confirm** — `POST /users/two_factor/confirm` verifies a code and sets
+   `two_factor_enabled`.
+3. **Challenge** — after password sign-in, users with 2FA enabled receive a
+   `422` + redirect to `/users/two_factor/challenge`; session holds a pending flag
+   until the TOTP code is verified.
+4. **Backup codes** — one-time recovery codes stored hashed in `user_backup_codes`.
+
+Disable the feature entirely for API-only JWT apps that delegate 2FA upstream.
+
+## Pre-built routes (`AuthRoutes`)
+
+Mount with one line in `config/routes.rs`:
+
+```rust
+routes! {
+    get!("/", HomeController::index);
+    auth_routes!(User);   // ← sessions, registration, OAuth callbacks, 2FA
+    resources!(posts, PostsController);
+}
+```
+
+Default route table (prefix `/users`):
+
+| Method | Path | Action | Description |
+|--------|------|--------|-------------|
+| GET | `/users/sign_in` | `new` | Sign-in form (HTML) or 401 hint (API) |
+| POST | `/users/sign_in` | `create` | Authenticate (password + optional 2FA step) |
+| DELETE | `/users/sign_out` | `destroy` | Sign out — clears session + revokes JWT |
+| GET | `/users/sign_up` | `registration#new` | Registration form |
+| POST | `/users/sign_up` | `registration#create` | Create account |
+| GET | `/users/password/new` | `password#new` | Request reset email |
+| POST | `/users/password` | `password#create` | Send reset token |
+| PATCH | `/users/password` | `password#update` | Set new password with token |
+| GET | `/auth/:provider` | `oauth#redirect` | Start OAuth flow |
+| GET | `/auth/:provider/callback` | `oauth#callback` | OAuth callback |
+| GET | `/users/two_factor/new` | `two_factor#new` | Enroll 2FA (feature) |
+| POST | `/users/two_factor` | `two_factor#create` | Enable 2FA |
+| POST | `/users/two_factor/challenge` | `two_factor#challenge` | Verify TOTP after sign-in |
+
+`auth_routes!` accepts options mirroring Devise:
+
+```rust
+auth_routes!(User, only: [sessions, registrations]);
+auth_routes!(User, skip: [passwords, two_factor]);
+auth_routes!(User, prefix: "/accounts");
+```
+
+Controllers and views are generated by `auth:install`; routes reference them by
+convention (`Auth::SessionsController`, etc.).
+
+## Boot sequence integration
+
+After config and DB pool init, before the HTTP server:
+
+```rust
+// src/main.rs (generated)
+doido_auth::init(
+    doido_model::pool::connection(),
+    &config.auth,
+).await?;
+```
+
+`init` registers enabled strategies, loads OAuth provider configs, and installs
+the auth middleware layer on the axum router (via `doido_auth::layer()`).
+
+## Generators (crate-owned, conditionally visible)
+
+Auth generators are **not** built into `doido-generators`. They ship inside
+`doido-auth` and register through `doido_auth::generators::register(&mut registry)`.
+The CLI merges them at runtime only when the project's `Cargo.toml` declares a
+`doido-auth` dependency:
+
+```toml
+[dependencies]
+doido-auth = "0.0.9"
+# or, in generated apps:
+doido = { version = "0.0.9", features = ["auth"] }
+```
+
+```rust
+// doido-auth/src/generators/mod.rs — called by the CLI when the dep is present
+use doido_generators::GeneratorRegistry;
+
+pub fn register(reg: &mut GeneratorRegistry) {
+    reg.register(Box::new(AuthInstallGenerator));
+    reg.register(Box::new(AuthControllerGenerator));
+    reg.register(Box::new(AuthScaffoldGenerator));
+}
+```
+
+```rust
+// doido-generators/src/commands/generate.rs (conceptual)
+fn registry_for_project() -> GeneratorRegistry {
+    let mut reg = default_registry();
+    if project_has_doido_auth("Cargo.toml") {
+        doido_auth::generators::register(&mut reg);
+    }
+    reg
+}
+```
+
+`doido generate` with no arguments lists auth generators under a separate heading
+**only when installed**:
+
+```
+Available generators:
+
+Built-in:
+  controller
+  model
+  …
+
+Auth (doido-auth):        ← omitted entirely when doido-auth is not a dependency
+  auth:install
+  auth:controller
+  auth:scaffold
+```
+
+Invoking `doido generate auth:install` without `doido-auth` in `Cargo.toml` fails
+with an error that tells the user to add the dependency or run `doido new --auth`.
+
+### Bootstrap paths
+
+| Situation | How to get auth generators |
+|-----------|---------------------------|
+| New app with auth | `doido new myapp --database=sqlite --auth` — adds `doido-auth` to `Cargo.toml` and runs `auth:install` |
+| Existing app | `cargo add doido-auth` (or add to `Cargo.toml` manually), then `doido generate auth:install` |
+| Remove auth | Remove `doido-auth` from `Cargo.toml`; auth generators disappear from `doido generate` |
+
+`auth:install` wires app files (migration, controllers, config, routes) but does
+**not** add the crate dependency — that must already be present (or come from
+`doido new --auth`, which adds the dep first).
+
+| Generator | Files created | Route injected |
+|-----------|---------------|----------------|
+| `auth:install` | User migration, `app/models/user.rs`, auth controllers, views, `auth:` config snippet | Yes — `auth_routes!(User);` |
+| `auth:controller <Name>` | Controller with `CurrentUser` / `before_action` auth guards | Yes — REST or custom |
+| `auth:scaffold <Name> fields…` | `auth:install` (if missing) + model + migration + auth-aware scaffold | Yes — `resources!(...)` + auth |
+
+Module layout:
+
+```
+doido-auth/
+  src/
+    generators/
+      mod.rs              ← register() exports all three generators
+      install.rs          ← auth:install
+      controller.rs       ← auth:controller
+      scaffold.rs         ← auth:scaffold
+    templates/            ← embedded via include_str! (same pattern as doido-generators)
+      user.rs.tera
+      sessions_controller.rs.tera
+      …
+```
+
+Generators depend on `doido-generators` for the `Generator` trait and route-injection
+helpers (`route_injector`), not the other way around.
+
+### `auth:install`
+
+The `devise:install` analogue:
+
+```sh
+doido generate auth:install
+doido generate auth:install --api          # JSON responses, no HTML views
+doido generate auth:install --two-factor   # enables 2FA columns + views
+```
+
+Produces:
+- Migration: `users` table (`email`, `password_digest`, optional 2FA columns,
+  `created_at`, `updated_at`).
+- `app/models/user.rs` implementing `AuthUser` + `HasSecurePassword`.
+- `app/controllers/auth/{sessions,registrations,passwords,oauth,two_factor}_controller.rs`.
+- HTML views under `app/views/auth/` (skipped with `--api`).
+- Appends `auth:` block to `config/development.yml` / `config/test.yml`.
+- Injects `auth_routes!(User);` into `config/routes.rs` (does **not** modify
+  `Cargo.toml` — `doido-auth` must already be a dependency).
+
+### `auth:controller`
+
+Like `generate controller`, but actions assume an authenticated subject:
+
+```sh
+doido generate auth:controller Dashboard index show
+```
+
+Generated controller includes:
+
+```rust
+#[controller]
+struct DashboardController;
+
+impl DashboardController {
+    #[before_action(require_user)]  // generated filter using CurrentUser
+    async fn index(ctx: &mut Context, user: CurrentUser<User>) -> Result<Response> { … }
+}
+```
+
+### `auth:scaffold`
+
+Combines `auth:install` (when not present), `scaffold`, and auth guards:
+
+```sh
+doido generate auth:scaffold Post title:string body:text
+doido generate auth:scaffold Post title:string --api
+```
+
+- Ensures auth is installed.
+- Scaffolds the resource with `#[before_action(require_user)]` on all actions.
+- Associates records with `user_id` when a `references` field is omitted (adds
+  `user:references` automatically).
+- Injects `resources!(posts, PostsController);` into `config/routes.rs`.
+
+### `doido new --auth`
+
+New apps opt in at creation — this is the primary bootstrap that **adds**
+`doido-auth` to `Cargo.toml` and immediately runs `auth:install`:
+
+```sh
+doido new myapp --database=sqlite --auth
+```
+
+Equivalent to `doido new` with `doido-auth` in the template `Cargo.toml`, followed
+by `doido generate auth:install`.
+
+## Custom strategies
+
+Third-party auth backends (LDAP, SAML, magic link) implement `AuthStrategy`:
+
+```rust
+pub trait AuthStrategy: Send + Sync {
+    fn name(&self) -> &str;
+    async fn authenticate(&self, parts: &Parts, db: &DatabaseConnection)
+        -> Result<Option<AuthIdentity>>;
+}
+
+doido_auth::register_strategy("ldap", Arc::new(LdapStrategy::new(config)));
+```
+
+Enable in config: `strategies: [cookie, ldap]`.
+
+## TDD surface
+
+- `user_test` — `AuthUser` trait object safety, default `find_by_*` helpers.
+- `session_test` — sign-in stores session, sign-out clears, tampered cookie rejected.
+- `jwt_test` — issue/verify/refresh/expire/revoke; wrong secret fails.
+- `oauth_test` — OAuth2 authorization URL + callback token exchange (mock HTTP).
+- `extractors_test` — `CurrentUser` 401 when absent; `MaybeUser` returns None;
+  strategy priority order.
+- `routes_test` — POST sign_in creates session; registration validates email uniqueness;
+  password reset flow end-to-end (with `doido_mailer::TestDeliverer`).
+- `two_factor_test` — enroll/confirm/challenge/backup codes (feature `auth-2fa`).
+- `config_test` — YAML parse, missing secret errors, strategy toggle.
+- `generators_test` — `auth:install` emits expected files; route injection idempotent;
+  generators absent from CLI list when `doido-auth` not in `Cargo.toml`.
+- `cli_discovery_test` (in `doido-generators`) — `project_has_doido_auth` parses
+  `Cargo.toml`; auth generators merged only when true; `doido generate` help output
+  excludes auth section without the dep.
+
+## E2E scenario
+
+`doido-generators/tests/e2e/scenarios/auth_install.rs` (backlog US-113):
+
+1. `doido new blog --database=sqlite --auth` (adds `doido-auth` + runs install)
+   — or `cargo add doido-auth && doido generate auth:install --api`
+2. `doido db create && doido db migrate`
+4. Boot server; POST `/users/sign_up` → POST `/users/sign_in` → GET protected
+   route with session cookie → `401` without cookie.
+
+## Deferred (backlog)
+
+- `#[auth_user]` proc-macro derive (manual `AuthUser` impl is v1).
+- Magic-link / passwordless email sign-in.
+- SAML / WebAuthn strategies.
+- Multi-tenant / account scoping (`AuthUser` belongs to `Account`).
+- Doorkeeper-style OAuth *provider* (issue tokens *to* third-party apps).

@@ -172,6 +172,24 @@ Each line reads: `- [ ] `[tag]` **Feature** — note. *(state)*`
 - [x] `[nice]` **`runner` + `dbconsole` commands** — *(missing)*
 - [x] `[nice]` **i18n locale-files generator** — *(missing)*
 
+## Auth / Devise — `doido-auth` (spec 16 — not started)
+
+> New module (2026-08-03). Password hashing exists in `doido-model::password`; the
+> items below are the unified auth layer on top. Backlog: `harness/prd.json` US-105→US-113.
+
+- [ ] `[core]` **Generic `AuthUser` trait** — configurable SeaORM user model. *(missing)*
+- [ ] `[core]` **Axum extractors** (`CurrentUser`, `MaybeUser`, `RequireAuth`) — *(missing)*
+- [ ] `[core]` **Cookie/session auth strategy** — integrates with controller sessions. *(missing)*
+- [ ] `[core]` **JWT bearer strategy** — access + refresh tokens. *(missing)*
+- [ ] `[core]` **OAuth / OAuth2 providers** — redirect + callback flow. *(missing)*
+- [ ] `[core]` **Pre-built session/registration routes** (`auth_routes!`) — *(missing)*
+- [ ] `[core]` **`auth:install` generator** — in `doido-auth`; CLI-visible only when crate installed. *(missing)*
+- [ ] `[core]` **`auth:controller` / `auth:scaffold` generators** — in `doido-auth`; same visibility rule. *(missing)*
+- [ ] `[core]` **CLI conditional generator discovery** — `doido generate` merges auth generators from `doido-auth` only when `Cargo.toml` lists the dep. *(missing)*
+- [ ] `[nice]` **Optional 2FA (TOTP)** — enroll/challenge/backup codes (feature `auth-2fa`). *(missing)*
+- [ ] `[nice]` **Custom `AuthStrategy` registry** — LDAP/SAML-style plugins. *(missing)*
+- [ ] `[deferred]` **`#[auth_user]` proc-macro derive** — manual trait impl is v1. *(deferred)*
+
 ## Platform & Deployment (Rails 8 defaults)
 
 - [x] `[core]` **Asset pipeline** (Propshaft analogue) — *(missing)*

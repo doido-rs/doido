@@ -25,6 +25,7 @@ decisions (config), and the runtime boot sequence — see the authoritative
 | [docs/11-core.md](docs/11-core.md) | `doido-core` | Shared errors, inflector, utilities, Active Support analogue |
 | [docs/12-cable.md](docs/12-cable.md) | `doido-cable` | WebSocket channels, pub/sub, Action Cable analogue |
 | [docs/15-storage.md](docs/15-storage.md) | `doido-storage` | Attached-file storage: blobs, polymorphic attachments, pluggable services (disk/memory/S3/R2/Azure/GCS) + custom-adapter registry, Active Storage analogue |
+| [docs/16-auth.md](docs/16-auth.md) | `doido-auth` | Unified authentication: generic `AuthUser`, axum extractors, cookie/JWT/OAuth strategies, optional 2FA, pre-built session/registration routes, Devise analogue |
 
 ## Workspace Layout
 
@@ -41,7 +42,8 @@ doido/                  ← workspace root (Cargo.toml)
 ├── doido-jobs/         ← background jobs
 ├── doido-cache/        ← cache store
 ├── doido-storage/      ← attached-file storage (blobs, attachments, disk/memory/S3/R2/Azure)
-└── doido-cable/        ← websocket channels + pub/sub
+├── doido-cable/        ← websocket channels + pub/sub
+└── doido-auth/         ← unified authentication (extractors, cookie/JWT/OAuth, optional 2FA)
 ```
 
 ## Interview Status
@@ -60,3 +62,4 @@ doido/                  ← workspace root (Cargo.toml)
 - [x] 11-core — **`thiserror` per crate + `anyhow` at app level, all inflections + `config/inflections.rs` for custom rules**
 - [x] 12-cable — **`#[channel]` macro + trait, pluggable PubSub (memory/redis/db), middleware+`CableConnection` auth, ActionCable wire protocol, generator added**
 - [x] 15-storage — **Pluggable `Service` (disk default/memory/S3/R2/Azure/GCS + custom-adapter registry via `register_adapter`/`type:`), blobs+polymorphic attachments (raw SQL), HMAC signed ids/URLs, axum redirect+proxy+direct-upload serving, `storage:install`/`storage:adapter` generators; variants/previews deferred**
+- [ ] 16-auth — **Generic `AuthUser` trait, axum extractors, pluggable strategies (cookie/JWT/OAuth+OAuth2), optional 2FA, pre-built `auth_routes!`, generators in `doido-auth` (visible in CLI only when installed); spec only — see `harness/prd.json` US-105→US-113**
