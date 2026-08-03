@@ -1,15 +1,19 @@
 //! OAuth provider tests.
 
 use doido_auth::config::{OAuthProviderConfig, OAuthProviderType};
-use doido_auth::oauth::{get_provider, register_provider, OAuth2Provider};
+use doido_auth::oauth::{
+    get_provider, register_provider, OAuth2Provider, OAuthProvider, OAuthTokenResponse,
+};
 use doido_auth::routes::mount;
 use doido_auth::testing::TestUser;
 use doido_auth::testing::{init_test_auth, send, test_auth_config};
+use doido_auth::AuthError;
 use doido_model::testing::TestDb;
 use http::StatusCode;
 use std::collections::HashMap;
 use std::io::{Read, Write};
 use std::net::TcpListener;
+use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 
@@ -27,9 +31,29 @@ fn oauth2_config(token_url: &str) -> OAuthProviderConfig {
     }
 }
 
+struct StaticProvider {
+    name: &'static str,
+    authorize: String,
+    token: OAuthTokenResponse,
+}
+
+impl OAuthProvider for StaticProvider {
+    fn name(&self) -> &str {
+        self.name
+    }
+
+    fn authorize_url(&self, state: &str) -> Result<String, AuthError> {
+        Ok(format!("{}?state={state}", self.authorize))
+    }
+
+    fn exchange_code(&self, _code: &str) -> Result<OAuthTokenResponse, AuthError> {
+        Ok(self.token.clone())
+    }
+}
+
 #[test]
 fn authorize_url_includes_client_and_state() {
-    let provider = OAuth2Provider::new("google", oauth2_config("https://example.com/token"));
+    let provider = OAuth2Provider::new("example", oauth2_config("https://example.com/token"));
     let url = provider.authorize_url("state123").unwrap();
     assert!(url.contains("client_id=cid"));
     assert!(url.contains("state=state123"));
@@ -37,26 +61,53 @@ fn authorize_url_includes_client_and_state() {
 }
 
 #[test]
-fn authorize_url_rejects_non_oauth2_provider() {
+fn from_config_rejects_non_oauth2_provider() {
     let mut cfg = oauth2_config("https://example.com/token");
     cfg.provider_type = OAuthProviderType::Oauth1;
-    let provider = OAuth2Provider::new("legacy", cfg);
-    assert!(provider.authorize_url("s").is_err());
+    assert!(OAuth2Provider::from_config("legacy", cfg).is_err());
 }
 
 #[test]
 fn authorize_url_requires_client_id() {
     let mut cfg = oauth2_config("https://example.com/token");
     cfg.client_id = None;
-    let provider = OAuth2Provider::new("google", cfg);
+    let provider = OAuth2Provider::new("example", cfg);
     assert!(provider.authorize_url("s").is_err());
 }
 
 #[test]
-fn register_and_get_provider() {
-    let provider = OAuth2Provider::new("github", oauth2_config("https://example.com/token"));
-    register_provider("github", provider);
-    assert!(get_provider("github").is_some());
+fn register_and_get_provider_via_trait_object() {
+    let provider = Arc::new(OAuth2Provider::new(
+        "example",
+        oauth2_config("https://example.com/token"),
+    )) as Arc<dyn OAuthProvider>;
+    register_provider(provider);
+    assert!(get_provider("example").is_some());
+}
+
+#[test]
+fn custom_provider_implements_trait() {
+    let provider = Arc::new(StaticProvider {
+        name: "custom",
+        authorize: "https://idp.example/auth".into(),
+        token: OAuthTokenResponse {
+            access_token: "custom-tok".into(),
+            token_type: Some("Bearer".into()),
+            refresh_token: None,
+            expires_in: None,
+            id_token: None,
+        },
+    });
+    register_provider(provider);
+    let found = get_provider("custom").expect("registered");
+    assert_eq!(
+        found.authorize_url("abc").unwrap(),
+        "https://idp.example/auth?state=abc"
+    );
+    assert_eq!(
+        found.exchange_code("code").unwrap().access_token,
+        "custom-tok"
+    );
 }
 
 #[test]
@@ -76,14 +127,14 @@ fn providers_from_config_skips_oauth1() {
             token_url: None,
         },
     );
-    oauth.insert("google".into(), oauth2_config("https://example.com/token"));
+    oauth.insert("example".into(), oauth2_config("https://example.com/token"));
     let config = doido_auth::AuthConfig {
         oauth,
         ..Default::default()
     };
     let providers = doido_auth::oauth::providers_from_config(&config.oauth);
     assert_eq!(providers.len(), 1);
-    assert!(providers.contains_key("google"));
+    assert!(providers.contains_key("example"));
 }
 
 fn spawn_token_server(body: &str) -> String {

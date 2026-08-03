@@ -23,7 +23,7 @@ filters.
 | `config` | `auth:` section of `config/<env>.yml` → `AuthConfig` (strategies, 2FA, OAuth clients) |
 | `session` | Cookie/session strategy — integrates with `doido_controller::session` |
 | `jwt` | JWT bearer strategy — sign/verify access + refresh tokens |
-| `oauth` | OAuth 1.0a + OAuth2/OIDC provider registry and callback handlers |
+| `oauth` | `OAuthProvider` trait, config-backed `OAuth2Provider`, provider registry |
 | `two_factor` | Optional TOTP 2FA — enroll, verify, backup codes (feature `auth-2fa`) |
 | `extractors` | Axum `FromRequestParts` impls: `CurrentUser`, `MaybeUser`, `RequireAuth` |
 | `routes` | Pre-built `AuthRoutes` controller + route table for sessions/registration/2FA |
@@ -130,16 +130,18 @@ auth:
     refresh_ttl: 604800                # seconds (7 days)
     issuer: myapp
   oauth:
-    google:
+    idp:
       type: oauth2
-      client_id: "${GOOGLE_CLIENT_ID}"
-      client_secret: "${GOOGLE_CLIENT_SECRET}"
-      redirect_uri: "/auth/google/callback"
+      client_id: "${OAUTH_CLIENT_ID}"
+      client_secret: "${OAUTH_CLIENT_SECRET}"
+      redirect_uri: "/auth/idp/callback"
+      authorize_url: "https://idp.example.com/oauth/authorize"
+      token_url: "https://idp.example.com/oauth/token"
       scopes: [openid, email, profile]
-    twitter:
+    legacy:
       type: oauth1
-      consumer_key: "${TWITTER_KEY}"
-      consumer_secret: "${TWITTER_SECRET}"
+      consumer_key: "${OAUTH1_KEY}"
+      consumer_secret: "${OAUTH1_SECRET}"
   two_factor:
     enabled: false                     # opt-in; requires feature auth-2fa
     issuer: MyApp                      # TOTP label
@@ -181,13 +183,25 @@ async fn profile(CurrentUser(user): CurrentUser<User>) -> impl IntoResponse {
 }
 ```
 
-### OAuth / OAuth2
+### OAuth
 
-Provider registry with built-in Google, GitHub, and generic OAuth2/OIDC templates.
-Custom providers register at boot:
+Providers implement the [`OAuthProvider`](doido-auth/src/oauth.rs) trait. Config
+entries with `type: oauth2` become [`OAuth2Provider`](doido-auth/src/oauth.rs)
+instances at boot; custom providers register via `register_provider`:
 
 ```rust
-doido_auth::oauth::register_provider("custom", CustomProvider::new(config));
+use doido_auth::oauth::{OAuthProvider, OAuthTokenResponse, register_provider};
+use std::sync::Arc;
+
+struct CustomProvider { /* … */ }
+
+impl OAuthProvider for CustomProvider {
+    fn name(&self) -> &str { "custom" }
+    fn authorize_url(&self, state: &str) -> Result<String, AuthError> { /* … */ }
+    fn exchange_code(&self, code: &str) -> Result<OAuthTokenResponse, AuthError> { /* … */ }
+}
+
+register_provider(Arc::new(CustomProvider { /* … */ }));
 ```
 
 Callback routes are part of `AuthRoutes` (`GET /auth/:provider/callback`).

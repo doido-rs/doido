@@ -19,8 +19,8 @@ controlador.
   personalizados vía `AuthStrategy`.
 - **Extractors axum** — `CurrentUser`, `MaybeUser`, `RequireAuth` y `AuthToken`
   funcionan en handlers y acciones `#[controller]`.
-- **Proveedores OAuth2** — configura Google, GitHub u OIDC genérico en `auth.oauth`
-  en YAML; las rutas de callback vienen con `auth:install`.
+- **Proveedores OAuth** — configura cualquier proveedor de identidad en `auth.oauth`
+  mediante la trait `OAuthProvider`; las entradas OAuth 2.0 se cargan del YAML en el boot.
 - **2FA opcional** — enrollment y verificación TOTP detrás de la feature `auth-2fa`.
 - **Generadores** — `auth:install`, `auth:controller` y `auth:scaffold` aparecen en
   `cargo doido generate` cuando `doido-auth` es dependencia del proyecto.

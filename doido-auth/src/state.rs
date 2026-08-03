@@ -3,7 +3,7 @@
 use crate::config::AuthConfig;
 use crate::error::AuthError;
 use crate::jwt::JwtStrategy;
-use crate::oauth::{providers_from_config, OAuth2Provider};
+use crate::oauth::{providers_from_config, OAuthProvider};
 use crate::registry::{all_custom_strategies, get_strategy};
 use crate::strategy::AuthStrategy;
 use doido_core::Result;
@@ -17,7 +17,7 @@ pub struct AuthState {
     pub config: AuthConfig,
     pub strategies: Vec<Arc<dyn AuthStrategy>>,
     pub jwt: Option<Arc<JwtStrategy>>,
-    pub oauth: HashMap<String, Arc<OAuth2Provider>>,
+    pub oauth: HashMap<String, Arc<dyn OAuthProvider>>,
 }
 
 static AUTH_STATE: OnceLock<RwLock<Option<Arc<AuthState>>>> = OnceLock::new();

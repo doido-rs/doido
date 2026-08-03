@@ -1,4 +1,4 @@
-//! OAuth2 provider registry and token exchange.
+//! OAuth provider registry — abstract interface + config-driven OAuth 2.0 impl.
 
 use crate::config::{OAuthProviderConfig, OAuthProviderType};
 use crate::error::AuthError;
@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::{Arc, OnceLock, RwLock};
 
-/// OAuth2 token response from the provider.
+/// Token payload returned after a successful authorization-code exchange.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OAuthTokenResponse {
     pub access_token: String,
@@ -21,10 +21,22 @@ pub struct OAuthTokenResponse {
     pub id_token: Option<String>,
 }
 
-/// OAuth2 authorization + token exchange provider.
+/// Pluggable OAuth provider — apps register custom impls or use config-backed ones.
+pub trait OAuthProvider: Send + Sync {
+    /// Registry key (matches the `:provider` route segment and config entry name).
+    fn name(&self) -> &str;
+
+    /// Build the authorization redirect URL for the given CSRF `state`.
+    fn authorize_url(&self, state: &str) -> Result<String, AuthError>;
+
+    /// Exchange an authorization `code` for tokens.
+    fn exchange_code(&self, code: &str) -> Result<OAuthTokenResponse, AuthError>;
+}
+
+/// Config-driven OAuth 2.0 authorization-code provider.
 pub struct OAuth2Provider {
-    pub name: String,
-    pub config: OAuthProviderConfig,
+    name: String,
+    config: OAuthProviderConfig,
 }
 
 impl OAuth2Provider {
@@ -35,14 +47,24 @@ impl OAuth2Provider {
         }
     }
 
-    /// Build the provider authorization URL for the OAuth2 authorization-code flow.
-    pub fn authorize_url(&self, state: &str) -> Result<String, AuthError> {
-        if self.config.provider_type != OAuthProviderType::Oauth2 {
-            return Err(AuthError::OAuth(format!(
-                "provider {} is not oauth2",
-                self.name
-            )));
+    pub fn from_config(
+        name: impl Into<String>,
+        config: OAuthProviderConfig,
+    ) -> Result<Self, AuthError> {
+        let name = name.into();
+        if config.provider_type != OAuthProviderType::Oauth2 {
+            return Err(AuthError::OAuth(format!("provider {name} is not oauth2")));
         }
+        Ok(Self::new(name, config))
+    }
+}
+
+impl OAuthProvider for OAuth2Provider {
+    fn name(&self) -> &str {
+        &self.name
+    }
+
+    fn authorize_url(&self, state: &str) -> Result<String, AuthError> {
         let client_id = self
             .config
             .client_id
@@ -72,14 +94,7 @@ impl OAuth2Provider {
         ))
     }
 
-    /// Exchange an authorization `code` for tokens at the provider token endpoint.
-    pub fn exchange_code(&self, code: &str) -> Result<OAuthTokenResponse, AuthError> {
-        if self.config.provider_type != OAuthProviderType::Oauth2 {
-            return Err(AuthError::OAuth(format!(
-                "provider {} is not oauth2",
-                self.name
-            )));
-        }
+    fn exchange_code(&self, code: &str) -> Result<OAuthTokenResponse, AuthError> {
         let token_url = self
             .config
             .token_url
@@ -124,22 +139,22 @@ impl OAuth2Provider {
     }
 }
 
-static PROVIDERS: OnceLock<RwLock<HashMap<String, Arc<OAuth2Provider>>>> = OnceLock::new();
+static PROVIDERS: OnceLock<RwLock<HashMap<String, Arc<dyn OAuthProvider>>>> = OnceLock::new();
 
-fn providers() -> &'static RwLock<HashMap<String, Arc<OAuth2Provider>>> {
+fn providers() -> &'static RwLock<HashMap<String, Arc<dyn OAuthProvider>>> {
     PROVIDERS.get_or_init(|| RwLock::new(HashMap::new()))
 }
 
 /// Register a custom OAuth provider at boot.
-pub fn register_provider(name: impl Into<String>, provider: OAuth2Provider) {
+pub fn register_provider(provider: Arc<dyn OAuthProvider>) {
     providers()
         .write()
         .expect("oauth provider lock")
-        .insert(name.into(), Arc::new(provider));
+        .insert(provider.name().to_string(), provider);
 }
 
-/// Look up a registered OAuth provider.
-pub fn get_provider(name: &str) -> Option<Arc<OAuth2Provider>> {
+/// Look up a registered OAuth provider by name.
+pub fn get_provider(name: &str) -> Option<Arc<dyn OAuthProvider>> {
     providers()
         .read()
         .expect("oauth provider lock")
@@ -147,17 +162,16 @@ pub fn get_provider(name: &str) -> Option<Arc<OAuth2Provider>> {
         .cloned()
 }
 
-/// Build providers from config entries (OAuth2 only in v1).
+/// Build providers from config entries (OAuth 2.0 only in v1).
 pub fn providers_from_config(
     oauth: &HashMap<String, OAuthProviderConfig>,
-) -> HashMap<String, Arc<OAuth2Provider>> {
+) -> HashMap<String, Arc<dyn OAuthProvider>> {
     let mut map = HashMap::new();
     for (name, cfg) in oauth {
         if cfg.provider_type == OAuthProviderType::Oauth2 {
-            map.insert(
-                name.clone(),
-                Arc::new(OAuth2Provider::new(name, cfg.clone())),
-            );
+            if let Ok(provider) = OAuth2Provider::from_config(name, cfg.clone()) {
+                map.insert(name.clone(), Arc::new(provider) as Arc<dyn OAuthProvider>);
+            }
         }
     }
     map

@@ -19,8 +19,8 @@ session stack.
   backends via `AuthStrategy`.
 - **Axum extractors** — `CurrentUser`, `MaybeUser`, `RequireAuth`, and `AuthToken`
   work in handlers and `#[controller]` actions.
-- **OAuth2 providers** — configure Google, GitHub, or generic OIDC under `auth.oauth`
-  in YAML; callback routes ship with `auth:install`.
+- **OAuth providers** — configure any identity provider under `auth.oauth` via the
+  `OAuthProvider` trait; OAuth 2.0 entries load from YAML at boot.
 - **Optional 2FA** — TOTP enrollment and verification behind the `auth-2fa` feature.
 - **Generators** — `auth:install`, `auth:controller`, and `auth:scaffold` appear in
   `cargo doido generate` when `doido-auth` is a project dependency.

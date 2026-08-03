@@ -111,13 +111,13 @@ auth:
     refresh_ttl: 604800          # 7 días
     issuer: myapp
   oauth:
-    google:
+    idp:
       type: oauth2
-      client_id: "${GOOGLE_CLIENT_ID}"
-      client_secret: "${GOOGLE_CLIENT_SECRET}"
-      redirect_uri: "/auth/google/callback"
-      authorize_url: "https://accounts.google.com/o/oauth2/v2/auth"
-      token_url: "https://oauth2.googleapis.com/token"
+      client_id: "${OAUTH_CLIENT_ID}"
+      client_secret: "${OAUTH_CLIENT_SECRET}"
+      redirect_uri: "/auth/idp/callback"
+      authorize_url: "https://idp.example.com/oauth/authorize"
+      token_url: "https://idp.example.com/oauth/token"
       scopes: [openid, email, profile]
   two_factor:
     enabled: false               # requiere feature auth-2fa
@@ -240,22 +240,32 @@ Las rutas respetan `auth.routes` en la config (`prefix`, `sign_in`, etc.).
 
 ## OAuth
 
-Los proveedores OAuth2 se configuran bajo `auth.oauth`. Cada entrada necesita
-`type: oauth2`, credenciales, redirect URI y URLs de authorize/token:
+Los proveedores implementan la trait `OAuthProvider`. Las entradas con
+`type: oauth2` en la config se convierten en instancias de `OAuth2Provider` en el
+boot; los proveedores personalizados se registran en runtime:
 
 ```rust
-use doido::auth::oauth::{OAuth2Provider, get_provider};
+use doido::auth::oauth::{OAuthProvider, OAuthTokenResponse, register_provider, get_provider};
+use std::sync::Arc;
 
-// Cargado automáticamente en init; o registra manualmente:
-doido::auth::oauth::register_provider("custom", OAuth2Provider::new("custom", config));
+struct CustomProvider { /* … */ }
 
-let provider = get_provider("google").expect("google configurado");
+impl OAuthProvider for CustomProvider {
+    fn name(&self) -> &str { "custom" }
+    fn authorize_url(&self, state: &str) -> Result<String, AuthError> { /* … */ }
+    fn exchange_code(&self, code: &str) -> Result<OAuthTokenResponse, AuthError> { /* … */ }
+}
+
+register_provider(Arc::new(CustomProvider { /* … */ }));
+
+let provider = get_provider("idp").expect("idp configurado");
 let url = provider.authorize_url("random-state")?;
 let tokens = provider.exchange_code("auth-code")?;
 ```
 
-Las rutas de callback forman parte del `OauthController` generado. La config OAuth 1.0a
-se reconoce; el intercambio completo de token está aplazado.
+Las rutas de callback forman parte del `OauthController` generado. Las entradas
+OAuth 1.0a en la config se reconocen, pero requieren una impl personalizada de
+`OAuthProvider`.
 
 ## Autenticación de dos factores (feature `auth-2fa`)
 
