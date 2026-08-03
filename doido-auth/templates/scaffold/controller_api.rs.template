@@ -1,0 +1,88 @@
+use crate::models::{singular}::{ActiveModel, Column, Entity};
+use crate::models::user::Model as User;
+use doido::model::sea_orm::{entity::prelude::*, Set};
+use doido::controller::{controller, Context, Response};
+use doido_auth::{require_user, CurrentUser};
+use serde::Deserialize;
+
+/// Strong params for creating/updating a {Model}.
+#[derive(Deserialize)]
+pub struct {Model}Form {
+{params_fields}}
+
+pub struct {Controller};
+
+#[controller]
+impl {Controller} {
+    #[before_action(require_user)]
+    /// GET /{plural}
+    pub async fn index(ctx: Context, user: CurrentUser<User>) -> doido::Result<Response> {
+        let {plural} = Entity::find()
+            .filter(Column::UserId.eq(user.id()))
+            .all(ctx.db())
+            .await?;
+        Ok(ctx.json({plural}))
+    }
+
+    #[before_action(require_user)]
+    /// GET /{plural}/{id}
+    pub async fn show(ctx: Context, user: CurrentUser<User>) -> doido::Result<Response> {
+        let id = parse_id(&ctx);
+        match Entity::find_by_id(id)
+            .filter(Column::UserId.eq(user.id()))
+            .one(ctx.db())
+            .await?
+        {
+            Some({singular}) => Ok(ctx.json({singular})),
+            None => Ok(ctx.status(404)),
+        }
+    }
+
+    #[before_action(require_user)]
+    /// POST /{plural}
+    pub async fn create(mut ctx: Context, user: CurrentUser<User>) -> doido::Result<Response> {
+        let form: {Model}Form = ctx.body_json().await?;
+        let record = ActiveModel {
+            user_id: Set(user.id()),
+{active_model_sets}            ..Default::default()
+        };
+        let {singular} = record.insert(ctx.db()).await?;
+        Ok(ctx.json({singular}))
+    }
+
+    #[before_action(require_user)]
+    /// PATCH/PUT /{plural}/{id}
+    pub async fn update(mut ctx: Context, user: CurrentUser<User>) -> doido::Result<Response> {
+        let id = parse_id(&ctx);
+        let form: {Model}Form = ctx.body_json().await?;
+        match Entity::find_by_id(id)
+            .filter(Column::UserId.eq(user.id()))
+            .one(ctx.db())
+            .await?
+        {
+            Some(existing) => {
+                let mut record: ActiveModel = existing.into();
+{active_model_assigns}                let {singular} = record.update(ctx.db()).await?;
+                Ok(ctx.json({singular}))
+            }
+            None => Ok(ctx.status(404)),
+        }
+    }
+
+    #[before_action(require_user)]
+    /// DELETE /{plural}/{id}
+    pub async fn destroy(ctx: Context, user: CurrentUser<User>) -> doido::Result<Response> {
+        let id = parse_id(&ctx);
+        Entity::delete_many()
+            .filter(Column::UserId.eq(user.id()))
+            .filter(Column::Id.eq(id))
+            .exec(ctx.db())
+            .await?;
+        Ok(ctx.status(204))
+    }
+}
+
+/// Parses the `:id` path segment, defaulting to 0 when absent/invalid.
+fn parse_id(ctx: &Context) -> i32 {
+    ctx.param("id").and_then(|v| v.parse().ok()).unwrap_or_default()
+}

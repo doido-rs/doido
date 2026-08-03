@@ -1,0 +1,12 @@
+{% extends "layouts/application.html.tera" %}
+{% block content %}
+<h1>Sign up</h1>
+{% if error %}<p>{{ error }}</p>{% endif %}
+<form method="post" action="/users/sign_up">
+  <label>Email<br><input type="email" name="email" required></label><br>
+  <label>Password<br><input type="password" name="password" required></label><br>
+  <label>Password confirmation<br><input type="password" name="password_confirmation" required></label><br>
+  <button type="submit">Sign up</button>
+</form>
+<p><a href="/users/sign_in">Sign in</a></p>
+{% endblock %}

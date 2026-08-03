@@ -1,0 +1,19 @@
+{migration_imports}
+use doido::model::sea_orm_migration::prelude::*;
+
+pub struct Migration;
+
+impl MigrationName for Migration {
+    fn name(&self) -> &str {
+        "{migration_name}"
+    }
+}
+
+#[async_trait::async_trait]
+impl MigrationTrait for Migration {
+    async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+{up_body}    }
+
+    async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+{down_body}    }
+}

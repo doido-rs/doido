@@ -1,0 +1,6 @@
+{% extends "layouts/application.html.tera" %}
+{% block content %}
+<h1>New {Model}</h1>
+{% include "{plural}/_form.html.tera" %}
+<a href="/{plural}">Back</a>
+{% endblock %}

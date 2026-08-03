@@ -8,11 +8,12 @@ and **pre-built session/registration routes** that work after a single line in
 compose with the existing `doido-controller` session stack and `#[controller]`
 filters.
 
-> **Status (2026-08-03): not started.** Spec only — crate, extractors, strategies,
-> routes, and generators are backlog items in `harness/prd.json` (US-105→US-113).
-> Auth generators live in this crate and appear in `doido generate` only when
-> `doido-auth` is a project dependency (see *Generators* below).
-> Password hashing today lives in `doido-model::password`; auth will build on it.
+> **Status (2026-08-03): implemented.** Crate `doido-auth` ships with `AuthUser`,
+> cookie/JWT/OAuth strategies, optional 2FA (`auth-2fa`), axum extractors, `routes::mount`,
+> and generators (`auth:install` / `auth:controller` / `auth:scaffold`). Generators appear
+> in `doido generate` only when `doido-auth` is a project dependency. Harness US-105→US-112
+> done; release e2e (`US-113`, `auth_install`) is scaffolded as `#[ignore]`.
+> Password hashing lives in `doido-model::password`; auth builds on it.
 
 ## Crate map
 

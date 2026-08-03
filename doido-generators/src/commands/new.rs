@@ -76,15 +76,17 @@ pub fn run_new(
     non_interactive: bool,
     database: Option<DatabaseBackend>,
     cable: bool,
+    auth: bool,
     cache: Option<CacheBackend>,
     jobs: Option<JobsBackend>,
 ) {
-    let (database, cache, jobs, cable) = if non_interactive {
+    let (database, cache, jobs, cable, auth) = if non_interactive {
         (
             database.unwrap_or(DatabaseBackend::Sqlite),
             cache.unwrap_or(CacheBackend::Memory),
             jobs.unwrap_or(JobsBackend::Memory),
             cable,
+            auth,
         )
     } else {
         (
@@ -92,6 +94,7 @@ pub fn run_new(
             cache.unwrap_or_else(prompt_cache),
             jobs.unwrap_or_else(prompt_jobs),
             if cable { true } else { prompt_cable() },
+            auth,
         )
     };
 
@@ -103,11 +106,20 @@ pub fn run_new(
     if cable {
         new_args.push("--cable");
     }
+    if auth {
+        new_args.push("--auth");
+    }
     match registry.run("new", &new_args) {
         Ok(files) => {
             if let Err(e) = write_files(&files, Path::new(".")) {
                 doido_core::tracing::error!("error writing files: {e}");
                 std::process::exit(1);
+            }
+            if auth {
+                let prev = std::env::current_dir().expect("cwd");
+                std::env::set_current_dir(name).expect("cd into new app");
+                crate::commands::generate::run_generate("auth:install", &["--api"]);
+                std::env::set_current_dir(prev).expect("restore cwd");
             }
             let git_result = Command::new("git").args(["init", name]).output();
             match git_result {

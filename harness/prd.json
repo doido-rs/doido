@@ -1695,7 +1695,7 @@
       "crate": "doido-auth",
       "id": "US-105",
       "priority": 105,
-      "passes": false,
+      "passes": true,
       "notes": "Foundation story: crate layout, AuthUser trait, auth: YAML config. No extractors or routes yet."
     },
     {
@@ -1712,7 +1712,7 @@
       "crate": "doido-auth",
       "id": "US-106",
       "priority": 106,
-      "passes": false,
+      "passes": true,
       "notes": "Depends on US-105. Session strategy is the default; builds on existing CookieSessionStore."
     },
     {
@@ -1729,7 +1729,7 @@
       "crate": "doido-auth",
       "id": "US-107",
       "priority": 107,
-      "passes": false,
+      "passes": true,
       "notes": "Depends on US-106. Use jsonwebtoken or similar via doido-auth re-export; no direct dep from apps."
     },
     {
@@ -1746,7 +1746,7 @@
       "crate": "doido-auth",
       "id": "US-108",
       "priority": 108,
-      "passes": false,
+      "passes": true,
       "notes": "Depends on US-106. Provider secrets from credentials/env."
     },
     {
@@ -1763,7 +1763,7 @@
       "crate": "doido-auth",
       "id": "US-109",
       "priority": 109,
-      "passes": false,
+      "passes": true,
       "notes": "Depends on US-106. Optional feature; not required for auth:install default."
     },
     {
@@ -1780,7 +1780,7 @@
       "crate": "doido-auth",
       "id": "US-110",
       "priority": 110,
-      "passes": false,
+      "passes": true,
       "notes": "Depends on US-106 (+ US-108 for OAuth callbacks, US-109 for 2FA routes when enabled)."
     },
     {
@@ -1798,7 +1798,7 @@
       "crate": "doido-auth",
       "id": "US-111",
       "priority": 111,
-      "passes": false,
+      "passes": true,
       "notes": "Depends on US-110. All auth generator code lives in doido-auth; pattern similar to storage:install but crate-owned."
     },
     {
@@ -1816,7 +1816,7 @@
       "crate": "doido-generators",
       "id": "US-112",
       "priority": 112,
-      "passes": false,
+      "passes": true,
       "notes": "Depends on US-111. doido-generators gains optional dep on doido-auth for workspace builds; runtime visibility gated by project's Cargo.toml."
     },
     {
@@ -1833,7 +1833,7 @@
       "id": "US-113",
       "priority": 113,
       "passes": false,
-      "notes": "Depends on US-112. E2E uses doido new --auth bootstrap (adds doido-auth dep before generators are visible)."
+      "notes": "Depends on US-112. E2E scenario auth_install.rs exists (#[ignore]); run via make release-e2e."
     }
   ]
 }

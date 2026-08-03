@@ -75,6 +75,9 @@ enum Commands {
         /// Include a doido-cable example channel and its wiring
         #[arg(long)]
         cable: bool,
+        /// Add doido-auth and run auth:install
+        #[arg(long)]
+        auth: bool,
         /// Cache backend (prompted when omitted in interactive mode)
         #[arg(long, value_enum)]
         cache: Option<CacheBackend>,
@@ -143,10 +146,11 @@ pub async fn run(routes: Option<axum::Router>) {
             non_interactive,
             database,
             cable,
+            auth,
             cache,
             jobs,
         } => {
-            run_new(&name, non_interactive, database, cable, cache, jobs);
+            run_new(&name, non_interactive, database, cable, auth, cache, jobs);
         }
     }
 }

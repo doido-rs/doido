@@ -34,6 +34,7 @@ pub fn e2e_lock() -> MutexGuard<'static, ()> {
 pub enum BaseProfile {
     Default,
     WithCable,
+    WithAuth,
 }
 
 impl BaseProfile {
@@ -41,6 +42,7 @@ impl BaseProfile {
         let name = match self {
             Self::Default => "default",
             Self::WithCable => "cable",
+            Self::WithAuth => "auth",
         };
         e2e_apps_root().join("_base").join(name)
     }
@@ -49,6 +51,9 @@ impl BaseProfile {
         let mut args = vec!["new", "blog", "--non-interactive", "--database=sqlite"];
         if self == Self::WithCable {
             args.push("--cable");
+        }
+        if self == Self::WithAuth {
+            args.push("--auth");
         }
         args
     }
@@ -83,6 +88,7 @@ fn clear_sqlite_databases(app: &Path) {
 fn ensure_base_app(profile: BaseProfile) -> PathBuf {
     static DEFAULT: OnceLock<PathBuf> = OnceLock::new();
     static CABLE: OnceLock<PathBuf> = OnceLock::new();
+    static AUTH: OnceLock<PathBuf> = OnceLock::new();
 
     let init = || {
         let dir = profile.cache_dir();
@@ -97,6 +103,7 @@ fn ensure_base_app(profile: BaseProfile) -> PathBuf {
     match profile {
         BaseProfile::Default => DEFAULT.get_or_init(init).clone(),
         BaseProfile::WithCable => CABLE.get_or_init(init).clone(),
+        BaseProfile::WithAuth => AUTH.get_or_init(init).clone(),
     }
 }
 

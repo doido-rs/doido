@@ -1,0 +1,46 @@
+use crate::models::user::{ActiveModel, Entity, Model as User};
+use doido::controller::{controller, Context, Response};
+use doido::model::sea_orm::{entity::prelude::*, Set};
+use doido::model::password::{hash_password, HasSecurePassword};
+use doido_auth::{sign_in, AuthUser};
+use serde::Deserialize;
+
+#[derive(Deserialize)]
+pub struct SignUpForm {
+    pub email: String,
+    pub password: String,
+    pub password_confirmation: String,
+}
+
+pub struct RegistrationsController;
+
+#[controller]
+impl RegistrationsController {
+    /// POST /users/sign_up
+    pub async fn create(mut ctx: Context) -> doido::Result<Response> {
+        let form: SignUpForm = ctx.body_json().await?;
+        if form.password != form.password_confirmation {
+            return Ok(ctx.status(422));
+        }
+        if Entity::find()
+            .filter(Column::Email.eq(&form.email))
+            .one(ctx.db())
+            .await?
+            .is_some()
+        {
+            return Ok(ctx.status(422));
+        }
+        let now = chrono::Utc::now().naive_utc();
+        let digest = hash_password(&form.password)?;
+        let record = ActiveModel {
+            email: Set(form.email),
+            password_digest: Set(digest),
+            created_at: Set(now),
+            updated_at: Set(now),
+            ..Default::default()
+        };
+        let user = record.insert(ctx.db()).await?;
+        sign_in(&mut ctx, &user)?;
+        Ok(ctx.json(user))
+    }
+}

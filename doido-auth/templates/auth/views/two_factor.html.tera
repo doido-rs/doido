@@ -1,0 +1,8 @@
+{% extends "layouts/application.html.tera" %}
+{% block content %}
+<h1>Two-factor authentication</h1>
+<form method="post" action="/users/two_factor">
+  <label>Authentication code<br><input type="text" name="code" required autocomplete="one-time-code"></label><br>
+  <button type="submit">Verify</button>
+</form>
+{% endblock %}

@@ -2,6 +2,23 @@
 
 use serde_json::Value;
 
+pub struct HttpResponse {
+    pub status: u16,
+    pub set_cookie: Vec<String>,
+}
+
+pub fn post_json_with_response(url: &str, body: Value) -> HttpResponse {
+    let response = ureq::post(url).send_json(body).expect("POST request");
+    let status = response.status().as_u16();
+    let set_cookie = response
+        .headers()
+        .get("set-cookie")
+        .map(|v| v.to_str().unwrap_or_default().to_string())
+        .into_iter()
+        .collect();
+    HttpResponse { status, set_cookie }
+}
+
 pub fn get_json(url: &str) -> Value {
     ureq::get(url)
         .call()

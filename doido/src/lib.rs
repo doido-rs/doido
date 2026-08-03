@@ -12,6 +12,9 @@ pub use doido_view as view;
 
 pub use doido_cable as cable;
 
+#[cfg(feature = "auth")]
+pub use doido_auth as auth;
+
 // Flat re-exports for ergonomic top-level access
 pub use doido_core::Result;
 pub use doido_generators::{run, GeneratedFile, Generator};

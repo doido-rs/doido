@@ -5,14 +5,12 @@ authoritative map of what is **actually built** in the workspace, the crate ↔ 
 status, and the reconciliation decisions where the specs and the code diverge. It
 is the source of truth for the implementation backlog (`prd.json`).
 
-Last reconciled: 2026-08-03 (branch `creating_doido_auth`), added spec 16 (`doido-auth`)
-and harness stories US-105→US-113. Prior reconciliation: 2026-07-28 (`cleaning_the_specs`).
+Last reconciled: 2026-08-03 (branch `creating_doido_auth`), implemented `doido-auth` (spec 16,
+US-105→US-112). Prior reconciliation: 2026-07-28 (`cleaning_the_specs`).
 
 ## Actual workspace (from `Cargo.toml`)
 
-15 members today: 10 library crates + 4 proc-macro crates + the `doido` meta crate.
-**Planned:** `doido-auth` (+ optional `doido-auth/macros`) — see spec 16 and
-`harness/prd.json` US-105→US-113.
+16 members today: 11 library crates + 4 proc-macro crates + the `doido` meta crate.
 Several specced crates were **merged**, so they do not exist as separate crates:
 
 - `doido-router` → merged into **`doido-controller`** (`routes!` macro lives there).
@@ -44,7 +42,7 @@ Legend: **Done** = implemented + tested · **Partial** = core works, spec featur
 | `doido-generators` | 06, 06b | Done | CLI (`new`/`generate`/`server`/`console` via evcxr/`db`/`worker`) + generator registry + generators (model, controller, migration, scaffold, resource, mailer, job, channel, storage_install/adapter, templates, generator, locale) + route auto-injection + embedded templates. `doido db` wires `create`/`reset`/`prepare`/`seed`/`schema dump|load` (delegating to `doido-model` tasks; `db/schema.sql`/`db/seeds.sql` conventions) plus the SeaORM passthrough; `jobs:failed/retry/discard` are backed by the dead-letter store (`discard_dead` trait method + per-backend impls). `credentials edit`/`show` encrypt/decrypt `config/credentials.yml.enc` with AES-256-GCM (`doido_core::crypto`), keyed by `config/master.key` (auto-generated + gitignored) or `DOIDO_MASTER_KEY`. `doido server --port/--env` override the bind port and environment; `doido worker`/`doido jobs` pick the backend (memory/db/redis), queues, and concurrency from the `jobs:` section of `config/<env>.yml` (`doido_jobs::config::load` + `build_configured_queue`; db/redis backends compiled into the CLI). **Gap:** the worker's job dispatch is still a stub (logs + acks) — a job-type registry mapping each `#[job]` to its `perform()` is not yet wired. |
 | `doido` (meta) | all | Done | re-exports + `run()` entry. |
 | `doido-config` | 05 | **Partial / decided** | Reality is per-env **YAML** (`config/<env>.yml`) via `YamlConfig` (split across `doido-controller` + `doido-model`) + `SECTION__KEY` env overrides (`doido_controller::env_override`) + an initializers boot registry. **AES-256-GCM encrypted credentials** (`config/credentials.yml.enc` + `config/master.key`/`DOIDO_MASTER_KEY`) with the `doido credentials edit/show` CLI are implemented (Phase 5, `doido-generators` + `doido_core::crypto`). **Still deferred:** auto-injecting decrypted credentials into the config tree. (Layered TOML was dropped from spec 05 — YAML is the decided path.) |
-| `doido-auth` | 16 | **Not started** | Spec only (2026-08-03). Target: generic `AuthUser` trait, axum extractors, pluggable strategies (cookie/JWT/OAuth+OAuth2), optional 2FA (feature `auth-2fa`), pre-built `auth_routes!`, **generators owned by this crate** (`auth:install`/`auth:controller`/`auth:scaffold` via `doido_auth::generators::register`) visible in CLI only when `doido-auth` is a project dependency. Builds on `doido-model::password` + `doido-controller` sessions. Backlog: US-105→US-113. |
+| `doido-auth` | 16 | Done | `AuthUser` trait + `auth:` YAML config + cookie session + JWT bearer + OAuth2 providers + optional TOTP (`auth-2fa`) + axum extractors/layer + `routes::mount` (sign-in/up/out, password stubs, OAuth redirect/callback) + custom strategy registry + generators (`auth:install`/`auth:controller`/`auth:scaffold`) merged into CLI when `Cargo.toml` lists the dep (`doido new --auth`). **Deferred:** OAuth1 token exchange, `auth_routes!` macro (apps use explicit `post!` routes), refresh-token rotation table, `#[auth_user]` derive. Release e2e `auth_install` is `#[ignore]`. |
 
 ## Reconciliation decisions
 
@@ -64,7 +62,7 @@ specific crate path.
 | `sea_orm_migration` | `doido_model::sea_orm_migration` | Migration crates depend on `doido-model` only — no direct `sea-orm-migration` dep |
 | `sea_orm_cli` | `doido_model::sea_orm_cli` | Feature `cli` on `doido-model`; used by `doido db` |
 | `axum` | `doido_controller::axum` | `doido-controller` re-exports axum (incl. `ws` for cable/storage serving) |
-| Auth extractors / strategies | `doido_auth::…` | Planned crate (spec 16); JWT/OAuth upstream deps re-exported from `doido-auth` only |
+| Auth extractors / strategies | `doido_auth::…` | `doido-auth` crate; JWT/OAuth upstream deps imported via `doido-auth` only |
 | Other workspace crates | `doido_<crate>` directly | e.g. `doido_storage`, `doido_jobs` — **not** `doido::storage` inside this repo |
 | Meta crate `doido` | `doido::…` | **Generated apps and external consumers only** |
 

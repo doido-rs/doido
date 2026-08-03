@@ -63,6 +63,7 @@ struct TemplateContext<'a> {
     db_url_production: String,
     sqlx_feature: &'a str,
     cable: bool,
+    auth: bool,
     dep_mode: DependencyMode,
     doido_dep: String,
     doido_migration_dep: String,
@@ -317,6 +318,15 @@ fn substitute_template(template: &str, ctx: &TemplateContext<'_>) -> String {
         (String::new(), String::new(), String::new())
     };
 
+    let doido_auth_deps = if ctx.auth {
+        format!(
+            "doido-auth = {}\nchrono = {{ version = \"0.4\", features = [\"clock\"] }}\n",
+            doido_dependency(&ctx.dep_mode, "doido-auth", "")
+        )
+    } else {
+        String::new()
+    };
+
     template
         .replace("{doido_name}", ctx.name)
         .replace("{doido_db_url_test}", &ctx.db_url_test)
@@ -344,6 +354,7 @@ fn substitute_template(template: &str, ctx: &TemplateContext<'_>) -> String {
         )
         .replace("{doido_model_dep}", &ctx.doido_model_dep)
         .replace("{doido_cable_deps}", &cable_deps)
+        .replace("{doido_auth_deps}", &doido_auth_deps)
         .replace("{doido_channels_module}", &cable_module)
         .replace("{doido_cable_readme}", &cable_readme)
         .replace("{doido_cache_section}", &ctx.cache_section)
@@ -446,6 +457,7 @@ impl Generator for ProjectGenerator {
         let cache = parse_cache(flag_value(args, "--cache=", "memory"))?;
         let jobs = parse_jobs(flag_value(args, "--jobs=", "memory"))?;
         let cable = args.contains(&"--cable");
+        let auth = args.contains(&"--auth");
 
         let database = database.as_str();
         let db_url = default_database_url(database, name, "development");
@@ -467,6 +479,7 @@ impl Generator for ProjectGenerator {
             db_url_production,
             sqlx_feature,
             cable,
+            auth,
             doido_dep: doido_dependency(&dep_mode, "doido", &doido_features(cache, database)),
             doido_migration_dep: doido_dependency(
                 &dep_mode,

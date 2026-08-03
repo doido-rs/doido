@@ -1,7 +1,33 @@
+use crate::auth_registry;
 use crate::commands::write_files;
-use crate::{default_registry, project_generator};
+use crate::project_auth;
+use crate::{default_registry, project_generator, GeneratorRegistry};
 use doido_core::Result;
 use std::path::Path;
+
+const CARGO_TOML: &str = "Cargo.toml";
+
+/// Build the effective registry for `base/Cargo.toml` (typically the process cwd).
+pub fn registry_for_project_at(base: &Path) -> GeneratorRegistry {
+    let mut reg = default_registry();
+    if project_auth::project_has_doido_auth(base.join(CARGO_TOML)) {
+        auth_registry::register_auth_generators(&mut reg);
+    }
+    reg
+}
+
+/// Build the effective registry for the current working directory.
+pub fn registry_for_project() -> GeneratorRegistry {
+    registry_for_project_at(Path::new("."))
+}
+
+pub fn project_has_doido_auth_at(base: &Path) -> bool {
+    project_auth::project_has_doido_auth(base.join(CARGO_TOML))
+}
+
+pub fn project_has_doido_auth() -> bool {
+    project_has_doido_auth_at(Path::new("."))
+}
 
 /// Entry point for `doido generate [name] [args...]`. With no name — or a help
 /// flag — it lists the available generators; otherwise it runs the named one.
@@ -19,11 +45,23 @@ pub fn run(args: &[String]) {
 /// Print the built-in and project-local generators, to stdout (the command's
 /// primary output).
 fn print_generator_list() {
-    let registry = default_registry();
+    let registry = registry_for_project();
+    let auth_installed = project_has_doido_auth();
+
     println!("Available generators:\n");
     println!("Built-in:");
     for name in registry.list() {
+        if auth_installed && auth_registry::auth_generator_names().contains(&name) {
+            continue;
+        }
         println!("  {name}");
+    }
+
+    if auth_installed {
+        println!("\nAuth (doido-auth):");
+        for name in auth_registry::auth_generator_names() {
+            println!("  {name}");
+        }
     }
 
     let project = project_generator::list();
@@ -59,16 +97,27 @@ pub fn run_generate(generator: &str, args: &[&str]) {
 /// Run a built-in generator, or fall back to a project-local generator under
 /// `lib/generators/<name>/`.
 fn resolve_and_run(generator: &str, args: &[&str]) -> Result<Vec<crate::GeneratedFile>> {
-    let registry = default_registry();
+    if auth_registry::auth_generator_names().contains(&generator) && !project_has_doido_auth() {
+        return Err(doido_core::anyhow::anyhow!(
+            "auth generator '{generator}' requires doido-auth in Cargo.toml. \
+             Add the dependency (e.g. `cargo add doido-auth`) or scaffold with `doido new --auth`."
+        ));
+    }
+
+    let registry = registry_for_project();
     if registry.list().contains(&generator) {
         registry.run(generator, args)
     } else if let Some(dir) = project_generator::find(generator) {
         doido_core::tracing::info!("using project generator: {}", dir.display());
         project_generator::run(&dir, args)
     } else {
-        Err(doido_core::anyhow::anyhow!(
-            "unknown generator '{generator}'. built-in: {}. project generators live in lib/generators/<name>/",
+        let mut hint = format!(
+            "unknown generator '{generator}'. built-in: {}",
             registry.list().join(", ")
-        ))
+        );
+        if !project_has_doido_auth() {
+            hint.push_str(". auth generators require doido-auth in Cargo.toml");
+        }
+        Err(doido_core::anyhow::anyhow!(hint))
     }
 }

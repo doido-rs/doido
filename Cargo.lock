@@ -1656,6 +1656,7 @@ name = "doido"
 version = "0.0.9"
 dependencies = [
  "assert_cmd",
+ "doido-auth",
  "doido-cable",
  "doido-cache",
  "doido-controller",
@@ -1668,6 +1669,33 @@ dependencies = [
  "doido-view",
  "predicates",
  "tokio",
+]
+
+[[package]]
+name = "doido-auth"
+version = "0.0.9"
+dependencies = [
+ "async-trait",
+ "axum",
+ "base64 0.23.0",
+ "chrono",
+ "doido-controller",
+ "doido-core",
+ "doido-model",
+ "http 1.4.2",
+ "http-body-util",
+ "jsonwebtoken",
+ "serde",
+ "serde_json",
+ "serde_norway",
+ "tempfile",
+ "thiserror 2.0.19",
+ "tokio",
+ "totp-lite",
+ "tower",
+ "tracing",
+ "ureq",
+ "uuid",
 ]
 
 [[package]]
@@ -1776,6 +1804,7 @@ dependencies = [
  "assert_cmd",
  "chrono",
  "clap",
+ "doido-auth",
  "doido-cache",
  "doido-controller",
  "doido-core",
@@ -5670,6 +5699,18 @@ name = "toml_write"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5d99f8c9a7727884afe522e9bd5edbfc91a3312b36a77b5fb8926e4c31a41801"
+
+[[package]]
+name = "totp-lite"
+version = "2.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f8e43134db17199f7f721803383ac5854edd0d3d523cc34dba321d6acfbe76c3"
+dependencies = [
+ "digest 0.10.7",
+ "hmac 0.12.1",
+ "sha1 0.10.7",
+ "sha2 0.10.9",
+]
 
 [[package]]
 name = "tower"
