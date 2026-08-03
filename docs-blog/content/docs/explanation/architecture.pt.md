@@ -18,6 +18,7 @@ layout convencional de aplicação.
 | `doido-core` | Active Support | Erros, inflector, utilitários |
 | `doido-config` | — | YAML por ambiente, credenciais criptografadas |
 | `doido-controller` | Action Dispatch + Controller | Rotas, controllers, middleware |
+| `doido-auth` | Devise + OmniAuth + JWT | Trait AuthUser, estratégias, extractors, geradores |
 | `doido-model` | Active Record | Re-exports sea-orm, pool, helpers de teste |
 | `doido-view` | Action View | Templates Tera, layouts, helpers |
 | `doido-generators` | Generators + CLI | Scaffolds, `cargo doido server`, `cargo doido db` |
@@ -37,16 +38,17 @@ a camada curada; as specs são a fonte da verdade para intenção de design.
 
 **Stack async-native.** Controllers são handlers `async fn` no axum. ORM é sea-orm.
 
-**Backends plugáveis.** Jobs, cache, mail, storage, cable e sessões aceitam backends
-intercambiáveis — memória/SQLite no dev, Redis/Postgres/S3 em produção.
+**Backends plugáveis.** Jobs, cache, mail, storage, cable, sessões e estratégias de auth
+aceitam backends intercambiáveis — memória/SQLite no dev, Redis/Postgres/S3 em produção.
 
 ## Sequência de boot
 
 1. Carregar `config/<env>.yml` (com descriptografia opcional de credenciais).
 2. Conectar o pool do banco (`doido-model`).
-3. Montar o router axum a partir de `config/routes.rs` (`doido-controller`).
-4. Empilhar middleware (logging, sessões, CORS, …) conforme config.
-5. Bind e servir (`cargo doido server`).
+3. Inicializar auth quando habilitado (`doido-auth::init`).
+4. Montar o router axum a partir de `config/routes.rs` (`doido-controller`).
+5. Empilhar middleware (logging, sessões, auth, CORS, …) conforme config.
+6. Bind e servir (`cargo doido server`).
 
 Veja **[Primeiros passos](/pt/docs/tutorials/getting-started/)** na prática ou a
 **[Referência](/pt/docs/reference/)** para APIs de subsistemas.

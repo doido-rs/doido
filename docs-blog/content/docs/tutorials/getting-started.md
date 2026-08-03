@@ -16,6 +16,10 @@ database, and drives code generators.
 doido new blog
 cd blog
 
+# Or scaffold with authentication (Devise-style sessions + registration)
+doido new blog --database=sqlite --auth
+cd blog
+
 # Set up the database and run pending migrations
 cargo doido db create
 cargo doido db migrate
@@ -23,6 +27,10 @@ cargo doido db migrate
 # Boot the HTTP server on http://0.0.0.0:3000
 cargo doido server
 ```
+
+With `--auth`, the app includes `doido-auth`, a User model, sign-in/sign-up routes,
+and auth controllers. See the [Auth reference](/docs/reference/auth/) for JWT, OAuth,
+2FA, and extractors.
 
 `GET /` answers with JSON from the generated `HelloController`:
 

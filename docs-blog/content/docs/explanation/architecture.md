@@ -18,6 +18,7 @@ wire them together into a conventional application layout.
 | `doido-core` | Active Support | Errors, inflector, shared utilities |
 | `doido-config` | — | Per-env YAML, encrypted credentials |
 | `doido-controller` | Action Dispatch + Controller | Routes, controllers, middleware |
+| `doido-auth` | Devise + OmniAuth + JWT | AuthUser trait, strategies, extractors, generators |
 | `doido-model` | Active Record | sea-orm re-exports, pool, test helpers |
 | `doido-view` | Action View | Tera templates, layouts, helpers |
 | `doido-generators` | Rails generators + CLI | Scaffolds, `cargo doido server`, `cargo doido db` |
@@ -41,16 +42,17 @@ truth for design intent.
 sea-orm. Nothing blocks the runtime unless you ask it to.
 
 **Pluggable backends.** Jobs, cache, mail delivery, storage services, cable pub/sub,
-and session stores all accept swappable backends — memory and SQLite defaults for
-local development, Redis/Postgres/S3 in production.
+session stores, and auth strategies all accept swappable backends — memory and SQLite
+defaults for local development, Redis/Postgres/S3 in production.
 
 ## Boot sequence
 
 1. Load `config/<env>.yml` (with optional credential decryption).
 2. Connect the database pool (`doido-model`).
-3. Build the axum router from `config/routes.rs` (`doido-controller`).
-4. Layer middleware (logging, sessions, CORS, …) from config.
-5. Bind and serve (`cargo doido server`).
+3. Initialise auth when enabled (`doido-auth::init`).
+4. Build the axum router from `config/routes.rs` (`doido-controller`).
+5. Layer middleware (logging, sessions, auth, CORS, …) from config.
+6. Bind and serve (`cargo doido server`).
 
 See **[Getting started](/docs/tutorials/getting-started/)** to walk through this
 in a real app, or browse the **[Reference](/docs/reference/)** for subsystem APIs.

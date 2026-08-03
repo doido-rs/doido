@@ -77,6 +77,21 @@ escreve arquivos (e alguns injetam rotas):
 | `storage:install` | tabelas de storage + config |
 | `storage:adapter` | o esqueleto de um adapter de storage customizado |
 
+Quando `doido-auth` está no `Cargo.toml`, três geradores adicionais aparecem em
+**Auth (doido-auth)**:
+
+| Gerador | Gera |
+|---------|------|
+| `auth:install` | Migration + model User, controllers de auth, views, config, rotas |
+| `auth:controller` | Controller com `CurrentUser` / guards de auth |
+| `auth:scaffold` | Scaffold com auth e ownership por `user_id` |
+
+```bash
+doido new blog --database=sqlite --auth    # adiciona doido-auth + roda auth:install
+cargo doido generate auth:install --api    # endpoints de auth só JSON
+cargo doido generate auth:scaffold Post title:string body:text
+```
+
 ```bash
 cargo doido generate model Post title:string body:text
 cargo doido generate scaffold Post title:string body:text     # CRUD completo
@@ -150,3 +165,4 @@ let names = registry.list(); // inclui "policy"
 - [Models](@/docs/reference/models.pt.md) — o que `generate model`/`migration` produzem.
 - [Controllers & roteamento](@/docs/reference/controllers.pt.md) — o bloco `routes!` que os geradores editam.
 - [Jobs](@/docs/reference/jobs.pt.md), [Mailer](@/docs/reference/mailer.pt.md), [Cable](@/docs/reference/cable.pt.md) — seus geradores.
+- [Auth](@/docs/reference/auth.pt.md) — `auth:install`, estratégias e extractors.

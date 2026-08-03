@@ -80,7 +80,20 @@ files (and some inject routes):
 | `storage:install` | storage tables + config |
 | `storage:adapter` | a custom storage adapter skeleton |
 
+When `doido-auth` is listed in `Cargo.toml`, three additional generators appear under
+**Auth (doido-auth)**:
+
+| Generator | Generates |
+|-----------|-----------|
+| `auth:install` | User migration + model, auth controllers, views, config, routes |
+| `auth:controller` | Controller with `CurrentUser` / auth guards |
+| `auth:scaffold` | Auth-aware scaffold with `user_id` ownership |
+
 ```bash
+doido new blog --database=sqlite --auth    # adds doido-auth + runs auth:install
+cargo doido generate auth:install --api    # JSON-only auth endpoints
+cargo doido generate auth:scaffold Post title:string body:text
+```
 cargo doido generate model Post title:string body:text
 cargo doido generate scaffold Post title:string body:text     # full CRUD stack
 cargo doido generate controller Pages home about
@@ -152,3 +165,4 @@ let names = registry.list(); // includes "policy"
 - [Models](@/docs/reference/models.md) — what `generate model`/`migration` produce.
 - [Controllers & routing](@/docs/reference/controllers.md) — the `routes!` block generators edit.
 - [Jobs](@/docs/reference/jobs.md), [Mailer](@/docs/reference/mailer.md), [Cable](@/docs/reference/cable.md) — their generators.
+- [Auth](@/docs/reference/auth.md) — `auth:install`, strategies, and extractors.

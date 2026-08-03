@@ -15,6 +15,10 @@ de dados e executa os geradores de código.
 doido new blog
 cd blog
 
+# Ou crie com autenticação (sessões + registro no estilo Devise)
+doido new blog --database=sqlite --auth
+cd blog
+
 # Configura o banco e roda as migrations pendentes
 cargo doido db create
 cargo doido db migrate
@@ -22,6 +26,10 @@ cargo doido db migrate
 # Sobe o servidor HTTP em http://0.0.0.0:3000
 cargo doido server
 ```
+
+Com `--auth`, a app inclui `doido-auth`, model User, rotas de sign-in/sign-up e
+controllers de auth. Veja a [referência de Auth](/pt/docs/reference/auth/) para JWT,
+OAuth, 2FA e extractors.
 
 `GET /` responde com JSON vindo do `HelloController` gerado:
 
