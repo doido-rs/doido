@@ -36,10 +36,10 @@ skip = [
 ]
 
 [advisories]
-# Nothing to ignore here: cargo-deny evaluates the default-feature graph, which
-# excludes the opt-in `storage-azure` chain (azure_core 0.21) that carries the
-# accepted advisories. Those (plus rsa's RUSTSEC-2023-0071) are scanned by
-# cargo-audit over the full lockfile and documented in .cargo/audit.toml.
+# Nothing to ignore in the default-feature graph. jsonwebtoken uses `aws_lc_rs`
+# (not `rust_crypto`) so RUSTSEC-2023-0071 / `rsa` is not pulled in. Azure-backend
+# advisories are scanned by cargo-audit over the full lockfile and documented in
+# .cargo/audit.toml.
 ignore = []
 
 [sources]

@@ -1,11 +1,5 @@
 [advisories]
 ignore = [
-    # RUSTSEC-2023-0071: Marvin Attack timing side-channel in `rsa` crate.
-    # Pulled in transitively via sqlx-mysql -> sqlx -> sea-orm.
-    # No fixed version is available upstream; ignored until sqlx/sea-orm resolves it.
-    "RUSTSEC-2023-0071",
-
-
     # --- doido-storage Azure backend (azure_core 0.21 chain) ---
     # The S3 backend was migrated to aws-sdk-s3, removing rust-s3 and its quick-xml
     # 0.38 advisories. The remaining advisories below all originate from the opt-in
