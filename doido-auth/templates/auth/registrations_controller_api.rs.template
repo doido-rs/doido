@@ -1,8 +1,8 @@
-use crate::models::user::{ActiveModel, Entity, Model as User};
-use doido::controller::{controller, Context, Response};
+use crate::models::user::{ActiveModel, Column, Entity};
+use doido::controller::{controller, Response};
+use doido::model::password::hash_password;
 use doido::model::sea_orm::{entity::prelude::*, Set};
-use doido::model::password::{hash_password, HasSecurePassword};
-use doido_auth::{sign_in, AuthUser};
+use doido_auth::sign_in;
 use serde::Deserialize;
 
 #[derive(Deserialize)]
@@ -17,7 +17,7 @@ pub struct RegistrationsController;
 #[controller]
 impl RegistrationsController {
     /// POST /users/sign_up
-    pub async fn create(mut ctx: Context) -> doido::Result<Response> {
+    pub async fn create(mut ctx: doido::controller::Context) -> doido::Result<Response> {
         let form: SignUpForm = ctx.body_json().await?;
         if form.password != form.password_confirmation {
             return Ok(ctx.status(422));
@@ -40,7 +40,7 @@ impl RegistrationsController {
             ..Default::default()
         };
         let user = record.insert(ctx.db()).await?;
-        sign_in(&mut ctx, &user)?;
+        sign_in(ctx, &user)?;
         Ok(ctx.json(user))
     }
 }

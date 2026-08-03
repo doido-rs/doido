@@ -43,7 +43,7 @@ impl AppHarness {
     }
 
     pub fn bin(&self) -> PathBuf {
-        cli::app_bin(self.app_name)
+        cli::app_bin(self.app_name, &self.app)
     }
 
     pub fn prepare_database(&self) {

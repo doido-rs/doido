@@ -50,10 +50,14 @@ impl AuthUser for Model {
             .filter(Column::Email.eq(email))
             .one(db)
             .await
+            .map_err(Into::into)
     }
 
     async fn find_by_id(db: &DatabaseConnection, id: Self::Id) -> doido::Result<Option<Self>> {
-        Entity::find_by_id(id).one(db).await
+        Entity::find_by_id(id)
+            .one(db)
+            .await
+            .map_err(Into::into)
     }
 }
 

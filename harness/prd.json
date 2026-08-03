@@ -1832,8 +1832,8 @@
       "crate": "doido-generators",
       "id": "US-113",
       "priority": 113,
-      "passes": false,
-      "notes": "Depends on US-112. E2E scenario auth_install.rs exists (#[ignore]); run via make release-e2e."
+      "passes": true,
+      "notes": "Depends on US-112. E2E scenario auth_install.rs passes via make release-e2e (per-app CARGO_TARGET_DIR fix)."
     }
   ]
 }

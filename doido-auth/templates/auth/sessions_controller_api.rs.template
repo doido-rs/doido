@@ -1,8 +1,7 @@
-use crate::models::user::{ActiveModel, Entity, Model as User};
-use doido::controller::{controller, Context, Response};
-use doido::model::sea_orm::entity::prelude::*;
+use crate::models::user::Model as User;
+use doido::controller::{controller, Response};
 use doido::model::password::HasSecurePassword;
-use doido_auth::{sign_in, sign_out, AuthUser};
+use doido_auth::{sign_in, sign_out};
 use serde::Deserialize;
 
 #[derive(Deserialize)]
@@ -16,11 +15,11 @@ pub struct SessionsController;
 #[controller]
 impl SessionsController {
     /// POST /users/sign_in
-    pub async fn create(mut ctx: Context) -> doido::Result<Response> {
+    pub async fn create(mut ctx: doido::controller::Context) -> doido::Result<Response> {
         let form: SignInForm = ctx.body_json().await?;
         if let Some(user) = User::find_by_email(ctx.db(), &form.email).await? {
             if user.authenticate(&form.password) {
-                sign_in(&mut ctx, &user)?;
+                sign_in(ctx, &user)?;
                 return Ok(ctx.json(user));
             }
         }
@@ -28,8 +27,8 @@ impl SessionsController {
     }
 
     /// DELETE /users/sign_out
-    pub async fn destroy(mut ctx: Context) -> doido::Result<Response> {
-        sign_out(&mut ctx)?;
+    pub async fn destroy(mut ctx: doido::controller::Context) -> doido::Result<Response> {
+        sign_out(ctx)?;
         Ok(ctx.status(204))
     }
 }

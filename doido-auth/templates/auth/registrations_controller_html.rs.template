@@ -1,8 +1,8 @@
-use crate::models::user::{ActiveModel, Entity, Model as User};
-use doido::controller::{controller, Context, Response};
-use doido::model::sea_orm::{entity::prelude::*, Set};
+use crate::models::user::{ActiveModel, Column, Entity};
+use doido::controller::{controller, Response};
 use doido::model::password::hash_password;
-use doido_auth::{sign_in, AuthUser};
+use doido::model::sea_orm::{entity::prelude::*, Set};
+use doido_auth::sign_in;
 use serde::Deserialize;
 
 #[derive(Deserialize)]
@@ -17,12 +17,12 @@ pub struct RegistrationsController;
 #[controller]
 impl RegistrationsController {
     /// GET /users/sign_up
-    pub async fn new(ctx: Context) -> Response {
+    pub async fn new(ctx: doido::controller::Context) -> Response {
         ctx.render("auth/sign_up", serde_json::json!({}))
     }
 
     /// POST /users/sign_up
-    pub async fn create(mut ctx: Context) -> doido::Result<Response> {
+    pub async fn create(mut ctx: doido::controller::Context) -> doido::Result<Response> {
         let form: SignUpForm = ctx.form().await?;
         if form.password != form.password_confirmation {
             return Ok(ctx.render(
@@ -51,7 +51,7 @@ impl RegistrationsController {
             ..Default::default()
         };
         let user = record.insert(ctx.db()).await?;
-        sign_in(&mut ctx, &user)?;
+        sign_in(ctx, &user)?;
         Ok(ctx.redirect_to("/"))
     }
 }

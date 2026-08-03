@@ -12,7 +12,7 @@ fn new_cable_channel_broadcasts() {
     h.build();
     h.prepare_database();
 
-    let target = crate::common::workspace::shared_cargo_target();
+    let target = crate::common::workspace::app_cargo_target(&h.app);
     let status = Command::new(env!("CARGO"))
         .args(["test", "--bin", "blog", "chat", "--", "--nocapture"])
         .current_dir(&h.app)

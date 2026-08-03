@@ -13,9 +13,10 @@ pub fn workspace_root() -> PathBuf {
         .to_path_buf()
 }
 
-/// Shared `CARGO_TARGET_DIR` so generated apps reuse framework artifact builds.
-pub fn shared_cargo_target() -> PathBuf {
-    workspace_root().join("target/e2e-cargo")
+/// Per-app `CARGO_TARGET_DIR` so generated apps with the same package name (`blog`)
+/// do not overwrite each other's binaries in a shared target directory.
+pub fn app_cargo_target(app: &Path) -> PathBuf {
+    app.join("target")
 }
 
 /// Root directory for forked scenario apps (kept when `E2E_KEEP=1`).
@@ -23,7 +24,7 @@ pub fn e2e_apps_root() -> PathBuf {
     workspace_root().join("target/e2e/apps")
 }
 
-/// Serializes e2e tests that share [`shared_cargo_target`].
+/// Serializes e2e tests that mutate shared workspace state.
 pub fn e2e_lock() -> MutexGuard<'static, ()> {
     static LOCK: Mutex<()> = Mutex::new(());
     LOCK.lock().unwrap_or_else(|e| e.into_inner())
@@ -85,10 +86,48 @@ fn clear_sqlite_databases(app: &Path) {
     }
 }
 
+fn auth_base_is_valid(dir: &Path) -> bool {
+    let app = dir.join("blog");
+    let routes = app.join("config/routes.rs");
+    let sessions = app.join("app/controllers/auth/sessions_controller.rs");
+    let user_model = app.join("app/models/user.rs");
+    app.join("Cargo.toml").is_file()
+        && fs::read_to_string(&routes)
+            .map(|content| content.contains("SessionsController::create"))
+            .unwrap_or(false)
+        && fs::read_to_string(&sessions)
+            .map(|content| {
+                content.contains("sign_in(ctx, &user)")
+                    && content.contains("doido::controller::Context")
+            })
+            .unwrap_or(false)
+        && fs::read_to_string(&user_model)
+            .map(|content| content.contains(".map_err(Into::into)"))
+            .unwrap_or(false)
+}
+
+fn recreate_auth_base(dir: &Path) {
+    if dir.exists() {
+        fs::remove_dir_all(dir).ok();
+    }
+    fs::create_dir_all(dir).expect("create auth base dir");
+    doido(dir)
+        .args(BaseProfile::WithAuth.new_args())
+        .assert()
+        .success();
+}
+
 fn ensure_base_app(profile: BaseProfile) -> PathBuf {
     static DEFAULT: OnceLock<PathBuf> = OnceLock::new();
     static CABLE: OnceLock<PathBuf> = OnceLock::new();
-    static AUTH: OnceLock<PathBuf> = OnceLock::new();
+
+    if profile == BaseProfile::WithAuth {
+        let dir = profile.cache_dir();
+        if !auth_base_is_valid(&dir) {
+            recreate_auth_base(&dir);
+        }
+        return dir;
+    }
 
     let init = || {
         let dir = profile.cache_dir();
@@ -103,7 +142,7 @@ fn ensure_base_app(profile: BaseProfile) -> PathBuf {
     match profile {
         BaseProfile::Default => DEFAULT.get_or_init(init).clone(),
         BaseProfile::WithCable => CABLE.get_or_init(init).clone(),
-        BaseProfile::WithAuth => AUTH.get_or_init(init).clone(),
+        BaseProfile::WithAuth => unreachable!("handled above"),
     }
 }
 

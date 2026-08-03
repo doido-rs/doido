@@ -32,10 +32,10 @@ fn cargo_app_command(bin: &Path, app: &Path) -> StdCommand {
 }
 
 pub fn cargo_build(app: &Path) {
-    let target = super::workspace::shared_cargo_target();
+    let target = super::workspace::app_cargo_target(app);
     std::fs::create_dir_all(&target).expect("create cargo target dir");
     let status = StdCommand::new(env!("CARGO"))
-        .args(["build", "--workspace", "--manifest-path"])
+        .args(["build", "--workspace", "--bin", "blog", "--manifest-path"])
         .arg(app.join("Cargo.toml"))
         .env("CARGO_TARGET_DIR", &target)
         .env("RUSTFLAGS", "-D warnings")
@@ -44,8 +44,8 @@ pub fn cargo_build(app: &Path) {
     assert!(status.success(), "generated app failed to build");
 }
 
-pub fn app_bin(app_name: &str) -> std::path::PathBuf {
-    super::workspace::shared_cargo_target()
+pub fn app_bin(app_name: &str, app: &Path) -> std::path::PathBuf {
+    super::workspace::app_cargo_target(app)
         .join("debug")
         .join(app_name)
 }
