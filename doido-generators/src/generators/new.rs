@@ -19,6 +19,7 @@
 
 use crate::dev_workspace::DependencyMode;
 use crate::generator::{GeneratedFile, Generator};
+use crate::generators::bootstrap_migrations::{apply_bootstrap_migrations, storage_config_section};
 use crate::new_options::{parse_cache, parse_database, parse_jobs, CacheBackend, JobsBackend};
 use doido_core::{anyhow, Result};
 use include_dir::{include_dir, Dir, DirEntry};
@@ -71,6 +72,7 @@ struct TemplateContext<'a> {
     doido_model_dep: String,
     cache_section: String,
     jobs_section: String,
+    storage_section: String,
     compose_services: String,
     compose_depends_on: String,
     compose_database_url: String,
@@ -359,6 +361,7 @@ fn substitute_template(template: &str, ctx: &TemplateContext<'_>) -> String {
         .replace("{doido_cable_readme}", &cable_readme)
         .replace("{doido_cache_section}", &ctx.cache_section)
         .replace("{doido_jobs_section}", &ctx.jobs_section)
+        .replace("{doido_storage_section}", &ctx.storage_section)
         .replace("{doido_compose_services}", &ctx.compose_services)
         .replace("{doido_compose_depends_on}", &ctx.compose_depends_on)
         .replace("{doido_compose_database_url}", &ctx.compose_database_url)
@@ -499,6 +502,7 @@ impl Generator for ProjectGenerator {
             dep_mode,
             cache_section: render_cache_section(cache, name),
             jobs_section: render_jobs_section(jobs, name),
+            storage_section: storage_config_section("local"),
             compose_services: compose_services(database, name, cable, cache, jobs),
             compose_depends_on: compose_depends_on(database, cable, cache, jobs),
             compose_database_url: compose_database_url_for_docker(database, name),
@@ -508,6 +512,22 @@ impl Generator for ProjectGenerator {
 
         let mut files = Vec::new();
         collect_from_dir(&APP_TEMPLATE_DIR, &ctx, name, &mut files)?;
+
+        if let Some(lib) = files
+            .iter_mut()
+            .find(|f| f.path.ends_with("db/migration/src/lib.rs"))
+        {
+            let (updated, migrations) =
+                apply_bootstrap_migrations(&lib.content, jobs == JobsBackend::Db);
+            lib.content = updated;
+            for (module, content) in migrations {
+                files.push(GeneratedFile {
+                    path: format!("{name}/db/migration/src/{module}.rs"),
+                    content,
+                });
+            }
+        }
+
         files.sort_by(|a, b| a.path.cmp(&b.path));
         Ok(files)
     }

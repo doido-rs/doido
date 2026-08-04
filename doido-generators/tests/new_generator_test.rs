@@ -412,3 +412,60 @@ fn test_new_registered_in_default_registry() {
         .unwrap();
     assert!(!files.is_empty());
 }
+
+#[test]
+fn test_new_includes_storage_bootstrap_migration() {
+    let files = ProjectGenerator
+        .generate(&["my-app", "--database=sqlite"])
+        .unwrap();
+    let lib = files
+        .iter()
+        .find(|f| f.path == "my-app/db/migration/src/lib.rs")
+        .unwrap();
+    assert!(lib.content.contains("m20260101000000_create_storage_tables"));
+    let migration = files
+        .iter()
+        .find(|f| f.path == "my-app/db/migration/src/m20260101000000_create_storage_tables.rs")
+        .expect("storage migration file");
+    assert!(migration.content.contains("storage_blobs"));
+    let dev = files
+        .iter()
+        .find(|f| f.path == "my-app/config/development.yml")
+        .unwrap();
+    assert!(dev.content.contains("storage:"));
+    assert!(dev.content.contains("service: local"));
+}
+
+#[test]
+fn test_new_jobs_db_includes_doido_jobs_migration() {
+    let files = ProjectGenerator
+        .generate(&["my-app", "--database=sqlite", "--jobs=db"])
+        .unwrap();
+    let lib = files
+        .iter()
+        .find(|f| f.path == "my-app/db/migration/src/lib.rs")
+        .unwrap();
+    assert!(lib.content.contains("m20260101000001_create_doido_jobs_table"));
+    let migration = files
+        .iter()
+        .find(|f| f.path == "my-app/db/migration/src/m20260101000001_create_doido_jobs_table.rs")
+        .expect("jobs migration file");
+    assert!(migration.content.contains("doido_jobs"));
+    assert!(migration.content.contains("idx_doido_jobs_reserve"));
+}
+
+#[test]
+fn test_new_jobs_memory_omits_doido_jobs_migration() {
+    let files = ProjectGenerator
+        .generate(&["my-app", "--database=sqlite", "--jobs=memory"])
+        .unwrap();
+    let lib = files
+        .iter()
+        .find(|f| f.path == "my-app/db/migration/src/lib.rs")
+        .unwrap();
+    assert!(!lib.content.contains("create_doido_jobs_table"));
+    assert!(
+        !files.iter().any(|f| f.path.contains("create_doido_jobs_table")),
+        "jobs migration must not be emitted for memory backend"
+    );
+}
