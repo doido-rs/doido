@@ -11,6 +11,3 @@ doido = "run --bin doido --"
 
 [build]
 jobs = 4
-
-[alias]
-doido = "run --bin doido --"
