@@ -46,6 +46,42 @@ pub fn assert_table_exists(app: &Path, table: &str) {
     assert!(exists, "expected table `{table}` in sqlite schema");
 }
 
+pub fn assert_table_absent(app: &Path, table: &str) {
+    let conn = open_sqlite(app);
+    let mut stmt = conn
+        .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name = ?1")
+        .expect("prepare table query");
+    let exists = stmt.exists(rusqlite::params![table]).expect("query table");
+    assert!(!exists, "expected table `{table}` to be absent from sqlite schema");
+}
+
+pub fn assert_migration_source_exists(app: &Path, module: &str) {
+    let path = app.join("db/migration/src").join(format!("{module}.rs"));
+    assert!(
+        path.is_file(),
+        "expected migration source at {}",
+        path.display()
+    );
+}
+
+pub fn assert_migration_source_absent(app: &Path, module: &str) {
+    let path = app.join("db/migration/src").join(format!("{module}.rs"));
+    assert!(
+        !path.is_file(),
+        "unexpected migration source at {}",
+        path.display()
+    );
+}
+
+pub fn assert_lib_registers_migration(app: &Path, module: &str) {
+    let lib = std::fs::read_to_string(app.join("db/migration/src/lib.rs"))
+        .expect("read db/migration/src/lib.rs");
+    assert!(
+        lib.contains(module),
+        "lib.rs should register migration module `{module}`"
+    );
+}
+
 pub fn assert_column_exists(app: &Path, table: &str, column: &str) {
     let conn = open_sqlite(app);
     let mut stmt = conn

@@ -31,6 +31,7 @@ Set `E2E_KEEP=1` to preserve generated apps under `target/e2e/apps/` for debuggi
 | Module | Generator / flag |
 |--------|------------------|
 | `new_baseline` | `doido new --database=sqlite` |
+| `bootstrap_migrations` | bootstrap storage tables (always) and `doido_jobs` (with `--jobs=db` only) |
 | `new_cable` | `new --cable` + `generate channel` |
 | `scaffold_api` | `scaffold --api` |
 | `scaffold_html` | `scaffold` (HTML forms) |

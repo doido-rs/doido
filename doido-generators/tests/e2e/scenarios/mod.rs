@@ -1,4 +1,5 @@
 mod auth_install;
+mod bootstrap_migrations;
 mod kitchen_sink;
 mod migration_add_remove;
 mod model_fields;
