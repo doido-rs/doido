@@ -11,4 +11,4 @@ logger:
   # Output renderer: compact (default) | verbose (pretty, all fields) |
   # json_response (one JSON line per response, with latency_ms).
   format: verbose
-{doido_cache_section}{doido_jobs_section}{doido_storage_section}
+{doido_cache_section}{doido_jobs_section}{doido_storage_section}{doido_mailer_section}
