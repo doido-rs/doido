@@ -422,7 +422,9 @@ fn test_new_includes_storage_bootstrap_migration() {
         .iter()
         .find(|f| f.path == "my-app/db/migration/src/lib.rs")
         .unwrap();
-    assert!(lib.content.contains("m20260101000000_create_storage_tables"));
+    assert!(lib
+        .content
+        .contains("m20260101000000_create_storage_tables"));
     let migration = files
         .iter()
         .find(|f| f.path == "my-app/db/migration/src/m20260101000000_create_storage_tables.rs")
@@ -445,7 +447,9 @@ fn test_new_jobs_db_includes_doido_jobs_migration() {
         .iter()
         .find(|f| f.path == "my-app/db/migration/src/lib.rs")
         .unwrap();
-    assert!(lib.content.contains("m20260101000001_create_doido_jobs_table"));
+    assert!(lib
+        .content
+        .contains("m20260101000001_create_doido_jobs_table"));
     let migration = files
         .iter()
         .find(|f| f.path == "my-app/db/migration/src/m20260101000001_create_doido_jobs_table.rs")
@@ -465,7 +469,9 @@ fn test_new_jobs_memory_omits_doido_jobs_migration() {
         .unwrap();
     assert!(!lib.content.contains("create_doido_jobs_table"));
     assert!(
-        !files.iter().any(|f| f.path.contains("create_doido_jobs_table")),
+        !files
+            .iter()
+            .any(|f| f.path.contains("create_doido_jobs_table")),
         "jobs migration must not be emitted for memory backend"
     );
 }

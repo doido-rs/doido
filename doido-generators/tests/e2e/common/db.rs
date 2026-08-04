@@ -52,7 +52,10 @@ pub fn assert_table_absent(app: &Path, table: &str) {
         .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name = ?1")
         .expect("prepare table query");
     let exists = stmt.exists(rusqlite::params![table]).expect("query table");
-    assert!(!exists, "expected table `{table}` to be absent from sqlite schema");
+    assert!(
+        !exists,
+        "expected table `{table}` to be absent from sqlite schema"
+    );
 }
 
 pub fn assert_migration_source_exists(app: &Path, module: &str) {

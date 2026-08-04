@@ -23,9 +23,9 @@ fn config_file(path: &str, active: &str) -> Option<GeneratedFile> {
     Some(GeneratedFile {
         path: path.to_string(),
         content: format!(
-            "{}{}",
+            "{}\n{}",
             existing.trim_end(),
-            format!("\n{}", storage_config_section(active))
+            storage_config_section(active)
         ),
     })
 }

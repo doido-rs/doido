@@ -117,10 +117,7 @@ fn render_bootstrap_migration(m: &BootstrapMigration) -> String {
 
 /// Returns `(updated lib.rs, migration module name, migration source)` when the
 /// module is not already registered.
-fn register_if_absent(
-    lib: &str,
-    m: &BootstrapMigration,
-) -> (String, Option<(String, String)>) {
+fn register_if_absent(lib: &str, m: &BootstrapMigration) -> (String, Option<(String, String)>) {
     if lib.contains(m.module) {
         return (lib.to_string(), None);
     }
@@ -132,10 +129,7 @@ fn register_if_absent(
 /// Registers bootstrap migrations into `lib.rs` and returns any new migration
 /// source files to emit. Storage is always included; the jobs table is added only
 /// when `jobs_db` is true.
-pub fn apply_bootstrap_migrations(
-    lib: &str,
-    jobs_db: bool,
-) -> (String, Vec<(String, String)>) {
+pub fn apply_bootstrap_migrations(lib: &str, jobs_db: bool) -> (String, Vec<(String, String)>) {
     let mut files = Vec::new();
     let (lib, storage) = register_if_absent(lib, &STORAGE_MIGRATION);
     if let Some((module, content)) = storage {
