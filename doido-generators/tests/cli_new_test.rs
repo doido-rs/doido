@@ -78,6 +78,53 @@ fn test_doido_new_cargo_toml_has_cache_redis_feature() {
 }
 
 #[test]
+fn test_doido_new_auth_creates_html_sign_in_views() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut cmd = Command::cargo_bin("doido-generators").unwrap();
+    cmd.current_dir(dir.path())
+        .args([
+            "new",
+            "auth-app",
+            "--non-interactive",
+            "--database=sqlite",
+            "--auth",
+        ])
+        .assert()
+        .success();
+
+    let app = dir.path().join("auth-app");
+    assert!(app.join("app/views/auth/sign_in.html.tera").exists());
+    assert!(app.join("app/views/auth/sign_up.html.tera").exists());
+    let sessions =
+        fs::read_to_string(app.join("app/controllers/auth/sessions_controller.rs")).unwrap();
+    assert!(sessions.contains("ctx.render(\"auth/sign_in\""));
+    assert!(!sessions.contains("body_json"));
+}
+
+#[test]
+fn test_doido_new_auth_api_skips_html_views() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut cmd = Command::cargo_bin("doido-generators").unwrap();
+    cmd.current_dir(dir.path())
+        .args([
+            "new",
+            "auth-api-app",
+            "--non-interactive",
+            "--database=sqlite",
+            "--auth",
+            "--api",
+        ])
+        .assert()
+        .success();
+
+    let app = dir.path().join("auth-api-app");
+    assert!(!app.join("app/views/auth").exists());
+    let sessions =
+        fs::read_to_string(app.join("app/controllers/auth/sessions_controller.rs")).unwrap();
+    assert!(sessions.contains("body_json"));
+}
+
+#[test]
 fn test_doido_new_creates_git_repository() {
     let dir = tempfile::tempdir().unwrap();
     let mut cmd = Command::cargo_bin("doido-generators").unwrap();

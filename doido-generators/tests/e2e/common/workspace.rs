@@ -35,7 +35,8 @@ pub fn e2e_lock() -> MutexGuard<'static, ()> {
 pub enum BaseProfile {
     Default,
     WithCable,
-    WithAuth,
+    WithAuthApi,
+    WithAuthHtml,
 }
 
 impl BaseProfile {
@@ -43,18 +44,22 @@ impl BaseProfile {
         let name = match self {
             Self::Default => "default",
             Self::WithCable => "cable",
-            Self::WithAuth => "auth",
+            Self::WithAuthApi => "auth-api",
+            Self::WithAuthHtml => "auth-html",
         };
         e2e_apps_root().join("_base").join(name)
     }
 
     fn new_args(self) -> Vec<&'static str> {
         let mut args = vec!["new", "blog", "--non-interactive", "--database=sqlite"];
-        if self == Self::WithCable {
-            args.push("--cable");
-        }
-        if self == Self::WithAuth {
-            args.push("--auth");
+        match self {
+            Self::WithCable => args.push("--cable"),
+            Self::WithAuthApi => {
+                args.push("--auth");
+                args.push("--api");
+            }
+            Self::WithAuthHtml => args.push("--auth"),
+            Self::Default => {}
         }
         args
     }
@@ -86,63 +91,84 @@ fn clear_sqlite_databases(app: &Path) {
     }
 }
 
-fn auth_base_is_valid(dir: &Path) -> bool {
+fn auth_base_is_valid(dir: &Path, api: bool) -> bool {
     let app = dir.join("blog");
     let routes = app.join("config/routes.rs");
     let sessions = app.join("app/controllers/auth/sessions_controller.rs");
     let user_model = app.join("app/models/user.rs");
-    app.join("Cargo.toml").is_file()
-        && fs::read_to_string(&routes)
-            .map(|content| content.contains("SessionsController::create"))
-            .unwrap_or(false)
-        && fs::read_to_string(&sessions)
-            .map(|content| {
-                content.contains("sign_in(ctx, &user)")
-                    && content.contains("doido::controller::Context")
-            })
-            .unwrap_or(false)
-        && fs::read_to_string(&user_model)
-            .map(|content| content.contains(".map_err(Into::into)"))
-            .unwrap_or(false)
+    let sign_in_view = app.join("app/views/auth/sign_in.html.tera");
+
+    let sessions_content = fs::read_to_string(&sessions).unwrap_or_default();
+    let routes_ok = fs::read_to_string(&routes)
+        .map(|content| content.contains("SessionsController::create"))
+        .unwrap_or(false);
+    let sessions_ok = sessions_content.contains("sign_in(ctx, &user)")
+        && sessions_content.contains("doido::controller::Context")
+        && if api {
+            sessions_content.contains("body_json")
+        } else {
+            sessions_content.contains("ctx.render(\"auth/sign_in\"")
+        };
+    let user_ok = fs::read_to_string(&user_model)
+        .map(|content| content.contains(".map_err(Into::into)"))
+        .unwrap_or(false);
+    let views_ok = if api {
+        !sign_in_view.exists()
+    } else {
+        sign_in_view.is_file()
+            && app.join("app/views/auth/sign_up.html.tera").is_file()
+            && fs::read_to_string(app.join("app/controllers/auth/passwords_controller.rs"))
+                .map(|content| content.contains("#[allow(dead_code)]"))
+                .unwrap_or(false)
+    };
+
+    app.join("Cargo.toml").is_file() && routes_ok && sessions_ok && user_ok && views_ok
 }
 
-fn recreate_auth_base(dir: &Path) {
+fn recreate_auth_base(dir: &Path, profile: BaseProfile) {
     if dir.exists() {
         fs::remove_dir_all(dir).ok();
     }
     fs::create_dir_all(dir).expect("create auth base dir");
-    doido(dir)
-        .args(BaseProfile::WithAuth.new_args())
-        .assert()
-        .success();
+    doido(dir).args(profile.new_args()).assert().success();
 }
 
 fn ensure_base_app(profile: BaseProfile) -> PathBuf {
     static DEFAULT: OnceLock<PathBuf> = OnceLock::new();
     static CABLE: OnceLock<PathBuf> = OnceLock::new();
 
-    if profile == BaseProfile::WithAuth {
-        let dir = profile.cache_dir();
-        if !auth_base_is_valid(&dir) {
-            recreate_auth_base(&dir);
-        }
-        return dir;
-    }
-
-    let init = || {
-        let dir = profile.cache_dir();
-        let app = dir.join("blog");
-        if !app.join("Cargo.toml").is_file() {
-            fs::create_dir_all(&dir).expect("create base dir");
-            doido(&dir).args(&profile.new_args()).assert().success();
-        }
-        dir
-    };
-
     match profile {
-        BaseProfile::Default => DEFAULT.get_or_init(init).clone(),
-        BaseProfile::WithCable => CABLE.get_or_init(init).clone(),
-        BaseProfile::WithAuth => unreachable!("handled above"),
+        BaseProfile::WithAuthApi => {
+            let dir = profile.cache_dir();
+            if !auth_base_is_valid(&dir, true) {
+                recreate_auth_base(&dir, profile);
+            }
+            dir
+        }
+        BaseProfile::WithAuthHtml => {
+            let dir = profile.cache_dir();
+            if !auth_base_is_valid(&dir, false) {
+                recreate_auth_base(&dir, profile);
+            }
+            dir
+        }
+        _ => {
+            let init = || {
+                let dir = profile.cache_dir();
+                let app = dir.join("blog");
+                if !app.join("Cargo.toml").is_file() {
+                    fs::create_dir_all(&dir).expect("create base dir");
+                    doido(&dir).args(&profile.new_args()).assert().success();
+                }
+                dir
+            };
+
+            match profile {
+                BaseProfile::Default => DEFAULT.get_or_init(init).clone(),
+                BaseProfile::WithCable => CABLE.get_or_init(init).clone(),
+                BaseProfile::WithAuthApi | BaseProfile::WithAuthHtml => unreachable!(),
+            }
+        }
     }
 }
 

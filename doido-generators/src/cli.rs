@@ -1,5 +1,5 @@
 use crate::commands::{self, jobs::JobsCommand, new::run_new};
-use crate::new_options::{CacheBackend, DatabaseBackend, JobsBackend};
+use crate::new_options::{CacheBackend, DatabaseBackend, JobsBackend, NewOptions};
 use crate::DOIDO_VERSION;
 use clap::{Parser, Subcommand};
 use doido_controller::axum;
@@ -78,6 +78,9 @@ enum Commands {
         /// Add doido-auth and run auth:install
         #[arg(long)]
         auth: bool,
+        /// API-only auth (JSON endpoints; omit for HTML sign-in/sign-up views)
+        #[arg(long)]
+        api: bool,
         /// Cache backend (prompted when omitted in interactive mode)
         #[arg(long, value_enum)]
         cache: Option<CacheBackend>,
@@ -147,10 +150,22 @@ pub async fn run(routes: Option<axum::Router>) {
             database,
             cable,
             auth,
+            api,
             cache,
             jobs,
         } => {
-            run_new(&name, non_interactive, database, cable, auth, cache, jobs);
+            run_new(
+                &name,
+                NewOptions {
+                    non_interactive,
+                    database,
+                    cable,
+                    auth,
+                    api,
+                    cache,
+                    jobs,
+                },
+            );
         }
     }
 }

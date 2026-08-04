@@ -1,7 +1,7 @@
 use crate::commands::write_files;
 use crate::default_registry;
 use crate::new_options::{
-    parse_cache, parse_database, parse_jobs, CacheBackend, DatabaseBackend, JobsBackend,
+    parse_cache, parse_database, parse_jobs, CacheBackend, DatabaseBackend, JobsBackend, NewOptions,
 };
 use std::io::{self, Write};
 use std::path::Path;
@@ -71,30 +71,42 @@ fn prompt_cable() -> bool {
     matches!(input.trim().to_ascii_lowercase().as_str(), "y" | "yes")
 }
 
-pub fn run_new(
-    name: &str,
-    non_interactive: bool,
-    database: Option<DatabaseBackend>,
-    cable: bool,
-    auth: bool,
-    cache: Option<CacheBackend>,
-    jobs: Option<JobsBackend>,
-) {
-    let (database, cache, jobs, cable, auth) = if non_interactive {
+fn prompt_api_auth() -> bool {
+    print!("API-only auth (JSON endpoints, no sign-in views)? [y/N]: ");
+    io::stdout().flush().expect("failed to flush stdout");
+    let mut input = String::new();
+    io::stdin()
+        .read_line(&mut input)
+        .expect("failed to read input");
+    matches!(input.trim().to_ascii_lowercase().as_str(), "y" | "yes")
+}
+
+pub fn run_new(name: &str, opts: NewOptions) {
+    let (database, cache, jobs, cable, auth, api) = if opts.non_interactive {
         (
-            database.unwrap_or(DatabaseBackend::Sqlite),
-            cache.unwrap_or(CacheBackend::Memory),
-            jobs.unwrap_or(JobsBackend::Memory),
-            cable,
-            auth,
+            opts.database.unwrap_or(DatabaseBackend::Sqlite),
+            opts.cache.unwrap_or(CacheBackend::Memory),
+            opts.jobs.unwrap_or(JobsBackend::Memory),
+            opts.cable,
+            opts.auth,
+            opts.api,
         )
     } else {
         (
-            database.unwrap_or_else(prompt_database),
-            cache.unwrap_or_else(prompt_cache),
-            jobs.unwrap_or_else(prompt_jobs),
-            if cable { true } else { prompt_cable() },
-            auth,
+            opts.database.unwrap_or_else(prompt_database),
+            opts.cache.unwrap_or_else(prompt_cache),
+            opts.jobs.unwrap_or_else(prompt_jobs),
+            if opts.cable { true } else { prompt_cable() },
+            opts.auth,
+            if opts.auth {
+                if opts.api {
+                    true
+                } else {
+                    prompt_api_auth()
+                }
+            } else {
+                false
+            },
         )
     };
 
@@ -118,7 +130,8 @@ pub fn run_new(
             if auth {
                 let prev = std::env::current_dir().expect("cwd");
                 std::env::set_current_dir(name).expect("cd into new app");
-                crate::commands::generate::run_generate("auth:install", &["--api"]);
+                let auth_args = if api { &["--api"][..] } else { &[][..] };
+                crate::commands::generate::run_generate("auth:install", auth_args);
                 std::env::set_current_dir(prev).expect("restore cwd");
             }
             let git_result = Command::new("git").args(["init", name]).output();

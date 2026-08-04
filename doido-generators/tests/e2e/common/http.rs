@@ -62,16 +62,50 @@ pub fn delete_status(url: &str) -> u16 {
         .as_u16()
 }
 
+fn no_redirect_agent() -> ureq::Agent {
+    ureq::Agent::config_builder()
+        .max_redirects(0)
+        .build()
+        .new_agent()
+}
+
+fn collect_set_cookie(response: ureq::http::Response<ureq::Body>) -> Vec<String> {
+    response
+        .headers()
+        .get_all("set-cookie")
+        .iter()
+        .filter_map(|v| v.to_str().ok().map(str::to_string))
+        .collect()
+}
+
 pub fn post_form(url: &str, fields: &[(&str, &str)]) -> u16 {
+    post_form_with_response(url, fields).status
+}
+
+pub fn post_form_with_response(url: &str, fields: &[(&str, &str)]) -> HttpResponse {
     let owned: Vec<(String, String)> = fields
         .iter()
         .map(|(k, v)| (k.to_string(), v.to_string()))
         .collect();
-    ureq::post(url)
+    let response = no_redirect_agent()
+        .post(url)
         .send_form(owned)
-        .expect("POST form")
-        .status()
-        .as_u16()
+        .expect("POST form");
+    HttpResponse {
+        status: response.status().as_u16(),
+        set_cookie: collect_set_cookie(response),
+    }
+}
+
+pub fn delete_with_response(url: &str) -> HttpResponse {
+    let response = no_redirect_agent()
+        .delete(url)
+        .call()
+        .expect("DELETE request");
+    HttpResponse {
+        status: response.status().as_u16(),
+        set_cookie: collect_set_cookie(response),
+    }
 }
 
 pub fn get_text(url: &str) -> String {

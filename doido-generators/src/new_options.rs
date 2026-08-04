@@ -86,3 +86,15 @@ pub fn parse_jobs(s: &str) -> Result<JobsBackend> {
         )),
     }
 }
+
+/// CLI flags for `doido new`, before interactive prompts are resolved.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct NewOptions {
+    pub non_interactive: bool,
+    pub database: Option<DatabaseBackend>,
+    pub cable: bool,
+    pub auth: bool,
+    pub api: bool,
+    pub cache: Option<CacheBackend>,
+    pub jobs: Option<JobsBackend>,
+}
