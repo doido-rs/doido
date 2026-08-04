@@ -38,8 +38,8 @@ skip = [
 [advisories]
 # Nothing to ignore in the default-feature graph. jsonwebtoken uses `aws_lc_rs`
 # (not `rust_crypto`) so RUSTSEC-2023-0071 / `rsa` is not pulled in. Azure-backend
-# advisories are scanned by cargo-audit over the full lockfile and documented in
-# .cargo/audit.toml.
+# and rkyv (optional rust_decimal) advisories are lockfile-only; cargo-audit scans
+# the full lockfile and documents them in .cargo/audit.toml.
 ignore = []
 
 [sources]
