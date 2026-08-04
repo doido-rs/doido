@@ -22,7 +22,7 @@ git history, `harness/progress.txt`, and the checkboxes in
    `- [x]` (the story names the exact line).
 7. Update `harness/prd.json`: set this story's `"passes": true` and write a one-line
    `notes`. Append one line to `harness/progress.txt` (`US-XXX: <what changed>`).
-8. Commit on branch `first_stable_project`:
+8. Commit on branch `creating_doido_auth` (auth backlog US-105→US-113; prior work landed on `first_stable_project`):
    `feat(<crate>): <story title> [US-XXX]`, ending with:
    `Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>`
 

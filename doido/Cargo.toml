@@ -23,6 +23,7 @@ doido-storage.workspace = true
 doido-jobs.workspace = true
 doido-mailer.workspace = true
 doido-cable.workspace = true
+doido-auth = { workspace = true, optional = true }
 doido-generators.workspace = true
 tokio = { workspace = true, features = ["full"] }
 
@@ -60,6 +61,7 @@ storage-azure = ["doido-storage/storage-azure"]  # Azure Blob Storage
 storage-gcs = ["doido-storage/storage-gcs"]      # Google Cloud Storage
 storage-image = ["doido-storage/storage-image"]  # image dimension analyzer
 storage-jobs = ["doido-storage/storage-jobs"]    # purge_later / analyze_later
+auth = ["dep:doido-auth"]
 
 [dev-dependencies]
 assert_cmd  = "2"

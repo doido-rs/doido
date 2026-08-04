@@ -36,6 +36,7 @@ in-memory apenas; redis/postgres/memcache não exercitados).
 | `doido-generators` | 79.0% | **−0.97 pp** | 12 |
 | `doido-model` | 71.3% | **−8.66 pp** | 10 |
 | `doido-jobs` | 56.0% | **−24.04 pp** | 2 (+ redis 0%) |
+| `doido-auth` | — | **planned** | new crate (spec 16, US-105→US-113); generators owned by crate, CLI-visible only when installed |
 
 **Workspace total:** 82.35% line coverage — acima de 80%, mas **3 crates** ainda abaixo.
 

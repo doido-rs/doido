@@ -6,5 +6,8 @@
 # are both SSD). Capping to 4 parallel rustc invocations keeps peak RAM in check
 # while still using the CPU well (each rustc parallelizes codegen internally).
 # Override per-invocation with `cargo build -j N` or `CARGO_BUILD_JOBS=N`.
+[alias]
+doido = "run --bin doido --"
+
 [build]
 jobs = 4

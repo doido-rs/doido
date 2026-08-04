@@ -1,11 +1,5 @@
 [advisories]
 ignore = [
-    # RUSTSEC-2023-0071: Marvin Attack timing side-channel in `rsa` crate.
-    # Pulled in transitively via sqlx-mysql -> sqlx -> sea-orm.
-    # No fixed version is available upstream; ignored until sqlx/sea-orm resolves it.
-    "RUSTSEC-2023-0071",
-
-
     # --- doido-storage Azure backend (azure_core 0.21 chain) ---
     # The S3 backend was migrated to aws-sdk-s3, removing rust-s3 and its quick-xml
     # 0.38 advisories. The remaining advisories below all originate from the opt-in
@@ -23,4 +17,11 @@ ignore = [
     "RUSTSEC-2026-0097", # rand 0.7: unsound with custom logger (azure_core -> http-types)
     "RUSTSEC-2024-0384", # instant: unmaintained (azure_core -> http-types -> fastrand)
     "RUSTSEC-2024-0436", # paste: unmaintained (azure_core)
+    # --- sqlx/sea-orm → rust_decimal optional rkyv (not compiled) ---
+    # RUSTSEC-2026-0235 flags rkyv 0.7.46 in Cargo.lock via rust_decimal's
+    # optional `rkyv` feature (sqlx `rust_decimal` → sea-orm). Doido never
+    # enables that feature (`cargo tree -p rust_decimal` has no rkyv). rust_decimal
+    # pins rkyv 0.7 for API stability; the fix requires >=0.8.17. Revisit when
+    # rust_decimal or sqlx bumps the rkyv bound. (Mirrors deny.toml.)
+    "RUSTSEC-2026-0235", # rkyv 0.7.46: archive validation (rust_decimal optional)
 ]

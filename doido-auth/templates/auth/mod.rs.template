@@ -1,0 +1,8 @@
+mod passwords_controller;
+mod registrations_controller;
+mod sessions_controller;
+{oauth_module}{two_factor_module}
+pub use passwords_controller::PasswordsController;
+pub use registrations_controller::RegistrationsController;
+pub use sessions_controller::SessionsController;
+{oauth_use}{two_factor_use}

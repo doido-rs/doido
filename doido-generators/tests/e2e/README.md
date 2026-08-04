@@ -41,6 +41,7 @@ Set `E2E_KEEP=1` to preserve generated apps under `target/e2e/apps/` for debuggi
 | `storage_adapter` | `storage:adapter` (in `smoke_generators`) |
 | `smoke_generators` | `job`, `mailer`, `locale`, `templates`, `generator`, `controller` |
 | `kitchen_sink` | all generators in one app |
+| `auth_install` | `doido new --auth` (HTML views + form sign-up/in/out) and `doido new --auth --api` (JSON auth) |
 
 ## CI
 

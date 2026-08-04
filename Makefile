@@ -54,9 +54,9 @@ CRATE_VERSION := $(shell sed -nE 's/^version[[:space:]]*=[[:space:]]*"([^"]+)".*
 # Layer 1 — doido-core only: model, cache
 # Layer 2 — view (cache), jobs (jobs-macros; optional model)
 # Layer 3 — controller (model, view, cache, controller-macros)
-# Layer 4 — cable (controller), mailer (jobs, view)
+# Layer 4 — auth (controller, model), cable (controller), mailer (jobs, view)
 # Layer 5 — storage (controller, model; optional jobs)
-# Layer 6 — generators (controller, model, view, cache, jobs)
+# Layer 6 — generators (controller, model, view, cache, jobs; optional auth)
 # Layer 7 — metacrate (everything)
 PUBLISH_CRATES ?= \
 	doido-core \
@@ -69,6 +69,7 @@ PUBLISH_CRATES ?= \
 	doido-view \
 	doido-jobs \
 	doido-controller \
+	doido-auth \
 	doido-cable \
 	doido-mailer \
 	doido-storage \

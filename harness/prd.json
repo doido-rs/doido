@@ -1,7 +1,7 @@
 {
   "project": "Doido",
-  "branchName": "first_stable_project",
-  "description": "Close the Rails 8 gap: implement every [core]/[nice] feature in docs/RAILS8-GAP-ANALYSIS.md (deferred items excluded) with TDD, plus a full generator e2e suite. Definition of done per story: the story's tests pass AND `make verify` exits 0. One story per gap-file checkbox; tick the box when done.",
+  "branchName": "creating_doido_auth",
+  "description": "Close the Rails 8 gap (US-001→US-104, done) and implement doido-auth (US-105→US-113) per docs/16-auth.md. Definition of done per story: the story's tests pass AND `make verify` exits 0. One story per gap-file checkbox where applicable; tick the box when done.",
   "userStories": [
     {
       "title": "Real cookie session store",
@@ -1680,6 +1680,160 @@
       "priority": 104,
       "passes": true,
       "notes": "Runtime CRUD e2e green via `make example`: `doido new blog --database=sqlite` + `generate scaffold Post title:string body:text --api`, build, `db create`/`db migrate` on temp sqlite, boot the app's own `server` on an ephemeral port, HTTP POST/GET/PATCH/DELETE /posts (204 on delete). Caught + fixed a real bug: --api scaffolds injected a full resources! referencing nonexistent new/edit actions -> now emits `except: [new, edit]`. e2e tempdir moved off the small /tmp tmpfs onto the workspace target/ (real disk) so the framework+app+migration build fits."
+    },
+    {
+      "title": "doido-auth crate scaffold + AuthUser trait + config",
+      "description": "As a Doido user, I want a doido-auth crate with a generic AuthUser trait and YAML config loading so apps can plug in any SeaORM user model, per docs/16-auth.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-auth/tests/ that encodes: AuthUser trait + AuthConfig::from_yaml parsing the auth: section",
+        "doido-auth crate added to workspace (Cargo.toml members + workspace.dependencies); doido-auth/src/{lib,user,config}.rs with AuthUser trait and config types",
+        "AuthUser integrates with doido_model::password::HasSecurePassword for credential checks",
+        "Tick the 'Generic AuthUser trait' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "core",
+      "crate": "doido-auth",
+      "id": "US-105",
+      "priority": 105,
+      "passes": true,
+      "notes": "Foundation story: crate layout, AuthUser trait, auth: YAML config. No extractors or routes yet."
+    },
+    {
+      "title": "Cookie/session auth strategy + CurrentUser extractor",
+      "description": "As a Doido user, I want cookie/session authentication with axum CurrentUser and MaybeUser extractors so HTML apps can sign in via the existing session stack, per docs/16-auth.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-auth/tests/ that encodes: sign-in stores user_id in session; CurrentUser returns user; MaybeUser returns None when absent; 401 when required",
+        "session strategy implemented integrating doido_controller::session; extractors CurrentUser<U>, MaybeUser<U>, RequireAuth as FromRequestParts",
+        "doido_auth::init() registers the session strategy; doido_auth::layer() middleware installs request extensions",
+        "Tick the 'Cookie/session auth strategy' and 'Axum extractors' lines in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "core",
+      "crate": "doido-auth",
+      "id": "US-106",
+      "priority": 106,
+      "passes": true,
+      "notes": "Depends on US-105. Session strategy is the default; builds on existing CookieSessionStore."
+    },
+    {
+      "title": "JWT bearer auth strategy",
+      "description": "As a Doido user, I want JWT access/refresh tokens so API clients can authenticate via Authorization: Bearer, per docs/16-auth.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-auth/tests/jwt_test.rs that encodes: issue/verify/refresh/expire; wrong secret rejected",
+        "JwtStrategy implements AuthStrategy; tokens carry AuthUser::Id; refresh rotation optional via refresh_tokens table",
+        "CurrentUser extractor accepts JWT when jwt strategy is enabled in config (strategy priority order)",
+        "Tick the 'JWT bearer strategy' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "core",
+      "crate": "doido-auth",
+      "id": "US-107",
+      "priority": 107,
+      "passes": true,
+      "notes": "Depends on US-106. Use jsonwebtoken or similar via doido-auth re-export; no direct dep from apps."
+    },
+    {
+      "title": "OAuth / OAuth2 providers",
+      "description": "As a Doido user, I want OAuth 1.0a and OAuth2/OIDC provider support with redirect and callback handlers, per docs/16-auth.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-auth/tests/oauth_test.rs with mock HTTP for authorization URL + token exchange",
+        "OAuth2 provider config (google/github/generic) + OAuth1 provider; register_provider API for custom providers",
+        "Callback resolves or creates user by email; stores provider uid mapping",
+        "Tick the 'OAuth / OAuth2 providers' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "core",
+      "crate": "doido-auth",
+      "id": "US-108",
+      "priority": 108,
+      "passes": true,
+      "notes": "Depends on US-106. Provider secrets from credentials/env."
+    },
+    {
+      "title": "Optional 2FA (TOTP)",
+      "description": "As a Doido user, I want optional TOTP two-factor authentication behind feature auth-2fa, per docs/16-auth.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-auth/tests/two_factor_test.rs (feature auth-2fa) for enroll/confirm/challenge/backup codes",
+        "two_factor module: generate secret + QR URI, verify TOTP, pending session flag after password sign-in",
+        "Feature auth-2fa off by default; compile without it when feature disabled",
+        "Tick the 'Optional 2FA (TOTP)' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "nice",
+      "crate": "doido-auth",
+      "id": "US-109",
+      "priority": 109,
+      "passes": true,
+      "notes": "Depends on US-106. Optional feature; not required for auth:install default."
+    },
+    {
+      "title": "Pre-built auth routes (auth_routes!)",
+      "description": "As a Doido user, I want pre-built session and registration routes mountable via auth_routes!(User) in config/routes.rs, per docs/16-auth.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-auth/tests/routes_test.rs: POST sign_in/sign_up/sign_out, password reset flow with TestDeliverer",
+        "AuthRoutes controller set (sessions, registrations, passwords, oauth callbacks); auth_routes! macro in doido-controller macros",
+        "Routes honour config prefix and only:/skip: options",
+        "Tick the 'Pre-built session/registration routes' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "core",
+      "crate": "doido-auth",
+      "id": "US-110",
+      "priority": 110,
+      "passes": true,
+      "notes": "Depends on US-106 (+ US-108 for OAuth callbacks, US-109 for 2FA routes when enabled)."
+    },
+    {
+      "title": "Auth generators in doido-auth",
+      "description": "As a Doido user, I want auth:install, auth:controller, and auth:scaffold implemented inside doido-auth (not doido-generators), per docs/16-auth.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-auth/tests/generators_test.rs for auth:install, auth:controller, and auth:scaffold output",
+        "doido-auth/src/generators/{mod,install,controller,scaffold}.rs with embedded templates; doido_auth::generators::register(&mut GeneratorRegistry) exports all three",
+        "Generators use doido_generators::Generator trait + route injection helpers; auth:install does NOT modify Cargo.toml (dep must pre-exist)",
+        "Auth generators are NOT registered in doido_generators::default_registry()",
+        "Tick the 'auth:install generator' and 'auth:controller / auth:scaffold generators' lines in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "core",
+      "crate": "doido-auth",
+      "id": "US-111",
+      "priority": 111,
+      "passes": true,
+      "notes": "Depends on US-110. All auth generator code lives in doido-auth; pattern similar to storage:install but crate-owned."
+    },
+    {
+      "title": "CLI conditional auth generator discovery",
+      "description": "As a Doido user, I want auth generators to appear in doido generate only when doido-auth is listed in the project's Cargo.toml, per docs/16-auth.md and docs/06b-generators.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-generators/tests/ that encodes: without doido-auth in Cargo.toml auth:* absent from list and dispatch fails; with dep present auth:* listed and runnable",
+        "project_has_doido_auth() parses Cargo.toml (direct doido-auth dep or doido with feature auth); registry_for_project() merges doido_auth::generators::register when true",
+        "doido generate help output shows 'Auth (doido-auth):' section only when installed; clear error message when invoking auth:* without the dep",
+        "doido new --auth adds doido-auth to generated Cargo.toml and runs auth:install",
+        "Tick the 'CLI conditional generator discovery' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "core",
+      "crate": "doido-generators",
+      "id": "US-112",
+      "priority": 112,
+      "passes": true,
+      "notes": "Depends on US-111. doido-generators gains optional dep on doido-auth for workspace builds; runtime visibility gated by project's Cargo.toml."
+    },
+    {
+      "title": "E2E: auth:install sign-up and sign-in over generated app",
+      "description": "As a Doido user, I want release e2e proof that doido new --auth scaffolds an app that registers, signs in, and protects routes, per docs/16-auth.md.",
+      "acceptanceCriteria": [
+        "doido-generators/tests/e2e/scenarios/auth_install.rs (#[ignore]): doido new --auth (or new + cargo add doido-auth + auth:install --api) + db migrate + server boot",
+        "HTTP POST /users/sign_up then POST /users/sign_in; GET protected route with session cookie succeeds; without cookie returns 401",
+        "Scenario listed in doido-generators/tests/e2e/README.md matrix",
+        "make release-e2e passes with auth_install scenario; make verify passes (test #[ignore]d)"
+      ],
+      "tag": "core",
+      "crate": "doido-generators",
+      "id": "US-113",
+      "priority": 113,
+      "passes": true,
+      "notes": "Depends on US-112. E2E scenario auth_install.rs passes via make release-e2e (per-app CARGO_TARGET_DIR fix)."
     }
   ]
 }

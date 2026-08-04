@@ -48,7 +48,8 @@ and a modular architecture where each sub-crate can be used independently.
 | `doido-mailer`     | Action Mailer         | Email composition and delivery              |
 | `doido-jobs`       | Active Job            | Async background job queue                  |
 | `doido-cache`      | Active Support Cache  | Pluggable caching layer                     |
-| `doido-middleware` | Rack middleware       | Logging, CORS, sessions, auth               |
+| `doido-middleware` | Rack middleware       | Logging, CORS, sessions (merged into controller) |
+| `doido-auth`       | Devise + OmniAuth     | Unified auth: extractors, cookie/JWT/OAuth, 2FA |
 
 ## TDD Strategy
 

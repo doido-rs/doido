@@ -1,0 +1,28 @@
+use crate::models::user::{ActiveModel, Model as User};
+use doido::controller::{controller, Context, Response};
+use doido_auth::{require_user, CurrentUser, TwoFactor};
+use serde::Deserialize;
+
+#[derive(Deserialize)]
+pub struct TwoFactorForm {
+    pub code: String,
+}
+
+pub struct TwoFactorController;
+
+#[controller]
+impl TwoFactorController {
+    /// GET /users/two_factor
+    #[before_action(require_user)]
+    pub async fn show(ctx: Context, _user: CurrentUser<User>) -> Response {
+        ctx.render("auth/two_factor", serde_json::json!({}))
+    }
+
+    /// POST /users/two_factor
+    #[before_action(require_user)]
+    pub async fn create(mut ctx: Context, user: CurrentUser<User>) -> doido::Result<Response> {
+        let form: TwoFactorForm = ctx.form().await?;
+        TwoFactor::verify(&user, &form.code)?;
+        Ok(ctx.redirect_to("/"))
+    }
+}

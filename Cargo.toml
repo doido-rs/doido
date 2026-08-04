@@ -15,6 +15,7 @@ members = [
     "doido-cable/macros",
     "doido-cable",
     "doido-generators",
+    "doido-auth",
     "doido",
 ]
 
@@ -46,6 +47,7 @@ doido-controller = { path = "doido-controller", version = "0.0.9" }
 doido-controller-macros = { path = "doido-controller/macros", version = "0.0.9" }
 doido-core = { path = "doido-core", version = "0.0.9" }
 doido-generators = { path = "doido-generators", version = "0.0.9" }
+doido-auth = { path = "doido-auth", version = "0.0.9" }
 doido-jobs = { path = "doido-jobs", version = "0.0.9" }
 doido-jobs-macros = { path = "doido-jobs/macros", version = "0.0.9" }
 doido-mailer = { path = "doido-mailer", version = "0.0.9" }
@@ -53,6 +55,10 @@ doido-mailer-macros = { path = "doido-mailer/macros", version = "0.0.9" }
 doido-model = { path = "doido-model", version = "0.0.9", default-features = false }
 doido-storage = { path = "doido-storage", version = "0.0.9" }
 doido-view = { path = "doido-view", version = "0.0.9" }
+
+jsonwebtoken = { version = "10", default-features = false, features = ["aws_lc_rs"] }
+totp-lite = "2"
+ureq = { version = "3", features = ["json"] }
 
 # ORM
 sea-orm     = { version = "2.0.0", features = ["sqlx-sqlite", "runtime-tokio-rustls", "macros"] }

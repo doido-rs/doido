@@ -1,0 +1,18 @@
+use doido::controller::{controller, Response};
+
+pub struct OauthController;
+
+#[controller]
+impl OauthController {
+    /// GET /auth/:provider
+    pub async fn authorize(ctx: doido::controller::Context) -> doido::Result<Response> {
+        let _provider = ctx.param("provider").unwrap_or("unknown");
+        Ok(ctx.status(501))
+    }
+
+    /// GET /auth/:provider/callback
+    pub async fn callback(ctx: doido::controller::Context) -> doido::Result<Response> {
+        let _provider = ctx.param("provider").unwrap_or("unknown");
+        Ok(ctx.redirect_to("/users/sign_in"))
+    }
+}

@@ -193,6 +193,10 @@ page = "docs/reference/middleware.md"
 
 [[extra.docs_sidebar]]
 kind = "module"
+page = "docs/reference/auth.md"
+
+[[extra.docs_sidebar]]
+kind = "module"
 page = "docs/reference/views.md"
 
 [[extra.docs_sidebar]]
