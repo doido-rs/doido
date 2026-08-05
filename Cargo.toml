@@ -17,6 +17,7 @@ members = [
     "doido-generators",
     "doido-auth",
     "doido",
+    "test-fixtures/api-app",
 ]
 
 [workspace.package]
