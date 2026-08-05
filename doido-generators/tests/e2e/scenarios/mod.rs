@@ -1,3 +1,4 @@
+mod api_project;
 mod auth_install;
 mod bootstrap_migrations;
 mod kitchen_sink;

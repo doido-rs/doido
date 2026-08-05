@@ -44,7 +44,7 @@ else
 		cargo metadata --no-deps --format-version 1 \
 			| python3 -c 'import json,sys; print("\n".join(sorted(
 			    p for p in {pkg["name"] for pkg in json.load(sys.stdin)["packages"]}
-			    if not p.endswith("-macros") and not p.endswith("-fixture")
+			    if not p.endswith("-macros")
 			)))'
 	)
 fi

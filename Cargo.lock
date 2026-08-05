@@ -1646,16 +1646,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "doido-api-fixture"
-version = "0.0.0"
-dependencies = [
- "doido-controller",
- "http 1.4.2",
- "tokio",
- "tower",
-]
-
-[[package]]
 name = "doido-auth"
 version = "0.0.9"
 dependencies = [

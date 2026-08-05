@@ -39,6 +39,9 @@ pub fn e2e_lock() -> MutexGuard<'static, ()> {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum BaseProfile {
     Default,
+    /// `doido new --api`: project marked `api_only` (no auth). Used to prove the
+    /// route macros drop `new`/`edit` from a plain `resources!` at compile time.
+    ApiOnly,
     WithCable,
     WithJobsDb,
     WithAuthApi,
@@ -49,6 +52,7 @@ impl BaseProfile {
     fn cache_dir(self) -> PathBuf {
         let name = match self {
             Self::Default => "sqlite-memory",
+            Self::ApiOnly => "sqlite-api",
             Self::WithCable => "sqlite-cable",
             Self::WithJobsDb => "sqlite-jobs-db",
             Self::WithAuthApi => "auth-api",
@@ -61,6 +65,7 @@ impl BaseProfile {
         let mut args = vec!["new", "blog", "--non-interactive", "--database=sqlite"];
         match self {
             Self::Default => {}
+            Self::ApiOnly => args.push("--api"),
             Self::WithCable => args.push("--cable"),
             Self::WithJobsDb => args.push("--jobs=db"),
             Self::WithAuthApi => {
@@ -143,6 +148,7 @@ fn recreate_auth_base(dir: &Path, profile: BaseProfile) {
 
 fn ensure_base_app(profile: BaseProfile) -> PathBuf {
     static DEFAULT: OnceLock<PathBuf> = OnceLock::new();
+    static API_ONLY: OnceLock<PathBuf> = OnceLock::new();
     static CABLE: OnceLock<PathBuf> = OnceLock::new();
     static JOBS_DB: OnceLock<PathBuf> = OnceLock::new();
 
@@ -174,6 +180,7 @@ fn ensure_base_app(profile: BaseProfile) -> PathBuf {
 
             match profile {
                 BaseProfile::Default => DEFAULT.get_or_init(init).clone(),
+                BaseProfile::ApiOnly => API_ONLY.get_or_init(init).clone(),
                 BaseProfile::WithCable => CABLE.get_or_init(init).clone(),
                 BaseProfile::WithJobsDb => JOBS_DB.get_or_init(init).clone(),
                 BaseProfile::WithAuthApi | BaseProfile::WithAuthHtml => unreachable!(),
