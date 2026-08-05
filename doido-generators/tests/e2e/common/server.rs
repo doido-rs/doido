@@ -34,9 +34,12 @@ pub fn configure_port(app: &Path, port: u16) {
 }
 
 pub fn spawn(bin: &Path, app: &Path) -> RunningServer {
+    let target = super::workspace::shared_cargo_target();
+    std::fs::create_dir_all(&target).ok();
     let child = Command::new(bin)
         .arg("server")
         .current_dir(app)
+        .env("CARGO_TARGET_DIR", target)
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .spawn()

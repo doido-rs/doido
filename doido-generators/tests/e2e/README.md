@@ -17,8 +17,10 @@ Set `E2E_KEEP=1` to preserve generated apps under `target/e2e/apps/` for debuggi
 ## Shared build cache
 
 - Baseline apps are cached under `target/e2e/apps/_base/`.
-- Each scenario forks the baseline into `target/e2e/apps/<scenario>/`.
-- All builds share `CARGO_TARGET_DIR=target/e2e-cargo` so framework crates link once.
+- Each scenario forks the baseline into `target/e2e/apps/<scenario>/` (without copying `target/`).
+- All generated apps share `CARGO_TARGET_DIR=target/e2e/apps/cargo-target` so framework crates link once.
+- The first scenario per `BaseProfile` warms that profile's baseline build; later scenarios only recompile app changes.
+- The e2e test harness itself still uses `target/e2e-cargo` (see `make release-e2e`) so `-D warnings` on generated apps does not affect harness flags.
 
 ## Validators (every scenario)
 

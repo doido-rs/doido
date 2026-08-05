@@ -13,10 +13,15 @@ pub fn workspace_root() -> PathBuf {
         .to_path_buf()
 }
 
-/// Per-app `CARGO_TARGET_DIR` so generated apps with the same package name (`blog`)
-/// do not overwrite each other's binaries in a shared target directory.
-pub fn app_cargo_target(app: &Path) -> PathBuf {
-    app.join("target")
+/// Shared `CARGO_TARGET_DIR` for every generated e2e app so framework crates link once.
+/// Scenarios run serially (`--test-threads=1`), so reusing the `blog` binary name is safe.
+pub fn shared_cargo_target() -> PathBuf {
+    e2e_apps_root().join("cargo-target")
+}
+
+/// Path to the cached baseline app root for `profile` (before scenario fork).
+pub fn profile_base_app(profile: BaseProfile) -> PathBuf {
+    profile.cache_dir().join("blog")
 }
 
 /// Root directory for forked scenario apps (kept when `E2E_KEEP=1`).
