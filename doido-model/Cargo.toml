@@ -7,18 +7,9 @@ edition = "2021"
 
 [dependencies]
 doido-core.workspace = true
-sea-orm = { version = "2.0.0", default-features = false, features = [
-    "runtime-tokio-rustls",
-    "macros",
-] }
-sea-orm-migration = { version = "2.0.0", default-features = false, features = [
-    "runtime-tokio-rustls",
-] }
-sea-orm-cli = { version = "2.0.0", default-features = false, features = [
-    "cli",
-    "codegen",
-    "runtime-tokio-rustls",
-], optional = true }
+sea-orm.workspace = true
+sea-orm-migration.workspace = true
+sea-orm-cli = { workspace = true, optional = true }
 tokio.workspace = true
 serde.workspace = true
 serde_json.workspace = true
