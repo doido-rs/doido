@@ -26,11 +26,11 @@ fn coerces_float_and_false_bool() {
     apply_env_overrides(
         &mut config,
         &[
-            ("CACHE__TTL".into(), "3.14".into()),
+            ("CACHE__TTL".into(), "2.5".into()),
             ("LOGGER__SQL".into(), "false".into()),
         ],
     );
-    assert_eq!(config["cache"]["ttl"], 3.14);
+    assert_eq!(config["cache"]["ttl"], 2.5);
     assert_eq!(config["logger"]["sql"], false);
 }
 
