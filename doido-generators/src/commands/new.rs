@@ -72,7 +72,7 @@ fn prompt_cable() -> bool {
 }
 
 fn prompt_api_auth() -> bool {
-    print!("API-only auth (JSON endpoints, no sign-in views)? [y/N]: ");
+    print!("API-only project (JSON endpoints; no HTML form routes/views)? [y/N]: ");
     io::stdout().flush().expect("failed to flush stdout");
     let mut input = String::new();
     io::stdin()
@@ -82,14 +82,13 @@ fn prompt_api_auth() -> bool {
 }
 
 pub fn run_new(name: &str, opts: NewOptions) {
-    let (database, cache, jobs, cable, auth, api) = if opts.non_interactive {
+    let (database, cache, jobs, cable, auth) = if opts.non_interactive {
         (
             opts.database.unwrap_or(DatabaseBackend::Sqlite),
             opts.cache.unwrap_or(CacheBackend::Memory),
             opts.jobs.unwrap_or(JobsBackend::Memory),
             opts.cable,
             opts.auth,
-            opts.api,
         )
     } else {
         (
@@ -98,16 +97,18 @@ pub fn run_new(name: &str, opts: NewOptions) {
             opts.jobs.unwrap_or_else(prompt_jobs),
             if opts.cable { true } else { prompt_cable() },
             opts.auth,
-            if opts.auth {
-                if opts.api {
-                    true
-                } else {
-                    prompt_api_auth()
-                }
-            } else {
-                false
-            },
         )
+    };
+
+    // `--api` marks the whole project as API-only (JSON endpoints; no HTML
+    // form routes or HTML-only middleware). Interactively, offer it when auth is
+    // enabled — the auth scaffold also branches on it (JSON vs sign-in views).
+    let api = if opts.api {
+        true
+    } else if !opts.non_interactive && auth {
+        prompt_api_auth()
+    } else {
+        false
     };
 
     let registry = default_registry();
@@ -120,6 +121,9 @@ pub fn run_new(name: &str, opts: NewOptions) {
     }
     if auth {
         new_args.push("--auth");
+    }
+    if api {
+        new_args.push("--api");
     }
     match registry.run("new", &new_args) {
         Ok(files) => {

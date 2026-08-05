@@ -23,6 +23,7 @@ pub struct MiddlewareStack {
     allowed_hosts: Vec<String>,
     csrf: bool,
     force_ssl: bool,
+    api_only: bool,
     before: Vec<RouterTransform>,
     after: Vec<RouterTransform>,
 }
@@ -35,9 +36,21 @@ impl MiddlewareStack {
             allowed_hosts: Vec::new(),
             csrf: false,
             force_ssl: false,
+            api_only: false,
             before: Vec::new(),
             after: Vec::new(),
         }
+    }
+
+    /// Mark the stack as serving a JSON-only API (`doido new --api`). HTML-only
+    /// middleware that makes no difference for `application/json` clients is
+    /// skipped even if requested: CSRF (form double-submit) is a no-op here, and
+    /// future session/flash/static-file layers must honor this flag too. Security
+    /// layers relevant to any content type (CORS, force-SSL, host allowlist,
+    /// logging, panic recovery) are unaffected.
+    pub fn with_api_only(mut self, api_only: bool) -> Self {
+        self.api_only = api_only;
+        self
     }
 
     /// Enable CSRF protection (double-submit cookie): state-changing requests
@@ -118,7 +131,9 @@ impl MiddlewareStack {
         if !self.allowed_hosts.is_empty() {
             r = r.layer(from_fn_with_state(Arc::new(self.allowed_hosts), host_guard));
         }
-        if self.csrf {
+        // CSRF is a form/cookie defense; a JSON API authenticates with tokens and
+        // is protected by CORS, so the guard is skipped entirely in API mode.
+        if self.csrf && !self.api_only {
             r = r.layer(from_fn(csrf_guard));
         }
         if self.force_ssl {

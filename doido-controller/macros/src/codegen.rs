@@ -2,7 +2,12 @@ use crate::parser::{ResourceFilter, RouteDecl, RoutesInput};
 use proc_macro2::{Span, TokenStream};
 use quote::{format_ident, quote};
 
-fn is_active(action: &str, filter: &ResourceFilter) -> bool {
+fn is_active(action: &str, filter: &ResourceFilter, api: bool) -> bool {
+    // In API-only projects the HTML-form routes (`new`/`edit`) are pointless —
+    // they exist only to render forms — so they are always inactive.
+    if api && matches!(action, "new" | "edit") {
+        return false;
+    }
     match filter {
         ResourceFilter::All => true,
         ResourceFilter::Only(list) => list.iter().any(|a| a == action),
@@ -15,6 +20,7 @@ fn generate_inner(
     path_prefix: Option<&str>,
     helper_prefix: Option<&str>,
     descriptors: &mut Vec<(String, String)>,
+    api: bool,
 ) -> TokenStream {
     let mut route_stmts = Vec::new();
     let mut helper_fns = Vec::new();
@@ -121,37 +127,39 @@ fn generate_inner(
 
                 let mut collection =
                     quote! { doido_controller::axum::routing::MethodRouter::new() };
-                if is_active("index", &filter) {
+                if is_active("index", &filter, api) {
                     collection = quote! { #collection.get(#ctrl::index) };
                     descriptors.push(("GET".to_string(), base.clone()));
                 }
-                if is_active("create", &filter) {
+                if is_active("create", &filter, api) {
                     collection = quote! { #collection.post(#ctrl::create) };
                     descriptors.push(("POST".to_string(), base.clone()));
                 }
                 route_stmts.push(quote! { .route(#base, #collection) });
 
-                if is_active("new", &filter) {
+                let new_active = is_active("new", &filter, api);
+                if new_active {
                     descriptors.push(("GET".to_string(), base_new.clone()));
                     route_stmts.push(quote! { .route(#base_new, doido_controller::axum::routing::get(#ctrl::new)) });
                 }
 
                 let mut member = quote! { doido_controller::axum::routing::MethodRouter::new() };
-                if is_active("show", &filter) {
+                if is_active("show", &filter, api) {
                     member = quote! { #member.get(#ctrl::show) };
                     descriptors.push(("GET".to_string(), base_id.clone()));
                 }
-                if is_active("update", &filter) {
+                if is_active("update", &filter, api) {
                     member = quote! { #member.patch(#ctrl::update).put(#ctrl::update) };
                     descriptors.push(("PUT|PATCH".to_string(), base_id.clone()));
                 }
-                if is_active("destroy", &filter) {
+                if is_active("destroy", &filter, api) {
                     member = quote! { #member.delete(#ctrl::destroy) };
                     descriptors.push(("DELETE".to_string(), base_id.clone()));
                 }
                 route_stmts.push(quote! { .route(#base_id, #member) });
 
-                if is_active("edit", &filter) {
+                let edit_active = is_active("edit", &filter, api);
+                if edit_active {
                     descriptors.push(("GET".to_string(), base_id_edit.clone()));
                     route_stmts
                         .push(quote! { .route(#base_id_edit, doido_controller::axum::routing::get(#ctrl::edit)) });
@@ -185,23 +193,40 @@ fn generate_inner(
                 };
 
                 let collection_fn = format_ident!("{}_path", helper_name);
-                let new_fn = format_ident!("new_{}_path", helper_singular);
                 let member_fn = format_ident!("{}_path", helper_singular);
-                let edit_fn = format_ident!("edit_{}_path", helper_singular);
+
+                // `new_*_path` / `edit_*_path` helpers only exist when their routes
+                // do (dropped in API mode along with the form routes).
+                let new_helper = if new_active {
+                    let new_fn = format_ident!("new_{}_path", helper_singular);
+                    quote! {
+                        #[allow(dead_code)]
+                        fn #new_fn() -> &'static str { #base_new }
+                    }
+                } else {
+                    quote! {}
+                };
+                let edit_helper = if edit_active {
+                    let edit_fn = format_ident!("edit_{}_path", helper_singular);
+                    quote! {
+                        #[allow(dead_code)]
+                        fn #edit_fn(id: impl ::std::fmt::Display) -> String {
+                            format!("{}/{}/edit", #base, id)
+                        }
+                    }
+                } else {
+                    quote! {}
+                };
 
                 helper_fns.push(quote! {
                     #[allow(dead_code)]
                     fn #collection_fn() -> &'static str { #base }
-                    #[allow(dead_code)]
-                    fn #new_fn() -> &'static str { #base_new }
+                    #new_helper
                     #[allow(dead_code)]
                     fn #member_fn(id: impl ::std::fmt::Display) -> String {
                         format!("{}/{}", #base, id)
                     }
-                    #[allow(dead_code)]
-                    fn #edit_fn(id: impl ::std::fmt::Display) -> String {
-                        format!("{}/{}/edit", #base, id)
-                    }
+                    #edit_helper
                 });
             }
             RouteDecl::Redirect { from, to } => {
@@ -240,8 +265,6 @@ fn generate_inner(
                 descriptors.push(("POST".to_string(), base.clone()));
                 descriptors.push(("PUT|PATCH".to_string(), base.clone()));
                 descriptors.push(("DELETE".to_string(), base.clone()));
-                descriptors.push(("GET".to_string(), base_new.clone()));
-                descriptors.push(("GET".to_string(), base_edit.clone()));
 
                 route_stmts.push(quote! {
                     .route(#base, doido_controller::axum::routing::MethodRouter::new()
@@ -251,25 +274,39 @@ fn generate_inner(
                         .put(#ctrl::update)
                         .delete(#ctrl::destroy))
                 });
-                route_stmts.push(
-                    quote! { .route(#base_new, doido_controller::axum::routing::get(#ctrl::new)) },
-                );
-                route_stmts.push(quote! { .route(#base_edit, doido_controller::axum::routing::get(#ctrl::edit)) });
 
                 let helper_base = match helper_prefix {
                     Some(pfx) => format!("{}_{}", pfx, n),
                     None => n.clone(),
                 };
                 let show_fn = format_ident!("{}_path", helper_base);
-                let new_fn = format_ident!("new_{}_path", helper_base);
-                let edit_fn = format_ident!("edit_{}_path", helper_base);
+
+                // API-only: drop the `new`/`edit` form routes and their helpers.
+                let (new_edit_routes, new_edit_helpers) = if api {
+                    (quote! {}, quote! {})
+                } else {
+                    descriptors.push(("GET".to_string(), base_new.clone()));
+                    descriptors.push(("GET".to_string(), base_edit.clone()));
+                    let new_fn = format_ident!("new_{}_path", helper_base);
+                    let edit_fn = format_ident!("edit_{}_path", helper_base);
+                    (
+                        quote! {
+                            .route(#base_new, doido_controller::axum::routing::get(#ctrl::new))
+                            .route(#base_edit, doido_controller::axum::routing::get(#ctrl::edit))
+                        },
+                        quote! {
+                            #[allow(dead_code)]
+                            fn #new_fn() -> &'static str { #base_new }
+                            #[allow(dead_code)]
+                            fn #edit_fn() -> &'static str { #base_edit }
+                        },
+                    )
+                };
+                route_stmts.push(new_edit_routes);
                 helper_fns.push(quote! {
                     #[allow(dead_code)]
                     fn #show_fn() -> &'static str { #base }
-                    #[allow(dead_code)]
-                    fn #new_fn() -> &'static str { #base_new }
-                    #[allow(dead_code)]
-                    fn #edit_fn() -> &'static str { #base_edit }
+                    #new_edit_helpers
                 });
             }
             RouteDecl::ShallowResources {
@@ -295,18 +332,24 @@ fn generate_inner(
 
                 descriptors.push(("GET".to_string(), nested.clone()));
                 descriptors.push(("POST".to_string(), nested.clone()));
-                descriptors.push(("GET".to_string(), nested_new.clone()));
+                if !api {
+                    descriptors.push(("GET".to_string(), nested_new.clone()));
+                }
                 descriptors.push(("GET".to_string(), member.clone()));
                 descriptors.push(("PUT|PATCH".to_string(), member.clone()));
                 descriptors.push(("DELETE".to_string(), member.clone()));
-                descriptors.push(("GET".to_string(), member_edit.clone()));
+                if !api {
+                    descriptors.push(("GET".to_string(), member_edit.clone()));
+                }
 
                 route_stmts.push(quote! {
                     .route(#nested, doido_controller::axum::routing::MethodRouter::new()
                         .get(#ctrl::index)
                         .post(#ctrl::create))
                 });
-                route_stmts.push(quote! { .route(#nested_new, doido_controller::axum::routing::get(#ctrl::new)) });
+                if !api {
+                    route_stmts.push(quote! { .route(#nested_new, doido_controller::axum::routing::get(#ctrl::new)) });
+                }
                 route_stmts.push(quote! {
                     .route(#member, doido_controller::axum::routing::MethodRouter::new()
                         .get(#ctrl::show)
@@ -314,7 +357,9 @@ fn generate_inner(
                         .put(#ctrl::update)
                         .delete(#ctrl::destroy))
                 });
-                route_stmts.push(quote! { .route(#member_edit, doido_controller::axum::routing::get(#ctrl::edit)) });
+                if !api {
+                    route_stmts.push(quote! { .route(#member_edit, doido_controller::axum::routing::get(#ctrl::edit)) });
+                }
             }
             RouteDecl::Namespace { name, body } => {
                 let ns_str = name.to_string();
@@ -326,8 +371,13 @@ fn generate_inner(
                     Some(pfx) => format!("{}_{}", pfx, ns_str),
                     None => ns_str,
                 };
-                let inner_ts =
-                    generate_inner(body, Some(&ns_path), Some(&combined_helper), descriptors);
+                let inner_ts = generate_inner(
+                    body,
+                    Some(&ns_path),
+                    Some(&combined_helper),
+                    descriptors,
+                    api,
+                );
                 route_stmts.push(quote! { .merge(#inner_ts) });
             }
             RouteDecl::Scope {
@@ -338,7 +388,8 @@ fn generate_inner(
                     Some(pfx) => format!("{}{}", pfx, scope_path.value()),
                     None => scope_path.value(),
                 };
-                let inner_ts = generate_inner(body, Some(&full_path), helper_prefix, descriptors);
+                let inner_ts =
+                    generate_inner(body, Some(&full_path), helper_prefix, descriptors, api);
                 route_stmts.push(quote! { .merge(#inner_ts) });
             }
         }
@@ -354,8 +405,9 @@ fn generate_inner(
 }
 
 pub fn generate(input: RoutesInput) -> TokenStream {
+    let api = crate::api_mode::api_only();
     let mut descriptors = Vec::new();
-    let inner = generate_inner(input, None, None, &mut descriptors);
+    let inner = generate_inner(input, None, None, &mut descriptors, api);
 
     let entries = descriptors.iter().map(|(method, path)| {
         quote! {
@@ -366,10 +418,22 @@ pub fn generate(input: RoutesInput) -> TokenStream {
         }
     });
 
+    // Let rustc re-expand this macro when the `api_only` marker changes: stable
+    // proc-macros don't track `fs::read`, but `include_bytes!` registers the file
+    // as a compilation dependency. Only emitted when the file actually exists.
+    let marker_tracking = match crate::api_mode::manifest_config_path() {
+        Some(path) => {
+            let path_str = path.to_string_lossy().into_owned();
+            quote! { const _: &[u8] = include_bytes!(#path_str); }
+        }
+        None => quote! {},
+    };
+
     // Register the route table (for `doido server` / `doido routes` to print)
     // as the router is built, then yield the router itself.
     quote! {
         {
+            #marker_tracking
             ::doido_controller::register_routes(::std::vec![ #(#entries),* ]);
             #inner
         }

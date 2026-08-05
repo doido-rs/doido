@@ -223,6 +223,13 @@ Bootstrap for new apps: `doido new --auth` adds the dependency and runs
 `auth:install`. For existing apps: `cargo add doido-auth`, then
 `doido generate auth:install`.
 
+`doido new --api` marks the **whole project** as API-only (not just auth): it
+writes `api_only = true` under `[app]` in `config/application.toml`. That marker
+makes `resources!` drop the `new`/`edit` form routes at compile time and makes the
+server boot skip HTML-only middleware (e.g. CSRF). When combined with `--auth`, it
+also selects the JSON auth controllers instead of the HTML sign-in/up views. See
+[01-router.md](01-router.md) and [07-middleware.md](07-middleware.md).
+
 ## Route Auto-Injection into `config/routes.rs`
 
 ```rust

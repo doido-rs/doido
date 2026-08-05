@@ -1,0 +1,6 @@
+[app]
+name = "doido-api-fixture"
+api_only = true
+
+[database]
+url = "sqlite::memory:"

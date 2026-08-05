@@ -56,6 +56,22 @@ async fn unsafe_post_with_mismatched_token_is_forbidden() {
     assert_eq!(post_status(Some(&a), Some(&b)).await, StatusCode::FORBIDDEN);
 }
 
+#[tokio::test]
+async fn api_mode_skips_csrf_even_when_requested() {
+    // An API-only stack ignores `.with_csrf()`: a state-changing request with no
+    // token must pass, since JSON APIs rely on tokens/CORS rather than form CSRF.
+    let app = MiddlewareStack::new()
+        .with_api_only(true)
+        .with_csrf()
+        .apply(Router::new().route("/posts", post(|| async { "created" })));
+    let req = http::Request::builder()
+        .method("POST")
+        .uri("/posts")
+        .body(doido_controller::axum::body::Body::empty())
+        .unwrap();
+    assert_eq!(app.oneshot(req).await.unwrap().status(), StatusCode::OK);
+}
+
 #[test]
 fn tokens_are_nonempty_and_unique() {
     let a = csrf::generate_token();

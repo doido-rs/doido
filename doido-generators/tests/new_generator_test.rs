@@ -346,6 +346,30 @@ fn test_new_mysql_sets_correct_database_url() {
 }
 
 #[test]
+fn test_new_api_marks_project_api_only() {
+    let files = ProjectGenerator.generate(&["blog", "--api"]).unwrap();
+    let app_config = files
+        .iter()
+        .find(|f| f.path == "blog/config/application.toml")
+        .unwrap();
+    assert!(
+        app_config.content.contains("api_only = true"),
+        "--api must write the api_only marker under [app]:\n{}",
+        app_config.content
+    );
+}
+
+#[test]
+fn test_new_without_api_omits_marker() {
+    let files = ProjectGenerator.generate(&["blog"]).unwrap();
+    let app_config = files
+        .iter()
+        .find(|f| f.path == "blog/config/application.toml")
+        .unwrap();
+    assert!(!app_config.content.contains("api_only"));
+}
+
+#[test]
 fn test_new_sqlite_default_when_no_database_flag() {
     let files = ProjectGenerator.generate(&["my-app"]).unwrap();
     let app_config = files

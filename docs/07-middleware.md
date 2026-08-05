@@ -55,6 +55,22 @@ middleware:
     dir: "public"
 ```
 
+## API-only mode (`doido new --api`)
+
+A project generated with `--api` sets `api_only = true` under `[app]` in
+`config/application.toml`. On boot, `server.rs` reads this marker and builds the
+stack with `MiddlewareStack::with_api_only(true)`, which **skips HTML-only
+middleware that makes no difference to `application/json` clients**:
+
+| Layer | API mode |
+|-------|----------|
+| CSRF (form double-submit) | **skipped** even if `with_csrf()` is set — APIs use tokens/CORS |
+| Session / flash / static-file serving | must honor the flag as they are wired (HTML-only) |
+| Logging, panic recovery, CORS, force-SSL, host allowlist | unchanged (relevant to any content type) |
+
+The same `api_only` marker is what the route macros read at compile time to drop
+the `new`/`edit` form routes (see [01-router.md](01-router.md)).
+
 ## Session — Pluggable `SessionStore` Trait
 
 ```rust

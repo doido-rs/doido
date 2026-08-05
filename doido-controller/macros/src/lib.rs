@@ -1,3 +1,4 @@
+mod api_mode;
 mod codegen;
 mod controller;
 mod parser;
