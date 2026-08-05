@@ -60,9 +60,19 @@ jsonwebtoken = { version = "10", default-features = false, features = ["aws_lc_r
 totp-lite = "2"
 ureq = { version = "3", features = ["json"] }
 
-# ORM
-sea-orm     = { version = "2.0.0", features = ["sqlx-sqlite", "runtime-tokio-rustls", "macros"] }
-sea-orm-migration = { version = "2.0.0", features = ["sqlx-sqlite", "runtime-tokio-rustls"] }
+# ORM (version pinned here; doido-model re-exports — import only via doido_model::sea_orm*)
+sea-orm = { version = "2.0.1", default-features = false, features = [
+    "runtime-tokio-rustls",
+    "macros",
+] }
+sea-orm-migration = { version = "2.0.1", default-features = false, features = [
+    "runtime-tokio-rustls",
+] }
+sea-orm-cli = { version = "2.0.1", default-features = false, features = [
+    "cli",
+    "codegen",
+    "runtime-tokio-rustls",
+] }
 
 # Async runtime
 tokio       = { version = "1", features = ["rt-multi-thread", "macros"] }
