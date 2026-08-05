@@ -19,6 +19,7 @@
 
 use crate::dev_workspace::DependencyMode;
 use crate::generator::{GeneratedFile, Generator};
+use crate::generators::bootstrap_migrations::{apply_bootstrap_migrations, storage_config_section};
 use crate::new_options::{parse_cache, parse_database, parse_jobs, CacheBackend, JobsBackend};
 use doido_core::{anyhow, Result};
 use include_dir::{include_dir, Dir, DirEntry};
@@ -71,6 +72,7 @@ struct TemplateContext<'a> {
     doido_model_dep: String,
     cache_section: String,
     jobs_section: String,
+    storage_section: String,
     compose_services: String,
     compose_depends_on: String,
     compose_database_url: String,
@@ -169,6 +171,17 @@ fn render_jobs_section(jobs: JobsBackend, name: &str) -> String {
     }
 }
 
+/// Development SMTP — Mailpit on localhost when running `cargo doido server`.
+const MAILER_DEV_SECTION: &str = "mailer:\n  type: smtp\n  smtp:\n    address: localhost:1025\n";
+
+fn compose_mailpit_service() -> &'static str {
+    r#"  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "1025:1025"
+      - "8025:8025""#
+}
+
 fn needs_redis(cable: bool, cache: CacheBackend, jobs: JobsBackend) -> bool {
     cable || cache == CacheBackend::Redis || jobs == JobsBackend::Redis
 }
@@ -254,6 +267,7 @@ fn compose_services(
     if cache == CacheBackend::Memcache {
         parts.push(compose_memcache_service().to_string());
     }
+    parts.push(compose_mailpit_service().to_string());
     parts.join("\n\n")
 }
 
@@ -263,7 +277,7 @@ fn compose_depends_on(
     cache: CacheBackend,
     jobs: JobsBackend,
 ) -> String {
-    let mut deps = Vec::new();
+    let mut deps = vec!["      mailpit:\n        condition: service_started"];
     match database {
         "postgres" => deps.push("      postgres:\n        condition: service_healthy"),
         "mysql" => deps.push("      mysql:\n        condition: service_healthy"),
@@ -272,15 +286,14 @@ fn compose_depends_on(
     if needs_redis(cable, cache, jobs) {
         deps.push("      redis:\n        condition: service_healthy");
     }
-    if deps.is_empty() {
-        String::new()
-    } else {
-        format!("    depends_on:\n{}", deps.join("\n"))
-    }
+    format!("    depends_on:\n{}", deps.join("\n"))
 }
 
 fn compose_env_extras(cache: CacheBackend, jobs: JobsBackend) -> String {
-    let mut lines = Vec::new();
+    let mut lines = vec![
+        "      MAILER__TYPE: smtp",
+        "      MAILER__SMTP__ADDRESS: mailpit:1025",
+    ];
     match cache {
         CacheBackend::Redis => lines.push("      CACHE__ENDPOINT: redis://redis:6379"),
         CacheBackend::Memcache => lines.push("      CACHE__ENDPOINT: memcache://memcache:11211"),
@@ -359,6 +372,8 @@ fn substitute_template(template: &str, ctx: &TemplateContext<'_>) -> String {
         .replace("{doido_cable_readme}", &cable_readme)
         .replace("{doido_cache_section}", &ctx.cache_section)
         .replace("{doido_jobs_section}", &ctx.jobs_section)
+        .replace("{doido_storage_section}", &ctx.storage_section)
+        .replace("{doido_mailer_section}", MAILER_DEV_SECTION)
         .replace("{doido_compose_services}", &ctx.compose_services)
         .replace("{doido_compose_depends_on}", &ctx.compose_depends_on)
         .replace("{doido_compose_database_url}", &ctx.compose_database_url)
@@ -499,6 +514,7 @@ impl Generator for ProjectGenerator {
             dep_mode,
             cache_section: render_cache_section(cache, name),
             jobs_section: render_jobs_section(jobs, name),
+            storage_section: storage_config_section("local"),
             compose_services: compose_services(database, name, cable, cache, jobs),
             compose_depends_on: compose_depends_on(database, cable, cache, jobs),
             compose_database_url: compose_database_url_for_docker(database, name),
@@ -508,6 +524,22 @@ impl Generator for ProjectGenerator {
 
         let mut files = Vec::new();
         collect_from_dir(&APP_TEMPLATE_DIR, &ctx, name, &mut files)?;
+
+        if let Some(lib) = files
+            .iter_mut()
+            .find(|f| f.path.ends_with("db/migration/src/lib.rs"))
+        {
+            let (updated, migrations) =
+                apply_bootstrap_migrations(&lib.content, jobs == JobsBackend::Db);
+            lib.content = updated;
+            for (module, content) in migrations {
+                files.push(GeneratedFile {
+                    path: format!("{name}/db/migration/src/{module}.rs"),
+                    content,
+                });
+            }
+        }
+
         files.sort_by(|a, b| a.path.cmp(&b.path));
         Ok(files)
     }
@@ -759,5 +791,25 @@ edition = "2021"
             compose_database_url_for_docker("postgres", "blog"),
             "postgres://postgres:postgres@postgres:5432/blog_development"
         );
+    }
+
+    #[test]
+    fn compose_always_includes_mailpit() {
+        let svc = compose_services(
+            "sqlite",
+            "app",
+            false,
+            CacheBackend::Memory,
+            JobsBackend::Memory,
+        );
+        assert!(svc.contains("mailpit:"));
+        assert!(svc.contains("axllent/mailpit"));
+    }
+
+    #[test]
+    fn compose_env_extras_wires_mailer_to_mailpit() {
+        let env = compose_env_extras(CacheBackend::Memory, JobsBackend::Memory);
+        assert!(env.contains("MAILER__TYPE: smtp"));
+        assert!(env.contains("MAILER__SMTP__ADDRESS: mailpit:1025"));
     }
 }

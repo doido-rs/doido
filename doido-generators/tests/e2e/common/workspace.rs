@@ -13,10 +13,15 @@ pub fn workspace_root() -> PathBuf {
         .to_path_buf()
 }
 
-/// Per-app `CARGO_TARGET_DIR` so generated apps with the same package name (`blog`)
-/// do not overwrite each other's binaries in a shared target directory.
-pub fn app_cargo_target(app: &Path) -> PathBuf {
-    app.join("target")
+/// Shared `CARGO_TARGET_DIR` for every generated e2e app so framework crates link once.
+/// Scenarios run serially (`--test-threads=1`), so reusing the `blog` binary name is safe.
+pub fn shared_cargo_target() -> PathBuf {
+    e2e_apps_root().join("cargo-target")
+}
+
+/// Path to the cached baseline app root for `profile` (before scenario fork).
+pub fn profile_base_app(profile: BaseProfile) -> PathBuf {
+    profile.cache_dir().join("blog")
 }
 
 /// Root directory for forked scenario apps (kept when `E2E_KEEP=1`).
@@ -35,6 +40,7 @@ pub fn e2e_lock() -> MutexGuard<'static, ()> {
 pub enum BaseProfile {
     Default,
     WithCable,
+    WithJobsDb,
     WithAuthApi,
     WithAuthHtml,
 }
@@ -42,8 +48,9 @@ pub enum BaseProfile {
 impl BaseProfile {
     fn cache_dir(self) -> PathBuf {
         let name = match self {
-            Self::Default => "default",
-            Self::WithCable => "cable",
+            Self::Default => "sqlite-memory",
+            Self::WithCable => "sqlite-cable",
+            Self::WithJobsDb => "sqlite-jobs-db",
             Self::WithAuthApi => "auth-api",
             Self::WithAuthHtml => "auth-html",
         };
@@ -53,13 +60,14 @@ impl BaseProfile {
     fn new_args(self) -> Vec<&'static str> {
         let mut args = vec!["new", "blog", "--non-interactive", "--database=sqlite"];
         match self {
+            Self::Default => {}
             Self::WithCable => args.push("--cable"),
+            Self::WithJobsDb => args.push("--jobs=db"),
             Self::WithAuthApi => {
                 args.push("--auth");
                 args.push("--api");
             }
             Self::WithAuthHtml => args.push("--auth"),
-            Self::Default => {}
         }
         args
     }
@@ -136,6 +144,7 @@ fn recreate_auth_base(dir: &Path, profile: BaseProfile) {
 fn ensure_base_app(profile: BaseProfile) -> PathBuf {
     static DEFAULT: OnceLock<PathBuf> = OnceLock::new();
     static CABLE: OnceLock<PathBuf> = OnceLock::new();
+    static JOBS_DB: OnceLock<PathBuf> = OnceLock::new();
 
     match profile {
         BaseProfile::WithAuthApi => {
@@ -158,7 +167,7 @@ fn ensure_base_app(profile: BaseProfile) -> PathBuf {
                 let app = dir.join("blog");
                 if !app.join("Cargo.toml").is_file() {
                     fs::create_dir_all(&dir).expect("create base dir");
-                    doido(&dir).args(&profile.new_args()).assert().success();
+                    doido(&dir).args(profile.new_args()).assert().success();
                 }
                 dir
             };
@@ -166,6 +175,7 @@ fn ensure_base_app(profile: BaseProfile) -> PathBuf {
             match profile {
                 BaseProfile::Default => DEFAULT.get_or_init(init).clone(),
                 BaseProfile::WithCable => CABLE.get_or_init(init).clone(),
+                BaseProfile::WithJobsDb => JOBS_DB.get_or_init(init).clone(),
                 BaseProfile::WithAuthApi | BaseProfile::WithAuthHtml => unreachable!(),
             }
         }

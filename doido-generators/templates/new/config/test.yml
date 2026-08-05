@@ -13,3 +13,8 @@ cache:
   type: memory
 jobs:
   type: memory
+storage:
+  service: test
+  services:
+    test:
+      type: memory

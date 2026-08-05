@@ -42,7 +42,7 @@ async fn rejects_keys_that_escape_the_root() {
 
 #[tokio::test]
 async fn public_flag_root_empty_key_and_short_shard() {
-    let (dir, svc) = disk().await;
+    let (dir, _svc) = disk().await;
     let public = DiskService::new("local", dir.path()).public(true);
     assert!(doido_storage::Service::public(&public));
 

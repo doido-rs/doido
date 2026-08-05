@@ -22,6 +22,7 @@ impl AppHarness {
     pub fn new(scenario: &str, profile: BaseProfile) -> Self {
         let _lock = workspace::e2e_lock();
         let scenario_dir = workspace::fork_scenario(scenario, profile);
+        cli::warm_base_profile(profile);
         let app = scenario_dir.join("blog");
         Self {
             app,

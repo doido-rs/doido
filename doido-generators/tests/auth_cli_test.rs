@@ -9,7 +9,7 @@ fn default_registry_excludes_auth_generators() {
     let reg = default_registry();
     for name in auth_registry::auth_generator_names() {
         assert!(
-            !reg.list().contains(&name),
+            !reg.list().contains(name),
             "{name} must not be in default_registry"
         );
     }

@@ -27,6 +27,8 @@ fn sqlite_compose_has_web_without_database_service() {
     assert!(!compose.contains("postgres:"));
     assert!(!compose.contains("mysql:"));
     assert!(!compose.contains("redis:"));
+    assert!(compose.contains("mailpit:"));
+    assert!(compose.contains("MAILER__SMTP__ADDRESS: mailpit:1025"));
 }
 
 #[test]
@@ -141,4 +143,20 @@ fn jobs_database_alias_is_accepted() {
         .unwrap();
     let dev = find_content(&files, "app/config/development.yml");
     assert!(dev.contains("type: db"));
+}
+
+#[test]
+fn development_yml_wires_mailer_to_local_mailpit() {
+    let files = ProjectGenerator
+        .generate(&["app", "--database=sqlite"])
+        .unwrap();
+    let dev = find_content(&files, "app/config/development.yml");
+    assert!(dev.contains("mailer:"));
+    assert!(dev.contains("type: smtp"));
+    assert!(dev.contains("address: localhost:1025"));
+    let compose = find_content(&files, "app/docker-compose.yml");
+    assert!(compose.contains("axllent/mailpit"));
+    assert!(compose.contains("8025:8025"));
+    assert!(compose.contains("depends_on:"));
+    assert!(compose.contains("mailpit:"));
 }

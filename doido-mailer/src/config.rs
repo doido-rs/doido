@@ -117,12 +117,29 @@ impl MailerFileConfig {
     pub fn load_env(env: Environment) -> std::io::Result<Self> {
         let path = format!("config/{}.yml", env.as_str());
         let contents = std::fs::read_to_string(&path)?;
-        Self::from_yaml(&contents)
+        let mut cfg = Self::from_yaml(&contents)?;
+        apply_env_overrides(&mut cfg);
+        Ok(cfg)
     }
 
     pub fn from_yaml(yaml: &str) -> std::io::Result<Self> {
         serde_norway::from_str(yaml)
             .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))
+    }
+}
+
+fn apply_env_overrides(cfg: &mut MailerFileConfig) {
+    if let Ok(kind) = std::env::var("MAILER__TYPE") {
+        match kind.trim().to_ascii_lowercase().as_str() {
+            "log" => cfg.mailer.backend = Backend::Log,
+            "test" => cfg.mailer.backend = Backend::Test,
+            "smtp" => cfg.mailer.backend = Backend::Smtp,
+            "sendmail" => cfg.mailer.backend = Backend::Sendmail,
+            _ => {}
+        }
+    }
+    if let Ok(addr) = std::env::var("MAILER__SMTP__ADDRESS") {
+        cfg.mailer.smtp.address = Some(addr);
     }
 }
 
@@ -159,5 +176,18 @@ mod tests {
             .mailer
             .into_config();
         assert_eq!(cfg.backend, Backend::Log);
+    }
+
+    #[test]
+    fn env_overrides_smtp_address_and_type() {
+        std::env::set_var("MAILER__TYPE", "smtp");
+        std::env::set_var("MAILER__SMTP__ADDRESS", "mailpit:1025");
+        let mut cfg = MailerFileConfig::from_yaml("mailer:\n  type: log\n").unwrap();
+        super::apply_env_overrides(&mut cfg);
+        std::env::remove_var("MAILER__TYPE");
+        std::env::remove_var("MAILER__SMTP__ADDRESS");
+        let runtime = cfg.mailer.into_config();
+        assert_eq!(runtime.backend, Backend::Smtp);
+        assert_eq!(runtime.smtp.address.as_deref(), Some("mailpit:1025"));
     }
 }

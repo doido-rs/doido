@@ -1,3 +1,4 @@
+pub mod bootstrap_migrations;
 pub mod channel;
 pub mod controller;
 pub mod field;
