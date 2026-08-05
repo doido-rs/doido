@@ -7,7 +7,16 @@ edition = "2021"
 
 [dependencies]
 doido-core.workspace = true
-sea-orm.workspace = true
+# `with-*` value types expose the sea_orm prelude aliases the model generator
+# emits (Decimal/DateTime/Date/Json/Uuid). `with-json` also turns on
+# chrono/rust_decimal/uuid `serde`, so the generated model's derive(Serialize,
+# Deserialize) works — the four must be enabled together.
+sea-orm = { workspace = true, features = [
+    "with-chrono",
+    "with-rust_decimal",
+    "with-uuid",
+    "with-json",
+] }
 sea-orm-migration.workspace = true
 sea-orm-cli = { workspace = true, optional = true }
 tokio.workspace = true

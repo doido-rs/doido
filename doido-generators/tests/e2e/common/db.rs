@@ -101,6 +101,32 @@ pub fn assert_column_exists(app: &Path, table: &str, column: &str) {
     );
 }
 
+/// Declared SQLite column type for `column` (PRAGMA table_info, index 2),
+/// lowercased. Used to validate the DB side of the field-type mapping. Panics if
+/// the column is absent.
+pub fn column_type(app: &Path, table: &str, column: &str) -> String {
+    let conn = open_sqlite(app);
+    let mut stmt = conn
+        .prepare(&format!("PRAGMA table_info({table})"))
+        .expect("prepare pragma");
+    let rows: Vec<(String, String)> = stmt
+        .query_map([], |row| {
+            Ok((row.get::<_, String>(1)?, row.get::<_, String>(2)?))
+        })
+        .expect("read columns")
+        .filter_map(Result::ok)
+        .collect();
+    rows.iter()
+        .find(|(name, _)| name == column)
+        .map(|(_, ty)| ty.to_lowercase())
+        .unwrap_or_else(|| {
+            panic!(
+                "column `{column}` not found on `{table}`, found: {:?}",
+                rows.iter().map(|(n, _)| n).collect::<Vec<_>>()
+            )
+        })
+}
+
 pub fn assert_column_absent(app: &Path, table: &str, column: &str) {
     let conn = open_sqlite(app);
     let mut stmt = conn

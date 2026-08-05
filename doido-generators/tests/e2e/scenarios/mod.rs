@@ -11,3 +11,4 @@ mod scaffold_api;
 mod scaffold_html;
 mod smoke_generators;
 mod storage_install;
+mod type_mapping;
