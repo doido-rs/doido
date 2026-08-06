@@ -28,6 +28,32 @@ fn helper_module_snake(name: &str) -> String {
     }
 }
 
+/// `(module_snake, type_name)` — e.g. `("posts", "Posts")` → `("posts_helper", "PostsHelper")`.
+pub(crate) fn helper_names(name: &str) -> (String, String) {
+    (helper_module_snake(name), helper_type_name(name))
+}
+
+pub(crate) fn render_helper_content(name: &str, helper_label: &str) -> String {
+    let (snake, pascal) = helper_names(name);
+    crate::templates::get("helper/helper.rs.template")
+        .replace("{pascal}", &pascal)
+        .replace("{snake}", &snake)
+        .replace("{helper_label}", helper_label)
+}
+
+pub(crate) fn register_helper_in_mod(existing: &str, name: &str) -> String {
+    let (snake, pascal) = helper_names(name);
+    register_helper(existing, &snake, &pascal)
+}
+
+pub(crate) fn helpers_mod_path() -> &'static str {
+    HELPERS_MOD_PATH
+}
+
+pub(crate) fn read_helpers_mod() -> String {
+    std::fs::read_to_string(HELPERS_MOD_PATH).unwrap_or_else(|_| HELPERS_MOD_BASE.to_string())
+}
+
 impl Generator for HelperGenerator {
     fn name(&self) -> &str {
         "helper"
@@ -39,16 +65,12 @@ impl Generator for HelperGenerator {
         })?;
         let snake = helper_module_snake(name);
         let pascal = helper_type_name(name);
-        let content = crate::templates::get("helper/helper.rs.template")
-            .replace("{pascal}", &pascal)
-            .replace("{snake}", &snake);
+        let content = render_helper_content(name, &to_snake(name));
         let test = crate::templates::get("helper/helper_test.rs.template")
             .replace("{pascal}", &pascal)
             .replace("{snake}", &snake);
 
-        let existing = std::fs::read_to_string(HELPERS_MOD_PATH)
-            .unwrap_or_else(|_| HELPERS_MOD_BASE.to_string());
-        let helpers_mod = register_helper(&existing, &snake, &pascal);
+        let helpers_mod = register_helper_in_mod(&read_helpers_mod(), name);
 
         Ok(vec![
             GeneratedFile {

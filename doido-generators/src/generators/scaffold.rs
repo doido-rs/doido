@@ -1,5 +1,8 @@
 use crate::generator::{GeneratedFile, Generator};
 use crate::generators::field::Field;
+use crate::generators::helper::{
+    helper_names, helpers_mod_path, read_helpers_mod, register_helper_in_mod, render_helper_content,
+};
 use crate::generators::model::ModelGenerator;
 use crate::generators::{to_pascal, to_snake, to_table_name};
 use doido_core::Result;
@@ -36,6 +39,7 @@ impl Generator for ScaffoldGenerator {
         let plural = to_table_name(name); // posts
         let model = to_pascal(name); // Post
         let controller = format!("{}Controller", to_pascal(&plural)); // PostsController
+        let helper = format!("{}Helper", to_pascal(&plural)); // PostsHelper
 
         let mut files = Vec::new();
 
@@ -56,8 +60,20 @@ impl Generator for ScaffoldGenerator {
                 &plural,
                 &model,
                 &controller,
+                &helper,
                 &fields,
             ),
+        });
+
+        // Helper for shared controller logic.
+        let (helper_snake, _) = helper_names(&plural);
+        files.push(GeneratedFile {
+            path: format!("app/helpers/{helper_snake}.rs"),
+            content: render_helper_content(&plural, &plural),
+        });
+        files.push(GeneratedFile {
+            path: helpers_mod_path().to_string(),
+            content: register_helper_in_mod(&read_helpers_mod(), &plural),
         });
 
         // Register the controller module in app/controllers/mod.rs.
@@ -94,6 +110,7 @@ impl Generator for ScaffoldGenerator {
                     &plural,
                     &model,
                     &controller,
+                    &helper,
                     &fields,
                 ),
             });
@@ -118,6 +135,7 @@ fn render_controller(
     plural: &str,
     model: &str,
     controller: &str,
+    helper: &str,
     fields: &[Field],
 ) -> String {
     let params_fields: String = fields
@@ -145,6 +163,7 @@ fn render_controller(
         .replace("{active_model_assigns}", &active_model_assigns)
         .replace("{form_body}", &form_body)
         .replace("{Controller}", controller)
+        .replace("{Helper}", helper)
         .replace("{Model}", model)
         .replace("{singular}", singular)
         .replace("{plural}", plural)

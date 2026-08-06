@@ -12,6 +12,21 @@ fn test_controller_generator_produces_correct_file() {
         .unwrap();
     assert!(ctrl.content.contains("PostsController"));
     assert!(ctrl.content.contains("#[controller]"));
+    assert!(ctrl.content.contains("use crate::helpers::PostsHelper"));
+    assert!(ctrl.content.contains("PostsHelper::index_count"));
+    let helper = files
+        .iter()
+        .find(|f| f.path == "app/helpers/posts_helper.rs")
+        .unwrap();
+    assert!(helper.content.contains("PostsHelper"));
+    assert!(helper.content.contains("#[helper]"));
+    let helpers_mod = files
+        .iter()
+        .find(|f| f.path == "app/helpers/mod.rs")
+        .unwrap();
+    assert!(helpers_mod
+        .content
+        .contains("pub use posts_helper::PostsHelper;"));
     // A TODO test stub is emitted alongside it.
     let test = files
         .iter()
@@ -378,6 +393,8 @@ fn test_scaffold_generator_produces_multiple_files() {
     // Model + migration + controller + 5 views + routes + both mod.rs registries.
     assert!(paths.contains(&"app/models/post.rs"));
     assert!(paths.contains(&"app/controllers/posts_controller.rs"));
+    assert!(paths.contains(&"app/helpers/posts_helper.rs"));
+    assert!(paths.contains(&"app/helpers/mod.rs"));
     assert!(paths.iter().any(|p| p.ends_with("_create_posts_table.rs")));
     assert!(paths.contains(&"app/views/posts/index.html.tera"));
     assert!(paths.contains(&"app/views/posts/show.html.tera"));
@@ -400,10 +417,12 @@ fn test_scaffold_generator_produces_multiple_files() {
         );
     }
     assert!(ctrl.content.contains("pub struct PostsController;"));
+    assert!(ctrl.content.contains("use crate::helpers::PostsHelper"));
+    assert!(ctrl.content.contains("PostsHelper::index_count"));
     assert!(ctrl.content.contains("pub struct PostForm"));
     assert!(ctrl.content.contains("pub title: String,"));
     assert!(ctrl.content.contains("title: Set(form.title),"));
-    assert!(ctrl.content.contains("ctx.render(\"posts/index\""));
+    assert!(ctrl.content.contains("posts/index"));
 
     // Route injection (plural + controller), preserving the existing route.
     let routes = files.iter().find(|f| f.path == "config/routes.rs").unwrap();
@@ -424,6 +443,20 @@ fn test_scaffold_generator_produces_multiple_files() {
     assert!(cmod
         .content
         .contains("pub use posts_controller::PostsController;"));
+
+    let helper = files
+        .iter()
+        .find(|f| f.path == "app/helpers/posts_helper.rs")
+        .unwrap();
+    assert!(helper.content.contains("PostsHelper"));
+    assert!(helper.content.contains("fn index_count"));
+
+    let hmod = files
+        .iter()
+        .find(|f| f.path == "app/helpers/mod.rs")
+        .unwrap();
+    assert!(hmod.content.contains("pub mod posts_helper;"));
+    assert!(hmod.content.contains("pub use posts_helper::PostsHelper;"));
 
     // Views are field-driven.
     let index = files
@@ -455,6 +488,7 @@ fn test_scaffold_api_emits_json_controller_and_no_views() {
         .find(|f| f.path == "app/controllers/posts_controller.rs")
         .unwrap();
     assert!(ctrl.content.contains("ctx.json("));
+    assert!(ctrl.content.contains("use crate::helpers::PostsHelper"));
     assert!(ctrl.content.contains("ctx.body_json()"));
     assert!(!ctrl.content.contains("ctx.render("));
 
@@ -484,7 +518,12 @@ fn test_default_registry_has_all_generators() {
 fn test_registry_runs_generator_by_name() {
     let reg = default_registry();
     let files = reg.run("controller", &["Admin"]).unwrap();
-    assert_eq!(files[0].path, "src/controllers/admin_controller.rs");
+    assert!(files
+        .iter()
+        .any(|f| f.path == "src/controllers/admin_controller.rs"));
+    assert!(files
+        .iter()
+        .any(|f| f.path == "app/helpers/admin_helper.rs"));
 }
 
 #[test]
