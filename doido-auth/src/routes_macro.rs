@@ -12,33 +12,42 @@
 /// ```
 #[macro_export]
 macro_rules! routes {
-    ( $( @acc $( $acc:tt )* );* auth_routes!($($auth:tt)*); $($rest:tt)* ) => {
-        $crate::routes! {
-            $( @acc $( $acc )* );*
-            @acc $crate::__auth_routes_decl!($($auth)*);
-            $($rest)*
-        }
-    };
-    ( $( @acc $( $acc:tt )* );* $first:ident ! ( $($inner:tt)* ) ; $($rest:tt)* ) => {
-        $crate::routes! {
-            $( @acc $( $acc )* );*
-            @acc $first ! ( $($inner)* ) ;
-            $($rest)*
-        }
-    };
-    ( $( @acc $( $acc:tt )* );* $first:ident ! ( $($inner:tt)* ) $($rest:tt)* ) => {
-        $crate::routes! {
-            $( @acc $( $acc )* );*
-            @acc $first ! ( $($inner)* ) ;
-            $($rest)*
-        }
-    };
-    ( $( @acc $( $acc:tt )* );* ) => {
+    (@collect [ $( $collected:tt )* ]) => {
         doido_controller::routes! {
-            $( $( $acc )* )*
+            $( $collected )*
         }
     };
-    ( $($rest:tt)* ) => {
-        $crate::routes! { @acc ; $($rest)* }
+    (
+        @collect [ $( $collected:tt )* ]
+        auth_routes!( $( $auth:tt )* );
+        $( $rest:tt )*
+    ) => {
+        $crate::routes! {
+            @collect [ $( $collected )* $crate::__auth_routes_decl!( $( $auth )* ); ]
+            $( $rest )*
+        }
+    };
+    (
+        @collect [ $( $collected:tt )* ]
+        $first:ident ! ( $( $inner:tt )* ) ;
+        $( $rest:tt )*
+    ) => {
+        $crate::routes! {
+            @collect [ $( $collected )* $first ! ( $( $inner )* ) ; ]
+            $( $rest )*
+        }
+    };
+    (
+        @collect [ $( $collected:tt )* ]
+        $first:ident ! ( $( $inner:tt )* )
+        $( $rest:tt )*
+    ) => {
+        $crate::routes! {
+            @collect [ $( $collected )* $first ! ( $( $inner )* ) ; ]
+            $( $rest )*
+        }
+    };
+    ( $( $rest:tt )* ) => {
+        $crate::routes! { @collect [] $( $rest )* }
     };
 }

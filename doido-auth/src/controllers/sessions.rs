@@ -41,7 +41,7 @@ where
 
         match authenticate::<U>(ctx.db(), &form.email, &form.password).await {
             Ok(user) => {
-                sign_in(&mut ctx, &user)?;
+                sign_in(ctx, &user)?;
                 if json {
                     Ok(ctx.json(user))
                 } else {

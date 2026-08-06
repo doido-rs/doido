@@ -61,7 +61,7 @@ where
             Err(e) => return Err(doido_core::anyhow::anyhow!(e.to_string())),
         };
 
-        sign_in(&mut ctx, &user)?;
+        sign_in(ctx, &user)?;
         if json {
             Ok(ctx.json(user))
         } else {

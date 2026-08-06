@@ -6,7 +6,6 @@ use crate::state::global;
 use doido_controller::axum::http::StatusCode;
 use doido_controller::axum::response::{IntoResponse, Redirect, Response};
 use doido_auth_macros::auth_controller;
-use doido_controller::Context;
 use doido_core::Result;
 use serde::Deserialize;
 

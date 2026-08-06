@@ -1,5 +1,6 @@
 mod api_mode;
 mod auth_controller;
+mod routes;
 
 use doido_auth_route_dsl::{expand_auth_route_decls, expand_auth_routes};
 use proc_macro::TokenStream;
@@ -24,4 +25,10 @@ pub fn auth_controller(attr: TokenStream, item: TokenStream) -> TokenStream {
         Ok(ts) => ts.into(),
         Err(e) => e.to_compile_error().into(),
     }
+}
+
+/// Application route table with Devise-style `auth_routes!` (like `devise_for`).
+#[proc_macro]
+pub fn routes(input: TokenStream) -> TokenStream {
+    routes::expand_routes(input.into(), api_mode::api_only()).into()
 }
