@@ -17,7 +17,7 @@ wire them together into a conventional application layout.
 |-------|----------------|----------------|
 | `doido-core` | Active Support | Errors, inflector, shared utilities |
 | `doido-config` | — | Per-env YAML, encrypted credentials |
-| `doido-controller` | Action Dispatch + Controller | Routes, controllers, middleware |
+| `doido-controller` | Action Dispatch + Controller | Routes, controllers, controller helpers, middleware |
 | `doido-auth` | Devise + OmniAuth + JWT | AuthUser trait, strategies, extractors, generators |
 | `doido-model` | Active Record | sea-orm re-exports, pool, test helpers |
 | `doido-view` | Action View | Tera templates, layouts, helpers |
@@ -31,8 +31,8 @@ wire them together into a conventional application layout.
 ## Design principles
 
 **Convention over configuration.** Routes live in `config/routes.rs`, templates in
-`views/`, models in `models/` — the generators scaffold the layout so you spend
-time on business logic, not wiring.
+`views/`, models in `models/`, controller helpers in `helpers/` — the generators
+scaffold the layout so you spend time on business logic, not wiring.
 
 **TDD-first specs.** Every crate has a design spec under `docs/` in the repository.
 This manual is the curated, hand-written layer on top; the specs are the source of

@@ -30,6 +30,7 @@ registrados:
 | Generador | Genera |
 |-----------|--------|
 | `controller` | Un controlador con actions |
+| `helper` | Un helper de controlador en `app/helpers/` |
 | `model` | Un modelo + migración de SeaORM |
 | `migration` | Una migración independiente |
 | `scaffold` | Modelo, controlador, vistas, rutas — el CRUD completo |
@@ -48,7 +49,7 @@ las reglas de pluralización declaradas en `config/inflection.yaml`.
 |-------|------------------|-----------------|
 | `doido` | binario `rails` | Punto de entrada, runtime de la app |
 | `doido-core` | Active Support | Traits, errores, inflector, logger, utilidades |
-| `doido-controller` | Action Dispatch + Controller + Rack | DSL de rutas, peticiones, params, middleware Tower, sesiones |
+| `doido-controller` | Action Dispatch + Controller + Rack | DSL de rutas, peticiones, params, helpers de controlador, middleware Tower, sesiones |
 | `doido-model` | Active Record | Re-exports de sea-orm, pool de conexiones, helpers de test |
 | `doido-view` | Action View | Plantillas Tera, layouts, partials |
 | `doido-config` | `config/` de Rails | Config TOML/YAML por capas, credenciales, overrides por env |

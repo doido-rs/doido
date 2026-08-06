@@ -66,6 +66,7 @@ escreve arquivos (e alguns injetam rotas):
 | `model` | `app/models/<name>.rs` + migration |
 | `migration` | uma migration isolada |
 | `controller` | um `#[controller]` com stubs de action (+ rota) |
+| `helper` | um helper de controller em `app/helpers/` |
 | `scaffold` | model + migration + controller + views + rota |
 | `resource` | model + migration + controller + rota (sem views) |
 | `mailer` | um mailer + templates |
@@ -96,6 +97,7 @@ cargo doido generate auth:scaffold Post title:string body:text
 cargo doido generate model Post title:string body:text
 cargo doido generate scaffold Post title:string body:text     # CRUD completo
 cargo doido generate controller Pages home about
+cargo doido generate helper Posts
 cargo doido generate mailer User welcome
 ```
 
@@ -164,5 +166,6 @@ let names = registry.list(); // inclui "policy"
 
 - [Models](@/docs/reference/models.pt.md) — o que `generate model`/`migration` produzem.
 - [Controllers & roteamento](@/docs/reference/controllers.pt.md) — o bloco `routes!` que os geradores editam.
+- [Helpers de controller](@/docs/reference/helpers.pt.md) — o que `generate helper` produz.
 - [Jobs](@/docs/reference/jobs.pt.md), [Mailer](@/docs/reference/mailer.pt.md), [Cable](@/docs/reference/cable.pt.md) — seus geradores.
 - [Auth](@/docs/reference/auth.pt.md) — `auth:install`, estratégias e extractors.

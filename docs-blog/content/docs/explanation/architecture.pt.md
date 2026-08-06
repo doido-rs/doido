@@ -17,7 +17,7 @@ layout convencional de aplicação.
 |-------|-------------------|------------------|
 | `doido-core` | Active Support | Erros, inflector, utilitários |
 | `doido-config` | — | YAML por ambiente, credenciais criptografadas |
-| `doido-controller` | Action Dispatch + Controller | Rotas, controllers, middleware |
+| `doido-controller` | Action Dispatch + Controller | Rotas, controllers, helpers de controller, middleware |
 | `doido-auth` | Devise + OmniAuth + JWT | Trait AuthUser, estratégias, extractors, geradores |
 | `doido-model` | Active Record | Re-exports sea-orm, pool, helpers de teste |
 | `doido-view` | Action View | Templates Tera, layouts, helpers |
@@ -31,7 +31,8 @@ layout convencional de aplicação.
 ## Princípios de design
 
 **Convenção sobre configuração.** Rotas em `config/routes.rs`, templates em `views/`,
-models em `models/` — os geradores montam o layout para você focar na lógica de negócio.
+models em `models/`, helpers de controller em `helpers/` — os geradores montam o layout
+para você focar na lógica de negócio.
 
 **Specs TDD-first.** Cada crate tem uma spec em `docs/` no repositório. Este manual é
 a camada curada; as specs são a fonte da verdade para intenção de design.
