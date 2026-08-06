@@ -56,8 +56,8 @@ impl DbQueue {
             queue TEXT NOT NULL,
             status TEXT NOT NULL,
             priority INTEGER NOT NULL DEFAULT 0,
-            run_at INTEGER NOT NULL,
-            locked_at INTEGER,
+            run_at BIGINT NOT NULL,
+            locked_at BIGINT,
             data TEXT NOT NULL
         )";
         self.conn
