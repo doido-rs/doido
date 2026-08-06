@@ -1,7 +1,8 @@
 //! Default passwords controller (reset request + update stubs).
 
-use doido_controller::controller;
+use doido_auth_macros::auth_controller;
 use doido_controller::respond::Format;
+use doido_controller::{Context, Response};
 use doido_core::Result;
 use serde::Deserialize;
 use std::marker::PhantomData;
@@ -23,7 +24,7 @@ pub struct PasswordUpdateForm {
     pub reset_token: String,
 }
 
-#[controller]
+#[auth_controller]
 impl<U> AuthPasswords<U>
 where
     U: Send + Sync + 'static,

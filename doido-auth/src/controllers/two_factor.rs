@@ -1,6 +1,6 @@
 //! Default two-factor controller (feature `auth-2fa`).
 
-use doido_controller::controller;
+use doido_auth_macros::auth_controller;
 use doido_controller::{Context, Response};
 use doido_core::Result;
 use std::marker::PhantomData;
@@ -8,7 +8,7 @@ use std::marker::PhantomData;
 /// Default two-factor controller for [`auth_routes!`](crate::auth_routes).
 pub struct AuthTwoFactor<U>(PhantomData<U>);
 
-#[controller]
+#[auth_controller]
 impl<U> AuthTwoFactor<U>
 where
     U: Send + Sync + 'static,

@@ -38,7 +38,7 @@ pub use routes::mount;
 pub use controllers::{
     AuthOauth, AuthPasswords, AuthRegistrations, AuthSessions,
 };
-pub use doido_auth_macros::{auth_routes, __auth_routes_decl};
+pub use doido_auth_macros::{auth_controller, auth_routes, __auth_routes_decl};
 pub use session::{
     SessionStrategy, SessionStrategy as CookieStrategy, SESSION_COOKIE, USER_ID_KEY,
 };

@@ -1678,6 +1678,9 @@ name = "doido-auth-macros"
 version = "0.0.9"
 dependencies = [
  "doido-auth-route-dsl",
+ "proc-macro2",
+ "quote",
+ "syn 3.0.3",
 ]
 
 [[package]]

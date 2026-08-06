@@ -2,12 +2,13 @@
 
 use crate::handlers::{register_user, sign_in};
 use crate::user::{AuthUser, RegisterableAuthUser};
-use doido_controller::controller;
+use doido_auth_macros::auth_controller;
 use doido_controller::respond::Format;
 use doido_controller::{Context, Response};
 use doido_core::Result;
 use doido_model::password::HasSecurePassword;
 use serde::Deserialize;
+use serde::Serialize;
 use std::marker::PhantomData;
 
 /// Default registrations controller for [`auth_routes!`](crate::auth_routes).
@@ -21,10 +22,10 @@ pub struct SignUpForm {
     pub password_confirmation: Option<String>,
 }
 
-#[controller]
+#[auth_controller]
 impl<U> AuthRegistrations<U>
 where
-    U: AuthUser + HasSecurePassword + RegisterableAuthUser + Send + Sync + 'static,
+    U: AuthUser + HasSecurePassword + RegisterableAuthUser + Serialize + Send + Sync + 'static,
 {
     /// GET `{prefix}/sign_up` — registration form (HTML mode).
     pub async fn new(ctx: Context) -> Response {

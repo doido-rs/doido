@@ -2,12 +2,13 @@
 
 use crate::handlers::{authenticate, sign_in, sign_out};
 use crate::user::AuthUser;
-use doido_controller::controller;
+use doido_auth_macros::auth_controller;
 use doido_controller::respond::Format;
 use doido_controller::{Context, Response};
 use doido_core::Result;
 use doido_model::password::HasSecurePassword;
 use serde::Deserialize;
+use serde::Serialize;
 use std::marker::PhantomData;
 
 /// Default sessions controller for [`auth_routes!`](crate::auth_routes).
@@ -19,10 +20,10 @@ pub struct SignInForm {
     pub password: String,
 }
 
-#[controller]
+#[auth_controller]
 impl<U> AuthSessions<U>
 where
-    U: AuthUser + HasSecurePassword + Send + Sync + 'static,
+    U: AuthUser + HasSecurePassword + Serialize + Send + Sync + 'static,
 {
     /// GET `{prefix}/sign_in` — sign-in form (HTML mode).
     pub async fn new(ctx: Context) -> Response {
@@ -57,7 +58,7 @@ where
 
     /// DELETE `{prefix}/sign_out` — clear the session.
     pub async fn destroy(mut ctx: Context) -> Result<Response> {
-        sign_out(&mut ctx)?;
+        sign_out(ctx)?;
         if ctx.negotiated_format() == Format::Json {
             Ok(ctx.status(204))
         } else {

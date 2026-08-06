@@ -10,6 +10,9 @@ proc-macro = true
 
 [dependencies]
 doido-auth-route-dsl = { path = "../route-dsl", version = "0.0.9" }
+proc-macro2.workspace = true
+quote.workspace = true
+syn.workspace = true
 
 [features]
 default = []

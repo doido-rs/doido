@@ -5,7 +5,7 @@ use crate::oauth::get_provider;
 use crate::state::global;
 use doido_controller::axum::http::StatusCode;
 use doido_controller::axum::response::{IntoResponse, Redirect, Response};
-use doido_controller::controller;
+use doido_auth_macros::auth_controller;
 use doido_controller::Context;
 use doido_core::Result;
 use serde::Deserialize;
@@ -20,7 +20,7 @@ struct OAuthCallbackQuery {
     state: Option<String>,
 }
 
-#[controller]
+#[auth_controller]
 impl AuthOauth {
     /// GET `/auth/{provider}` — start the OAuth authorization flow.
     pub async fn authorize(ctx: Context) -> Result<Response> {

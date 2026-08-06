@@ -82,7 +82,8 @@ impl RegisterableAuthUser for TestUser {
         email: String,
         password_digest: String,
     ) -> doido_core::Result<Self> {
-        let mut map = store().lock().unwrap();
+        let store = store();
+        let mut map = store.lock().unwrap();
         let id = (map.len() as i64) + 1;
         let user = TestUser {
             id,

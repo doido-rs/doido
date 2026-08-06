@@ -83,7 +83,7 @@ impl Parse for AuthRoutesInput {
                     let lit: LitStr = input.parse()?;
                     prefix = Some(lit.value());
                 }
-                "controllers" => controllers = parse_ident_map(input)?,
+                "controllers" => controllers = parse_controller_map(input)?,
                 "actions" => actions = parse_actions_map(input)?,
                 other => {
                     return Err(syn::Error::new(
@@ -129,7 +129,7 @@ fn handler_for(
     module: &str,
     action: &str,
     user: &Ident,
-    controllers: &std::collections::HashMap<String, Ident>,
+    controllers: &std::collections::HashMap<String, Expr>,
     actions: &std::collections::HashMap<String, std::collections::HashMap<String, Expr>>,
 ) -> TokenStream {
     if let Some(module_actions) = actions.get(module) {
@@ -141,7 +141,8 @@ fn handler_for(
     let action_ident = format_ident!("{}", action);
 
     if let Some(controller) = controllers.get(module) {
-        return quote! { #controller::#action_ident };
+        let ctrl = controller;
+        return quote! { #ctrl::#action_ident };
     }
 
     match module {
