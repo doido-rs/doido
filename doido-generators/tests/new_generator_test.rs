@@ -16,6 +16,8 @@ fn test_new_generates_all_expected_files() {
     assert!(paths.contains(&"my-app/config/production.yml"));
     assert!(paths.contains(&"my-app/app/controllers/hello_controller.rs"));
     assert!(paths.contains(&"my-app/app/controllers/mod.rs"));
+    assert!(paths.contains(&"my-app/app/helpers/mod.rs"));
+    assert!(paths.contains(&"my-app/app/helpers/application_helper.rs"));
     assert!(paths.contains(&"my-app/app/models/.gitkeep"));
     // `doido db generate entity` writes SeaORM entities here by default.
     assert!(paths.contains(&"my-app/app/models/_entities/.gitkeep"));
@@ -26,6 +28,11 @@ fn test_new_generates_all_expected_files() {
     assert!(paths.contains(&"my-app/db/migration/src/lib.rs"));
     assert!(paths.contains(&"my-app/db/migration/src/main.rs"));
     assert!(paths.contains(&"my-app/tests/integration_test.rs"));
+    let main_rs = files
+        .iter()
+        .find(|f| f.path == "my-app/src/main.rs")
+        .unwrap();
+    assert!(main_rs.content.contains("mod helpers;"));
     assert!(paths.contains(&"my-app/.gitignore"));
     assert!(paths.contains(&"my-app/README.md"));
     assert!(paths.contains(&"my-app/mise.toml"));
@@ -111,7 +118,7 @@ fn test_new_template_includes_json_hello_action() {
         .iter()
         .find(|f| f.path == "api/app/controllers/hello_controller.rs")
         .unwrap();
-    assert!(hello.content.contains("Hello word!"));
+    assert!(hello.content.contains("ApplicationHelper::greet"));
     assert!(hello.content.contains("doido::controller::"));
     assert!(!hello.content.contains("doido_controller::"));
 }

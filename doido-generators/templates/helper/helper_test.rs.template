@@ -1,0 +1,10 @@
+//! Smoke test for the generated `{pascal}Helper`.
+#[path = "../app/helpers/{snake}.rs"]
+mod {snake};
+
+use {snake}::{pascal}Helper;
+
+#[test]
+fn {snake}_todo() {
+    assert_eq!({pascal}Helper::helper_name(), "{snake}");
+}

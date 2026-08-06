@@ -104,6 +104,26 @@ fn clear_sqlite_databases(app: &Path) {
     }
 }
 
+fn default_base_is_valid(dir: &Path) -> bool {
+    let app = dir.join("blog");
+    let main_rs = app.join("src/main.rs");
+    let helpers_mod = app.join("app/helpers/mod.rs");
+
+    app.join("Cargo.toml").is_file()
+        && helpers_mod.is_file()
+        && fs::read_to_string(&main_rs)
+            .map(|content| content.contains("mod helpers;"))
+            .unwrap_or(false)
+}
+
+fn recreate_default_base(dir: &Path, profile: BaseProfile) {
+    if dir.exists() {
+        fs::remove_dir_all(dir).ok();
+    }
+    fs::create_dir_all(dir).expect("create base dir");
+    doido(dir).args(profile.new_args()).assert().success();
+}
+
 fn auth_base_is_valid(dir: &Path, api: bool) -> bool {
     let app = dir.join("blog");
     let routes = app.join("config/routes.rs");
@@ -171,9 +191,17 @@ fn ensure_base_app(profile: BaseProfile) -> PathBuf {
             let init = || {
                 let dir = profile.cache_dir();
                 let app = dir.join("blog");
-                if !app.join("Cargo.toml").is_file() {
-                    fs::create_dir_all(&dir).expect("create base dir");
-                    doido(&dir).args(profile.new_args()).assert().success();
+                let needs_recreate = match profile {
+                    BaseProfile::Default => !default_base_is_valid(&dir),
+                    _ => !app.join("Cargo.toml").is_file(),
+                };
+                if needs_recreate {
+                    if profile == BaseProfile::Default {
+                        recreate_default_base(&dir, profile);
+                    } else {
+                        fs::create_dir_all(&dir).expect("create base dir");
+                        doido(&dir).args(profile.new_args()).assert().success();
+                    }
                 }
                 dir
             };

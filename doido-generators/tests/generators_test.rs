@@ -1,6 +1,6 @@
 use doido_generators::{
-    default_registry, ChannelGenerator, ControllerGenerator, Generator, JobGenerator,
-    MailerGenerator, MigrationGenerator, ModelGenerator, ScaffoldGenerator,
+    default_registry, ChannelGenerator, ControllerGenerator, Generator, HelperGenerator,
+    JobGenerator, MailerGenerator, MigrationGenerator, ModelGenerator, ScaffoldGenerator,
 };
 
 #[test]
@@ -321,6 +321,30 @@ fn test_job_generator_produces_correct_file() {
 }
 
 #[test]
+fn test_helper_generator_produces_correct_file() {
+    let files = HelperGenerator.generate(&["Posts"]).unwrap();
+    let helper = files
+        .iter()
+        .find(|f| f.path == "app/helpers/posts_helper.rs")
+        .unwrap();
+    assert!(helper.content.contains("PostsHelper"));
+    assert!(helper.content.contains("#[helper]"));
+    let helpers_mod = files
+        .iter()
+        .find(|f| f.path == "app/helpers/mod.rs")
+        .unwrap();
+    assert!(helpers_mod.content.contains("pub mod posts_helper;"));
+    assert!(helpers_mod
+        .content
+        .contains("pub use posts_helper::PostsHelper;"));
+    let test = files
+        .iter()
+        .find(|f| f.path == "tests/posts_helper_test.rs")
+        .expect("helper test stub emitted");
+    assert!(test.content.contains("fn posts_helper_todo()"));
+}
+
+#[test]
 fn test_mailer_generator_produces_correct_file() {
     let files = MailerGenerator.generate(&["Welcome"]).unwrap();
     let mailer = files
@@ -447,6 +471,7 @@ fn test_default_registry_has_all_generators() {
     let reg = default_registry();
     let names = reg.list();
     assert!(names.contains(&"controller"));
+    assert!(names.contains(&"helper"));
     assert!(names.contains(&"model"));
     assert!(names.contains(&"migration"));
     assert!(names.contains(&"job"));

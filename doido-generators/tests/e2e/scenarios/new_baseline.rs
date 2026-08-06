@@ -9,6 +9,6 @@ fn new_sqlite_app_serves_hello() {
     let h = AppHarness::new("new_baseline", BaseProfile::Default);
     h.run(|app| {
         let body = http::get_json(&format!("{}/", app.base_url));
-        assert_eq!(body["message"], "Hello word!");
+        assert_eq!(body["message"], "Hello, world!");
     });
 }

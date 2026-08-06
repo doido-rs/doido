@@ -1,0 +1,14 @@
+//! Generated controller helper — import in controllers with
+//! `use crate::helpers::{pascal}Helper;`.
+#![allow(dead_code)]
+
+use doido::controller::helper;
+
+/// Helper for `{pascal}`. Add associated functions here and call them from
+/// controller actions.
+#[helper]
+pub struct {pascal}Helper;
+
+impl {pascal}Helper {
+    // TODO: add helper methods.
+}
