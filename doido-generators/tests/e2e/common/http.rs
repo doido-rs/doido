@@ -54,6 +54,20 @@ pub fn get_status(url: &str) -> u16 {
         .as_u16()
 }
 
+/// GET returning the raw status, tolerating 4xx/5xx (ureq treats those as errors
+/// by default). Used to assert a route is *absent* without panicking on the 404.
+pub fn get_status_any(url: &str) -> u16 {
+    ureq::Agent::config_builder()
+        .http_status_as_error(false)
+        .build()
+        .new_agent()
+        .get(url)
+        .call()
+        .expect("GET request")
+        .status()
+        .as_u16()
+}
+
 pub fn delete_status(url: &str) -> u16 {
     ureq::delete(url)
         .call()

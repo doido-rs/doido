@@ -101,7 +101,9 @@ let title = content.get("title"); // "Dashboard"
 ## View helpers
 
 `doido::view::helpers` fornece helpers HTML no estilo Rails que retornam strings HTML
-escapadas:
+escapadas. São helpers de **view** (para templates), distintos dos
+[helpers de controller](@/docs/reference/helpers.pt.md) em `app/helpers/`, que concentram
+lógica compartilhada importada pelos controllers.
 
 ```rust
 use doido::view::helpers::{link, form, asset, number, sanitize, tag, hotwire};

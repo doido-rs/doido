@@ -101,7 +101,10 @@ let title = content.get("title"); // "Dashboard"
 
 ## View helpers
 
-`doido::view::helpers` provides Rails-style HTML helpers that return escaped HTML strings:
+`doido::view::helpers` provides Rails-style HTML helpers that return escaped HTML strings.
+These are **view** helpers (for templates), distinct from
+[controller helpers](@/docs/reference/helpers.md) in `app/helpers/`, which hold shared
+logic imported by controllers.
 
 ```rust
 use doido::view::helpers::{link, form, asset, number, sanitize, tag, hotwire};

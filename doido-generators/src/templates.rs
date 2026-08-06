@@ -14,6 +14,8 @@ use std::path::{Path, PathBuf};
 
 const CONTROLLER: &str = include_str!("../templates/controller/controller.rs.template");
 const CONTROLLER_TEST: &str = include_str!("../templates/controller/controller_test.rs.template");
+const HELPER: &str = include_str!("../templates/helper/helper.rs.template");
+const HELPER_TEST: &str = include_str!("../templates/helper/helper_test.rs.template");
 const JOB: &str = include_str!("../templates/job/job.rs.template");
 const JOB_TEST: &str = include_str!("../templates/job/job_test.rs.template");
 const MAILER: &str = include_str!("../templates/mailer/mailer.rs.template");
@@ -44,6 +46,8 @@ const VIEW_FORM: &str = include_str!("../templates/scaffold/views/_form.html.ter
 const BUILTIN: &[(&str, &str)] = &[
     ("controller/controller.rs.template", CONTROLLER),
     ("controller/controller_test.rs.template", CONTROLLER_TEST),
+    ("helper/helper.rs.template", HELPER),
+    ("helper/helper_test.rs.template", HELPER_TEST),
     ("job/job.rs.template", JOB),
     ("job/job_test.rs.template", JOB_TEST),
     ("mailer/mailer.rs.template", MAILER),

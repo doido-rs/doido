@@ -67,8 +67,8 @@ const JOBS_UP_BODY: &str = r#"        // `doido_jobs` uses a TEXT primary key (j
                     queue TEXT NOT NULL,
                     status TEXT NOT NULL,
                     priority INTEGER NOT NULL DEFAULT 0,
-                    run_at INTEGER NOT NULL,
-                    locked_at INTEGER,
+                    run_at BIGINT NOT NULL,
+                    locked_at BIGINT,
                     data TEXT NOT NULL
                 )",
             )
@@ -179,6 +179,8 @@ mod tests {
             .find(|(m, _)| m == JOBS_MIGRATION_MODULE)
             .unwrap();
         assert!(jobs.1.contains("doido_jobs"));
+        assert!(jobs.1.contains("run_at BIGINT NOT NULL"));
+        assert!(jobs.1.contains("locked_at BIGINT"));
         assert!(jobs.1.contains("idx_doido_jobs_reserve"));
     }
 

@@ -49,6 +49,20 @@ routes! {
 | `post_path(id)` | PATCH  | /posts/:id            | update    |
 | `post_path(id)` | DELETE | /posts/:id            | destroy   |
 
+## API-only projects (`doido new --api`)
+
+A project generated with `--api` carries `api_only = true` under `[app]` in
+`config/application.toml`. The route macros read this marker **at compile time**
+(via `CARGO_MANIFEST_DIR`) and, in API mode, `resources!` / `resource!` /
+`shallow_resources!` omit the HTML-form routes — `new` (`GET /posts/new`) and
+`edit` (`GET /posts/:id/edit`) — along with their `new_*_path` / `edit_*_path`
+helpers. Every JSON-relevant action is kept, **including `destroy` (DELETE)**.
+This mirrors Rails' `rails new --api`. `only:` / `except:` still apply on top.
+
+> The marker is a build-time signal only; `application.toml` is not read at
+> runtime. `include_bytes!` of the marker file is emitted so `cargo` re-expands
+> the routes when it changes.
+
 ## Open Questions (remaining)
 
 - [ ] Nested resources depth limit?

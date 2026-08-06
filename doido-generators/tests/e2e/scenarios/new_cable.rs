@@ -15,7 +15,7 @@ fn new_cable_channel_broadcasts() {
         },
         |app| {
             let body = http::get_json(&format!("{}/", app.base_url));
-            assert_eq!(body["message"], "Hello word!");
+            assert_eq!(body["message"], "Hello, world!");
         },
     );
 }

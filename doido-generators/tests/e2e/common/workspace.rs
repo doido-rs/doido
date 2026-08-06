@@ -39,6 +39,9 @@ pub fn e2e_lock() -> MutexGuard<'static, ()> {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum BaseProfile {
     Default,
+    /// `doido new --api`: project marked `api_only` (no auth). Used to prove the
+    /// route macros drop `new`/`edit` from a plain `resources!` at compile time.
+    ApiOnly,
     WithCable,
     WithJobsDb,
     WithAuthApi,
@@ -49,6 +52,7 @@ impl BaseProfile {
     fn cache_dir(self) -> PathBuf {
         let name = match self {
             Self::Default => "sqlite-memory",
+            Self::ApiOnly => "sqlite-api",
             Self::WithCable => "sqlite-cable",
             Self::WithJobsDb => "sqlite-jobs-db",
             Self::WithAuthApi => "auth-api",
@@ -61,6 +65,7 @@ impl BaseProfile {
         let mut args = vec!["new", "blog", "--non-interactive", "--database=sqlite"];
         match self {
             Self::Default => {}
+            Self::ApiOnly => args.push("--api"),
             Self::WithCable => args.push("--cable"),
             Self::WithJobsDb => args.push("--jobs=db"),
             Self::WithAuthApi => {
@@ -97,6 +102,26 @@ fn clear_sqlite_databases(app: &Path) {
             fs::remove_file(path).ok();
         }
     }
+}
+
+fn default_base_is_valid(dir: &Path) -> bool {
+    let app = dir.join("blog");
+    let main_rs = app.join("src/main.rs");
+    let helpers_mod = app.join("app/helpers/mod.rs");
+
+    app.join("Cargo.toml").is_file()
+        && helpers_mod.is_file()
+        && fs::read_to_string(&main_rs)
+            .map(|content| content.contains("mod helpers;"))
+            .unwrap_or(false)
+}
+
+fn recreate_default_base(dir: &Path, profile: BaseProfile) {
+    if dir.exists() {
+        fs::remove_dir_all(dir).ok();
+    }
+    fs::create_dir_all(dir).expect("create base dir");
+    doido(dir).args(profile.new_args()).assert().success();
 }
 
 fn auth_base_is_valid(dir: &Path, api: bool) -> bool {
@@ -143,6 +168,7 @@ fn recreate_auth_base(dir: &Path, profile: BaseProfile) {
 
 fn ensure_base_app(profile: BaseProfile) -> PathBuf {
     static DEFAULT: OnceLock<PathBuf> = OnceLock::new();
+    static API_ONLY: OnceLock<PathBuf> = OnceLock::new();
     static CABLE: OnceLock<PathBuf> = OnceLock::new();
     static JOBS_DB: OnceLock<PathBuf> = OnceLock::new();
 
@@ -165,15 +191,24 @@ fn ensure_base_app(profile: BaseProfile) -> PathBuf {
             let init = || {
                 let dir = profile.cache_dir();
                 let app = dir.join("blog");
-                if !app.join("Cargo.toml").is_file() {
-                    fs::create_dir_all(&dir).expect("create base dir");
-                    doido(&dir).args(profile.new_args()).assert().success();
+                let needs_recreate = match profile {
+                    BaseProfile::Default => !default_base_is_valid(&dir),
+                    _ => !app.join("Cargo.toml").is_file(),
+                };
+                if needs_recreate {
+                    if profile == BaseProfile::Default {
+                        recreate_default_base(&dir, profile);
+                    } else {
+                        fs::create_dir_all(&dir).expect("create base dir");
+                        doido(&dir).args(profile.new_args()).assert().success();
+                    }
                 }
                 dir
             };
 
             match profile {
                 BaseProfile::Default => DEFAULT.get_or_init(init).clone(),
+                BaseProfile::ApiOnly => API_ONLY.get_or_init(init).clone(),
                 BaseProfile::WithCable => CABLE.get_or_init(init).clone(),
                 BaseProfile::WithJobsDb => JOBS_DB.get_or_init(init).clone(),
                 BaseProfile::WithAuthApi | BaseProfile::WithAuthHtml => unreachable!(),

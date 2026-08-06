@@ -16,6 +16,8 @@ fn test_new_generates_all_expected_files() {
     assert!(paths.contains(&"my-app/config/production.yml"));
     assert!(paths.contains(&"my-app/app/controllers/hello_controller.rs"));
     assert!(paths.contains(&"my-app/app/controllers/mod.rs"));
+    assert!(paths.contains(&"my-app/app/helpers/mod.rs"));
+    assert!(paths.contains(&"my-app/app/helpers/application_helper.rs"));
     assert!(paths.contains(&"my-app/app/models/.gitkeep"));
     // `doido db generate entity` writes SeaORM entities here by default.
     assert!(paths.contains(&"my-app/app/models/_entities/.gitkeep"));
@@ -26,6 +28,11 @@ fn test_new_generates_all_expected_files() {
     assert!(paths.contains(&"my-app/db/migration/src/lib.rs"));
     assert!(paths.contains(&"my-app/db/migration/src/main.rs"));
     assert!(paths.contains(&"my-app/tests/integration_test.rs"));
+    let main_rs = files
+        .iter()
+        .find(|f| f.path == "my-app/src/main.rs")
+        .unwrap();
+    assert!(main_rs.content.contains("mod helpers;"));
     assert!(paths.contains(&"my-app/.gitignore"));
     assert!(paths.contains(&"my-app/README.md"));
     assert!(paths.contains(&"my-app/mise.toml"));
@@ -111,7 +118,7 @@ fn test_new_template_includes_json_hello_action() {
         .iter()
         .find(|f| f.path == "api/app/controllers/hello_controller.rs")
         .unwrap();
-    assert!(hello.content.contains("Hello word!"));
+    assert!(hello.content.contains("ApplicationHelper::greet"));
     assert!(hello.content.contains("doido::controller::"));
     assert!(!hello.content.contains("doido_controller::"));
 }
@@ -346,6 +353,30 @@ fn test_new_mysql_sets_correct_database_url() {
 }
 
 #[test]
+fn test_new_api_marks_project_api_only() {
+    let files = ProjectGenerator.generate(&["blog", "--api"]).unwrap();
+    let app_config = files
+        .iter()
+        .find(|f| f.path == "blog/config/application.toml")
+        .unwrap();
+    assert!(
+        app_config.content.contains("api_only = true"),
+        "--api must write the api_only marker under [app]:\n{}",
+        app_config.content
+    );
+}
+
+#[test]
+fn test_new_without_api_omits_marker() {
+    let files = ProjectGenerator.generate(&["blog"]).unwrap();
+    let app_config = files
+        .iter()
+        .find(|f| f.path == "blog/config/application.toml")
+        .unwrap();
+    assert!(!app_config.content.contains("api_only"));
+}
+
+#[test]
 fn test_new_sqlite_default_when_no_database_flag() {
     let files = ProjectGenerator.generate(&["my-app"]).unwrap();
     let app_config = files
@@ -455,6 +486,8 @@ fn test_new_jobs_db_includes_doido_jobs_migration() {
         .find(|f| f.path == "my-app/db/migration/src/m20260101000001_create_doido_jobs_table.rs")
         .expect("jobs migration file");
     assert!(migration.content.contains("doido_jobs"));
+    assert!(migration.content.contains("run_at BIGINT NOT NULL"));
+    assert!(migration.content.contains("locked_at BIGINT"));
     assert!(migration.content.contains("idx_doido_jobs_reserve"));
 }
 

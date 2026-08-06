@@ -6,6 +6,7 @@ pub mod csrf;
 pub mod env_override;
 pub mod flash;
 pub mod health;
+pub mod helper;
 pub mod initializers;
 pub mod logging;
 pub mod params;
@@ -31,8 +32,9 @@ pub use context::{Context, IntoActionResponse};
 pub use cookies::CookieJar;
 // `before_action`/`after_action` are helper attributes consumed by `#[controller]`,
 // not standalone macros, so only `controller` and `routes` are re-exported.
-pub use doido_controller_macros::{controller, routes};
+pub use doido_controller_macros::{controller, helper, routes};
 pub use flash::Flash;
+pub use helper::Helper;
 pub use params::Params;
 pub use rescue::RescueHandlers;
 pub use response::Response;

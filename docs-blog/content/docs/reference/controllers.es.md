@@ -219,7 +219,30 @@ Las actions son funciones async normales, así que puedes montarlas en un `axum:
 dirigirlas con un cliente de pruebas, o construir un `Context` directamente. Filtros,
 parámetros y respuestas son todos verificables sin un servidor real.
 
+## Helpers de controlador
+
+La lógica compartida que no cabe en una sola acción vive en `app/helpers/` — importa los
+helpers explícitamente en los archivos del controlador. Marca una struct con `#[helper]` y
+llama sus funciones asociadas desde las acciones:
+
+```rust
+use crate::helpers::PostsHelper;
+
+#[controller]
+impl PostsController {
+    async fn index(ctx: Context) -> Response {
+        ctx.json(json!({ "title": PostsHelper::format_title("hello") }))
+    }
+}
+```
+
+Genera un helper con `cargo doido generate helper Posts`. Consulta
+[Helpers de controlador](@/docs/reference/helpers.es.md) para la guía completa (estructura,
+generador y diferencia respecto a los helpers de vista).
+
 ## Véase también
+
+- [Helpers de controlador](@/docs/reference/helpers.es.md) — `app/helpers/`, `#[helper]` y el generador.
 
 - [Middleware y sesiones](@/docs/reference/middleware.es.md) — la stack Tower, sesiones, flash, CSRF, CORS.
 - [Vistas](@/docs/reference/views.es.md) — a qué delega `ctx.render(...)`.

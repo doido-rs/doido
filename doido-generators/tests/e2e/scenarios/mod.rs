@@ -1,5 +1,7 @@
+mod api_project;
 mod auth_install;
 mod bootstrap_migrations;
+mod helper;
 mod kitchen_sink;
 mod migration_add_remove;
 mod model_fields;
@@ -10,3 +12,4 @@ mod scaffold_api;
 mod scaffold_html;
 mod smoke_generators;
 mod storage_install;
+mod type_mapping;

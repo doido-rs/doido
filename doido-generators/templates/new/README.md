@@ -25,7 +25,7 @@ cargo doido server
 Visit <http://0.0.0.0:3000> — `GET /` answers with JSON from `HelloController`:
 
 ```json
-{ "message": "Hello word!" }
+{ "message": "Hello, world!" }
 ```
 
 ## Common commands

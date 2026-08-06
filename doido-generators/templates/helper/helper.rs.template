@@ -1,0 +1,22 @@
+//! Generated controller helper — import in controllers with
+//! `use crate::helpers::{pascal};`.
+#![allow(dead_code)]
+
+use doido::controller::helper;
+
+/// Helper for `{pascal}`. Add associated functions here and call them from
+/// controller actions.
+#[helper]
+pub struct {pascal};
+
+impl {pascal} {
+    /// Human-readable resource label (e.g. `"posts"`).
+    pub fn label() -> &'static str {
+        "{helper_label}"
+    }
+
+    /// Summary line for index actions — customize or replace as needed.
+    pub fn index_count(count: usize) -> String {
+        format!("{count} {}", Self::label())
+    }
+}

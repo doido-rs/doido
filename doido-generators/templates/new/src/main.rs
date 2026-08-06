@@ -9,6 +9,9 @@ mod jobs;
 
 #[path = "../app/mailers/mod.rs"]
 mod mailers;
+
+#[path = "../app/helpers/mod.rs"]
+mod helpers;
 {doido_channels_module}
 #[path = "../config/routes.rs"]
 mod routes;

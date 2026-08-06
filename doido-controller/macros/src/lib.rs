@@ -1,5 +1,7 @@
+mod api_mode;
 mod codegen;
 mod controller;
+mod helper;
 mod parser;
 
 use proc_macro::TokenStream;
@@ -36,6 +38,27 @@ pub fn routes(input: TokenStream) -> TokenStream {
 #[proc_macro_attribute]
 pub fn controller(attr: TokenStream, item: TokenStream) -> TokenStream {
     match controller::expand_controller(attr.into(), item.into()) {
+        Ok(ts) => ts.into(),
+        Err(e) => e.to_compile_error().into(),
+    }
+}
+
+/// Marks a struct as a controller helper. Generates a [`doido_controller::Helper`]
+/// implementation that carries the snake_case helper name (`PostsHelper` →
+/// `"posts_helper"`), matching the `app/helpers/<name>_helper.rs` convention.
+/// Import the helper in controllers and call its associated functions.
+///
+/// ```ignore
+/// #[helper]
+/// pub struct PostsHelper;
+///
+/// impl PostsHelper {
+///     pub fn format_title(title: &str) -> String { title.to_uppercase() }
+/// }
+/// ```
+#[proc_macro_attribute]
+pub fn helper(attr: TokenStream, item: TokenStream) -> TokenStream {
+    match helper::expand_helper(attr.into(), item.into()) {
         Ok(ts) => ts.into(),
         Err(e) => e.to_compile_error().into(),
     }

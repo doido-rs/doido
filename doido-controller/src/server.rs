@@ -11,6 +11,26 @@ fn resolve_addr(server: &ServerConfig, bind: Option<&str>, port: Option<u16>) ->
     format!("{bind}:{port}")
 }
 
+/// Whether this project is API-only (`[app] api_only = true` in
+/// `config/application.toml`, written by `doido new --api`). Read relative to the
+/// working directory, like `config/<env>.yml`. The same marker is read at compile
+/// time by the route macros; here it tunes the middleware stack. Missing/unreadable
+/// file means "not an API".
+fn api_only() -> bool {
+    std::fs::read_to_string("config/application.toml")
+        .map(|contents| marker_is_api_only(&contents))
+        .unwrap_or(false)
+}
+
+/// Scan a flat `application.toml` for an `api_only = true` assignment (comments
+/// stripped, value matched case-insensitively).
+fn marker_is_api_only(contents: &str) -> bool {
+    contents.lines().any(|line| {
+        let line = line.split('#').next().unwrap_or("").trim();
+        matches!(line.split_once('='), Some((k, v)) if k.trim() == "api_only" && v.trim().eq_ignore_ascii_case("true"))
+    })
+}
+
 /// Boots the HTTP server for `router` using `config/<env>.yml` (the environment
 /// comes from [`doido_core::Environment::get_env`]). Missing config falls back
 /// to `0.0.0.0:3000`.
@@ -29,8 +49,11 @@ pub async fn start_server_with(
     let addr = resolve_addr(config.server(), bind.as_deref(), port);
 
     // Apply the always-on middleware (request/response logging + panic
-    // recovery) so every request is traced through the global subscriber.
-    let router = MiddlewareStack::default().apply(router);
+    // recovery) so every request is traced through the global subscriber. In
+    // API-only projects, HTML-only middleware (e.g. CSRF) is skipped.
+    let router = MiddlewareStack::default()
+        .with_api_only(api_only())
+        .apply(router);
 
     let listener = tokio::net::TcpListener::bind(&addr).await?;
     tracing::info!("listening on http://{addr}");
@@ -58,5 +81,14 @@ mod tests {
             resolve_addr(&server, Some("127.0.0.1"), Some(8080)),
             "127.0.0.1:8080"
         );
+    }
+
+    #[test]
+    fn marker_detects_api_only() {
+        assert!(marker_is_api_only("[app]\nname = \"x\"\napi_only = true\n"));
+        assert!(marker_is_api_only("api_only = TRUE  # marker"));
+        assert!(!marker_is_api_only("[app]\nname = \"x\"\n"));
+        assert!(!marker_is_api_only("api_only = false"));
+        assert!(!marker_is_api_only("# api_only = true"));
     }
 }

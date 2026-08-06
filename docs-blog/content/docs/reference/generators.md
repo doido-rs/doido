@@ -69,6 +69,7 @@ files (and some inject routes):
 | `model` | `app/models/<name>.rs` + migration |
 | `migration` | a standalone migration |
 | `controller` | a `#[controller]` with action stubs (+ route) |
+| `helper` | a controller helper in `app/helpers/` |
 | `scaffold` | model + migration + controller + views + route |
 | `resource` | model + migration + controller + route (no views) |
 | `mailer` | a mailer + templates |
@@ -97,6 +98,7 @@ cargo doido generate auth:scaffold Post title:string body:text
 cargo doido generate model Post title:string body:text
 cargo doido generate scaffold Post title:string body:text     # full CRUD stack
 cargo doido generate controller Pages home about
+cargo doido generate helper Posts
 cargo doido generate mailer User welcome
 ```
 
@@ -164,5 +166,6 @@ let names = registry.list(); // includes "policy"
 
 - [Models](@/docs/reference/models.md) — what `generate model`/`migration` produce.
 - [Controllers & routing](@/docs/reference/controllers.md) — the `routes!` block generators edit.
+- [Controller helpers](@/docs/reference/helpers.md) — what `generate helper` produces.
 - [Jobs](@/docs/reference/jobs.md), [Mailer](@/docs/reference/mailer.md), [Cable](@/docs/reference/cable.md) — their generators.
 - [Auth](@/docs/reference/auth.md) — `auth:install`, strategies, and extractors.

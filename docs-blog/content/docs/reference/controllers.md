@@ -221,7 +221,30 @@ Actions are plain async functions, so you can mount them on an `axum::Router` an
 them with a test client, or build a `Context` directly. Filters, params, and responses are
 all assertable without a live server.
 
+## Controller helpers
+
+Shared logic that does not belong in a single action lives in `app/helpers/` — import
+helpers explicitly in your controller files. Mark a struct with `#[helper]` and call its
+associated functions from actions:
+
+```rust
+use crate::helpers::PostsHelper;
+
+#[controller]
+impl PostsController {
+    async fn index(ctx: Context) -> Response {
+        ctx.json(json!({ "title": PostsHelper::format_title("hello") }))
+    }
+}
+```
+
+Generate a new helper with `cargo doido generate helper Posts`. See
+[Controller helpers](@/docs/reference/helpers.md) for the full guide (layout, generator,
+and how they differ from view helpers).
+
 ## See also
+
+- [Controller helpers](@/docs/reference/helpers.md) — `app/helpers/`, `#[helper]`, and the generator.
 
 - [Middleware & sessions](@/docs/reference/middleware.md) — the Tower stack, sessions, flash, CSRF, CORS.
 - [Views](@/docs/reference/views.md) — what `ctx.render(...)` delegates to.

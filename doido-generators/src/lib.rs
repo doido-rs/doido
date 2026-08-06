@@ -23,16 +23,18 @@ pub const DOIDO_VERSION: &str = env!("CARGO_PKG_VERSION");
 pub use generator::{GeneratedFile, Generator};
 pub use generators::{
     channel::ChannelGenerator, controller::ControllerGenerator, generator_gen::GeneratorGenerator,
-    job::JobGenerator, mailer::MailerGenerator, migration::MigrationGenerator,
-    model::ModelGenerator, new::ProjectGenerator, resource::ResourceGenerator,
-    scaffold::ScaffoldGenerator, storage_adapter::StorageAdapterGenerator,
-    storage_install::StorageInstallGenerator, templates_gen::TemplatesGenerator,
+    helper::HelperGenerator, job::JobGenerator, mailer::MailerGenerator,
+    migration::MigrationGenerator, model::ModelGenerator, new::ProjectGenerator,
+    resource::ResourceGenerator, scaffold::ScaffoldGenerator,
+    storage_adapter::StorageAdapterGenerator, storage_install::StorageInstallGenerator,
+    templates_gen::TemplatesGenerator,
 };
 pub use registry::GeneratorRegistry;
 
 pub fn default_registry() -> GeneratorRegistry {
     let mut reg = GeneratorRegistry::new();
     reg.register(Box::new(ControllerGenerator));
+    reg.register(Box::new(HelperGenerator));
     reg.register(Box::new(ModelGenerator));
     reg.register(Box::new(MigrationGenerator));
     reg.register(Box::new(JobGenerator));

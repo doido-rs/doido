@@ -30,6 +30,7 @@ Run `cargo doido generate` with no arguments to list every registered generator:
 | Generator | Generates |
 |-----------|-----------|
 | `controller` | A controller with actions |
+| `helper` | A controller helper in `app/helpers/` |
 | `model` | A model + SeaORM migration |
 | `migration` | A standalone migration |
 | `scaffold` | Model, controller, views, routes — the full CRUD stack |
@@ -48,7 +49,7 @@ pluralization rules declared in `config/inflection.yaml`.
 |-------|----------------|----------------|
 | `doido` | `rails` binary | Entry point, app runtime |
 | `doido-core` | Active Support | Shared traits, errors, inflector, logger, utilities |
-| `doido-controller` | Action Dispatch + Controller + Rack | Route DSL, request handling, params, Tower middleware, sessions |
+| `doido-controller` | Action Dispatch + Controller + Rack | Route DSL, request handling, params, controller helpers, Tower middleware, sessions |
 | `doido-model` | Active Record | sea-orm re-exports, connection pool, test helpers |
 | `doido-view` | Action View | Tera templates, layouts, partials |
 | `doido-config` | Rails `config/` | Layered TOML/YAML config, encrypted credentials, env overrides |

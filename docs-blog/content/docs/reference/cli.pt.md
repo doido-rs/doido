@@ -29,6 +29,7 @@ Rode `cargo doido generate` sem argumentos para listar todos os geradores regist
 | Gerador | Gera |
 |---------|------|
 | `controller` | Um controller com actions |
+| `helper` | Um helper de controller em `app/helpers/` |
 | `model` | Um model + migration do SeaORM |
 | `migration` | Uma migration isolada |
 | `scaffold` | Model, controller, views, rotas — o CRUD completo |
@@ -47,7 +48,7 @@ regras de pluralização declaradas em `config/inflection.yaml`.
 |-------|------------------|------------------|
 | `doido` | binário `rails` | Ponto de entrada, runtime da app |
 | `doido-core` | Active Support | Traits, erros, inflector, logger, utilitários |
-| `doido-controller` | Action Dispatch + Controller + Rack | DSL de rotas, requisições, params, middleware Tower, sessões |
+| `doido-controller` | Action Dispatch + Controller + Rack | DSL de rotas, requisições, params, helpers de controller, middleware Tower, sessões |
 | `doido-model` | Active Record | Re-exports do sea-orm, pool de conexões, helpers de teste |
 | `doido-view` | Action View | Templates Tera, layouts, partials |
 | `doido-config` | `config/` do Rails | Config TOML/YAML em camadas, credenciais, overrides por env |

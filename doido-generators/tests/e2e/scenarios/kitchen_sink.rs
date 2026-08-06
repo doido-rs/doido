@@ -10,7 +10,7 @@ use crate::common::{AppHarness, BaseProfile};
 fn every_generator_compiles_migrates_and_serves() {
     let h = AppHarness::new("kitchen_sink", BaseProfile::WithCable);
 
-    let generators: [&[&str]; 13] = [
+    let generators: [&[&str]; 14] = [
         &[
             "generate",
             "scaffold",
@@ -21,6 +21,7 @@ fn every_generator_compiles_migrates_and_serves() {
         ],
         &["generate", "model", "Comment", "body:text"],
         &["generate", "controller", "Pages"],
+        &["generate", "helper", "Posts"],
         &["generate", "job", "SendEmail"],
         &["generate", "mailer", "UserMailer"],
         &["generate", "channel", "ChatRoom"],

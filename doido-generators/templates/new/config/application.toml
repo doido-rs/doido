@@ -1,5 +1,5 @@
 [app]
-name = "{doido_name}"
+name = "{doido_name}"{doido_api_only}
 
 [database]
 url = "{doido_db_url}"

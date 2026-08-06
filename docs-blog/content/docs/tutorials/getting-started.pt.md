@@ -31,17 +31,20 @@ Com `--auth`, a app inclui `doido-auth`, model User, rotas de sign-in/sign-up e
 controllers de auth. Veja a [referência de Auth](/pt/docs/reference/auth/) para JWT,
 OAuth, 2FA e extractors.
 
-`GET /` responde com JSON vindo do `HelloController` gerado:
+`GET /` responde com JSON vindo do `HelloController` gerado, que delega ao
+`ApplicationHelper`:
 
 ```json
-{ "message": "Hello word!" }
+{ "message": "Hello, world!" }
 ```
 
 ## Uma amostra do código
 
-Um controller é um bloco `impl` comum anotado com `#[controller]`:
+Um controller é um bloco `impl` comum anotado com `#[controller]`. A action hello
+gerada importa um helper de `app/helpers/`:
 
 ```rust
+use crate::helpers::ApplicationHelper;
 use doido::controller::{controller, Context, Response};
 use serde_json::json;
 
@@ -50,10 +53,31 @@ pub struct HelloController;
 #[controller]
 impl HelloController {
     pub async fn index(ctx: Context) -> Response {
-        ctx.json(json!({ "message": "Hello word!" }))
+        ctx.json(json!({
+            "message": ApplicationHelper::greet("world")
+        }))
     }
 }
 ```
+
+Helpers são structs anotadas com `#[helper]` — funções compartilhadas que os
+controllers importam:
+
+```rust
+use doido::controller::helper;
+
+#[helper]
+pub struct ApplicationHelper;
+
+impl ApplicationHelper {
+    pub fn greet(name: &str) -> String {
+        format!("Hello, {name}!")
+    }
+}
+```
+
+Gere mais helpers com `cargo doido generate helper Posts`. Veja
+[Helpers de controller](@/docs/reference/helpers.pt.md) para o guia completo.
 
 As rotas são declaradas com a macro `routes!` em `config/routes.rs`:
 
@@ -86,6 +110,7 @@ my-app/
 │   └── inflection.yaml      ← regras de pluralização customizadas
 ├── app/
 │   ├── controllers/
+│   ├── helpers/             ← helpers de controller (#[helper])
 │   ├── models/
 │   └── views/
 ├── db/
@@ -120,3 +145,4 @@ cache:
 - **[Instalação](@/docs/setup/installation.pt.md)** — pré-requisitos e como instalar a CLI.
 - **[CLI & geradores](@/docs/reference/cli.pt.md)** — todos os comandos de runtime e geradores de código.
 - **[Controllers & roteamento](@/docs/reference/controllers.pt.md)** — o guia de requisição/resposta.
+- **[Helpers de controller](@/docs/reference/helpers.pt.md)** — lógica compartilhada em `app/helpers/`.

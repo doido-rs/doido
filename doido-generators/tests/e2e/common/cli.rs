@@ -60,6 +60,7 @@ pub fn cargo_build(app: &Path) {
 /// Builds each baseline profile once so later scenario forks reuse linked deps.
 pub fn warm_base_profile(profile: BaseProfile) {
     static DEFAULT: OnceLock<()> = OnceLock::new();
+    static API_ONLY: OnceLock<()> = OnceLock::new();
     static CABLE: OnceLock<()> = OnceLock::new();
     static JOBS_DB: OnceLock<()> = OnceLock::new();
     static AUTH_API: OnceLock<()> = OnceLock::new();
@@ -75,6 +76,9 @@ pub fn warm_base_profile(profile: BaseProfile) {
     match profile {
         BaseProfile::Default => {
             DEFAULT.get_or_init(warm);
+        }
+        BaseProfile::ApiOnly => {
+            API_ONLY.get_or_init(warm);
         }
         BaseProfile::WithCable => {
             CABLE.get_or_init(warm);

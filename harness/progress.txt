@@ -108,3 +108,4 @@ US-101: health check — health::up + with_health (GET /up). clippy+test green.
 US-102: deploy files — Dockerfile + Kamal deploy.yml + devcontainer in app template. clippy+test green.
 US-103: solid parity — DbCacheStore (cache-db) completes db-backed queue/cache/cable. clippy(feature)+test green.
 US-104: runtime CRUD e2e — `make example` scaffolds `blog` (--api), builds, `db create`/`db migrate` on temp sqlite, boots the app's own server, HTTP POST/GET/PATCH/DELETE /posts all green. Fixed --api route injection (resources! except: [new, edit]); moved e2e scaffold off /tmp tmpfs onto workspace target/. 104/104 stories done.
+US-114: controller helpers — #[helper] + Helper trait in doido-controller; app/helpers/ in doido new; generate helper + scaffold/controller/resource emit {Plural}Helper; e2e helper_generator_executes_method_over_http + kitchen_sink; docs/02-controller.md, docs/06b-generators.md, harness prd updated. 114/114 stories done.

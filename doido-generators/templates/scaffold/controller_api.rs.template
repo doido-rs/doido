@@ -1,3 +1,4 @@
+use crate::helpers::{Helper};
 use crate::models::{singular}::{ActiveModel, Entity};
 use doido::model::sea_orm::{entity::prelude::*, Set};
 use doido::controller::{controller, Context, Response};
@@ -15,6 +16,7 @@ impl {Controller} {
     /// GET /{plural}
     pub async fn index(ctx: Context) -> doido::Result<Response> {
         let {plural} = Entity::find().all(ctx.db()).await?;
+        let _summary = {Helper}::index_count({plural}.len());
         Ok(ctx.json({plural}))
     }
 
