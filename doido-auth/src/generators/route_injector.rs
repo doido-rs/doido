@@ -1,4 +1,4 @@
-//! Injects explicit auth routes understood by the `routes!` macro.
+//! Injects `auth_routes!(User);` understood by the `routes!` macro.
 
 const ROUTES_BASE: &str = include_str!("../../templates/new/config/routes.rs");
 const CONTROLLERS_MOD_BASE: &str = include_str!("../../templates/new/app/controllers/mod.rs");
@@ -8,42 +8,45 @@ pub const ROUTES_PATH: &str = "config/routes.rs";
 pub const CONTROLLERS_MOD_PATH: &str = "app/controllers/mod.rs";
 pub const MODELS_MOD_PATH: &str = "app/models/mod.rs";
 
-/// Injects session/registration/password/OAuth routes for generated auth controllers.
-pub fn inject_auth_routes(routes: &str, api: bool) -> String {
-    if routes.contains("SessionsController::create") {
+/// Injects Devise-style auth routes for generated auth controllers.
+pub fn inject_auth_routes(routes: &str, _api: bool) -> String {
+    if routes.contains("auth_routes!(User") {
         return routes.to_string();
     }
 
-    let mut lines_to_add = vec![
-        "post!(\"/users/sign_in\", auth::SessionsController::create);",
-        "delete!(\"/users/sign_out\", auth::SessionsController::destroy);",
-        "post!(\"/users/sign_up\", auth::RegistrationsController::create);",
-        "post!(\"/users/password\", auth::PasswordsController::create);",
-        "patch!(\"/users/password\", auth::PasswordsController::update);",
-        "get!(\"/auth/{provider}\", auth::OauthController::authorize);",
-        "get!(\"/auth/{provider}/callback\", auth::OauthController::callback);",
-    ];
-    if !api {
-        lines_to_add.insert(
-            0,
-            "get!(\"/users/sign_up\", auth::RegistrationsController::new);",
-        );
-        lines_to_add.insert(
-            0,
-            "get!(\"/users/sign_in\", auth::SessionsController::new);",
-        );
-    }
+    let auth_block = "doido::auth::routes! {";
+    let auth_line = "        auth_routes!(User, controllers: { \
+        sessions: auth::SessionsController, \
+        registrations: auth::RegistrationsController, \
+        passwords: auth::PasswordsController, \
+        oauth: auth::OauthController \
+    });";
 
     let mut lines: Vec<String> = routes.lines().map(String::from).collect();
 
-    let use_auth = "use crate::controllers::auth;";
-    if !routes.contains(use_auth) {
+    if routes.contains("routes! {") && !routes.contains("doido::auth::routes!") {
+        for line in &mut lines {
+            if line.trim().starts_with("routes! {") {
+                *line = auth_block.to_string();
+            }
+        }
+    }
+
+    if routes.contains("use doido::controller::{axum, routes}") {
+        for line in &mut lines {
+            if line.contains("use doido::controller::{axum, routes}") {
+                *line = "use doido::controller::axum;".to_string();
+            }
+        }
+    }
+
+    if !routes.contains("use doido::auth::auth_routes") {
         let pos = lines
             .iter()
             .rposition(|l| l.starts_with("use "))
             .map(|i| i + 1)
             .unwrap_or(0);
-        lines.insert(pos, use_auth.to_string());
+        lines.insert(pos, "use doido::auth::auth_routes;".to_string());
     }
 
     if let Some(open) = lines.iter().position(|l| {
@@ -52,9 +55,7 @@ pub fn inject_auth_routes(routes: &str, api: bool) -> String {
     }) {
         if let Some(close_rel) = lines[open..].iter().position(|l| l.trim() == "}") {
             let close = open + close_rel;
-            for route in &lines_to_add {
-                lines.insert(close, format!("        {route}"));
-            }
+            lines.insert(close, format!("        {auth_line}"));
         }
     }
 

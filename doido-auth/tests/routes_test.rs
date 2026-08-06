@@ -1,6 +1,6 @@
 //! Auth routes integration tests.
 
-use doido_auth::routes::mount;
+use doido_auth::mount;
 use doido_auth::testing::{create_test_user, init_test_auth, send, test_auth_config, TestUser};
 use doido_model::testing::TestDb;
 use http::StatusCode;

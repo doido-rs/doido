@@ -6,6 +6,7 @@ use crate::handlers::{register_user, sign_in_with_session};
 use crate::jwt::JwtStrategy;
 use crate::state::{set_state, AuthState};
 use crate::user::AuthUser;
+use crate::RegisterableAuthUser;
 use doido_controller::axum::body::Body;
 use doido_controller::axum::Router;
 use doido_controller::session::Session;
@@ -72,6 +73,24 @@ impl AuthUser for TestUser {
         id: Self::Id,
     ) -> doido_core::Result<Option<Self>> {
         Ok(store().lock().unwrap().get(&id).cloned())
+    }
+}
+
+impl RegisterableAuthUser for TestUser {
+    async fn register(
+        _db: &DatabaseConnection,
+        email: String,
+        password_digest: String,
+    ) -> doido_core::Result<Self> {
+        let mut map = store().lock().unwrap();
+        let id = (map.len() as i64) + 1;
+        let user = TestUser {
+            id,
+            email,
+            password_digest,
+        };
+        map.insert(id, user.clone());
+        Ok(user)
     }
 }
 

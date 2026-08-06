@@ -15,6 +15,8 @@ members = [
     "doido-cable/macros",
     "doido-cable",
     "doido-generators",
+    "doido-auth/macros",
+    "doido-auth/route-dsl",
     "doido-auth",
     "doido",
 ]
@@ -48,6 +50,8 @@ doido-controller-macros = { path = "doido-controller/macros", version = "0.0.9" 
 doido-core = { path = "doido-core", version = "0.0.9" }
 doido-generators = { path = "doido-generators", version = "0.0.9" }
 doido-auth = { path = "doido-auth", version = "0.0.9" }
+doido-auth-macros = { path = "doido-auth/macros", version = "0.0.9" }
+doido-auth-route-dsl = { path = "doido-auth/route-dsl", version = "0.0.9" }
 doido-jobs = { path = "doido-jobs", version = "0.0.9" }
 doido-jobs-macros = { path = "doido-jobs/macros", version = "0.0.9" }
 doido-mailer = { path = "doido-mailer", version = "0.0.9" }

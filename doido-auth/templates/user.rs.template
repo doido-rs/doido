@@ -5,6 +5,7 @@ use doido::model::sea_orm;
 use doido::model::sea_orm::entity::prelude::*;
 use doido::model::password::HasSecurePassword;
 use doido_auth::AuthUser;
+use doido_auth::RegisterableAuthUser;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
@@ -58,6 +59,24 @@ impl AuthUser for Model {
             .one(db)
             .await
             .map_err(Into::into)
+    }
+}
+
+impl RegisterableAuthUser for Model {
+    async fn register(
+        db: &DatabaseConnection,
+        email: String,
+        password_digest: String,
+    ) -> doido::Result<Self> {
+        let now = chrono::Utc::now().naive_utc();
+        let record = ActiveModel {
+            email: Set(email),
+            password_digest: Set(password_digest),
+            created_at: Set(now),
+            updated_at: Set(now),
+            ..Default::default()
+        };
+        record.insert(db).await.map_err(Into::into)
     }
 }
 

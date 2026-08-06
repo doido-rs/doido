@@ -1,6 +1,7 @@
 //! Unified authentication for Doido — Devise + OmniAuth + JWT analogue.
 
 pub mod config;
+pub mod controllers;
 pub mod error;
 pub mod extractors;
 pub mod handlers;
@@ -10,6 +11,7 @@ pub mod layer;
 pub mod oauth;
 pub mod registry;
 pub mod routes;
+mod routes_macro;
 pub mod session;
 pub mod state;
 pub mod strategy;
@@ -19,6 +21,9 @@ pub mod testing;
 
 #[cfg(feature = "auth-2fa")]
 pub mod two_factor;
+
+#[cfg(feature = "auth-2fa")]
+pub use controllers::AuthTwoFactor;
 
 pub use config::{load as load_config, AuthConfig, AuthRoutesConfig, JwtConfig, YamlConfig};
 pub use error::AuthError;
@@ -30,12 +35,16 @@ pub use layer::{auth_layer, current_identity, current_user};
 pub use oauth::{OAuth2Provider, OAuthProvider, OAuthTokenResponse};
 pub use registry::{register_strategy, registered_strategies};
 pub use routes::mount;
+pub use controllers::{
+    AuthOauth, AuthPasswords, AuthRegistrations, AuthSessions,
+};
+pub use doido_auth_macros::{auth_routes, __auth_routes_decl};
 pub use session::{
     SessionStrategy, SessionStrategy as CookieStrategy, SESSION_COOKIE, USER_ID_KEY,
 };
 pub use state::{global, init, set_state, try_global, AuthState};
 pub use strategy::AuthStrategy;
-pub use user::{authenticate_password, AuthUser};
+pub use user::{authenticate_password, AuthUser, RegisterableAuthUser};
 
 #[cfg(feature = "auth-2fa")]
 pub use two_factor::{
