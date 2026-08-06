@@ -49,12 +49,12 @@ doido/                  ← workspace root (Cargo.toml)
 ## Interview Status
 
 - [x] 01-router — **Macro DSL, `resources!` with all 7 REST routes, `only:`/`except:`, namespace/scope; axum via `doido_controller::axum`. API mode (`[app] api_only` in `config/application.toml`) drops `new`/`edit` form routes at compile time.**
-- [x] 02-controller — **`#[controller]` macro + trait, `#[before_action]`/`#[after_action]` attrs, Tower middleware layers; re-exports axum**
+- [x] 02-controller — **`#[controller]` macro + trait, `#[before_action]`/`#[after_action]` attrs, controller helpers (`#[helper]`, `app/helpers/`), Tower middleware layers; re-exports axum**
 - [x] 03-model — **Re-exports sea-orm + sea-orm-migration + sea-orm-cli (`cli` feature); connection pool + test helpers (SQLite in-memory). Import only via `doido_model::sea_orm*` — never direct upstream deps**
 - [x] 04-view — **Tera default engine, swappable via `TemplateEngine` trait, convention-based template resolution**
 - [x] 05-config — **Per-env YAML (`config/<env>.yml`), AES-256-GCM encrypted credentials (`credentials.yml.enc` + `master.key`), `SECTION__KEY` env override; layered TOML dropped (US-085)**
 - [x] 06-cli — **Runtime commands only; `doido generate` delegates to `doido-generators`**
-- [x] 06b-generators — **Separate crate, all Rails targets, `Generator` trait registry, auto-injects `config/routes.rs`**
+- [x] 06b-generators — **Separate crate, all Rails targets, `Generator` trait registry, `generate helper`, scaffold/controller emit helpers, auto-injects `config/routes.rs`**
 - [x] 07-middleware — **Logging+PanicRecovery always-on, all else opt-in via config, pluggable `SessionStore` (cookie default). API mode (`MiddlewareStack::with_api_only`, read from `[app] api_only`) skips HTML-only middleware like CSRF.**
 - [x] 08-mailer — **`deliver_now()` + `deliver_later()`, templates in `views/mailers/`, pluggable `Deliverer` trait**
 - [x] 09-jobs — **Pluggable backends (memory/db/redis), exponential retry per-job via `#[job]` macro, dead letter queue + CLI**

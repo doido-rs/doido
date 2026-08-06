@@ -1,7 +1,7 @@
 {
   "project": "Doido",
   "branchName": "creating_doido_auth",
-  "description": "Close the Rails 8 gap (US-001→US-104, done) and implement doido-auth (US-105→US-113) per docs/16-auth.md. Definition of done per story: the story's tests pass AND `make verify` exits 0. One story per gap-file checkbox where applicable; tick the box when done.",
+  "description": "Close the Rails 8 gap (US-001→US-104, done), implement doido-auth (US-105→US-113, done), and controller helpers (US-114) per docs/02-controller.md and docs/06b-generators.md. Definition of done per story: the story's tests pass AND `make verify` exits 0. One story per gap-file checkbox where applicable; tick the box when done.",
   "userStories": [
     {
       "title": "Real cookie session store",
@@ -1834,6 +1834,26 @@
       "priority": 113,
       "passes": true,
       "notes": "Depends on US-112. E2E scenario auth_install.rs passes via make release-e2e (per-app CARGO_TARGET_DIR fix)."
+    },
+    {
+      "title": "Controller helpers (app/helpers/, #[helper])",
+      "description": "As a Doido user, I want controller helpers in app/helpers/ with #[helper] and a generate helper command so I can share logic across controller actions like Rails, per docs/02-controller.md and docs/06b-generators.md.",
+      "acceptanceCriteria": [
+        "Failing test written FIRST (TDD) under doido-controller/tests/ that encodes: #[helper] implements Helper::helper_name() from struct name",
+        "Helper trait + #[helper] macro in doido-controller; re-exported from doido::controller::helper",
+        "doido new scaffolds app/helpers/ (mod.rs, application_helper.rs) mounted from src/main.rs",
+        "doido generate helper Posts → app/helpers/posts_helper.rs + registry update in app/helpers/mod.rs",
+        "scaffold, resource, and controller generators emit matching {Plural}Helper and wire index to helper call",
+        "E2E scenario helper_generator_executes_method_over_http in doido-generators/tests/e2e/",
+        "Tick the 'Controller helpers' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "core",
+      "crate": "doido-controller",
+      "id": "US-114",
+      "priority": 114,
+      "passes": true,
+      "notes": "Helper trait + #[helper] in doido-controller; generate helper + scaffold/controller/resource integration in doido-generators; e2e helper.rs + kitchen_sink; docs/02-controller.md, docs/06b-generators.md, ARCHITECTURE.md updated."
     }
   ]
 }

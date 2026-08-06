@@ -29,6 +29,7 @@ doido-generators/
     generators/
       model.rs
       controller.rs
+      helper.rs
       migration.rs
       scaffold.rs
       resource.rs       ← scaffold without views
@@ -47,6 +48,10 @@ doido-generators/
       mailer.rs.tera
       job.rs.tera
       channel.rs.tera
+      helper/
+        helper.rs.template
+        mod.rs.template
+        application_helper.rs.template
 ```
 
 ## `Generator` Trait (extensible)
@@ -124,10 +129,11 @@ in [16-auth.md](16-auth.md). See that doc for bootstrap via `doido new --auth` o
 | Generator | Files Created | Route Injected |
 |-----------|--------------|----------------|
 | `model` | `models/<name>.rs`, migration | No |
-| `controller` | `controllers/<name>_controller.rs`, view stubs | Yes |
+| `controller` | `controllers/<name>_controller.rs`, matching `app/helpers/{plural}_helper.rs`, view stubs | Yes |
+| `helper` | `app/helpers/{snake}_helper.rs` (registry update) | No |
 | `migration` | `db/migrations/<timestamp>_<name>.rs` | No |
-| `scaffold` | model + migration + controller + all views | Yes — `resources!(...)` |
-| `resource` | model + migration + controller (no views) | Yes — `resources!(...)` |
+| `scaffold` | model + migration + controller + helper + all views | Yes — `resources!(...)` |
+| `resource` | model + migration + controller + helper (no views) | Yes — `resources!(...)` |
 | `mailer` | `mailers/<name>_mailer.rs`, view templates | No |
 | `job` | `jobs/<name>_job.rs` | No |
 | `channel` | `channels/<name>_channel.rs` | No (prints hint to add `cable!(...)` manually) |
@@ -183,6 +189,31 @@ pub struct Model {
   are always NOT NULL.
 - Unknown types or modifiers are a hard error so typos surface immediately.
 
+## Helper (`helper`)
+
+Rails analogue: `rails generate helper Posts`.
+
+Creates a controller helper module under `app/helpers/` and registers it in
+`app/helpers/mod.rs`:
+
+```sh
+doido generate helper Posts        # → PostsHelper in app/helpers/posts_helper.rs
+doido generate helper PostsHelper  # → same (input already includes Helper suffix)
+```
+
+The generated struct uses `#[helper]` from `doido::controller::helper` and ships
+with starter methods (`label`, `index_count`). Controllers import explicitly:
+
+`use crate::helpers::PostsHelper;`
+
+`scaffold`, `resource`, and `controller` generators invoke the same helper
+machinery so each REST resource gets a matching `{Plural}Helper` and the
+generated controller's `index` action calls `{Plural}Helper::index_count`.
+
+New apps from `doido new` already include `app/helpers/mod.rs` and
+`application_helper.rs`, mounted from `src/main.rs` via
+`#[path = "../app/helpers/mod.rs"] mod helpers;`.
+
 ## Scaffold (`scaffold`)
 
 `scaffold` runs the `model` generator and adds a full RESTful controller, views,
@@ -199,7 +230,11 @@ Produces:
 - `app/controllers/posts_controller.rs` — a `#[controller]` with all 7 actions
   (`index, show, new, create, edit, update, destroy`) performing real sea-orm
   persistence through `Context::db()`, plus a `PostForm` strong-params struct
-  derived from the field specs. Registered in `app/controllers/mod.rs`.
+  derived from the field specs. The `index` action imports `PostsHelper` and
+  calls `PostsHelper::index_count` (HTML passes `"summary"` to the view; API
+  keeps the same JSON shape). Registered in `app/controllers/mod.rs`.
+- `app/helpers/posts_helper.rs` — `{Plural}Helper` with `#[helper]`, registered
+  in `app/helpers/mod.rs`.
 - HTML mode: `app/views/posts/{index,show,new,edit,_form}.html.tera`, with table
   columns and form inputs derived from the fields. `--api` skips views and the
   actions return `ctx.json(...)`.
@@ -272,8 +307,10 @@ With `--dry-run` flag, prints files without writing anything.
 ## TDD Surface
 
 - Test each generator produces expected file content for given args
-- Test `scaffold` creates all expected files
-- Test `resource` creates all expected files except views
+- Test `helper` creates `app/helpers/{name}_helper.rs` and updates `mod.rs`
+- Test `scaffold` creates all expected files (including helper)
+- Test `resource` creates all expected files except views (including helper)
+- Test `controller` emits matching helper and wires `index` to helper call
 - Test route injection appends correct entry to `config/routes.rs`
 - Test route injection skips when controller already registered
 - Test route injection creates file when `config/routes.rs` missing

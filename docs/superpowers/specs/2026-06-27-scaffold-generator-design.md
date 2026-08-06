@@ -88,6 +88,7 @@ __response
 ### 5. doido-generators — scaffold templates (`templates/scaffold/`)
 - `controller_html.rs.template`, `controller_api.rs.template`
 - `views/{index,show,new,edit,_form}.html.tera`
+- `templates/helper/helper.rs.template` — `{Plural}Helper` with `#[helper]`
 
 Generator (`scaffold.rs`) responsibilities:
 - Run `ModelGenerator` (model + migration + migration lib.rs).
@@ -96,6 +97,9 @@ Generator (`scaffold.rs`) responsibilities:
   columns, form inputs).
 - HTML mode: render the 5 views into `app/views/{plural}/`.
 - Register the controller in `app/controllers/mod.rs` (read-modify-write).
+- Emit `{Plural}Helper` into `app/helpers/{plural}_helper.rs` and register in
+  `app/helpers/mod.rs`; wire the controller `index` action to
+  `{Plural}Helper::index_count` (HTML passes `"summary"` to the view).
 - Maintain `app/models/mod.rs` (also done by `ModelGenerator` now).
 - Inject `resources!({plural}, {Controller});` into `config/routes.rs`
   (read-modify-write, preserving existing routes).

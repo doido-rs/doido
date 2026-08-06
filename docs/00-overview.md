@@ -33,6 +33,20 @@ and a modular architecture where each sub-crate can be used independently.
   `doido-model` (with the matching database + `cli` features where needed).
 - **axum** is always reached through `doido-controller`.
 
+## Generated app layout (conventions)
+
+| Path | Purpose |
+|------|---------|
+| `app/controllers/` | `#[controller]` handlers |
+| `app/helpers/` | Controller helpers (`#[helper]` structs imported explicitly) |
+| `app/models/` | SeaORM models |
+| `app/views/` | Tera templates (HTML mode) |
+| `config/routes.rs` | `routes! { … }` table |
+
+Controller helpers in `app/helpers/` are **not** auto-included in views — use
+`doido-view` helpers for template HTML (spec 04). See spec 02 for the
+`#[helper]` macro and usage from controllers.
+
 ## Workspace Crates
 
 | Crate              | Rails Analogue        | Responsibility                              |
