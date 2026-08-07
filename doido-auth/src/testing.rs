@@ -139,6 +139,7 @@ pub async fn init_test_auth(
     let guard = AUTH_TEST_LOCK.lock().expect("auth test lock");
     reset_store();
     crate::state::reset_state();
+    let _ = doido_model::pool::set_pool(db.clone());
     set_state(AuthState::build(db, config)?);
     Ok(AuthTestGuard { _lock: guard })
 }
@@ -195,7 +196,9 @@ pub async fn send_with_headers(
 ) -> TestResponse {
     let mut builder = Request::builder().method(method).uri(uri);
     if !body.is_empty() && (method == "POST" || method == "PATCH") {
-        builder = builder.header(http::header::CONTENT_TYPE, "application/json");
+        builder = builder
+            .header(http::header::CONTENT_TYPE, "application/json")
+            .header(http::header::ACCEPT, "application/json");
     }
     for (k, v) in headers {
         builder = builder.header(*k, *v);

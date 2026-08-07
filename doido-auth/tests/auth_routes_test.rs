@@ -1,7 +1,6 @@
 //! Integration tests for `auth_routes!` inside `doido_auth::routes!`.
 
 use doido_auth::testing::{create_test_user, init_test_auth, send, test_auth_config, TestUser};
-use doido_auth::RegisterableAuthUser;
 use doido_model::testing::TestDb;
 use http::StatusCode;
 
@@ -35,7 +34,7 @@ async fn auth_routes_custom_controller_override() {
     mod auth {
         use doido_auth::testing::TestUser;
         use doido_auth::{sign_in, AuthUser};
-        use doido_controller::{controller, Context, Response};
+        use doido_controller::{controller, Response};
         use doido_core::Result;
         use serde::Deserialize;
 
@@ -49,7 +48,7 @@ async fn auth_routes_custom_controller_override() {
 
         #[controller]
         impl SessionsController {
-            pub async fn create(mut ctx: Context) -> Result<Response> {
+            pub async fn create(mut ctx: doido_controller::Context) -> Result<Response> {
                 let form: SignInForm = ctx.body_json().await?;
                 let user = TestUser::find_by_email(ctx.db(), &form.email)
                     .await?
@@ -58,7 +57,7 @@ async fn auth_routes_custom_controller_override() {
                 Ok(ctx.json(serde_json::json!({ "custom": true })))
             }
 
-            pub async fn destroy(mut ctx: Context) -> Result<Response> {
+            pub async fn destroy(mut ctx: doido_controller::Context) -> Result<Response> {
                 doido_auth::sign_out(ctx)?;
                 Ok(ctx.status(204))
             }
@@ -77,7 +76,12 @@ async fn auth_routes_custom_controller_override() {
         auth_routes!(
             TestUser,
             only: [sessions],
-            controllers: { sessions: auth::SessionsController }
+            actions: {
+                sessions: {
+                    create: auth::SessionsController::create,
+                    destroy: auth::SessionsController::destroy
+                }
+            }
         );
     };
 

@@ -8,14 +8,19 @@ pub const ROUTES_PATH: &str = "config/routes.rs";
 pub const CONTROLLERS_MOD_PATH: &str = "app/controllers/mod.rs";
 pub const MODELS_MOD_PATH: &str = "app/models/mod.rs";
 
+fn is_routes_block_open(line: &str) -> bool {
+    let t = line.trim();
+    (t.starts_with("routes!") || t.starts_with("doido::auth::routes!")) && t.contains('{')
+}
+
 /// Injects Devise-style auth routes for generated auth controllers.
 pub fn inject_auth_routes(routes: &str, _api: bool) -> String {
     if routes.contains("auth_routes!(User") {
         return routes.to_string();
     }
 
-    let auth_block = "doido::auth::routes! {";
-    let auth_line = "        auth_routes!(User, controllers: { \
+    let auth_block = "    doido::auth::routes! {";
+    let auth_line = "auth_routes!(User, controllers: { \
         sessions: auth::SessionsController, \
         registrations: auth::RegistrationsController, \
         passwords: auth::PasswordsController, \
@@ -40,6 +45,16 @@ pub fn inject_auth_routes(routes: &str, _api: bool) -> String {
         }
     }
 
+    let auth_use = "use crate::controllers::auth;";
+    if !routes.contains(auth_use) {
+        let pos = lines
+            .iter()
+            .rposition(|l| l.contains("use crate::controllers"))
+            .map(|i| i + 1)
+            .unwrap_or(0);
+        lines.insert(pos, auth_use.to_string());
+    }
+
     if !routes.contains("use doido::auth::auth_routes") {
         let pos = lines
             .iter()
@@ -49,10 +64,7 @@ pub fn inject_auth_routes(routes: &str, _api: bool) -> String {
         lines.insert(pos, "use doido::auth::auth_routes;".to_string());
     }
 
-    if let Some(open) = lines.iter().position(|l| {
-        let t = l.trim();
-        t.starts_with("routes!") && t.contains('{')
-    }) {
+    if let Some(open) = lines.iter().position(|l| is_routes_block_open(l)) {
         if let Some(close_rel) = lines[open..].iter().position(|l| l.trim() == "}") {
             let close = open + close_rel;
             lines.insert(close, format!("        {auth_line}"));
@@ -87,10 +99,7 @@ pub fn inject_resources(routes: &str, plural: &str, controller: &str, api: bool)
         lines.insert(pos, use_line);
     }
 
-    if let Some(open) = lines.iter().position(|l| {
-        let t = l.trim();
-        t.starts_with("routes!") && t.contains('{')
-    }) {
+    if let Some(open) = lines.iter().position(|l| is_routes_block_open(l)) {
         if let Some(close_rel) = lines[open..].iter().position(|l| l.trim() == "}") {
             let close = open + close_rel;
             lines.insert(close, format!("        {resources}"));
@@ -121,10 +130,7 @@ pub fn inject_action_routes(
         lines.insert(pos, use_line);
     }
 
-    if let Some(open) = lines.iter().position(|l| {
-        let t = l.trim();
-        t.starts_with("routes!") && t.contains('{')
-    }) {
+    if let Some(open) = lines.iter().position(|l| is_routes_block_open(l)) {
         if let Some(close_rel) = lines[open..].iter().position(|l| l.trim() == "}") {
             let close = open + close_rel;
             for action in actions {
