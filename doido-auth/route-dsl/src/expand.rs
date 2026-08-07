@@ -380,6 +380,7 @@ fn expand_auth_route_decls_inner(input: TokenStream, api_only: bool) -> Result<T
 #[cfg(test)]
 mod tests {
     use super::*;
+    use quote::quote;
 
     #[test]
     fn parses_devise_style_options() {
@@ -393,5 +394,106 @@ mod tests {
         assert_eq!(input.prefix.as_deref(), Some("/accounts"));
         assert_eq!(input.only.as_ref().unwrap().len(), 2);
         assert!(input.controllers.contains_key("sessions"));
+        assert!(input
+            .actions
+            .get("sessions")
+            .unwrap()
+            .contains_key("create"));
+    }
+
+    #[test]
+    fn rejects_unknown_option() {
+        assert!(syn::parse2::<AuthRoutesInput>(quote! { User, foo: 1 }).is_err());
+    }
+
+    #[test]
+    fn plan_auth_routes_emits_default_handlers() {
+        let (stmts, descriptors) = plan_auth_routes(quote! { User }, false).unwrap();
+        let s = stmts.to_string();
+        assert!(s.contains("AuthSessions"));
+        assert!(s.contains("AuthRegistrations"));
+        assert!(s.contains("AuthPasswords"));
+        assert!(s.contains("AuthOauth"));
+        assert_eq!(descriptors.len(), 10);
+    }
+
+    #[test]
+    fn plan_auth_routes_only_and_skip_filter_modules() {
+        let (_, only) = plan_auth_routes(quote! { User, only: [sessions] }, false).unwrap();
+        assert_eq!(only.len(), 3);
+
+        let (_, skipped) = plan_auth_routes(quote! { User, skip: [oauth] }, false).unwrap();
+        assert_eq!(skipped.len(), 8);
+        assert!(!skipped.iter().any(|(_, path)| path.starts_with("/auth/")));
+    }
+
+    #[test]
+    fn plan_auth_routes_api_only_skips_html_form_routes() {
+        let (_, descriptors) = plan_auth_routes(quote! { User }, true).unwrap();
+        assert_eq!(descriptors.len(), 7);
+        assert!(!descriptors
+            .iter()
+            .any(|(method, path)| method == "GET" && path == "/users/sign_in"));
+    }
+
+    #[test]
+    fn plan_auth_routes_honors_prefix_controllers_and_actions() {
+        let (stmts, descriptors) = plan_auth_routes(
+            quote! {
+                User,
+                prefix: "/accounts",
+                only: [sessions, registrations],
+                controllers: { sessions: my_auth::SessionsController },
+                actions: { registrations: { create: my_auth::RegistrationsController::create } }
+            },
+            false,
+        )
+        .unwrap();
+        let s = stmts.to_string();
+        assert!(s.contains("my_auth :: SessionsController"));
+        assert!(s.contains("my_auth :: RegistrationsController :: create"));
+        assert!(descriptors
+            .iter()
+            .any(|(_, path)| path == "/accounts/sign_in"));
+    }
+
+    #[test]
+    fn expand_auth_routes_builds_router_and_route_table() {
+        let out = expand_auth_routes(quote! { User, only: [sessions] }, false);
+        let s = out.to_string();
+        assert!(s.contains("register_routes"));
+        assert!(s.contains("Router :: new"));
+        assert!(s.contains("sign_in"));
+    }
+
+    #[test]
+    fn expand_auth_routes_invalid_input_becomes_compile_error() {
+        let out = expand_auth_routes(quote! { User, bad: [] }, false);
+        assert!(out.to_string().contains("compile_error"));
+    }
+
+    #[test]
+    fn expand_auth_route_decls_emits_route_macros() {
+        let out = expand_auth_route_decls(quote! { User, only: [sessions] }, false);
+        let s = out.to_string();
+        assert!(s.contains("post !"));
+        assert!(s.contains("delete !"));
+        assert!(s.contains("get !"));
+        assert!(s.contains("AuthSessions"));
+    }
+
+    #[test]
+    fn expand_auth_route_decls_api_only_omits_html_routes() {
+        let out = expand_auth_route_decls(quote! { User, only: [sessions] }, true);
+        let s = out.to_string();
+        assert!(s.contains("post !"));
+        assert!(s.contains("delete !"));
+        assert!(!s.contains("get !"));
+    }
+
+    #[test]
+    fn join_path_trims_slashes() {
+        assert_eq!(join_path("/users/", "/sign_in"), "/users/sign_in");
+        assert_eq!(join_path("/users", "sign_in"), "/users/sign_in");
     }
 }
