@@ -2,7 +2,6 @@
 
 use doido_auth_macros::auth_controller;
 use doido_controller::respond::Format;
-use doido_controller::{Context, Response};
 use doido_core::Result;
 use serde::Deserialize;
 use std::marker::PhantomData;
@@ -30,12 +29,12 @@ where
     U: Send + Sync + 'static,
 {
     /// GET `{prefix}/password/new` — request-reset form (HTML mode).
-    pub async fn new(ctx: Context) -> Response {
+    pub async fn new(ctx: doido_controller::Context) -> doido_controller::Response {
         ctx.render("auth/password_new", serde_json::json!({}))
     }
 
     /// POST `{prefix}/password` — enqueue a reset email (stub).
-    pub async fn create(ctx: Context) -> Result<Response> {
+    pub async fn create(ctx: doido_controller::Context) -> Result<doido_controller::Response> {
         let json = ctx.negotiated_format() == Format::Json;
         let _form: PasswordResetForm = if json {
             ctx.body_json().await?
@@ -53,7 +52,7 @@ where
     }
 
     /// PATCH `{prefix}/password` — apply a reset token (stub).
-    pub async fn update(mut ctx: Context) -> Result<Response> {
+    pub async fn update(mut ctx: doido_controller::Context) -> Result<doido_controller::Response> {
         let json = ctx.negotiated_format() == Format::Json;
         let _form: PasswordUpdateForm = if json {
             ctx.body_json().await?

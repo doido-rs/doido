@@ -4,7 +4,6 @@ use crate::handlers::{register_user, sign_in};
 use crate::user::{AuthUser, RegisterableAuthUser};
 use doido_auth_macros::auth_controller;
 use doido_controller::respond::Format;
-use doido_controller::{Context, Response};
 use doido_core::Result;
 use doido_model::password::HasSecurePassword;
 use serde::Deserialize;
@@ -28,12 +27,12 @@ where
     U: AuthUser + HasSecurePassword + RegisterableAuthUser + Serialize + Send + Sync + 'static,
 {
     /// GET `{prefix}/sign_up` — registration form (HTML mode).
-    pub async fn new(ctx: Context) -> Response {
+    pub async fn new(ctx: doido_controller::Context) -> doido_controller::Response {
         ctx.render("auth/sign_up", serde_json::json!({}))
     }
 
     /// POST `{prefix}/sign_up` — create an account and sign in.
-    pub async fn create(mut ctx: Context) -> Result<Response> {
+    pub async fn create(mut ctx: doido_controller::Context) -> Result<doido_controller::Response> {
         let json = ctx.negotiated_format() == Format::Json;
         let form: SignUpForm = if json {
             ctx.body_json().await?
@@ -43,23 +42,24 @@ where
 
         if let Some(ref confirm) = form.password_confirmation {
             if form.password != *confirm {
-                return registration_error(&ctx, json, "Password confirmation does not match");
+                return registration_error(ctx, json, "Password confirmation does not match");
             }
         }
 
         let db = ctx.db().clone();
-        let user = match register_user::<U, _, _>(&db, &form.email, &form.password, |email, digest| {
-            let db = db.clone();
-            async move { U::register(&db, email, digest).await.map_err(Into::into) }
-        })
-        .await
-        {
-            Ok(user) => user,
-            Err(crate::error::AuthError::EmailTaken) => {
-                return registration_error(&ctx, json, "Email has already been taken");
-            }
-            Err(e) => return Err(doido_core::anyhow::anyhow!(e.to_string())),
-        };
+        let user =
+            match register_user::<U, _, _>(&db, &form.email, &form.password, |email, digest| {
+                let db = db.clone();
+                async move { U::register(&db, email, digest).await }
+            })
+            .await
+            {
+                Ok(user) => user,
+                Err(crate::error::AuthError::EmailTaken) => {
+                    return registration_error(ctx, json, "Email has already been taken");
+                }
+                Err(e) => return Err(doido_core::anyhow::anyhow!(e.to_string())),
+            };
 
         sign_in(ctx, &user)?;
         if json {
@@ -70,13 +70,14 @@ where
     }
 }
 
-fn registration_error(ctx: &Context, json: bool, message: &str) -> Result<Response> {
+fn registration_error(
+    ctx: &doido_controller::Context,
+    json: bool,
+    message: &str,
+) -> Result<doido_controller::Response> {
     if json {
         Ok(ctx.status(422))
     } else {
-        Ok(ctx.render(
-            "auth/sign_up",
-            serde_json::json!({ "error": message }),
-        ))
+        Ok(ctx.render("auth/sign_up", serde_json::json!({ "error": message })))
     }
 }

@@ -54,12 +54,12 @@ async fn auth_routes_custom_controller_override() {
                 let user = TestUser::find_by_email(ctx.db(), &form.email)
                     .await?
                     .ok_or_else(|| doido_core::anyhow::anyhow!("missing user"))?;
-                sign_in(&mut ctx, &user)?;
+                sign_in(ctx, &user)?;
                 Ok(ctx.json(serde_json::json!({ "custom": true })))
             }
 
             pub async fn destroy(mut ctx: Context) -> Result<Response> {
-                doido_auth::sign_out(&mut ctx)?;
+                doido_auth::sign_out(ctx)?;
                 Ok(ctx.status(204))
             }
         }

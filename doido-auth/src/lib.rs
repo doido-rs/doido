@@ -10,8 +10,7 @@ pub mod jwt;
 pub mod layer;
 pub mod oauth;
 pub mod registry;
-pub mod routes;
-mod routes_macro;
+pub mod route_mount;
 pub mod session;
 pub mod state;
 pub mod strategy;
@@ -26,6 +25,8 @@ pub mod two_factor;
 pub use controllers::AuthTwoFactor;
 
 pub use config::{load as load_config, AuthConfig, AuthRoutesConfig, JwtConfig, YamlConfig};
+pub use controllers::{AuthOauth, AuthPasswords, AuthRegistrations, AuthSessions};
+pub use doido_auth_macros::{__auth_routes_decl, auth_controller, auth_routes, routes};
 pub use error::AuthError;
 pub use extractors::{AuthToken, CurrentUser, MaybeUser, RequireAuth};
 pub use handlers::{authenticate, register_user, sign_in, sign_in_with_session, sign_out};
@@ -34,11 +35,7 @@ pub use jwt::{JwtClaims, JwtStrategy, TokenPair};
 pub use layer::{auth_layer, current_identity, current_user};
 pub use oauth::{OAuth2Provider, OAuthProvider, OAuthTokenResponse};
 pub use registry::{register_strategy, registered_strategies};
-pub use routes::mount;
-pub use controllers::{
-    AuthOauth, AuthPasswords, AuthRegistrations, AuthSessions,
-};
-pub use doido_auth_macros::{auth_controller, auth_routes, __auth_routes_decl};
+pub use route_mount::mount;
 pub use session::{
     SessionStrategy, SessionStrategy as CookieStrategy, SESSION_COOKIE, USER_ID_KEY,
 };

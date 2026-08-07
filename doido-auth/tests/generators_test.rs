@@ -70,13 +70,7 @@ fn auth_install_route_injection_is_idempotent() {
         .find(|f| f.path == "config/routes.rs")
         .unwrap();
     assert_eq!(routes.matches("auth_routes!(User").count(), 1);
-    assert_eq!(
-        routes2
-            .content
-            .matches("auth_routes!(User")
-            .count(),
-        1
-    );
+    assert_eq!(routes2.content.matches("auth_routes!(User").count(), 1);
 
     let _ = std::fs::remove_file("config/routes.rs");
 }

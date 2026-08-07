@@ -4,7 +4,6 @@ use crate::handlers::{authenticate, sign_in, sign_out};
 use crate::user::AuthUser;
 use doido_auth_macros::auth_controller;
 use doido_controller::respond::Format;
-use doido_controller::{Context, Response};
 use doido_core::Result;
 use doido_model::password::HasSecurePassword;
 use serde::Deserialize;
@@ -26,12 +25,12 @@ where
     U: AuthUser + HasSecurePassword + Serialize + Send + Sync + 'static,
 {
     /// GET `{prefix}/sign_in` — sign-in form (HTML mode).
-    pub async fn new(ctx: Context) -> Response {
+    pub async fn new(ctx: doido_controller::Context) -> doido_controller::Response {
         ctx.render("auth/sign_in", serde_json::json!({}))
     }
 
     /// POST `{prefix}/sign_in` — authenticate and establish a session.
-    pub async fn create(mut ctx: Context) -> Result<Response> {
+    pub async fn create(mut ctx: doido_controller::Context) -> Result<doido_controller::Response> {
         let json = ctx.negotiated_format() == Format::Json;
         let form: SignInForm = if json {
             ctx.body_json().await?
@@ -57,7 +56,7 @@ where
     }
 
     /// DELETE `{prefix}/sign_out` — clear the session.
-    pub async fn destroy(mut ctx: Context) -> Result<Response> {
+    pub async fn destroy(mut ctx: doido_controller::Context) -> Result<doido_controller::Response> {
         sign_out(ctx)?;
         if ctx.negotiated_format() == Format::Json {
             Ok(ctx.status(204))

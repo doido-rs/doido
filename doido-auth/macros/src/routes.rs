@@ -1,76 +1,61 @@
 use doido_auth_route_dsl::expand_auth_route_decls;
-use proc_macro2::{Group, Span, TokenStream, TokenTree};
+use proc_macro2::{TokenStream, TokenTree};
 use quote::quote;
-use syn::{parse::ParseStream, parse_macro_input, Token};
+use syn::{parse::ParseStream, parse2, Result};
 
 struct RoutesInput {
     body: TokenStream,
 }
 
 impl syn::parse::Parse for RoutesInput {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        Ok(Self {
-            body: input.parse().unwrap_or_default(),
-        })
+    fn parse(input: ParseStream) -> Result<Self> {
+        let mut body = TokenStream::new();
+        while !input.is_empty() {
+            body.extend(std::iter::once(input.parse::<TokenTree>()?));
+        }
+        Ok(Self { body })
     }
-}
-
-fn take_auth_routes_body(iter: &mut std::vec::IntoIter<TokenTree>) -> Option<TokenStream> {
-    let first = iter.next()?;
-    let TokenTree::Ident(ident) = first else {
-        return None;
-    };
-    if ident != "auth_routes" {
-        return None;
-    }
-
-    let bang = iter.next()?;
-    let TokenTree::Punct(p) = bang else {
-        return None;
-    };
-    if p.as_char() != '!' {
-        return None;
-    }
-
-    let group = iter.next()?;
-    let TokenTree::Group(g) = group else {
-        return None;
-    };
-    if g.delimiter() != proc_macro2::Delimiter::Parenthesis {
-        return None;
-    }
-
-    Some(g.stream())
 }
 
 fn expand_body(body: TokenStream, api_only: bool) -> TokenStream {
+    let tokens: Vec<TokenTree> = body.into_iter().collect();
     let mut out = TokenStream::new();
-    let mut iter = body.into_iter().peekable();
+    let mut i = 0;
 
-    while let Some(token) = &iter.peek() {
-        if let TokenTree::Ident(ident) = token {
-            if ident == "auth_routes" {
-                let mut scan = iter.clone();
-                scan.next();
-                if let Some(body_tokens) = take_auth_routes_body(&mut scan) {
-                    iter = scan;
-                    out.extend(expand_auth_route_decls(body_tokens, api_only));
-                    if iter.peek().is_some_and(|t| matches!(t, TokenTree::Punct(p) if p.as_char() == ';')) {
-                        iter.next();
+    while i < tokens.len() {
+        if let TokenTree::Ident(ident) = &tokens[i] {
+            if ident == "auth_routes"
+                && i + 2 < tokens.len()
+                && matches!(&tokens[i + 1], TokenTree::Punct(p) if p.as_char() == '!')
+            {
+                if let TokenTree::Group(group) = &tokens[i + 2] {
+                    if group.delimiter() == proc_macro2::Delimiter::Parenthesis {
+                        out.extend(expand_auth_route_decls(group.stream(), api_only));
+                        i += 3;
+                        if i < tokens.len() {
+                            if let TokenTree::Punct(p) = &tokens[i] {
+                                if p.as_char() == ';' {
+                                    i += 1;
+                                }
+                            }
+                        }
+                        continue;
                     }
-                    continue;
                 }
             }
         }
 
-        out.extend(std::iter::once(iter.next().unwrap()));
+        out.extend(std::iter::once(tokens[i].clone()));
+        i += 1;
     }
 
     out
 }
 
 pub fn expand_routes(input: TokenStream, api_only: bool) -> TokenStream {
-    let parsed = parse_macro_input!(input as RoutesInput);
+    let parsed: RoutesInput = parse2(input).unwrap_or(RoutesInput {
+        body: TokenStream::new(),
+    });
     let body = expand_body(parsed.body, api_only);
     quote! {
         doido_controller::routes! {
