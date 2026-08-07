@@ -1,0 +1,39 @@
+# Workspace publish order for crates.io (dependencies before dependents).
+# Keep in sync with [workspace].members in ./Cargo.toml.
+# Used by: make publish, scripts/publish-crates-io.sh
+
+# Layer 0 — no first-party deps: core + proc-macro / route-dsl crates
+doido-core
+doido-controller-macros
+doido-jobs-macros
+doido-mailer-macros
+doido-cable-macros
+doido-auth-route-dsl
+
+# Layer 1 — doido-core only
+doido-model
+doido-cache
+
+# Layer 2 — view (cache), jobs (jobs-macros; optional model)
+doido-view
+doido-jobs
+
+# Layer 3 — controller (model, view, cache, controller-macros)
+doido-controller
+
+# Layer 4 — auth macros (route-dsl), then auth (controller, model, macros)
+doido-auth-macros
+doido-auth
+
+# Layer 5 — cable (controller), mailer (jobs, view)
+doido-cable
+doido-mailer
+
+# Layer 6 — storage (controller, model; optional jobs)
+doido-storage
+
+# Layer 7 — generators (controller, model, view, cache, jobs; optional auth)
+doido-generators
+
+# Layer 8 — metacrate (everything)
+doido

@@ -46,37 +46,11 @@ list_crates = cargo metadata --no-deps --format-version 1 | tr '{' '\n' \
 # The single workspace version, read from [workspace.package] in this Cargo.toml.
 CRATE_VERSION := $(shell sed -nE 's/^version[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' Cargo.toml | head -1)
 
-# Crates listed in dependency order (dependencies before dependents) so each is
-# already on the registry when its dependents are published. Keep this in sync
-# when adding/removing workspace members.
-#
-# Layer 0 — no first-party deps: core + proc-macro crates
-# Layer 1 — doido-core only: model, cache
-# Layer 2 — view (cache), jobs (jobs-macros; optional model)
-# Layer 3 — controller (model, view, cache, controller-macros)
-# Layer 4 — auth (controller, model), cable (controller), mailer (jobs, view)
-# Layer 5 — storage (controller, model; optional jobs)
-# Layer 6 — generators (controller, model, view, cache, jobs; optional auth)
-# Layer 7 — metacrate (everything)
-PUBLISH_CRATES ?= \
-	doido-core \
-	doido-controller-macros \
-	doido-jobs-macros \
-	doido-mailer-macros \
-	doido-cable-macros \
-	doido-model \
-	doido-cache \
-	doido-view \
-	doido-jobs \
-	doido-controller \
-	doido-auth \
-	doido-cable \
-	doido-mailer \
-	doido-storage \
-	doido-generators \
-	doido
+# Crates listed in dependency order (dependencies before dependents). Canonical
+# list: scripts/publish-crates.txt (validated by scripts/verify-publish-crates.sh).
+PUBLISH_CRATES := $(shell grep -vE '^\s*(#|$$)' scripts/publish-crates.txt | tr '\n' ' ')
 
-.PHONY: help publish publish-dry-run clean-package check supply-chain yank unyank \
+.PHONY: help publish publish-dry-run verify-publish-crates clean-package check supply-chain yank unyank \
         fmt test verify example install-check verify-published-generator services-up services-down test-backends \
         coverage coverage-check \
         blog blog-build blog-install
@@ -92,7 +66,10 @@ help: ## Show this help
 clean-package: ## Remove the isolated packaging target dir
 	rm -rf "$(PUBLISH_TARGET_DIR)"
 
-publish-dry-run: clean-package ## Validate the whole workspace without uploading
+verify-publish-crates: ## Assert scripts/publish-crates.txt matches workspace members
+	./scripts/verify-publish-crates.sh
+
+publish-dry-run: clean-package verify-publish-crates ## Validate the whole workspace without uploading
 	@command -v cargo >/dev/null || { echo "error: cargo not found in PATH" >&2; exit 1; }
 	# Native workspace publish (cargo >= 1.90) packages every member up front and
 	# resolves inter-crate deps within the batch, so unpublished members are
@@ -103,7 +80,7 @@ publish-dry-run: clean-package ## Validate the whole workspace without uploading
 verify-published-generator: ## Build packaged doido-generators and assert version deps in `doido new`
 	./scripts/verify-published-generator.sh
 
-publish: clean-package ## Upload the workspace to crates.io (resumable, rate-limit aware)
+publish: clean-package verify-publish-crates ## Upload the workspace to crates.io (resumable, rate-limit aware)
 	@command -v cargo >/dev/null || { echo "error: cargo not found in PATH" >&2; exit 1; }
 	@test -n "$(CRATE_VERSION)" || { echo "error: could not read workspace version from Cargo.toml" >&2; exit 1; }
 	@echo "==> publishing workspace at version $(CRATE_VERSION)"
