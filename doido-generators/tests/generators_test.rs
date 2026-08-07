@@ -8,7 +8,7 @@ fn test_controller_generator_produces_correct_file() {
     let files = ControllerGenerator.generate(&["Posts"]).unwrap();
     let ctrl = files
         .iter()
-        .find(|f| f.path == "src/controllers/posts_controller.rs")
+        .find(|f| f.path == "app/controllers/posts_controller.rs")
         .unwrap();
     assert!(ctrl.content.contains("PostsController"));
     assert!(ctrl.content.contains("#[controller]"));
@@ -27,6 +27,13 @@ fn test_controller_generator_produces_correct_file() {
     assert!(helpers_mod
         .content
         .contains("pub use posts_helper::PostsHelper;"));
+    let routes = files.iter().find(|f| f.path == "config/routes.rs").unwrap();
+    assert!(routes
+        .content
+        .contains("get!(\"/posts\", PostsController::index);"));
+    assert!(routes
+        .content
+        .contains("use crate::controllers::PostsController;"));
     // A TODO test stub is emitted alongside it.
     let test = files
         .iter()
@@ -520,7 +527,7 @@ fn test_registry_runs_generator_by_name() {
     let files = reg.run("controller", &["Admin"]).unwrap();
     assert!(files
         .iter()
-        .any(|f| f.path == "src/controllers/admin_controller.rs"));
+        .any(|f| f.path == "app/controllers/admin_controller.rs"));
     assert!(files
         .iter()
         .any(|f| f.path == "app/helpers/admin_helper.rs"));

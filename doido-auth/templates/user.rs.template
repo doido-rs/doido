@@ -3,6 +3,7 @@
 
 use doido::model::sea_orm;
 use doido::model::sea_orm::entity::prelude::*;
+use doido::model::sea_orm::Set;
 use doido::model::password::HasSecurePassword;
 use doido_auth::AuthUser;
 use doido_auth::RegisterableAuthUser;

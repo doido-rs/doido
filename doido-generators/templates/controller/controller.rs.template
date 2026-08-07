@@ -1,5 +1,5 @@
 use crate::helpers::{Helper};
-use doido::controller::{controller, Context, Response};
+use doido::controller::{controller, Response};
 use serde_json::json;
 
 /// Controller for `{pascal}`. Wire its actions up in `config/routes.rs`, e.g.
@@ -9,7 +9,7 @@ pub struct {pascal}Controller;
 #[controller]
 impl {pascal}Controller {
     /// `GET` — the default action. Replace the body with your own response.
-    pub async fn index(ctx: Context) -> Response {
+    pub async fn index(ctx: doido::controller::Context) -> Response {
         ctx.json(json!({
             "controller": "{pascal}",
             "summary": {Helper}::index_count(0),

@@ -115,8 +115,11 @@ fn flag_value<'a>(args: &'a [&str], prefix: &str, default: &'a str) -> &'a str {
         .unwrap_or(default)
 }
 
-fn doido_features(cache: CacheBackend, database: &str) -> String {
+fn doido_features(cache: CacheBackend, database: &str, auth: bool) -> String {
     let mut feats = vec![format!("\"{database}\"")];
+    if auth {
+        feats.push("\"auth\"".to_string());
+    }
     match cache {
         CacheBackend::Redis => feats.push("\"cache-redis\"".to_string()),
         CacheBackend::Memcache => feats.push("\"cache-memcache\"".to_string()),
@@ -502,7 +505,7 @@ impl Generator for ProjectGenerator {
             cable,
             auth,
             api,
-            doido_dep: doido_dependency(&dep_mode, "doido", &doido_features(cache, database)),
+            doido_dep: doido_dependency(&dep_mode, "doido", &doido_features(cache, database, auth)),
             doido_migration_dep: doido_dependency(
                 &dep_mode,
                 "doido",
@@ -623,12 +626,16 @@ edition = "2021"
     #[test]
     fn doido_features_include_database_and_cache() {
         assert_eq!(
-            doido_features(CacheBackend::Memory, "postgres"),
+            doido_features(CacheBackend::Memory, "postgres", false),
             ", default-features = false, features = [\"postgres\"]"
         );
         assert_eq!(
-            doido_features(CacheBackend::Redis, "sqlite"),
+            doido_features(CacheBackend::Redis, "sqlite", false),
             ", default-features = false, features = [\"sqlite\", \"cache-redis\"]"
+        );
+        assert_eq!(
+            doido_features(CacheBackend::Memory, "sqlite", true),
+            ", default-features = false, features = [\"sqlite\", \"auth\"]"
         );
     }
 
@@ -641,7 +648,7 @@ edition = "2021"
                 "/irrelevant",
                 "0.0.9",
                 "doido",
-                &doido_features(CacheBackend::Redis, "sqlite"),
+                &doido_features(CacheBackend::Redis, "sqlite", false),
             )
         );
         assert!(!line.contains("path ="));

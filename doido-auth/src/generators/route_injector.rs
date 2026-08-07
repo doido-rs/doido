@@ -55,15 +55,6 @@ pub fn inject_auth_routes(routes: &str, _api: bool) -> String {
         lines.insert(pos, auth_use.to_string());
     }
 
-    if !routes.contains("use doido::auth::auth_routes") {
-        let pos = lines
-            .iter()
-            .rposition(|l| l.starts_with("use "))
-            .map(|i| i + 1)
-            .unwrap_or(0);
-        lines.insert(pos, "use doido::auth::auth_routes;".to_string());
-    }
-
     if let Some(open) = lines.iter().position(|l| is_routes_block_open(l)) {
         if let Some(close_rel) = lines[open..].iter().position(|l| l.trim() == "}") {
             let close = open + close_rel;
