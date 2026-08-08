@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # Publish workspace crates to https://crates.io in dependency order.
 #
+# Prefer `make publish` for production releases: it skips crates already on the
+# registry, handles crates.io 429 rate limits, and validates publish order.
+#
 # Prerequisite (Cargo requirement)
 # ---------------------------------
 # You CANNOT publish a crate whose dependencies still use unpublished
@@ -30,9 +33,9 @@
 # Do not rewrite the `#[command(.., version = "..")]` string in `doido-cli`:
 #   SKIP_CLI_COMMAND_VERSION_SYNC=1 ./scripts/publish-crates-io.sh --bump patch
 #
-# Publish a single crate (must match a package name listed in this script’s PACKAGES array):
+# Publish a single crate (must be listed in scripts/publish-crates.txt):
 #   ./scripts/publish-crates-io.sh --crate doido-core --dry-run
-#   ./scripts/publish-crates-io.sh -c doido-router-macros
+#   ./scripts/publish-crates-io.sh -c doido-auth-route-dsl
 #
 # Skip the sleep between crates:
 #   PUBLISH_DELAY_SECONDS=0 ./scripts/publish-crates-io.sh ...
@@ -257,32 +260,8 @@ print(core + ("-" + pre if pre else ""))
 }
 
 ## Order matters: dependents must appear after everything they rely on inside this repo.
-readonly PACKAGES=(
-  doido-core
-  doido-config
-  doido-controller-macros
-  doido-router-macros
-  doido-jobs-macros
-  doido-mailer-macros
-  doido-cable-macros
-  doido-kafka-macros
-  doido-mcp-macros
-  doido-router
-  doido-controller
-  doido-model
-  doido-view
-  doido-middleware
-  doido-cache
-  doido-jobs
-  doido-storage
-  doido-mailer
-  doido-cable
-  doido-kafka
-  doido-mcp
-  doido-generators
-  doido-cli
-  doido
-)
+## Canonical list: scripts/publish-crates.txt (same as `make publish`).
+mapfile -t PACKAGES < <(grep -vE '^\s*(#|$)' "${ROOT}/scripts/publish-crates.txt")
 
 validate_single_publish_target() {
   local needle="$1" p
@@ -299,6 +278,8 @@ validate_single_publish_target() {
 
 cd "$ROOT"
 maybe_update_versions
+
+"${ROOT}/scripts/verify-publish-crates.sh"
 
 if [[ "$NO_PUBLISH" -eq 1 ]]; then
   echo '--no-publish: stopping after version edits.'

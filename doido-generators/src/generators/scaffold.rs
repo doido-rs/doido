@@ -1,4 +1,7 @@
 use crate::generator::{GeneratedFile, Generator};
+use crate::generators::controller::{
+    read_controllers_mod, register_controller_in_mod, CONTROLLERS_MOD_PATH,
+};
 use crate::generators::field::Field;
 use crate::generators::helper::{
     helper_names, helpers_mod_path, read_helpers_mod, register_helper_in_mod, render_helper_content,
@@ -7,12 +10,9 @@ use crate::generators::model::ModelGenerator;
 use crate::generators::{to_pascal, to_snake, to_table_name};
 use doido_core::Result;
 
-/// Fallbacks used when the app doesn't have these files on disk yet, kept in
-/// sync with the generated-app templates so injection lines up.
-const CONTROLLERS_MOD_BASE: &str = include_str!("../../templates/new/app/controllers/mod.rs");
+/// Fallback used when the app doesn't have `config/routes.rs` on disk yet.
 const ROUTES_BASE: &str = include_str!("../../templates/new/config/routes.rs");
 
-const CONTROLLERS_MOD_PATH: &str = "app/controllers/mod.rs";
 const ROUTES_PATH: &str = "config/routes.rs";
 
 pub struct ScaffoldGenerator;
@@ -77,11 +77,9 @@ impl Generator for ScaffoldGenerator {
         });
 
         // Register the controller module in app/controllers/mod.rs.
-        let mod_existing = std::fs::read_to_string(CONTROLLERS_MOD_PATH)
-            .unwrap_or_else(|_| CONTROLLERS_MOD_BASE.to_string());
         files.push(GeneratedFile {
             path: CONTROLLERS_MOD_PATH.to_string(),
-            content: register_controller(&mod_existing, &plural, &controller),
+            content: register_controller_in_mod(&read_controllers_mod(), &plural, &controller),
         });
 
         // Views (HTML mode only).
@@ -212,21 +210,6 @@ fn form_field(f: &Field) -> String {
         "checkbox" => format!("  <label>{col} <input type=\"checkbox\" name=\"{col}\"></label>\n"),
         input => format!("  <label>{col}<br><input type=\"{input}\" name=\"{col}\"></label>\n"),
     }
-}
-
-/// Appends `mod <name>_controller;` + `pub use …` to `app/controllers/mod.rs`.
-/// Idempotent: skips when the module is already declared.
-fn register_controller(controllers_mod: &str, plural: &str, controller: &str) -> String {
-    let module = format!("{plural}_controller");
-    let decl = format!("mod {module};");
-    if controllers_mod.lines().any(|l| l.trim() == decl) {
-        return controllers_mod.to_string();
-    }
-    let mut out = controllers_mod.trim_end().to_string();
-    out.push('\n');
-    out.push_str(&format!("mod {module};\n"));
-    out.push_str(&format!("pub use {module}::{controller};\n"));
-    out
 }
 
 /// Injects `use crate::controllers::<Controller>;` and a

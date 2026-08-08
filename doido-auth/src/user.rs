@@ -38,3 +38,15 @@ pub trait AuthUser: Clone + Send + Sync + 'static {
 pub fn authenticate_password<U: AuthUser + HasSecurePassword>(user: &U, password: &str) -> bool {
     user.authenticate(password)
 }
+
+/// Persist a newly registered user from email + bcrypt digest.
+///
+/// Required by the default [`crate::controllers::AuthRegistrations`] controller
+/// when using `auth_routes!(User)` without a custom registrations controller.
+pub trait RegisterableAuthUser: AuthUser + HasSecurePassword {
+    fn register(
+        db: &DatabaseConnection,
+        email: String,
+        password_digest: String,
+    ) -> impl Future<Output = Result<Self>> + Send;
+}

@@ -1653,6 +1653,7 @@ dependencies = [
  "axum",
  "base64 0.23.0",
  "chrono",
+ "doido-auth-macros",
  "doido-controller",
  "doido-core",
  "doido-model",
@@ -1670,6 +1671,25 @@ dependencies = [
  "tracing",
  "ureq",
  "uuid",
+]
+
+[[package]]
+name = "doido-auth-macros"
+version = "0.0.9"
+dependencies = [
+ "doido-auth-route-dsl",
+ "proc-macro2",
+ "quote",
+ "syn 3.0.3",
+]
+
+[[package]]
+name = "doido-auth-route-dsl"
+version = "0.0.9"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 3.0.3",
 ]
 
 [[package]]

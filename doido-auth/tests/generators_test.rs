@@ -48,8 +48,7 @@ fn auth_install_emits_user_migration_controllers_and_routes() {
         .iter()
         .find(|f| f.path == "config/routes.rs")
         .expect("routes.rs emitted");
-    assert!(routes.content.contains("SessionsController::create"));
-    assert!(routes.content.contains("use crate::controllers::auth;"));
+    assert!(routes.content.contains("auth_routes!(User"));
 }
 
 #[test]
@@ -70,14 +69,8 @@ fn auth_install_route_injection_is_idempotent() {
         .iter()
         .find(|f| f.path == "config/routes.rs")
         .unwrap();
-    assert_eq!(routes.matches("SessionsController::create").count(), 1);
-    assert_eq!(
-        routes2
-            .content
-            .matches("SessionsController::create")
-            .count(),
-        1
-    );
+    assert_eq!(routes.matches("auth_routes!(User").count(), 1);
+    assert_eq!(routes2.content.matches("auth_routes!(User").count(), 1);
 
     let _ = std::fs::remove_file("config/routes.rs");
 }

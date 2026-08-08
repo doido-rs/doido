@@ -227,7 +227,10 @@ mod tests {
             .iter()
             .find(|f| f.path == ROUTES_PATH)
             .expect("routes.rs");
-        assert!(routes.content.contains("SessionsController::create"));
+        assert!(routes.content.contains("auth_routes!(User"));
+        assert!(routes
+            .content
+            .contains("sessions: auth::SessionsController"));
         assert!(routes.content.contains("use crate::controllers::auth;"));
 
         let user = files

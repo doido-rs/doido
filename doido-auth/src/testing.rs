@@ -6,6 +6,7 @@ use crate::handlers::{register_user, sign_in_with_session};
 use crate::jwt::JwtStrategy;
 use crate::state::{set_state, AuthState};
 use crate::user::AuthUser;
+use crate::RegisterableAuthUser;
 use doido_controller::axum::body::Body;
 use doido_controller::axum::Router;
 use doido_controller::session::Session;
@@ -75,6 +76,25 @@ impl AuthUser for TestUser {
     }
 }
 
+impl RegisterableAuthUser for TestUser {
+    async fn register(
+        _db: &DatabaseConnection,
+        email: String,
+        password_digest: String,
+    ) -> doido_core::Result<Self> {
+        let store = store();
+        let mut map = store.lock().unwrap();
+        let id = (map.len() as i64) + 1;
+        let user = TestUser {
+            id,
+            email,
+            password_digest,
+        };
+        map.insert(id, user.clone());
+        Ok(user)
+    }
+}
+
 static TEST_STORE: std::sync::OnceLock<Arc<Mutex<HashMap<i64, TestUser>>>> =
     std::sync::OnceLock::new();
 
@@ -119,6 +139,7 @@ pub async fn init_test_auth(
     let guard = AUTH_TEST_LOCK.lock().expect("auth test lock");
     reset_store();
     crate::state::reset_state();
+    let _ = doido_model::pool::set_pool(db.clone());
     set_state(AuthState::build(db, config)?);
     Ok(AuthTestGuard { _lock: guard })
 }
@@ -175,7 +196,9 @@ pub async fn send_with_headers(
 ) -> TestResponse {
     let mut builder = Request::builder().method(method).uri(uri);
     if !body.is_empty() && (method == "POST" || method == "PATCH") {
-        builder = builder.header(http::header::CONTENT_TYPE, "application/json");
+        builder = builder
+            .header(http::header::CONTENT_TYPE, "application/json")
+            .header(http::header::ACCEPT, "application/json");
     }
     for (k, v) in headers {
         builder = builder.header(*k, *v);

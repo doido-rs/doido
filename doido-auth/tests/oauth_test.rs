@@ -1,10 +1,10 @@
 //! OAuth provider tests.
 
 use doido_auth::config::{OAuthProviderConfig, OAuthProviderType};
+use doido_auth::mount;
 use doido_auth::oauth::{
     get_provider, register_provider, OAuth2Provider, OAuthProvider, OAuthTokenResponse,
 };
-use doido_auth::routes::mount;
 use doido_auth::testing::TestUser;
 use doido_auth::testing::{init_test_auth, send, test_auth_config};
 use doido_auth::AuthError;

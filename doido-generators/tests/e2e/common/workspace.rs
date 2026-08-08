@@ -104,19 +104,31 @@ fn clear_sqlite_databases(app: &Path) {
     }
 }
 
-fn default_base_is_valid(dir: &Path) -> bool {
+fn base_app_is_valid(dir: &Path, profile: BaseProfile) -> bool {
     let app = dir.join("blog");
     let main_rs = app.join("src/main.rs");
+    let hello = app.join("app/controllers/hello_controller.rs");
     let helpers_mod = app.join("app/helpers/mod.rs");
 
-    app.join("Cargo.toml").is_file()
-        && helpers_mod.is_file()
-        && fs::read_to_string(&main_rs)
-            .map(|content| content.contains("mod helpers;"))
-            .unwrap_or(false)
+    if !app.join("Cargo.toml").is_file() || !helpers_mod.is_file() {
+        return false;
+    }
+
+    let main_content = fs::read_to_string(&main_rs).unwrap_or_default();
+    if !main_content.contains("mod helpers;") {
+        return false;
+    }
+
+    if matches!(profile, BaseProfile::WithCable) && !main_content.contains("mod channels;") {
+        return false;
+    }
+
+    fs::read_to_string(&hello)
+        .map(|content| content.contains("ApplicationHelper::greet"))
+        .unwrap_or(false)
 }
 
-fn recreate_default_base(dir: &Path, profile: BaseProfile) {
+fn recreate_base(dir: &Path, profile: BaseProfile) {
     if dir.exists() {
         fs::remove_dir_all(dir).ok();
     }
@@ -132,8 +144,11 @@ fn auth_base_is_valid(dir: &Path, api: bool) -> bool {
     let sign_in_view = app.join("app/views/auth/sign_in.html.tera");
 
     let sessions_content = fs::read_to_string(&sessions).unwrap_or_default();
-    let routes_ok = fs::read_to_string(&routes)
-        .map(|content| content.contains("SessionsController::create"))
+    let routes_content = fs::read_to_string(&routes).unwrap_or_default();
+    let routes_ok = routes_content.contains("SessionsController::create")
+        && !routes_content.contains("use doido::auth::auth_routes;");
+    let main_ok = fs::read_to_string(app.join("src/main.rs"))
+        .map(|content| content.contains("mod helpers;"))
         .unwrap_or(false);
     let sessions_ok = sessions_content.contains("sign_in(ctx, &user)")
         && sessions_content.contains("doido::controller::Context")
@@ -143,7 +158,10 @@ fn auth_base_is_valid(dir: &Path, api: bool) -> bool {
             sessions_content.contains("ctx.render(\"auth/sign_in\"")
         };
     let user_ok = fs::read_to_string(&user_model)
-        .map(|content| content.contains(".map_err(Into::into)"))
+        .map(|content| content.contains(".map_err(Into::into)") && content.contains("sea_orm::Set"))
+        .unwrap_or(false);
+    let cargo_ok = fs::read_to_string(app.join("Cargo.toml"))
+        .map(|content| content.contains("\"auth\""))
         .unwrap_or(false);
     let views_ok = if api {
         !sign_in_view.exists()
@@ -155,7 +173,13 @@ fn auth_base_is_valid(dir: &Path, api: bool) -> bool {
                 .unwrap_or(false)
     };
 
-    app.join("Cargo.toml").is_file() && routes_ok && sessions_ok && user_ok && views_ok
+    app.join("Cargo.toml").is_file()
+        && cargo_ok
+        && routes_ok
+        && sessions_ok
+        && user_ok
+        && views_ok
+        && main_ok
 }
 
 fn recreate_auth_base(dir: &Path, profile: BaseProfile) {
@@ -190,18 +214,8 @@ fn ensure_base_app(profile: BaseProfile) -> PathBuf {
         _ => {
             let init = || {
                 let dir = profile.cache_dir();
-                let app = dir.join("blog");
-                let needs_recreate = match profile {
-                    BaseProfile::Default => !default_base_is_valid(&dir),
-                    _ => !app.join("Cargo.toml").is_file(),
-                };
-                if needs_recreate {
-                    if profile == BaseProfile::Default {
-                        recreate_default_base(&dir, profile);
-                    } else {
-                        fs::create_dir_all(&dir).expect("create base dir");
-                        doido(&dir).args(profile.new_args()).assert().success();
-                    }
+                if !base_app_is_valid(&dir, profile) {
+                    recreate_base(&dir, profile);
                 }
                 dir
             };

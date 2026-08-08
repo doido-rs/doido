@@ -1,0 +1,19 @@
+[package]
+name = "doido-auth-macros"
+description = "Proc-macros for Doido auth — auth_routes! (Devise-style route mounting)."
+version.workspace = true
+license.workspace = true
+edition = "2021"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+doido-auth-route-dsl = { path = "../route-dsl", version = "0.0.9" }
+proc-macro2.workspace = true
+quote.workspace = true
+syn.workspace = true
+
+[features]
+default = []
+auth-2fa = ["doido-auth-route-dsl/auth-2fa"]
