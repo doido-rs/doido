@@ -141,9 +141,7 @@ fn doido_seed_database_features_stay_on_seed_dependency_line() {
     ];
     for (database, feature) in cases {
         let cargo = seed_cargo_toml_for(&["app", &format!("--database={database}")]);
-        cargo
-            .parse::<toml::Table>()
-            .expect("valid seed Cargo.toml");
+        cargo.parse::<toml::Table>().expect("valid seed Cargo.toml");
         assert!(
             cargo.contains("doido = {"),
             "{database}: seed crate must declare doido meta crate"

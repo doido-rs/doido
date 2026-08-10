@@ -48,12 +48,7 @@ fn seed_command_runs_the_seed_crate() {
     assert_eq!(program, "cargo");
     assert_eq!(
         args,
-        vec![
-            "run",
-            "--quiet",
-            "--manifest-path",
-            "db/seed/Cargo.toml"
-        ]
+        vec!["run", "--quiet", "--manifest-path", "db/seed/Cargo.toml"]
     );
 }
 

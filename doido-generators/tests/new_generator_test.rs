@@ -297,6 +297,10 @@ fn test_new_seed_crate_uses_selected_backend() {
         !seed_cargo.content.contains("\"cli\""),
         "seed crate must not enable the migration cli feature"
     );
+    assert!(
+        seed_cargo.content.contains("serde ="),
+        "seed crate must declare serde for generated app/models"
+    );
     let seed_main = files
         .iter()
         .find(|f| f.path == "blog/db/seed/src/main.rs")
@@ -307,7 +311,9 @@ fn test_new_seed_crate_uses_selected_backend() {
     );
     let cargo = files.iter().find(|f| f.path == "blog/Cargo.toml").unwrap();
     assert!(
-        cargo.content.contains("members = [\"db/migration\", \"db/seed\"]"),
+        cargo
+            .content
+            .contains("members = [\"db/migration\", \"db/seed\"]"),
         "workspace must include db/seed"
     );
 }

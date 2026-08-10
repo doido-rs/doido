@@ -10,5 +10,6 @@ path = "src/main.rs"
 
 [dependencies]
 tokio = { version = "1", features = ["full"] }
+serde = { version = "1", features = ["derive"] }
 # SeaORM helpers and app models via the doido meta crate (`doido::model`).
 doido = {doido_seed_dep}

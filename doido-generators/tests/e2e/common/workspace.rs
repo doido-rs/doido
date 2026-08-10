@@ -110,7 +110,15 @@ fn base_app_is_valid(dir: &Path, profile: BaseProfile) -> bool {
     let hello = app.join("app/controllers/hello_controller.rs");
     let helpers_mod = app.join("app/helpers/mod.rs");
 
-    if !app.join("Cargo.toml").is_file() || !helpers_mod.is_file() {
+    if !app.join("Cargo.toml").is_file()
+        || !helpers_mod.is_file()
+        || !app.join("db/seed/Cargo.toml").is_file()
+    {
+        return false;
+    }
+
+    let seed_cargo = fs::read_to_string(app.join("db/seed/Cargo.toml")).unwrap_or_default();
+    if !seed_cargo.contains("serde =") {
         return false;
     }
 

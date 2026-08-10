@@ -517,11 +517,7 @@ impl Generator for ProjectGenerator {
                 "doido",
                 &doido_migration_features(database),
             ),
-            doido_seed_dep: doido_dependency(
-                &dep_mode,
-                "doido",
-                &doido_seed_features(database),
-            ),
+            doido_seed_dep: doido_dependency(&dep_mode, "doido", &doido_seed_features(database)),
             doido_jobs_dep: doido_dependency(
                 &dep_mode,
                 "doido-jobs",
