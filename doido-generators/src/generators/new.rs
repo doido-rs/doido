@@ -69,6 +69,7 @@ struct TemplateContext<'a> {
     dep_mode: DependencyMode,
     doido_dep: String,
     doido_migration_dep: String,
+    doido_seed_dep: String,
     doido_jobs_dep: String,
     doido_model_dep: String,
     cache_section: String,
@@ -141,6 +142,10 @@ fn doido_jobs_features(jobs: JobsBackend, database: &str) -> String {
 
 fn doido_migration_features(database: &str) -> String {
     format!(", default-features = false, features = [\"{database}\", \"cli\"]")
+}
+
+fn doido_seed_features(database: &str) -> String {
+    format!(", default-features = false, features = [\"{database}\"]")
 }
 
 fn doido_model_features(database: &str) -> String {
@@ -352,6 +357,7 @@ fn substitute_template(template: &str, ctx: &TemplateContext<'_>) -> String {
         .replace("{doido_sqlx_feature}", ctx.sqlx_feature)
         .replace("{doido_dep}", &ctx.doido_dep)
         .replace("{doido_migration_dep}", &ctx.doido_migration_dep)
+        .replace("{doido_seed_dep}", &ctx.doido_seed_dep)
         .replace(
             "{doido_core_dep}",
             &doido_dependency(&ctx.dep_mode, "doido-core", ""),
@@ -511,6 +517,7 @@ impl Generator for ProjectGenerator {
                 "doido",
                 &doido_migration_features(database),
             ),
+            doido_seed_dep: doido_dependency(&dep_mode, "doido", &doido_seed_features(database)),
             doido_jobs_dep: doido_dependency(
                 &dep_mode,
                 "doido-jobs",
@@ -667,6 +674,18 @@ edition = "2021"
         assert_eq!(
             doido_migration_features("postgres"),
             ", default-features = false, features = [\"postgres\", \"cli\"]"
+        );
+    }
+
+    #[test]
+    fn doido_seed_features_include_database_only() {
+        assert_eq!(
+            doido_seed_features("sqlite"),
+            ", default-features = false, features = [\"sqlite\"]"
+        );
+        assert_eq!(
+            doido_seed_features("postgres"),
+            ", default-features = false, features = [\"postgres\"]"
         );
     }
 

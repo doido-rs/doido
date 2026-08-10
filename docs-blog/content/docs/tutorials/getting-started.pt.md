@@ -23,6 +23,9 @@ cd blog
 cargo doido db create
 cargo doido db migrate
 
+# Opcional: insere dados de fixture (edite db/seed/src/main.rs antes)
+# cargo doido db seed
+
 # Sobe o servidor HTTP em http://0.0.0.0:3000
 cargo doido server
 ```
@@ -115,6 +118,7 @@ my-app/
 │   └── views/
 ├── db/
 │   ├── migration/           ← crate de migrations do SeaORM
+│   ├── seed/                ← runner de seeds em Rust (usa app/models)
 │   └── schema/
 └── tests/
 ```

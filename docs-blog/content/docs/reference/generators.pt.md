@@ -56,6 +56,15 @@ cargo doido db create && cargo doido db migrate
 cargo doido server
 ```
 
+O `doido new` também cria `db/seed/` — um crate de workspace que roda com
+`cargo doido db seed` para inserir fixtures via `app/models/`. Edite
+`db/seed/src/main.rs` depois de gerar models.
+
+```bash
+cargo doido generate model Post title:string body:text
+cargo doido db seed
+```
+
 ## Geradores de código
 
 Rode `cargo doido generate` sem argumentos para listar todos os geradores registrados. Cada um

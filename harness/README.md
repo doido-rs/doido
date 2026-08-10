@@ -34,7 +34,8 @@ make verify        # fmt + clippy + tests + installer harness (~12s); must exit 
 make install-check # validate curl installer (build local binary + install + doido --help)
 make coverage      # line-coverage summary (requires cargo-llvm-cov)
 make coverage-check # fail if any crate < 80% (see coverage-plan.md)
-make example       # slow generate-and-build e2e (out of verify by design)
+make release-e2e   # slow generate-and-build e2e incl. db/seed (out of verify by design)
+make example       # alias for release-e2e
 ```
 
 Coverage gate (`make coverage-check`) is **out of `verify` until all crates pass**

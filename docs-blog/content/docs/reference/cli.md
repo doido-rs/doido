@@ -17,7 +17,7 @@ runtime commands and code generation.
 | `cargo doido server` | Start the web server |
 | `cargo doido routes` | Print the route table |
 | `cargo doido console` | Start an interactive console |
-| `cargo doido db <cmd>` | Create databases, run SeaORM migrations, generate entities |
+| `cargo doido db <cmd>` | Create databases, run SeaORM migrations, seed fixture data (`db/seed`), generate entities |
 | `cargo doido jobs <cmd>` | Inspect and manage background jobs |
 | `cargo doido worker` | Run the background job worker (`--once` to drain and exit) |
 | `cargo doido credentials <cmd>` | Manage AES-256-GCM encrypted credentials |
