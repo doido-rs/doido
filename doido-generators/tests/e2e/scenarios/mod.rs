@@ -1,6 +1,7 @@
 mod api_project;
 mod auth_install;
 mod bootstrap_migrations;
+mod db_commands;
 mod db_seed;
 mod helper;
 mod kitchen_sink;

@@ -15,6 +15,55 @@ pub fn run_seed(bin: &Path, app: &Path) {
     run_app(bin, app, &["db", "seed"]);
 }
 
+pub fn create_database(bin: &Path, app: &Path) {
+    run_app(bin, app, &["db", "create"]);
+}
+
+pub fn schema_dump(bin: &Path, app: &Path) {
+    run_app(bin, app, &["db", "schema", "dump"]);
+}
+
+pub fn schema_load(bin: &Path, app: &Path) {
+    run_app(bin, app, &["db", "schema", "load"]);
+}
+
+pub fn db_reset(bin: &Path, app: &Path) {
+    run_app(bin, app, &["db", "reset"]);
+}
+
+pub fn db_prepare(bin: &Path, app: &Path) {
+    run_app(bin, app, &["db", "prepare"]);
+}
+
+pub fn schema_file(app: &Path) -> std::path::PathBuf {
+    app.join("db/schema.sql")
+}
+
+pub fn assert_schema_contains(app: &Path, needle: &str) {
+    let path = schema_file(app);
+    let content = std::fs::read_to_string(&path).unwrap_or_else(|e| {
+        panic!("read {}: {e}", path.display());
+    });
+    assert!(
+        content.contains(needle),
+        "expected `{needle}` in {}, got:\n{content}",
+        path.display()
+    );
+}
+
+pub fn remove_sqlite_database(app: &Path) {
+    let path = sqlite_path(app);
+    if path.is_file() {
+        std::fs::remove_file(&path).expect("remove sqlite database file");
+    }
+}
+
+pub fn exec_sqlite(app: &Path, sql: &str) {
+    let conn = open_sqlite(app);
+    conn.execute(sql, [])
+        .unwrap_or_else(|e| panic!("exec `{sql}`: {e}"));
+}
+
 pub fn assert_all_migrations_applied(bin: &Path, app: &Path) {
     let output = run_app_capture(bin, app, &["db", "migrate", "status"]);
     assert!(
@@ -65,8 +114,16 @@ pub fn assert_table_absent(app: &Path, table: &str) {
 pub fn assert_seed_crate_scaffolded(app: &Path) {
     let cargo = app.join("db/seed/Cargo.toml");
     let main_rs = app.join("db/seed/src/main.rs");
-    assert!(cargo.is_file(), "expected seed crate at {}", cargo.display());
-    assert!(main_rs.is_file(), "expected seed main at {}", main_rs.display());
+    assert!(
+        cargo.is_file(),
+        "expected seed crate at {}",
+        cargo.display()
+    );
+    assert!(
+        main_rs.is_file(),
+        "expected seed main at {}",
+        main_rs.display()
+    );
 
     let cargo_content = std::fs::read_to_string(&cargo).expect("read db/seed/Cargo.toml");
     assert!(

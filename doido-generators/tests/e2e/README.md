@@ -36,6 +36,7 @@ Set `E2E_KEEP=1` to preserve generated apps under `target/e2e/apps/` for debuggi
 | `new_baseline` | `doido new --database=sqlite` |
 | `bootstrap_migrations` | bootstrap storage tables (always) and `doido_jobs` (with `--jobs=db` only); asserts `db/seed/` scaffold |
 | `db_seed` | `doido db seed` via `db/seed` crate + HTTP index lists seeded row |
+| `db_commands` | `doido db schema dump|load`, `reset`, `prepare`, `create`, `migrate` on a scaffolded app |
 | `new_cable` | `new --cable` + `generate channel` |
 | `scaffold_api` | `scaffold --api` |
 | `scaffold_html` | `scaffold` (HTML forms) |
