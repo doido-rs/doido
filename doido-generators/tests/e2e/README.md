@@ -27,13 +27,15 @@ Set `E2E_KEEP=1` to preserve generated apps under `target/e2e/apps/` for debuggi
 1. **Server** — `doido server` on the generated app binary.
 2. **Real interaction** — HTTP request, cable `cargo test`, or CLI/file smoke.
 3. **Migrations** — `doido db create`, `doido db migrate`, and `doido db migrate status` with no pending migrations.
+4. **Seed crate** — every `doido new` baseline includes `db/seed/` (workspace member with `serde` + `doido` deps); `db_seed` also runs `doido db seed` and asserts rows over HTTP.
 
 ## Scenario matrix
 
 | Module | Generator / flag |
 |--------|------------------|
 | `new_baseline` | `doido new --database=sqlite` |
-| `bootstrap_migrations` | bootstrap storage tables (always) and `doido_jobs` (with `--jobs=db` only) |
+| `bootstrap_migrations` | bootstrap storage tables (always) and `doido_jobs` (with `--jobs=db` only); asserts `db/seed/` scaffold |
+| `db_seed` | `doido db seed` via `db/seed` crate + HTTP index lists seeded row |
 | `new_cable` | `new --cable` + `generate channel` |
 | `scaffold_api` | `scaffold --api` |
 | `scaffold_html` | `scaffold` (HTML forms) |

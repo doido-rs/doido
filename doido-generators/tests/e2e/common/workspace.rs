@@ -171,6 +171,10 @@ fn auth_base_is_valid(dir: &Path, api: bool) -> bool {
     let cargo_ok = fs::read_to_string(app.join("Cargo.toml"))
         .map(|content| content.contains("\"auth\""))
         .unwrap_or(false);
+    let seed_ok = app.join("db/seed/Cargo.toml").is_file()
+        && fs::read_to_string(app.join("db/seed/Cargo.toml"))
+            .map(|content| content.contains("serde ="))
+            .unwrap_or(false);
     let views_ok = if api {
         !sign_in_view.exists()
     } else {
@@ -183,6 +187,7 @@ fn auth_base_is_valid(dir: &Path, api: bool) -> bool {
 
     app.join("Cargo.toml").is_file()
         && cargo_ok
+        && seed_ok
         && routes_ok
         && sessions_ok
         && user_ok

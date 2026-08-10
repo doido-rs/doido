@@ -16,7 +16,7 @@ entrada para comandos de runtime y generación de código.
 | `cargo doido server` | Inicia el servidor web |
 | `cargo doido routes` | Imprime la tabla de rutas |
 | `cargo doido console` | Inicia una consola interactiva |
-| `cargo doido db <cmd>` | Crea bases de datos, ejecuta migraciones de SeaORM, genera entidades |
+| `cargo doido db <cmd>` | Crea bases de datos, ejecuta migraciones de SeaORM, inserta fixtures (`db/seed`), genera entidades |
 | `cargo doido jobs <cmd>` | Inspecciona y gestiona jobs en segundo plano |
 | `cargo doido worker` | Ejecuta el worker de jobs (`--once` para vaciar y salir) |
 | `cargo doido credentials <cmd>` | Gestiona credenciales cifradas con AES-256-GCM |

@@ -115,6 +115,23 @@ add_foreign_key(manager, "posts", "user_id", "users", "id").await?;
 drop_table(manager, "users").await?;
 ```
 
+## Seeds
+
+Every `doido new` app includes a `db/seed/` workspace member — a single Rust binary
+(not versioned migrations) that inserts fixture data using the SeaORM models in
+`app/models/`. Edit `db/seed/src/main.rs`, then run:
+
+```bash
+cargo doido db seed
+# or: cargo run --manifest-path db/seed/Cargo.toml
+```
+
+The runner reads `DATABASE_URL` from the environment, or falls back to
+`config/<env>.yml` (`database.url`). After `cargo doido generate model …`, the new
+model is available through the `models` module wired in `db/seed/src/main.rs`.
+
+See `db/seed/README.md` in a generated app for a full example.
+
 ## Validations
 
 Implement `Validate` to collect errors into an `Errors` accumulator with helpers like
@@ -252,4 +269,4 @@ async fn creates_a_user() {
 
 - [Configuration](@/docs/reference/configuration.md) — the `database` section.
 - [Controllers & routing](@/docs/reference/controllers.md) — `ctx.db()` inside actions.
-- [Generators & CLI](@/docs/reference/generators.md) — `cargo doido generate model` and `cargo doido db migrate`.
+- [Generators & CLI](@/docs/reference/generators.md) — `cargo doido generate model`, `cargo doido db migrate`, and `cargo doido db seed`.

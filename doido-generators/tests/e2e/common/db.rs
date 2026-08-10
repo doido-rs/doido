@@ -62,6 +62,29 @@ pub fn assert_table_absent(app: &Path, table: &str) {
     );
 }
 
+pub fn assert_seed_crate_scaffolded(app: &Path) {
+    let cargo = app.join("db/seed/Cargo.toml");
+    let main_rs = app.join("db/seed/src/main.rs");
+    assert!(cargo.is_file(), "expected seed crate at {}", cargo.display());
+    assert!(main_rs.is_file(), "expected seed main at {}", main_rs.display());
+
+    let cargo_content = std::fs::read_to_string(&cargo).expect("read db/seed/Cargo.toml");
+    assert!(
+        cargo_content.contains("doido ="),
+        "seed Cargo.toml must depend on the doido meta crate"
+    );
+    assert!(
+        cargo_content.contains("serde ="),
+        "seed Cargo.toml must declare serde for generated app/models"
+    );
+
+    let main_content = std::fs::read_to_string(&main_rs).expect("read db/seed/src/main.rs");
+    assert!(
+        main_content.contains("app/models/mod.rs"),
+        "seed main must wire app/models"
+    );
+}
+
 pub fn assert_migration_source_exists(app: &Path, module: &str) {
     let path = app.join("db/migration/src").join(format!("{module}.rs"));
     assert!(
