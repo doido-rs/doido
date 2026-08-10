@@ -11,6 +11,10 @@ pub fn prepare_database(bin: &Path, app: &Path) {
     assert_all_migrations_applied(bin, app);
 }
 
+pub fn run_seed(bin: &Path, app: &Path) {
+    run_app(bin, app, &["db", "seed"]);
+}
+
 pub fn assert_all_migrations_applied(bin: &Path, app: &Path) {
     let output = run_app_capture(bin, app, &["db", "migrate", "status"]);
     assert!(
@@ -140,5 +144,18 @@ pub fn assert_column_absent(app: &Path, table: &str, column: &str) {
     assert!(
         !columns.iter().any(|c| c == column),
         "expected column `{column}` to be absent on `{table}`, found: {columns:?}"
+    );
+}
+
+pub fn assert_row_count(app: &Path, table: &str, expected: i64) {
+    let conn = open_sqlite(app);
+    let count: i64 = conn
+        .query_row(&format!("SELECT COUNT(*) FROM {table}"), [], |row| {
+            row.get(0)
+        })
+        .expect("count rows");
+    assert_eq!(
+        count, expected,
+        "expected {expected} row(s) in `{table}`, found {count}"
     );
 }

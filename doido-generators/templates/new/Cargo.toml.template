@@ -10,7 +10,7 @@ default-run = "{doido_name}"
 # The SeaORM migration project lives in `db/migration` and is built as part of
 # this workspace.
 [workspace]
-members = ["db/migration"]
+members = ["db/migration", "db/seed"]
 
 [dependencies]
 doido = {doido_dep}

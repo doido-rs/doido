@@ -51,6 +51,14 @@ impl AppHarness {
         db::prepare_database(&self.bin(), &self.app);
     }
 
+    pub fn seed_database(&self) {
+        db::run_seed(&self.bin(), &self.app);
+    }
+
+    pub fn port(&self) -> u16 {
+        self.port
+    }
+
     pub fn run<F>(&self, interact: F)
     where
         F: FnOnce(RunningApp) + std::panic::UnwindSafe,

@@ -9,7 +9,11 @@ fn cargo_toml_for(args: &[&str]) -> String {
         .generate(args)
         .unwrap()
         .into_iter()
-        .find(|f| f.path.ends_with("/Cargo.toml") && !f.path.contains("db/migration"))
+        .find(|f| {
+            f.path.ends_with("/Cargo.toml")
+                && !f.path.contains("db/migration")
+                && !f.path.contains("db/seed")
+        })
         .map(|f| f.content)
         .expect("app Cargo.toml")
 }
@@ -22,6 +26,16 @@ fn migration_cargo_toml_for(args: &[&str]) -> String {
         .find(|f| f.path.contains("db/migration/Cargo.toml"))
         .map(|f| f.content)
         .expect("migration Cargo.toml")
+}
+
+fn seed_cargo_toml_for(args: &[&str]) -> String {
+    ProjectGenerator
+        .generate(args)
+        .unwrap()
+        .into_iter()
+        .find(|f| f.path.contains("db/seed/Cargo.toml"))
+        .map(|f| f.content)
+        .expect("seed Cargo.toml")
 }
 
 #[test]
@@ -114,6 +128,37 @@ fn doido_model_database_features_stay_on_app_dependency_line() {
         assert!(
             cargo.contains(feature),
             "{database}: app doido-model line must include {feature}"
+        );
+    }
+}
+
+#[test]
+fn doido_seed_database_features_stay_on_seed_dependency_line() {
+    let cases = [
+        ("sqlite", "features = [\"sqlite\"]"),
+        ("postgres", "features = [\"postgres\"]"),
+        ("mysql", "features = [\"mysql\"]"),
+    ];
+    for (database, feature) in cases {
+        let cargo = seed_cargo_toml_for(&["app", &format!("--database={database}")]);
+        cargo
+            .parse::<toml::Table>()
+            .expect("valid seed Cargo.toml");
+        assert!(
+            cargo.contains("doido = {"),
+            "{database}: seed crate must declare doido meta crate"
+        );
+        assert!(
+            cargo.contains(feature),
+            "{database}: doido line must include {feature}"
+        );
+        assert!(
+            !cargo.contains("\"cli\""),
+            "{database}: seed crate must not enable cli"
+        );
+        assert!(
+            !cargo.contains("}, features ="),
+            "{database}: features must stay inside the inline table"
         );
     }
 }

@@ -36,6 +36,7 @@ Visit <http://0.0.0.0:3000> — `GET /` answers with JSON from `HelloController`
 | `cargo doido routes` | Print the route table |
 | `cargo doido console` | Start an interactive console |
 | `cargo doido db migrate` | Run pending migrations |
+| `cargo doido db seed` | Insert fixture data via `db/seed` |
 | `cargo doido worker` | Run the background job worker |
 | `cargo doido generate <gen>` | Run a code generator (run with no args to list them) |
 
@@ -50,6 +51,7 @@ Visit <http://0.0.0.0:3000> — `GET /` answers with JSON from `HelloController`
 │   └── views/
 ├── db/
 │   ├── migration/   ← SeaORM migration crate
+│   ├── seed/        ← Rust seed runner (uses app/models)
 │   └── schema/
 └── tests/
 ```

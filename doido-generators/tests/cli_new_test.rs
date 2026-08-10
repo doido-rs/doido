@@ -30,6 +30,8 @@ fn test_doido_new_creates_project_files() {
     assert!(dir.path().join("my-app/db/migration/Cargo.toml").exists());
     assert!(dir.path().join("my-app/db/migration/src/lib.rs").exists());
     assert!(dir.path().join("my-app/db/migration/src/main.rs").exists());
+    assert!(dir.path().join("my-app/db/seed/Cargo.toml").exists());
+    assert!(dir.path().join("my-app/db/seed/src/main.rs").exists());
 }
 
 #[test]

@@ -1,0 +1,14 @@
+[package]
+name = "seed"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[[bin]]
+name = "seed"
+path = "src/main.rs"
+
+[dependencies]
+tokio = { version = "1", features = ["full"] }
+# SeaORM helpers and app models via the doido meta crate (`doido::model`).
+doido = {doido_seed_dep}

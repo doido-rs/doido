@@ -27,7 +27,7 @@ pub enum DbCommand {
     Reset,
     /// Load `db/schema.sql` only if the database has no tables yet (idempotent)
     Prepare,
-    /// Run `db/seeds.sql` against the database
+    /// Run the `db/seed` crate (Rust models-based seeder)
     Seed,
     /// Schema dump/load (`db/schema.sql`)
     Schema {
@@ -50,13 +50,12 @@ pub enum SchemaCommand {
 
 /// Where Doido keeps its SeaORM migration crate.
 const DEFAULT_MIGRATION_DIR: &str = "db/migration";
+/// Where Doido keeps its Rust seed runner crate.
+const DEFAULT_SEED_DIR: &str = "db/seed";
 /// Where Doido writes generated SeaORM entities.
 const DEFAULT_ENTITY_OUTPUT_DIR: &str = "app/models/_entities";
 /// Canonical schema file (Rails `db/schema.rb` analogue).
 const SCHEMA_FILE: &str = "db/schema.sql";
-/// Plain-SQL seed script (Rails `db/seeds.rb` analogue).
-const SEEDS_FILE: &str = "db/seeds.sql";
-
 /// Upstream SeaORM CLI defaults — used to detect "the user didn't override this".
 const SEA_ORM_CLI_DEFAULT_MIGRATION_DIR: &str = "./migration";
 const SEA_ORM_CLI_DEFAULT_OUTPUT_DIR: &str = "./";
@@ -140,15 +139,33 @@ async fn prepare() {
     }
 }
 
-/// `doido db seed` — execute `db/seeds.sql` (a plain SQL script). Rust-closure
-/// seeders threaded through `run()` are a future enhancement.
+/// Program + args to run the seed crate (`db/seed`).
+pub fn seed_command() -> (String, Vec<String>) {
+    (
+        "cargo".to_string(),
+        vec![
+            "run".to_string(),
+            "--quiet".to_string(),
+            "--manifest-path".to_string(),
+            format!("{DEFAULT_SEED_DIR}/Cargo.toml"),
+        ],
+    )
+}
+
+/// `doido db seed` — compile and run the `db/seed` crate, which inserts data
+/// using the app's SeaORM models in `app/models/`.
 async fn seed() {
-    let Some(sql) = read_sql_file(SEEDS_FILE) else {
-        return;
-    };
-    let conn = connect().await;
-    match doido_model::schema::load(&conn, &sql).await {
-        Ok(()) => doido_core::tracing::info!("seeded database from {SEEDS_FILE}"),
+    let (program, args) = seed_command();
+    match std::process::Command::new(&program).args(&args).status() {
+        Ok(status) if status.success() => {
+            doido_core::tracing::info!("seeded database via {DEFAULT_SEED_DIR}");
+        }
+        Ok(status) => {
+            doido_core::tracing::error!(
+                "db seed failed: cargo exited with {}",
+                status.code().unwrap_or(-1)
+            );
+        }
         Err(e) => doido_core::tracing::error!("db seed failed: {e}"),
     }
 }

@@ -27,6 +27,8 @@ fn test_new_generates_all_expected_files() {
     assert!(paths.contains(&"my-app/db/migration/Cargo.toml"));
     assert!(paths.contains(&"my-app/db/migration/src/lib.rs"));
     assert!(paths.contains(&"my-app/db/migration/src/main.rs"));
+    assert!(paths.contains(&"my-app/db/seed/Cargo.toml"));
+    assert!(paths.contains(&"my-app/db/seed/src/main.rs"));
     assert!(paths.contains(&"my-app/tests/integration_test.rs"));
     let main_rs = files
         .iter()
@@ -271,6 +273,42 @@ fn test_new_migration_crate_uses_selected_backend() {
             .content
             .contains("doido::model::sea_orm_migration"),
         "migration lib must import sea_orm_migration via doido::model"
+    );
+}
+
+#[test]
+fn test_new_seed_crate_uses_selected_backend() {
+    let files = ProjectGenerator
+        .generate(&["blog", "--database=postgres"])
+        .unwrap();
+    let seed_cargo = files
+        .iter()
+        .find(|f| f.path == "blog/db/seed/Cargo.toml")
+        .unwrap();
+    assert!(
+        seed_cargo.content.contains("doido ="),
+        "seed crate must depend on doido meta crate"
+    );
+    assert!(
+        seed_cargo.content.contains("features = [\"postgres\"]"),
+        "doido dependency must enable postgres for the seed binary"
+    );
+    assert!(
+        !seed_cargo.content.contains("\"cli\""),
+        "seed crate must not enable the migration cli feature"
+    );
+    let seed_main = files
+        .iter()
+        .find(|f| f.path == "blog/db/seed/src/main.rs")
+        .unwrap();
+    assert!(
+        seed_main.content.contains("app/models/mod.rs"),
+        "seed main must wire app models"
+    );
+    let cargo = files.iter().find(|f| f.path == "blog/Cargo.toml").unwrap();
+    assert!(
+        cargo.content.contains("members = [\"db/migration\", \"db/seed\"]"),
+        "workspace must include db/seed"
     );
 }
 
