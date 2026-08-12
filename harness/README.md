@@ -25,6 +25,10 @@ Stories must follow the workspace **dependency import conventions** documented i
 SeaORM (`doido_model::sea_orm*`), axum (`doido_controller::axum`), no direct upstream
 deps, and no `doido::` meta-crate imports inside the workspace.
 
+Generated apps split models into **`app/models/_entities/`** (SeaORM entities, rewritten
+on every `doido db migrate`) and **`app/models/<name>.rs`** (extension stubs with
+validations and custom behaviour, never overwritten). See [`docs/03-model.md`](../docs/03-model.md).
+
 ## The gate
 
 Everything hinges on one deterministic command:

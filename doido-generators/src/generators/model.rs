@@ -10,8 +10,11 @@ use doido_core::Result;
 
 /// Fallback `app/models/mod.rs` used when the app doesn't have one on disk yet.
 const MODELS_MOD_BASE: &str = include_str!("../../templates/new/app/models/mod.rs");
+/// Fallback `_entities/mod.rs` used when the app doesn't have one on disk yet.
+const ENTITIES_MOD_BASE: &str = include_str!("../../templates/new/app/models/_entities/mod.rs");
 /// Path to the application models module registry.
 const MODELS_MOD_PATH: &str = "app/models/mod.rs";
+const ENTITIES_MOD_PATH: &str = "app/models/_entities/mod.rs";
 
 pub struct ModelGenerator;
 
@@ -25,6 +28,7 @@ impl Generator for ModelGenerator {
             doido_core::anyhow::anyhow!("model generator requires a name argument")
         })?;
         let snake = to_snake(name);
+        let model_name = to_pascal(name);
         // Pluralize via the inflector, honouring custom `config/inflection.yaml`
         // rules (e.g. `person` → `people`, uncountables, irregulars).
         let table_name = to_table_name(name);
@@ -32,10 +36,13 @@ impl Generator for ModelGenerator {
         // Remaining args are `name:type[:modifier...]` column specs.
         let fields = Field::parse_all(&args[1..])?;
 
-        // Model file — one struct field per declared column.
-        let model = crate::templates::get("models/model.rs.template")
+        let entity = crate::templates::get("models/entity.rs.template")
             .replace("{table_name}", &table_name)
             .replace("{fields}", &model_fields(&fields));
+
+        let extension = crate::templates::get("models/model.rs.template")
+            .replace("{Model}", &model_name)
+            .replace("{singular}", &snake);
 
         // Migration file. The module/file name is the migration id (`MigrationName::name`).
         let timestamp = Utc::now().format("%Y%m%d_%H%M%S");
@@ -59,16 +66,28 @@ impl Generator for ModelGenerator {
             .unwrap_or_else(|_| MODELS_MOD_BASE.to_string());
         let models_mod = register_model_module(&models_mod_existing, &snake);
 
+        let entities_mod_existing = std::fs::read_to_string(ENTITIES_MOD_PATH)
+            .unwrap_or_else(|_| ENTITIES_MOD_BASE.to_string());
+        let entities_mod = register_entity_module(&entities_mod_existing, &snake);
+
         // Model test stub (a standalone integration test target — a TODO
         // placeholder needs no imports, so it compiles in the binary app crate).
         let model_test = crate::templates::get("models/model_test.rs.template")
-            .replace("{Model}", &to_pascal(name))
+            .replace("{Model}", &model_name)
             .replace("{singular}", &snake);
 
         Ok(vec![
             GeneratedFile {
+                path: format!("app/models/_entities/{snake}.rs"),
+                content: entity,
+            },
+            GeneratedFile {
                 path: format!("app/models/{snake}.rs"),
-                content: model,
+                content: extension,
+            },
+            GeneratedFile {
+                path: ENTITIES_MOD_PATH.to_string(),
+                content: entities_mod,
             },
             GeneratedFile {
                 path: format!("{MIGRATION_SRC_DIR}/{migration_module}.rs"),
@@ -103,18 +122,10 @@ fn model_fields(fields: &[Field]) -> String {
 /// `@generated-models` marker. Idempotent: if the module is already registered,
 /// the file is returned unchanged.
 fn register_model_module(models_mod: &str, module: &str) -> String {
-    let decl = format!("pub mod {module};");
-    if models_mod.lines().any(|l| l.trim() == decl) {
-        return models_mod.to_string();
-    }
+    doido_model::entities::register_model_module(models_mod, module)
+}
 
-    let mut lines: Vec<String> = models_mod.lines().map(String::from).collect();
-    if let Some(i) = lines.iter().position(|l| l.contains("@generated-models")) {
-        lines.insert(i, decl);
-    } else {
-        lines.push(decl);
-    }
-    let mut out = lines.join("\n");
-    out.push('\n');
-    out
+/// Inserts `pub mod <module>;` into `_entities/mod.rs` just above the marker.
+fn register_entity_module(entities_mod: &str, module: &str) -> String {
+    doido_model::entities::register_entity_module(entities_mod, module)
 }

@@ -25,10 +25,19 @@ use doido::model::migration::{create_table, alter_table, add_index, add_foreign_
 
 ## Defining a model
 
-Models are plain sea-orm entities. `doido-model` re-exports everything sea-orm needs, so
-there is nothing Doido-specific to learn here.
+Generated apps keep SeaORM entities in `app/models/_entities/<name>.rs` (regenerated on
+every `doido db migrate`) and app-specific code in `app/models/<name>.rs` (never
+overwritten). The extension file re-exports the entity:
 
 ```rust
+// app/models/post.rs — safe to edit
+pub use super::_entities::post::*;
+```
+
+The entity definition itself is plain sea-orm — there is nothing Doido-specific to learn:
+
+```rust
+// app/models/_entities/post.rs — regenerated on migrate
 use doido::model::sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]

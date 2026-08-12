@@ -49,11 +49,36 @@ Enable the `sqlite` / `postgres` / `mysql` feature matching your database (on
 
 ## Sea-ORM Native Workflow (unchanged)
 
-Users define models exactly as sea-orm documents:
+Generated apps split models into two layers:
+
+| Path | Purpose | Overwritten on `doido db migrate`? |
+|------|---------|-------------------------------------|
+| `app/models/_entities/<name>.rs` | SeaORM entity (`Model`, `Entity`, `Column`, …) | **Yes** — exported from the database after every schema-changing migrate |
+| `app/models/<name>.rs` | App extensions (validations, auth traits, custom methods) | **No** — created once by generators; safe to edit forever |
+
+`doido db migrate` (and `doido db generate entity`) writes into `app/models/_entities/`.
+The sibling `app/models/<name>.rs` re-exports the entity and holds anything you add by hand:
 
 ```rust
-// models/post.rs — pure sea-orm, no doido magic
-use doido_model::*;  // re-exports sea_orm::*
+// app/models/post.rs — safe to edit
+pub use super::_entities::post::*;
+
+use doido_model::validation::{Errors, Validate};
+
+impl Validate for Model {
+    fn validate(&self) -> Errors {
+        let mut e = Errors::new();
+        e.presence("title", &self.title);
+        e
+    }
+}
+```
+
+The generated entity (always rewritten) lives at `app/models/_entities/post.rs`:
+
+```rust
+// app/models/_entities/post.rs — regenerated on migrate
+use doido::model::sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
 #[sea_orm(table_name = "posts")]
@@ -66,19 +91,12 @@ pub struct Model {
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
-pub enum Relation {
-    #[sea_orm(has_many = "super::comment::Entity")]
-    Comment,
-}
-
-impl Related<super::comment::Entity> for Entity {
-    fn to() -> RelationDef { Relation::Comment.def() }
-}
+pub enum Relation {}
 
 impl ActiveModelBehavior for ActiveModel {}
 ```
 
-Queries follow sea-orm conventions:
+Queries follow sea-orm conventions (import through `app/models/post.rs` or `models::post`):
 ```rust
 let posts = Entity::find()
     .filter(Column::Published.eq(true))
@@ -92,6 +110,9 @@ let posts = Entity::find()
   `doido_model::sea_orm_migration::prelude::*` — not a direct `sea-orm-migration` dep
 - `doido db` embeds the SeaORM CLI via `doido_model::sea_orm_cli` (feature `cli`)
 - Migration files live in `db/migration/` by convention
+- After every schema-changing `doido db migrate`, entities are re-exported to
+  `app/models/_entities/` and missing extension stubs are created under `app/models/`
+  (see `doido_model::entities`)
 
 ## Open Questions (remaining)
 

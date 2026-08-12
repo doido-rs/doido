@@ -26,7 +26,7 @@ Set `E2E_KEEP=1` to preserve generated apps under `target/e2e/apps/` for debuggi
 
 1. **Server** — `doido server` on the generated app binary.
 2. **Real interaction** — HTTP request, cable `cargo test`, or CLI/file smoke.
-3. **Migrations** — `doido db create`, `doido db migrate`, and `doido db migrate status` with no pending migrations.
+3. **Migrations** — `doido db create`, `doido db migrate`, and `doido db migrate status` with no pending migrations. Migrate re-exports entities into `app/models/_entities/` without overwriting extension stubs in `app/models/<name>.rs`.
 4. **Seed crate** — every `doido new` baseline includes `db/seed/` (workspace member with `serde` + `doido` deps); `db_seed` also runs `doido db seed` and asserts rows over HTTP.
 
 ## Scenario matrix
@@ -42,6 +42,7 @@ Set `E2E_KEEP=1` to preserve generated apps under `target/e2e/apps/` for debuggi
 | `scaffold_html` | `scaffold` (HTML forms) |
 | `resource` | `generate resource` |
 | `model_fields` | field specs (`unique`, `index`, `references`, …) |
+| `model_validations` | `Validate`/`Errors` in extension stubs survive entity re-export on migrate |
 | `migration_add_remove` | `generate migration` add/remove |
 | `storage_install` | `storage:install` |
 | `storage_adapter` | `storage:adapter` (in `smoke_generators`) |

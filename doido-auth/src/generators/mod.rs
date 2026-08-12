@@ -50,6 +50,7 @@ pub(crate) fn template(rel: &str) -> &'static str {
     match rel {
         "migration.rs.template" => include_str!("../../templates/migration.rs.template"),
         "user.rs.template" => include_str!("../../templates/user.rs.template"),
+        "user_entity.rs.template" => include_str!("../../templates/user_entity.rs.template"),
         "auth/mod.rs.template" => include_str!("../../templates/auth/mod.rs.template"),
         "auth/sessions_controller_html.rs.template" => {
             include_str!("../../templates/auth/sessions_controller_html.rs.template")
@@ -103,6 +104,9 @@ pub(crate) fn template(rel: &str) -> &'static str {
             include_str!("../../templates/scaffold/controller_api.rs.template")
         }
         "scaffold/model.rs.template" => include_str!("../../templates/scaffold/model.rs.template"),
+        "scaffold/entity.rs.template" => {
+            include_str!("../../templates/scaffold/entity.rs.template")
+        }
         "scaffold/views/index.html.tera" => {
             include_str!("../../templates/scaffold/views/index.html.tera")
         }
