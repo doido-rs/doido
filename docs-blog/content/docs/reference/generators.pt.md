@@ -68,7 +68,9 @@ cargo doido db seed
 ## Geradores de código
 
 Rode `cargo doido generate` sem argumentos para listar todos os geradores registrados. Cada um
-escreve arquivos (e alguns injetam rotas):
+escreve arquivos (e alguns injetam rotas). As subseções abaixo trazem um exemplo executável para
+cada um; os campos `name:type` recebidos por `model`, `scaffold` e `resource` estão documentados
+em [A DSL de campos](#a-dsl-de-campos).
 
 | Gerador | Gera |
 |---------|------|
@@ -87,6 +89,121 @@ escreve arquivos (e alguns injetam rotas):
 | `storage:install` | tabelas de storage + config |
 | `storage:adapter` | o esqueleto de um adapter de storage customizado |
 
+### model
+
+Cria `app/models/<name>.rs` e a migration correspondente.
+
+```bash
+cargo doido generate model Post title:string body:text
+```
+
+### migration
+
+Uma migration isolada; adicione ou remova colunas com a DSL de campos.
+
+```bash
+cargo doido generate migration add_published_to_posts published:boolean
+```
+
+### controller
+
+Um `#[controller]` com um stub de action por nome, mais sua rota.
+
+```bash
+cargo doido generate controller Pages home about
+```
+
+### helper
+
+Um módulo de helper de controller em `app/helpers/`.
+
+```bash
+cargo doido generate helper Posts
+```
+
+### scaffold
+
+A stack completa de CRUD — model, migration, controller, views e rota — em um comando.
+
+```bash
+cargo doido generate scaffold Post title:string:not_null body:text author:references
+```
+
+### resource
+
+Como o `scaffold`, mas sem views — a stack para modo API.
+
+```bash
+cargo doido generate resource Post title:string body:text
+cargo doido generate resource Post title:string --api   # só JSON
+```
+
+### mailer
+
+Um mailer mais um template por action.
+
+```bash
+cargo doido generate mailer User welcome
+```
+
+### job
+
+Um job em background em `app/jobs/`.
+
+```bash
+cargo doido generate job SendNewsletter
+```
+
+### channel
+
+Um canal WebSocket em `app/channels/`.
+
+```bash
+cargo doido generate channel Chat
+```
+
+### templates
+
+Ejeta os templates de view embutidos de um controller existente para você customizá-los.
+
+```bash
+cargo doido generate templates Posts
+```
+
+### locale
+
+Um arquivo de locale i18n inicial (padrão `en`).
+
+```bash
+cargo doido generate locale pt
+```
+
+### generator
+
+Cria o esqueleto de um novo gerador customizado — veja [Geradores customizados](#geradores-customizados).
+
+```bash
+cargo doido generate generator policy
+```
+
+### storage:install
+
+Tabelas de storage mais config — veja [Storage](@/docs/reference/storage.pt.md).
+
+```bash
+cargo doido generate storage:install
+```
+
+### storage:adapter
+
+O esqueleto de um adapter de storage customizado.
+
+```bash
+cargo doido generate storage:adapter Cloudinary
+```
+
+### Geradores de auth
+
 Quando `doido-auth` está no `Cargo.toml`, três geradores adicionais aparecem em
 **Auth (doido-auth)**:
 
@@ -96,18 +213,32 @@ Quando `doido-auth` está no `Cargo.toml`, três geradores adicionais aparecem e
 | `auth:controller` | Controller com `CurrentUser` / guards de auth |
 | `auth:scaffold` | Scaffold com auth e ownership por `user_id` |
 
-```bash
-doido new blog --database=sqlite --auth    # adiciona doido-auth + roda auth:install
-cargo doido generate auth:install --api    # endpoints de auth só JSON
-cargo doido generate auth:scaffold Post title:string body:text
-```
+O caminho mais rápido é `doido new blog --database=sqlite --auth`, que adiciona `doido-auth`
+e roda o `auth:install` para você.
+
+#### auth:install
+
+Migration + model User, controllers de auth, views, config e rotas.
 
 ```bash
-cargo doido generate model Post title:string body:text
-cargo doido generate scaffold Post title:string body:text     # CRUD completo
-cargo doido generate controller Pages home about
-cargo doido generate helper Posts
-cargo doido generate mailer User welcome
+cargo doido generate auth:install          # auth HTML com cookie/sessão
+cargo doido generate auth:install --api    # endpoints de auth só JSON
+```
+
+#### auth:controller
+
+Um controller já com guards `CurrentUser` / `require_user`.
+
+```bash
+cargo doido generate auth:controller Dashboard
+```
+
+#### auth:scaffold
+
+Um scaffold com auth e ownership por `user_id`.
+
+```bash
+cargo doido generate auth:scaffold Post title:string body:text
 ```
 
 ## A DSL de campos

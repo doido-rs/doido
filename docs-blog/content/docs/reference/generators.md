@@ -71,7 +71,9 @@ cargo doido db seed
 ## Code generators
 
 Run `cargo doido generate` with no arguments to list every registered generator. Each writes
-files (and some inject routes):
+files (and some inject routes). The subsections below give a runnable example for each; the
+`name:type` fields taken by `model`, `scaffold`, and `resource` are documented under
+[The field DSL](#the-field-dsl).
 
 | Generator | Generates |
 |-----------|-----------|
@@ -90,6 +92,121 @@ files (and some inject routes):
 | `storage:install` | storage tables + config |
 | `storage:adapter` | a custom storage adapter skeleton |
 
+### model
+
+Creates `app/models/<name>.rs` and a matching migration.
+
+```bash
+cargo doido generate model Post title:string body:text
+```
+
+### migration
+
+A standalone migration; add or remove columns with the field DSL.
+
+```bash
+cargo doido generate migration add_published_to_posts published:boolean
+```
+
+### controller
+
+A `#[controller]` with one action stub per name, plus its route.
+
+```bash
+cargo doido generate controller Pages home about
+```
+
+### helper
+
+A controller helper module in `app/helpers/`.
+
+```bash
+cargo doido generate helper Posts
+```
+
+### scaffold
+
+The full CRUD stack — model, migration, controller, views, and route — in one command.
+
+```bash
+cargo doido generate scaffold Post title:string:not_null body:text author:references
+```
+
+### resource
+
+Like `scaffold` but without views — the API-mode stack.
+
+```bash
+cargo doido generate resource Post title:string body:text
+cargo doido generate resource Post title:string --api   # JSON only
+```
+
+### mailer
+
+A mailer plus a template per action.
+
+```bash
+cargo doido generate mailer User welcome
+```
+
+### job
+
+A background job in `app/jobs/`.
+
+```bash
+cargo doido generate job SendNewsletter
+```
+
+### channel
+
+A WebSocket channel in `app/channels/`.
+
+```bash
+cargo doido generate channel Chat
+```
+
+### templates
+
+Ejects the built-in view templates for an existing controller so you can customize them.
+
+```bash
+cargo doido generate templates Posts
+```
+
+### locale
+
+A starter i18n locale file (defaults to `en`).
+
+```bash
+cargo doido generate locale pt
+```
+
+### generator
+
+Scaffolds a new custom generator skeleton — see [Custom generators](#custom-generators).
+
+```bash
+cargo doido generate generator policy
+```
+
+### storage:install
+
+Storage tables plus config — see [Storage](@/docs/reference/storage.md).
+
+```bash
+cargo doido generate storage:install
+```
+
+### storage:adapter
+
+A custom storage adapter skeleton.
+
+```bash
+cargo doido generate storage:adapter Cloudinary
+```
+
+### Auth generators
+
 When `doido-auth` is listed in `Cargo.toml`, three additional generators appear under
 **Auth (doido-auth)**:
 
@@ -99,16 +216,32 @@ When `doido-auth` is listed in `Cargo.toml`, three additional generators appear 
 | `auth:controller` | Controller with `CurrentUser` / auth guards |
 | `auth:scaffold` | Auth-aware scaffold with `user_id` ownership |
 
+The quickest path is `doido new blog --database=sqlite --auth`, which adds `doido-auth`
+and runs `auth:install` for you.
+
+#### auth:install
+
+User migration + model, auth controllers, views, config, and routes.
+
 ```bash
-doido new blog --database=sqlite --auth    # adds doido-auth + runs auth:install
+cargo doido generate auth:install          # cookie/session HTML auth
 cargo doido generate auth:install --api    # JSON-only auth endpoints
-cargo doido generate auth:scaffold Post title:string body:text
 ```
-cargo doido generate model Post title:string body:text
-cargo doido generate scaffold Post title:string body:text     # full CRUD stack
-cargo doido generate controller Pages home about
-cargo doido generate helper Posts
-cargo doido generate mailer User welcome
+
+#### auth:controller
+
+A controller wired with `CurrentUser` / `require_user` guards.
+
+```bash
+cargo doido generate auth:controller Dashboard
+```
+
+#### auth:scaffold
+
+An auth-aware scaffold with `user_id` ownership.
+
+```bash
+cargo doido generate auth:scaffold Post title:string body:text
 ```
 
 ## The field DSL
