@@ -1,6 +1,8 @@
 {# Documentation sidebar — grouped blocks: Introduction, Modules, Architecture. #}
 {% set lang = lang | default(value=config.default_language) %}
 {% set docs = get_section(path="docs/_index.md", lang=lang) %}
+{# Capture the current page before the loop below shadows `page` via get_page. #}
+{% set current_page = page | default(value=false) %}
 <aside class="sidebar">
   <nav class="sidebar-nav" aria-label="Documentation">
     <a class="sidebar-title" href="{{ docs.permalink }}">{{ docs.title }}</a>
@@ -15,8 +17,8 @@
             <ul class="sidebar-block-list">
         {% endif %}
               {% set page = get_page(path=group.page, lang=config.default_language) %}
-              {% set link = page.permalink %}
-              {% set label = page.title %}
+              {% set_global link = page.permalink %}
+              {% set_global label = page.title %}
               {% if lang != config.default_language %}
                 {% for t in page.translations %}
                   {% if t.lang == lang %}
@@ -27,6 +29,25 @@
               {% endif %}
               <li>
                 <a href="{{ link }}"{% if link == current_url %} class="active" aria-current="page"{% endif %}>{{ label }}</a>
+                {# On the active Generators & CLI page, expand its in-page headings (H2 + H3). #}
+                {% if group.page == "docs/reference/generators.md" and link == current_url and current_page and current_page.toc %}
+                  <ul class="sidebar-toc">
+                    {% for h in current_page.toc %}
+                      <li class="sidebar-toc-item sidebar-toc-h{{ h.level }}">
+                        <a href="{{ h.permalink }}">{{ h.title }}</a>
+                        {% if h.children %}
+                          <ul class="sidebar-toc-children">
+                            {% for c in h.children %}
+                              <li class="sidebar-toc-item sidebar-toc-h{{ c.level }}">
+                                <a href="{{ c.permalink }}">{{ c.title }}</a>
+                              </li>
+                            {% endfor %}
+                          </ul>
+                        {% endif %}
+                      </li>
+                    {% endfor %}
+                  </ul>
+                {% endif %}
               </li>
       {% else %}
         {% if module_open %}
@@ -39,8 +60,8 @@
           <ul class="sidebar-block-list">
             {% for page_path in group.pages %}
               {% set page = get_page(path=page_path, lang=config.default_language) %}
-              {% set link = page.permalink %}
-              {% set label = page.title %}
+              {% set_global link = page.permalink %}
+              {% set_global label = page.title %}
               {% if lang != config.default_language %}
                 {% for t in page.translations %}
                   {% if t.lang == lang %}

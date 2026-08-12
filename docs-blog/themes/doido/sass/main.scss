@@ -393,6 +393,42 @@ body {
   font-weight: 600;
 }
 
+// In-page table of contents nested under the active page (H2 + H3 anchors).
+.sidebar-toc,
+.sidebar-toc-children {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.sidebar-toc {
+  margin: 0.15rem 0 0.25rem;
+  border-left: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+  margin-left: 1.1rem;
+}
+// Drop the inherited row divider between block-list items for TOC entries.
+.sidebar-toc .sidebar-toc-item + .sidebar-toc-item::before {
+  display: none;
+}
+.sidebar-toc a {
+  display: block;
+  padding: 0.28rem 0.75rem 0.28rem 0.75rem;
+  color: var(--fg-muted);
+  text-decoration: none;
+  font-size: 0.8rem;
+  line-height: 1.3;
+  border-left: 2px solid transparent;
+  transition: color 0.12s, background 0.12s, border-color 0.12s;
+}
+.sidebar-toc a:hover {
+  color: var(--fg);
+  background: color-mix(in srgb, var(--accent) 6%, var(--bg-alt));
+}
+// H3 anchors sit one level deeper than their H2 parent.
+.sidebar-toc-children a {
+  padding-left: 1.5rem;
+  font-size: 0.78rem;
+}
+
 // Legacy selectors (taxonomy etc.) — keep minimal list styles.
 .sidebar-list { list-style: none; margin: 0; padding: 0; }
 .sidebar-list li { margin: 0.05rem 0; }

@@ -216,7 +216,7 @@ Quando `doido-auth` está no `Cargo.toml`, três geradores adicionais aparecem e
 O caminho mais rápido é `doido new blog --database=sqlite --auth`, que adiciona `doido-auth`
 e roda o `auth:install` para você.
 
-#### auth:install
+### auth:install
 
 Migration + model User, controllers de auth, views, config e rotas.
 
@@ -225,7 +225,7 @@ cargo doido generate auth:install          # auth HTML com cookie/sessão
 cargo doido generate auth:install --api    # endpoints de auth só JSON
 ```
 
-#### auth:controller
+### auth:controller
 
 Um controller já com guards `CurrentUser` / `require_user`.
 
@@ -233,7 +233,7 @@ Um controller já com guards `CurrentUser` / `require_user`.
 cargo doido generate auth:controller Dashboard
 ```
 
-#### auth:scaffold
+### auth:scaffold
 
 Um scaffold com auth e ownership por `user_id`.
 
