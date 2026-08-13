@@ -13,3 +13,6 @@ tokio = { version = "1", features = ["full"] }
 serde = { version = "1", features = ["derive"] }
 # SeaORM helpers and app models via the doido meta crate (`doido::model`).
 doido = {doido_seed_dep}
+# With `--auth`, the seed compiles `app/models/user.rs` (via the `#[path]` include
+# in src/main.rs), so it needs doido-auth + chrono like the app itself.
+{doido_seed_auth_deps}
