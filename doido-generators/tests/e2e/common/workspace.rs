@@ -113,6 +113,7 @@ fn base_app_is_valid(dir: &Path, profile: BaseProfile) -> bool {
     if !app.join("Cargo.toml").is_file()
         || !helpers_mod.is_file()
         || !app.join("db/seed/Cargo.toml").is_file()
+        || !app.join("app/models/_entities/mod.rs").is_file()
     {
         return false;
     }
@@ -166,7 +167,10 @@ fn auth_base_is_valid(dir: &Path, api: bool) -> bool {
             sessions_content.contains("ctx.render(\"auth/sign_in\"")
         };
     let user_ok = fs::read_to_string(&user_model)
-        .map(|content| content.contains(".map_err(Into::into)") && content.contains("sea_orm::Set"))
+        .map(|content| {
+            content.contains("pub use super::_entities::users::*")
+                && content.contains(".map_err(Into::into)")
+        })
         .unwrap_or(false);
     let cargo_ok = fs::read_to_string(app.join("Cargo.toml"))
         .map(|content| content.contains("\"auth\""))

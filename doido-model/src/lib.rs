@@ -12,6 +12,7 @@ pub mod callbacks;
 pub mod config;
 pub mod create;
 pub mod databases;
+pub mod entities;
 pub mod enums;
 pub mod factory;
 pub mod migrate;

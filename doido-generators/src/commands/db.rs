@@ -8,12 +8,18 @@
 //!   * generated entities are written to [`DEFAULT_ENTITY_OUTPUT_DIR`]
 //!     (`app/models/_entities`).
 //!
+//! After every schema-changing migrate (`up`, `down`, `fresh`, `refresh`, `reset`),
+//! Doido re-exports entities from the database into `_entities/` and ensures
+//! extension stubs exist under `app/models/<name>.rs`.
+//!
 //! A user-supplied `-d/--migration-dir` or `-o/--output-dir` always wins.
 
 use clap::Subcommand;
 use doido_model::sea_orm_cli::{
-    handle_error, run_generate_command, run_migrate_command, Commands, GenerateSubcommands,
+    handle_error, run_generate_command, run_migrate_command, BannerVersion, BigIntegerType,
+    Commands, DateTimeCrate, GenerateSubcommands, MigrateSubcommands,
 };
+use std::path::Path;
 
 /// Subcommands of `doido db`: Doido's `create` plus the flattened SeaORM CLI.
 #[derive(Subcommand)]
@@ -228,9 +234,13 @@ async fn run_sea_orm(command: Commands, verbose: bool) {
     match command {
         Commands::Generate { mut command } => {
             apply_entity_output_default(&mut command);
+            let is_entity = matches!(&command, GenerateSubcommands::Entity { .. });
             run_generate_command(command, verbose)
                 .await
                 .unwrap_or_else(handle_error);
+            if is_entity {
+                sync_model_extensions();
+            }
         }
         Commands::Migrate {
             migration_dir,
@@ -239,6 +249,7 @@ async fn run_sea_orm(command: Commands, verbose: bool) {
             command,
         } => {
             let migration_dir = override_migration_dir(migration_dir);
+            let export = should_export_entities(command.as_ref());
             run_migrate_command(
                 command,
                 &migration_dir,
@@ -247,7 +258,77 @@ async fn run_sea_orm(command: Commands, verbose: bool) {
                 verbose,
             )
             .unwrap_or_else(handle_error);
+            if export {
+                export_entities_from_database(verbose).await;
+            }
         }
+    }
+}
+
+/// Whether a migrate subcommand changes the schema enough to warrant re-export.
+fn should_export_entities(command: Option<&MigrateSubcommands>) -> bool {
+    matches!(
+        command,
+        None | Some(MigrateSubcommands::Up { .. })
+            | Some(MigrateSubcommands::Down { .. })
+            | Some(MigrateSubcommands::Fresh)
+            | Some(MigrateSubcommands::Refresh)
+            | Some(MigrateSubcommands::Reset)
+    )
+}
+
+/// Re-export entities from the live database into [`DEFAULT_ENTITY_OUTPUT_DIR`].
+async fn export_entities_from_database(verbose: bool) {
+    ensure_database_url_from_config();
+    let mut command = default_entity_generate_command(database_url());
+    apply_entity_output_default(&mut command);
+    if let Err(e) = run_generate_command(command, verbose).await {
+        handle_error(e);
+    }
+    sync_model_extensions();
+}
+
+fn sync_model_extensions() {
+    let entities_dir = Path::new(DEFAULT_ENTITY_OUTPUT_DIR);
+    let models_dir = Path::new("app/models");
+    match doido_model::entities::postprocess_entity_export(entities_dir, models_dir) {
+        Ok(()) => doido_core::tracing::info!("post-processed exported entities"),
+        Err(e) => doido_core::tracing::error!("entity post-process failed: {e}"),
+    }
+}
+
+fn default_entity_generate_command(database_url: String) -> GenerateSubcommands {
+    GenerateSubcommands::Entity {
+        entity_format: None,
+        compact_format: false,
+        expanded_format: false,
+        frontend_format: false,
+        include_hidden_tables: false,
+        tables: Vec::new(),
+        ignore_tables: vec!["seaql_migrations".to_string()],
+        max_connections: 1,
+        acquire_timeout: 30,
+        output_dir: SEA_ORM_CLI_DEFAULT_OUTPUT_DIR.to_string(),
+        database_schema: None,
+        database_url,
+        with_prelude: "all".to_string(),
+        with_serde: "both".to_string(),
+        serde_skip_deserializing_primary_key: false,
+        serde_skip_hidden_column: false,
+        with_copy_enums: false,
+        date_time_crate: DateTimeCrate::Chrono,
+        big_integer_type: BigIntegerType::I64,
+        lib: false,
+        model_extra_derives: Vec::new(),
+        model_extra_attributes: Vec::new(),
+        enum_extra_derives: Vec::new(),
+        enum_extra_attributes: Vec::new(),
+        column_extra_derives: Vec::new(),
+        seaography: false,
+        impl_active_model_behavior: true,
+        preserve_user_modifications: false,
+        banner_version: BannerVersion::Minor,
+        er_diagram: false,
     }
 }
 
@@ -265,5 +346,32 @@ fn apply_entity_output_default(command: &mut GenerateSubcommands) {
     let GenerateSubcommands::Entity { output_dir, .. } = command;
     if output_dir == SEA_ORM_CLI_DEFAULT_OUTPUT_DIR {
         *output_dir = DEFAULT_ENTITY_OUTPUT_DIR.to_string();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn schema_changing_migrate_commands_export_entities() {
+        assert!(should_export_entities(None));
+        assert!(should_export_entities(Some(&MigrateSubcommands::Up {
+            num: None
+        })));
+        assert!(should_export_entities(Some(&MigrateSubcommands::Down {
+            num: 1
+        })));
+        assert!(should_export_entities(Some(&MigrateSubcommands::Fresh)));
+        assert!(!should_export_entities(Some(&MigrateSubcommands::Status)));
+        assert!(!should_export_entities(Some(&MigrateSubcommands::Init)));
+    }
+
+    #[test]
+    fn apply_entity_output_default_rewrites_sea_orm_default() {
+        let mut command = default_entity_generate_command("sqlite://x".into());
+        apply_entity_output_default(&mut command);
+        let GenerateSubcommands::Entity { output_dir, .. } = command;
+        assert_eq!(output_dir, DEFAULT_ENTITY_OUTPUT_DIR);
     }
 }

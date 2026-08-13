@@ -21,6 +21,7 @@ fn test_new_generates_all_expected_files() {
     assert!(paths.contains(&"my-app/app/models/.gitkeep"));
     // `doido db generate entity` writes SeaORM entities here by default.
     assert!(paths.contains(&"my-app/app/models/_entities/.gitkeep"));
+    assert!(paths.contains(&"my-app/app/models/_entities/mod.rs"));
     assert!(paths.contains(&"my-app/app/views/layouts/application.html.tera"));
     assert!(paths.contains(&"my-app/db/schema/.gitkeep"));
     // `db/migration` is a SeaORM migration project, not an empty placeholder.

@@ -27,6 +27,7 @@ const MIGRATION_TEST: &str = include_str!("../templates/migration/migration_test
 
 // --- file-based defaults (scaffold + model), kept embedded as before ---
 const MODEL: &str = include_str!("../templates/models/model.rs.template");
+const ENTITY: &str = include_str!("../templates/models/entity.rs.template");
 const MODEL_MIGRATION: &str = include_str!("../templates/models/migration.rs.template");
 const MODEL_TEST: &str = include_str!("../templates/models/model_test.rs.template");
 const SCAFFOLD_CONTROLLER_HTML: &str =
@@ -57,6 +58,7 @@ const BUILTIN: &[(&str, &str)] = &[
     ("migration/migration.rs.template", MIGRATION),
     ("migration/migration_test.rs.template", MIGRATION_TEST),
     ("models/model.rs.template", MODEL),
+    ("models/entity.rs.template", ENTITY),
     ("models/migration.rs.template", MODEL_MIGRATION),
     ("models/model_test.rs.template", MODEL_TEST),
     (

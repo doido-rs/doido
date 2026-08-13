@@ -15,6 +15,8 @@ use chrono::Utc;
 use doido_core::Result;
 
 const USER_MODEL_PATH: &str = "app/models/user.rs";
+const ENTITIES_MOD_PATH: &str = "app/models/_entities/mod.rs";
+const ENTITIES_MOD_BASE: &str = include_str!("../../templates/new/app/models/_entities/mod.rs");
 
 pub struct AuthScaffoldGenerator;
 
@@ -187,9 +189,22 @@ impl AuthGenerator for AuthScaffoldGenerator {
             std::fs::read_to_string(&lib_path).unwrap_or_else(|_| MIGRATION_LIB_BASE.to_string());
         let lib = register_migration(&existing, &migration_module);
 
-        let model_content = template("scaffold/model.rs.template")
+        let entity_content = template("scaffold/entity.rs.template")
             .replace("{table_name}", &plural)
             .replace("{fields}", &model_fields(&fields));
+
+        let extension_content = template("scaffold/model.rs.template")
+            .replace("{Model}", &model)
+            .replace("{table_name}", &plural);
+
+        let entities_mod_base = files
+            .iter()
+            .find(|f| f.path == ENTITIES_MOD_PATH)
+            .map(|f| f.content.clone())
+            .or_else(|| std::fs::read_to_string(ENTITIES_MOD_PATH).ok())
+            .unwrap_or_else(|| ENTITIES_MOD_BASE.to_string());
+        let entities_mod =
+            doido_model::entities::register_entity_module(&entities_mod_base, &plural);
 
         let controller_template = if api {
             template("scaffold/controller_api.rs.template")
@@ -199,8 +214,16 @@ impl AuthGenerator for AuthScaffoldGenerator {
 
         for file in [
             GeneratedFile {
+                path: format!("app/models/_entities/{plural}.rs"),
+                content: entity_content,
+            },
+            GeneratedFile {
+                path: ENTITIES_MOD_PATH.to_string(),
+                content: entities_mod,
+            },
+            GeneratedFile {
                 path: format!("app/models/{singular}.rs"),
-                content: model_content,
+                content: extension_content,
             },
             GeneratedFile {
                 path: format!("{MIGRATION_SRC_DIR}/{migration_module}.rs"),

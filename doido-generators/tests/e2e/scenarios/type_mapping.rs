@@ -2,7 +2,7 @@
 //! DB column ⇄ Rust/sea_orm type ⇄ JSON correctly. A single "kitchen-sink" model
 //! is created, then a value of each type is round-tripped through the JSON API
 //! (create → index → show) and asserted by both value and JSON type. This is the
-//! authoritative check that `templates/models/model.rs.template` +
+//! authoritative check that `templates/models/entity.rs.template` +
 //! `field.rs` + the scaffold controller template agree with the migration.
 
 use crate::common::db;

@@ -7,6 +7,7 @@ mod helper;
 mod kitchen_sink;
 mod migration_add_remove;
 mod model_fields;
+mod model_validations;
 mod new_baseline;
 mod new_cable;
 mod resource;

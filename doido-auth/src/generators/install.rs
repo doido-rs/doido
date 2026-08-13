@@ -61,12 +61,21 @@ fn config_file(path: &str, two_factor: bool) -> Option<GeneratedFile> {
 }
 
 fn user_model(two_factor: bool) -> String {
+    let _ = two_factor;
+    template("user.rs.template").to_string()
+}
+
+fn user_entity(two_factor: bool) -> String {
     let two_factor_fields = if two_factor {
         "    pub two_factor_secret: Option<String>,\n    pub two_factor_enabled: bool,\n"
     } else {
         ""
     };
-    template("user.rs.template").replace("{two_factor_fields}", two_factor_fields)
+    template("user_entity.rs.template").replace("{two_factor_fields}", two_factor_fields)
+}
+
+fn entities_mod(existing: &str) -> String {
+    doido_model::entities::register_entity_module(existing, "users")
 }
 
 fn auth_mod(two_factor: bool) -> String {
@@ -111,6 +120,11 @@ impl AuthGenerator for AuthInstallGenerator {
         let lib = register_migration(&existing, &migration_module);
 
         let models_mod = register_model_module(&read_models_mod(), "user");
+        let entities_mod_path = "app/models/_entities/mod.rs";
+        let entities_mod_base = std::fs::read_to_string(entities_mod_path).unwrap_or_else(|_| {
+            include_str!("../../templates/new/app/models/_entities/mod.rs").to_string()
+        });
+        let entities_mod = entities_mod(&entities_mod_base);
         let controllers_mod = register_auth_controllers_mod(&read_controllers_mod());
         let routes = inject_auth_routes(&read_routes(), api);
 
@@ -124,6 +138,14 @@ impl AuthGenerator for AuthInstallGenerator {
             GeneratedFile {
                 path: lib_path,
                 content: lib,
+            },
+            GeneratedFile {
+                path: "app/models/_entities/users.rs".to_string(),
+                content: user_entity(two_factor),
+            },
+            GeneratedFile {
+                path: entities_mod_path.to_string(),
+                content: entities_mod,
             },
             GeneratedFile {
                 path: "app/models/user.rs".to_string(),

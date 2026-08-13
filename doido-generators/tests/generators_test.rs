@@ -47,14 +47,22 @@ fn test_model_generator_produces_model_migration_and_updates_lib() {
     let files = ModelGenerator.generate(&["User"]).unwrap();
     let paths: Vec<&str> = files.iter().map(|f| f.path.as_str()).collect();
 
-    // Model file in app/models/.
+    // Entity file in app/models/_entities/; extension stub in app/models/.
+    assert!(paths.contains(&"app/models/_entities/users.rs"));
     assert!(paths.contains(&"app/models/user.rs"));
-    let model = files
+    let entity = files
+        .iter()
+        .find(|f| f.path == "app/models/_entities/users.rs")
+        .unwrap();
+    assert!(entity.content.contains("DeriveEntityModel"));
+    assert!(entity.content.contains("table_name = \"users\""));
+    let extension = files
         .iter()
         .find(|f| f.path == "app/models/user.rs")
         .unwrap();
-    assert!(model.content.contains("DeriveEntityModel"));
-    assert!(model.content.contains("table_name = \"users\""));
+    assert!(extension
+        .content
+        .contains("pub use super::_entities::users::*;"));
 
     // Migration file in db/migration/src/.
     assert!(paths
@@ -96,11 +104,12 @@ fn test_model_generator_pluralizes_irregular_table_name() {
     let paths: Vec<&str> = files.iter().map(|f| f.path.as_str()).collect();
 
     assert!(paths.contains(&"app/models/person.rs"));
-    let model = files
+    assert!(paths.contains(&"app/models/_entities/people.rs"));
+    let entity = files
         .iter()
-        .find(|f| f.path == "app/models/person.rs")
+        .find(|f| f.path == "app/models/_entities/people.rs")
         .unwrap();
-    assert!(model.content.contains("table_name = \"people\""));
+    assert!(entity.content.contains("table_name = \"people\""));
     assert!(paths.iter().any(|p| p.ends_with("_create_people_table.rs")));
 }
 
@@ -117,16 +126,16 @@ fn test_model_generator_emits_columns_from_field_specs() {
         ])
         .unwrap();
 
-    // Model struct carries one field per column with correct nullability.
-    let model = files
+    // Entity struct carries one field per column with correct nullability.
+    let entity = files
         .iter()
-        .find(|f| f.path == "app/models/post.rs")
+        .find(|f| f.path == "app/models/_entities/posts.rs")
         .unwrap();
-    assert!(model.content.contains("pub title: String,"));
-    assert!(model.content.contains("pub body: Option<String>,"));
-    assert!(model.content.contains("pub author_id: i64,"));
-    assert!(model.content.contains("pub slug: Option<String>,"));
-    assert!(model.content.contains("pub views: Option<i32>,"));
+    assert!(entity.content.contains("pub title: String,"));
+    assert!(entity.content.contains("pub body: Option<String>,"));
+    assert!(entity.content.contains("pub author_id: i64,"));
+    assert!(entity.content.contains("pub slug: Option<String>,"));
+    assert!(entity.content.contains("pub views: Option<i32>,"));
 
     // Migration builds the columns and an index for the `:index` field.
     let migration = files
