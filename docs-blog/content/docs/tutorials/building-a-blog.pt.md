@@ -1,33 +1,38 @@
 +++
 title = "Construindo um blog"
-description = "Construa um blog renderizado no servidor com área de administração do autor e comentários."
+description = "Construa um blog renderizado no servidor com um scaffold, autoria protegida por login e comentários de leitores."
 weight = 2
 +++
 
-Este tutorial constrói um blog pequeno, porém completo, sobre a base do [Primeiros
-passos](@/docs/tutorials/getting-started.md). Ao final você terá:
+Este tutorial constrói um blog pequeno, mas completo, sobre a base do [Primeiros
+passos](@/docs/tutorials/getting-started.pt.md). Ao final você terá:
 
 - uma página inicial **pública** que lista os posts publicados e uma página para ler um post,
 - **comentários** que qualquer leitor pode deixar em um post,
-- uma **área de administração do autor** — uma seção `/admin`, protegida pelo
-  [`doido-auth`](@/docs/reference/auth.md), onde o autor escreve e publica os posts.
+- **autoria protegida por login** — escrever e publicar posts é protegido pelo
+  [`doido-auth`](@/docs/reference/auth.pt.md), e cada post pertence ao seu autor.
 
-É um app HTML puro (sem API), e cada passo usa a implementação mais básica que funciona, para
-que você enxergue as peças com clareza.
+É uma app HTML pura (sem API). Nós usamos **geradores**: o `scaffold` cria o recurso Post
+inteiro em um comando, e o `generate controller` nos dá o endpoint de comentários. Você só
+edita à mão as *customizações* — os geradores escrevem (e conectam) os esqueletos.
 
-Este é o mapa de rotas que vamos alcançar:
+> Cada comando e bloco de código abaixo é executado pelo próprio e2e de release do Doido
+> (`doido-generators/tests/e2e/scenarios/blog_tutorial.rs`), então o tutorial continua
+> executável. Veja o [padrão de tutoriais](@/docs/reference/generators.pt.md).
 
-| Método | Caminho | Quem | Objetivo |
-|--------|---------|------|----------|
-| GET | `/` | todos | listar posts publicados |
-| GET | `/posts/:id` | todos | ler um post + seus comentários |
-| POST | `/posts/:post_id/comments` | todos | deixar um comentário |
-| GET/POST/… | `/admin/posts…` | autor autenticado | gerenciar posts |
-| GET/POST | `/users/sign_in`, `/users/sign_up` | autor | autenticação (gerada pelo `--auth`) |
+Este é o mapa de rotas que estamos construindo:
 
-## Criar o app
+| Método | Caminho | Quem | Propósito |
+|--------|---------|------|-----------|
+| GET | `/` | todos | lista os posts publicados |
+| GET | `/posts/{id}` | todos | ler um post + seus comentários |
+| POST | `/posts/{post_id}/comments` | todos | deixar um comentário |
+| GET/POST/… | `/posts/new`, `/posts`, `/posts/{id}/edit`… | autor logado | gerenciar posts |
+| GET/POST | `/users/sign_in`, `/users/sign_up` | autor | auth (gerado por `--auth`) |
 
-Gere uma nova aplicação já com autenticação e configure o banco de dados:
+## Criar a app
+
+Crie uma nova aplicação já com autenticação embutida e prepare o banco:
 
 ```bash
 # --auth adiciona o doido-auth e roda o auth:install (model User, controllers de sign-in/up + rotas)
@@ -40,18 +45,18 @@ cargo doido db migrate      # cria a tabela users
 cargo doido server          # http://0.0.0.0:3000 — sign-in/up já funcionam
 ```
 
-O `--auth` fornece um model `User`, um `SessionsController` e um `RegistrationsController`, além
-das rotas de sign-in / sign-up / sign-out sob `/users`. Vamos nos apoiar nisso para proteger a
-área de administração. Veja a [referência de Auth](@/docs/reference/auth.md) para o panorama
-completo.
+O `--auth` te dá um model `User`, um `SessionsController` e um `RegistrationsController`, e
+rotas de sign-in / sign-up / sign-out sob `/users`. Vamos nos apoiar nelas para proteger a
+autoria. Veja a [referência de Auth](@/docs/reference/auth.pt.md) para o quadro completo.
 
-## O model Post
+## Scaffold do recurso Post
 
-Um post tem título, corpo, um indicador de publicação e um autor (o `User` autenticado). Gere o
-model e sua migration:
+Um post tem um título, um corpo, uma flag de publicado e um autor (o `User` logado). Em vez de
+escrever o model, o controller, as views e a rota à mão, **faça o scaffold do recurso inteiro**
+em um comando:
 
 ```bash
-cargo doido generate model Post \
+cargo doido generate scaffold Post \
   title:string:not_null \
   body:text:not_null \
   published:boolean:not_null \
@@ -59,19 +64,38 @@ cargo doido generate model Post \
 cargo doido db migrate
 ```
 
-O `user:references` adiciona uma coluna de chave estrangeira `user_id` (um `i64` não nulo). O
-gerador escreve `app/models/post.rs` — uma entidade [sea-orm](@/docs/reference/models.md)
-comum. Adicione as relações para navegar do post aos seus comentários e ao seu autor:
+Esse único comando escreveu:
+
+- `app/models/post.rs` — uma entidade [sea-orm](@/docs/reference/models.pt.md) (com uma chave
+  estrangeira `user_id` do tipo `i64`, vinda de `user:references`),
+- uma migration para a tabela `posts`,
+- `app/controllers/posts_controller.rs` — um controller CRUD completo,
+- `app/views/posts/{index,show,new,edit,_form}.html.tera`,
+- e **injetou a rota** `resources!(posts, PostsController);` em `config/routes.rs`.
+
+Como o gerador injeta a rota *junto* com o controller, a rota nunca aponta para um controller que
+ainda não existe. Agora transforme isso num blog customizando o que o scaffold produziu.
+
+### Customizar o model
+
+Abra `app/models/post.rs` e adicione uma pequena validação para rejeitar posts em branco. O trait
+[`Validate`](@/docs/reference/models.pt.md) do Doido acumula os erros — o resto do arquivo é
+exatamente o que o scaffold gerou:
 
 ```rust
 // app/models/post.rs
-use doido::model::sea_orm::entity::prelude::*;
+#![allow(dead_code)]
 
-#[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
+use doido::model::sea_orm;
+use doido::model::sea_orm::entity::prelude::*;
+use doido::model::validation::{Errors, Validate};
+use serde::{Deserialize, Serialize};
+
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "posts")]
 pub struct Model {
     #[sea_orm(primary_key)]
-    pub id: i64,
+    pub id: i32,
     pub title: String,
     pub body: String,
     pub published: bool,
@@ -79,25 +103,9 @@ pub struct Model {
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
-pub enum Relation {
-    #[sea_orm(has_many = "super::comment::Entity")]
-    Comments,
-    #[sea_orm(
-        belongs_to = "super::user::Entity",
-        from = "Column::UserId",
-        to = "super::user::Column::Id"
-    )]
-    User,
-}
+pub enum Relation {}
 
 impl ActiveModelBehavior for ActiveModel {}
-```
-
-Já que estamos aqui, adicione uma pequena validação para rejeitar posts vazios. O trait
-[`Validate`](@/docs/reference/models.md) do Doido acumula os erros:
-
-```rust
-use doido::model::validation::{Validate, Errors};
 
 impl Validate for Model {
     fn validate(&self) -> Errors {
@@ -109,13 +117,190 @@ impl Validate for Model {
 }
 ```
 
-O gerador também deixou um esqueleto em `tests/post_model_test.rs` — vamos preenchê-lo em
-[Testes](#testes).
+Mantemos `Relation` vazio e consultamos os comentários com um filtro explícito abaixo, o que
+evita o descasamento entre a chave primária `i32` e a estrangeira `i64` que um `has_many` ingênuo
+enfrentaria.
+
+### Customizar o controller
+
+O controller do scaffold expõe as sete actions REST. Reescreva
+`app/controllers/posts_controller.rs` para que a leitura seja pública, a autoria seja protegida
+por login e cada novo post pertença ao autor logado:
+
+```rust
+// app/controllers/posts_controller.rs
+use crate::helpers::PostsHelper;
+use crate::models::{comment, post};
+use doido::controller::{controller, Context, Response};
+use doido::model::sea_orm::{entity::prelude::*, Set};
+use doido::model::serialization::as_json;
+use serde::Deserialize;
+use serde_json::json;
+
+/// Strong params para criar/atualizar um post. O autor (`user_id`) vem da
+/// sessão, nunca do formulário.
+#[derive(Deserialize)]
+pub struct PostForm {
+    pub title: String,
+    pub body: String,
+    pub published: Option<String>,
+}
+
+pub struct PostsController;
+
+/// Interrompe e redireciona para o sign-in a menos que alguém esteja logado. O
+/// sign-in guarda o id do usuário na sessão sob "user_id" (veja o doido-auth).
+async fn require_login(ctx: &mut Context) -> Result<(), Response> {
+    if ctx.session().get::<i64>("user_id").is_none() {
+        return Err(ctx.redirect_to("/users/sign_in"));
+    }
+    Ok(())
+}
+
+#[controller]
+impl PostsController {
+    /// GET /posts — público: só os posts publicados.
+    pub async fn index(ctx: Context) -> doido::Result<Response> {
+        let posts = post::Entity::find()
+            .filter(post::Column::Published.eq(true))
+            .all(ctx.db())
+            .await?;
+        Ok(ctx.render(
+            "posts/index",
+            json!({
+                "posts": as_json(&posts),
+                "summary": PostsHelper::index_count(posts.len()),
+            }),
+        ))
+    }
+
+    /// GET /posts/{id} — público: o post e seus comentários.
+    pub async fn show(ctx: Context) -> doido::Result<Response> {
+        let id = parse_id(&ctx);
+        let Some(post) = post::Entity::find_by_id(id).one(ctx.db()).await? else {
+            return Ok(ctx.status(404));
+        };
+        let comments = comment::Entity::find()
+            .filter(comment::Column::PostId.eq(i64::from(post.id)))
+            .all(ctx.db())
+            .await?;
+        Ok(ctx.render(
+            "posts/show",
+            json!({ "post": as_json(&post), "comments": as_json(&comments) }),
+        ))
+    }
+
+    /// GET /posts/new — a autoria é protegida por login.
+    #[before_action(require_login)]
+    pub async fn new(ctx: Context) -> Response {
+        ctx.render("posts/new", json!({}))
+    }
+
+    /// POST /posts — cria um post pertencente ao autor logado.
+    #[before_action(require_login)]
+    pub async fn create(mut ctx: Context) -> doido::Result<Response> {
+        let author_id = ctx.session().get::<i64>("user_id").unwrap();
+        let form: PostForm = ctx.form().await?;
+        let record = post::ActiveModel {
+            title: Set(form.title),
+            body: Set(form.body),
+            published: Set(form.published.is_some()),
+            user_id: Set(author_id),
+            ..Default::default()
+        };
+        record.insert(ctx.db()).await?;
+        Ok(ctx.redirect_to("/posts"))
+    }
+
+    /// GET /posts/{id}/edit — protegido por login.
+    #[before_action(require_login)]
+    pub async fn edit(ctx: Context) -> doido::Result<Response> {
+        let id = parse_id(&ctx);
+        let post = post::Entity::find_by_id(id).one(ctx.db()).await?;
+        Ok(ctx.render("posts/edit", json!({ "post": as_json(&post) })))
+    }
+
+    /// PATCH/PUT /posts/{id} — protegido por login.
+    #[before_action(require_login)]
+    pub async fn update(mut ctx: Context) -> doido::Result<Response> {
+        let id = parse_id(&ctx);
+        let form: PostForm = ctx.form().await?;
+        if let Some(existing) = post::Entity::find_by_id(id).one(ctx.db()).await? {
+            let mut record: post::ActiveModel = existing.into();
+            record.title = Set(form.title);
+            record.body = Set(form.body);
+            record.published = Set(form.published.is_some());
+            record.update(ctx.db()).await?;
+        }
+        Ok(ctx.redirect_to("/posts"))
+    }
+
+    /// DELETE /posts/{id} — protegido por login.
+    #[before_action(require_login)]
+    pub async fn destroy(ctx: Context) -> doido::Result<Response> {
+        let id = parse_id(&ctx);
+        post::Entity::delete_by_id(id).exec(ctx.db()).await?;
+        Ok(ctx.redirect_to("/posts"))
+    }
+}
+
+fn parse_id(ctx: &Context) -> i32 {
+    ctx.param("id").and_then(|v| v.parse().ok()).unwrap_or_default()
+}
+```
+
+O `#[before_action(require_login)]` roda o guard antes da action; retornar `Err(response)`
+interrompe a requisição. `PostsHelper` é o helper que o scaffold gerou junto com o controller.
+
+### Customizar as views
+
+As views do scaffold [estendem](@/docs/reference/views.pt.md) o layout gerado
+`app/views/layouts/application.html.tera`, que renderiza o conteúdo com
+`{% block content %}{% endblock %}`. O JSON que você passa para `ctx.render` vira o contexto do
+template. Substitua os templates de index e show por uma marcação com cara de blog (deixe `new`,
+`edit` e `_form` como o scaffold os escreveu):
+
+```html
+{# app/views/posts/index.html.tera #}
+{% extends "layouts/application.html.tera" %}
+{% block content %}
+<h1>Blog</h1>
+<p>{{ summary }}</p>
+{% for post in posts %}
+  <article>
+    <h2><a href="/posts/{{ post.id }}">{{ post.title }}</a></h2>
+  </article>
+{% endfor %}
+{% endblock %}
+```
+
+```html
+{# app/views/posts/show.html.tera #}
+{% extends "layouts/application.html.tera" %}
+{% block content %}
+<article>
+  <h1>{{ post.title }}</h1>
+  <p>{{ post.body }}</p>
+</article>
+<section>
+  <h2>Comentários</h2>
+  {% for comment in comments %}
+    <p><strong>{{ comment.author_name }}</strong>: {{ comment.body }}</p>
+  {% endfor %}
+  <form method="post" action="/posts/{{ post.id }}/comments">
+    <input type="text" name="author_name" required>
+    <textarea name="body" required></textarea>
+    <button type="submit">Comentar</button>
+  </form>
+</section>
+{% endblock %}
+```
 
 ## O model Comment
 
-Um comentário pertence a um post e carrega o nome do leitor e a mensagem. Não é preciso login
-para comentar, então guardamos apenas um nome em texto livre:
+Um comentário pertence a um post e carrega o nome e a mensagem do leitor. Não é preciso login
+para comentar, então guardamos um nome livre. Um comentário não tem telas de CRUD próprias, então
+um gerador `model` simples basta:
 
 ```bash
 cargo doido generate model Comment \
@@ -125,393 +310,133 @@ cargo doido generate model Comment \
 cargo doido db migrate
 ```
 
-Adicione a relação inversa de volta ao `Post`:
+O `app/models/comment.rs` gerado (um `post_id` `i64`, `author_name`, `body` e um `Relation`
+vazio) não precisa de mudanças — o `show` acima já carrega os comentários de um post com um filtro
+explícito por `comment::Column::PostId`.
 
-```rust
-// app/models/comment.rs
-#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
-pub enum Relation {
-    #[sea_orm(
-        belongs_to = "super::post::Entity",
-        from = "Column::PostId",
-        to = "super::post::Column::Id"
-    )]
-    Post,
-}
+## O controller de comentários
+
+Comentários precisam de uma única action — create — então use o **gerador de controller**:
+
+```bash
+cargo doido generate controller Comments
 ```
 
-## Rotas
-
-Abra `config/routes.rs` e descreva o app. Mantenha as rotas de auth que o `--auth` já injetou;
-acrescente as rotas públicas, a rota de comentário e o namespace admin:
-
-```rust
-// config/routes.rs
-use crate::controllers::{CommentsController, PostsController};
-use crate::controllers::admin::PostsController as AdminPostsController;
-use doido::controller::{axum, routes};
-
-pub fn router() -> axum::Router {
-    routes! {
-        root!(PostsController::index);                       // GET /
-        resources!(posts, PostsController, only: [index, show]);
-        post!("/posts/:post_id/comments", CommentsController::create);
-
-        namespace!(admin, {                                  // prefixo de caminho + helper "admin"
-            resources!(posts, AdminPostsController);         // /admin/posts … (as 7 rotas)
-        });
-
-        // As rotas /users de sign-in, sign-up e sign-out foram injetadas pelo --auth — mantenha-as.
-    }
-}
-```
-
-O `namespace!(admin, …)` prefixa tanto a URL (`/admin/posts`) quanto os helpers de caminho
-gerados (`admin_posts_path()`), de modo que nunca colidem com o `posts_path()` público. Veja
-[Controllers & rotas](@/docs/reference/controllers.md) para a DSL completa.
-
-## O blog público
-
-O controller público lê do banco de dados via `ctx.db()` e renderiza templates Tera. Crie
-`app/controllers/posts_controller.rs`:
-
-```rust
-// app/controllers/posts_controller.rs
-use crate::models::{comment, post};
-use doido::controller::{controller, Context, Response};
-use doido::model::serialization::as_json;
-use doido::model::{ColumnTrait, EntityTrait, QueryFilter};
-use serde_json::json;
-
-pub struct PostsController;
-
-#[controller]
-impl PostsController {
-    pub async fn index(ctx: Context) -> Response {
-        let posts = post::Entity::find()
-            .filter(post::Column::Published.eq(true))
-            .all(ctx.db())
-            .await
-            .unwrap_or_default();
-
-        ctx.render("posts/index", json!({ "posts": as_json(&posts) }))
-    }
-
-    pub async fn show(ctx: Context) -> Response {
-        let Some(id) = ctx.param("id").and_then(|s| s.parse::<i64>().ok()) else {
-            return ctx.status(404);
-        };
-
-        let Ok(Some(post)) = post::Entity::find_by_id(id).one(ctx.db()).await else {
-            return ctx.status(404);
-        };
-
-        let comments = comment::Entity::find()
-            .filter(comment::Column::PostId.eq(post.id))
-            .all(ctx.db())
-            .await
-            .unwrap_or_default();
-
-        ctx.render(
-            "posts/show",
-            json!({ "post": as_json(&post), "comments": as_json(&comments) }),
-        )
-    }
-}
-```
-
-Registre-o em `app/controllers/mod.rs` (o gerador mantém essa lista; adicione os módulos se
-ainda não estiverem lá):
-
-```rust
-// app/controllers/mod.rs
-pub mod admin;
-pub mod comments_controller;
-pub mod posts_controller;
-
-pub use comments_controller::CommentsController;
-pub use posts_controller::PostsController;
-```
-
-### Views
-
-Os templates ficam em `app/views/<controller>/<action>.html.tera` e são renderizados como
-**fragmentos** envolvidos por `app/views/layouts/application.html.tera`, que injeta o conteúdo
-com `{{ content_for_layout }}` — não há `{% extends %}`. O JSON que você passa para `ctx.render`
-vira o contexto do template.
-
-```html
-{# app/views/posts/index.html.tera #}
-<h1>Blog</h1>
-{% for post in posts %}
-  <article>
-    <h2><a href="/posts/{{ post.id }}">{{ post.title }}</a></h2>
-  </article>
-{% endfor %}
-```
-
-```html
-{# app/views/posts/show.html.tera #}
-<article>
-  <h1>{{ post.title }}</h1>
-  <p>{{ post.body }}</p>
-</article>
-
-<section>
-  <h2>Comentários</h2>
-  {% for comment in comments %}
-    <p><strong>{{ comment.author_name }}</strong>: {{ comment.body }}</p>
-  {% endfor %}
-
-  <form method="post" action="/posts/{{ post.id }}/comments">
-    <input type="text" name="author_name" placeholder="Seu nome" required>
-    <textarea name="body" placeholder="Seu comentário" required></textarea>
-    <button type="submit">Comentar</button>
-  </form>
-</section>
-```
-
-## Comentários
-
-O formulário de comentário acima envia para `CommentsController::create`. Ele lê o corpo do
-formulário em uma struct tipada, insere uma linha e redireciona de volta ao post. Crie
-`app/controllers/comments_controller.rs`:
+Isso escreveu `app/controllers/comments_controller.rs` (um stub `index` conectado ao
+`CommentsHelper`) e injetou `get!("/comments", CommentsController::index);` nas rotas. Adicione
+uma action `create` que lê o formulário e insere um comentário para o post da URL:
 
 ```rust
 // app/controllers/comments_controller.rs
+use crate::helpers::CommentsHelper;
 use crate::models::comment;
-use doido::controller::{controller, Context, Response};
-use doido::model::{ActiveModelTrait, Set};
+use doido::controller::{controller, Response};
+use doido::model::sea_orm::{entity::prelude::*, Set};
 use serde::Deserialize;
+use serde_json::json;
 
 #[derive(Deserialize)]
-struct NewComment {
-    author_name: String,
-    body: String,
+pub struct CommentForm {
+    pub author_name: String,
+    pub body: String,
 }
 
 pub struct CommentsController;
 
 #[controller]
 impl CommentsController {
-    pub async fn create(ctx: Context) -> Response {
-        let Some(post_id) = ctx.param("post_id").and_then(|s| s.parse::<i64>().ok()) else {
-            return ctx.status(404);
-        };
+    /// GET /comments — o stub do gerador, mantido para o `CommentsHelper` continuar conectado.
+    pub async fn index(ctx: doido::controller::Context) -> Response {
+        ctx.json(json!({ "comments": CommentsHelper::index_count(0) }))
+    }
 
-        let Ok(form) = ctx.form::<NewComment>().await else {
-            return ctx.redirect_to(format!("/posts/{post_id}"));
-        };
-
-        let comment = comment::ActiveModel {
+    /// POST /posts/{post_id}/comments — não exige login para comentar.
+    pub async fn create(mut ctx: doido::controller::Context) -> doido::Result<Response> {
+        let post_id: i64 = ctx
+            .param("post_id")
+            .and_then(|v| v.parse().ok())
+            .unwrap_or_default();
+        let form: CommentForm = ctx.form().await?;
+        let record = comment::ActiveModel {
             post_id: Set(post_id),
             author_name: Set(form.author_name),
             body: Set(form.body),
             ..Default::default()
         };
-        let _ = comment.insert(ctx.db()).await;
-
-        ctx.redirect_to(format!("/posts/{post_id}"))
+        record.insert(ctx.db()).await?;
+        Ok(ctx.redirect_to(format!("/posts/{post_id}")))
     }
 }
 ```
 
-## A área de administração do autor
+## Rotas
 
-A área de administração é um controller comum colocado em um módulo `admin` e protegido por um
-filtro `before_action`. Quando o autor faz login, o `doido-auth` guarda o id dele na sessão; o
-filtro lê esse id de volta e, se ninguém estiver autenticado, interrompe a requisição e
-redireciona para a página de login. (Você também poderia receber o extractor `CurrentUser<User>`
-como argumento da action, como faz o `auth:scaffold` gerado — veja a
-[referência de Auth](@/docs/reference/auth.md); aqui deixamos explícito.)
-
-Crie `app/controllers/admin/mod.rs`:
+Como os geradores injetaram uma rota com cada controller, o `config/routes.rs` já conhece o
+`PostsController` e o `CommentsController` — nenhuma rota nomeia um controller que não exista. Duas
+edições concluem a ligação: aponte a página inicial para o blog (movendo o endpoint de demonstração
+do Doido para o lado) e adicione a rota aninhada de comentário ao lado do stub que o gerador de
+controller deixou:
 
 ```rust
-// app/controllers/admin/mod.rs
-pub mod posts_controller;
-pub use posts_controller::PostsController;
-```
+// config/routes.rs
+use crate::controllers::CommentsController;
+use crate::controllers::HelloController;
+use crate::controllers::PostsController;
+use doido::controller::{axum, routes};
 
-Depois `app/controllers/admin/posts_controller.rs`:
+pub fn router() -> axum::Router {
+    routes! {
+        root!(PostsController::index);                              // GET / — o blog
+        get!("/hello", HelloController::index);                    // demo do Doido, movida para o lado
 
-```rust
-// app/controllers/admin/posts_controller.rs
-use crate::models::post;
-use doido::controller::{controller, Context, Response};
-use doido::model::serialization::as_json;
-use doido::model::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
-use serde::Deserialize;
-use serde_json::json;
+        resources!(posts, PostsController);                        // CRUD de /posts (do scaffold)
+        get!("/comments", CommentsController::index);              // stub do `generate controller`
+        post!("/posts/{post_id}/comments", CommentsController::create);
 
-// Interrompe e redireciona para o login se ninguém estiver autenticado. O login guarda
-// o id do usuário na sessão sob "user_id" (veja o doido-auth).
-async fn require_login(ctx: &mut Context) -> Result<(), Response> {
-    if ctx.session().get::<i64>("user_id").is_none() {
-        return Err(ctx.redirect_to("/users/sign_in"));
+        // as rotas sign-in / sign-up / sign-out sob /users foram injetadas pelo --auth — deixe-as.
     }
-    Ok(())
-}
-
-#[derive(Deserialize)]
-struct PostForm {
-    title: String,
-    body: String,
-    published: Option<String>, // um checkbox desmarcado simplesmente não vem
-}
-
-pub struct PostsController;
-
-#[controller]
-impl PostsController {
-    #[before_action(require_login)]
-    pub async fn index(mut ctx: Context) -> Response {
-        let author_id = ctx.session().get::<i64>("user_id").unwrap();
-        let posts = post::Entity::find()
-            .filter(post::Column::UserId.eq(author_id))
-            .all(ctx.db())
-            .await
-            .unwrap_or_default();
-
-        ctx.render("admin/posts/index", json!({ "posts": as_json(&posts) }))
-    }
-
-    #[before_action(require_login)]
-    pub async fn new(ctx: Context) -> Response {
-        ctx.render("admin/posts/new", json!({}))
-    }
-
-    #[before_action(require_login)]
-    pub async fn create(mut ctx: Context) -> Response {
-        let author_id = ctx.session().get::<i64>("user_id").unwrap();
-        let Ok(form) = ctx.form::<PostForm>().await else {
-            return ctx.redirect_to("/admin/posts/new");
-        };
-
-        let post = post::ActiveModel {
-            title: Set(form.title),
-            body: Set(form.body),
-            published: Set(form.published.is_some()),
-            user_id: Set(author_id),
-            ..Default::default()
-        };
-        let _ = post.insert(ctx.db()).await;
-
-        ctx.redirect_to("/admin/posts")
-    }
-
-    // edit / update / destroy seguem o mesmo formato: ler author_id da sessão, carregar o
-    // post, checar que ele pertence a esse autor, e então renderizar, salvar ou apagar.
 }
 ```
 
-Registre o módulo em `app/controllers/mod.rs` (já adicionamos `pub mod admin;` acima).
+Repare no parâmetro de caminho no estilo axum `{post_id}` — leia-o na action com
+`ctx.param("post_id")`. Veja [Controllers & roteamento](@/docs/reference/controllers.pt.md) para
+a DSL completa.
 
-Dois templates de administração mínimos:
-
-```html
-{# app/views/admin/posts/index.html.tera #}
-<h1>Seus posts</h1>
-<a href="/admin/posts/new">Escrever um post</a>
-<ul>
-  {% for post in posts %}
-    <li>
-      {{ post.title }}
-      {% if post.published %}(publicado){% else %}(rascunho){% endif %}
-    </li>
-  {% endfor %}
-</ul>
-```
-
-```html
-{# app/views/admin/posts/new.html.tera #}
-<h1>Novo post</h1>
-<form method="post" action="/admin/posts">
-  <input type="text" name="title" placeholder="Título" required>
-  <textarea name="body" placeholder="Escreva seu post…" required></textarea>
-  <label><input type="checkbox" name="published" value="1"> Publicar agora</label>
-  <button type="submit">Salvar</button>
-</form>
-```
-
-## Rodando
+## Rodar
 
 ```bash
 cargo doido server
 ```
 
-Agora percorra todo o fluxo:
+Agora percorra o fluxo inteiro:
 
-1. Acesse `/users/sign_up` e registre a conta do autor.
-2. Vá em `/admin/posts`, escreva um post e marque **Publicar agora**.
-3. Abra `/` — o post publicado aparece. Clique para ir a `/posts/:id`.
-4. Deixe um comentário; ele aparece abaixo do post.
+1. Visite `/users/sign_up` e registre a conta do autor.
+2. Vá para `/posts/new`, escreva um post e publique.
+3. Abra `/` — o post publicado aparece. Clique até `/posts/{id}`.
+4. Deixe um comentário; ele aparece sob o post.
 
-Ao sair (`DELETE /users/sign_out`) e voltar a `/admin/posts`, você é levado de volta à página de
-login — é o `require_login` fazendo seu trabalho.
+Fazer sign-out (`DELETE /users/sign_out`) e revisitar `/posts/new` te joga de volta para a
+página de sign-in — é o `require_login` fazendo seu trabalho.
 
 ## Testes
 
-Apps Doido são testados com funções `#[tokio::test]` simples. Três tipos de teste cobrem este
-blog: um teste de **model**, um teste de **requisição** e um teste de **auth**. Rode todos com
-`cargo test` (ou um único com `cargo test <nome>`).
-
-### Testes de model
-
-O `TestDb` sobe um banco SQLite em memória e isolado. Crie a tabela, insira uma linha e verifique
-que ela persiste. Este é o esqueleto que o gerador deixou em `tests/post_model_test.rs`:
+Os geradores deixam stubs de teste (`tests/post_model_test.rs`, `tests/posts_controller_test.rs`);
+rode-os com `cargo test`. Validações são lógica pura, então não precisam de banco:
 
 ```rust
-// tests/post_model_test.rs
+// tests/post_validation_test.rs
 #[path = "../app/models/mod.rs"]
 mod models;
 
-use doido::model::sea_orm::{ConnectionTrait, Schema};
-use doido::model::{ActiveModelTrait, EntityTrait, Set, TestDb};
-use models::post;
+use doido::model::validation::Validate;
+use models::post::Model;
 
-#[tokio::test]
-async fn creates_and_finds_a_post() {
-    let db = TestDb::new().await.unwrap();
-
-    // Constrói a tabela posts a partir da definição da entidade.
-    let backend = db.conn().get_database_backend();
-    let stmt = Schema::new(backend).create_table_from_entity(post::Entity);
-    db.conn().execute(backend.build(&stmt)).await.unwrap();
-
-    let created = post::ActiveModel {
-        title: Set("Olá".into()),
-        body: Set("Meu primeiro post, longo o bastante.".into()),
-        published: Set(true),
-        user_id: Set(1),
-        ..Default::default()
-    }
-    .insert(db.conn())
-    .await
-    .unwrap();
-
-    let found = post::Entity::find_by_id(created.id)
-        .one(db.conn())
-        .await
-        .unwrap()
-        .unwrap();
-
-    assert_eq!(found.title, "Olá");
-    assert!(found.published);
-}
-```
-
-Validações são lógica pura, então não precisam de banco algum:
-
-```rust
 #[test]
 fn rejects_a_blank_post() {
-    use doido::model::validation::Validate;
-
-    let post = models::post::Model {
+    let post = Model {
         id: 0,
-        title: String::new(),      // ausente
-        body: "curto".into(),      // < 10 caracteres
+        title: String::new(),      // faltando
+        body: "too short".into(),  // < 10 caracteres
         published: false,
         user_id: 1,
     };
@@ -521,102 +446,16 @@ fn rejects_a_blank_post() {
 }
 ```
 
-### Testes de requisição
-
-Testes de requisição montam o router real e o acionam com um cliente em processo — sem servidor
-ativo. Isso espelha o teste de requisição que o gerador `scaffold` do Doido produz: inclua os
-módulos do app com `#[path]`, instale um pool em memória uma vez no `setup()` e verifique os
-códigos de status.
-
-```rust
-// tests/posts_request_test.rs
-#[path = "../app/controllers/mod.rs"]
-mod controllers;
-#[path = "../app/models/mod.rs"]
-mod models;
-#[path = "../config/routes.rs"]
-mod routes;
-
-use doido::controller::axum;
-use doido::model::sea_orm::{ConnectionTrait, Database, Schema};
-use models::post;
-use tower::ServiceExt; // para `oneshot`
-
-async fn setup() {
-    if doido::model::pool::try_pool().is_none() {
-        let db = Database::connect("sqlite::memory:").await.unwrap();
-        let _ = doido::model::pool::set_pool(db);
-    }
-    let db = doido::model::pool::pool();
-    let backend = db.get_database_backend();
-    let stmt = Schema::new(backend).create_table_from_entity(post::Entity);
-    let _ = db.execute(backend.build(stmt.if_not_exists())).await;
-}
-
-#[tokio::test]
-async fn index_is_public() {
-    setup().await;
-
-    let response = routes::router()
-        .oneshot(
-            axum::http::Request::get("/")
-                .body(axum::body::Body::empty())
-                .unwrap(),
-        )
-        .await
-        .unwrap();
-
-    assert_eq!(response.status(), axum::http::StatusCode::OK);
-}
-
-#[tokio::test]
-async fn admin_redirects_when_signed_out() {
-    setup().await;
-
-    let response = routes::router()
-        .oneshot(
-            axum::http::Request::get("/admin/posts")
-                .body(axum::body::Body::empty())
-                .unwrap(),
-        )
-        .await
-        .unwrap();
-
-    // require_login interrompe e redireciona para a página de login.
-    assert_eq!(response.status(), axum::http::StatusCode::FOUND);
-}
-```
-
-Para casos simples, `doido_controller::testing::send(router, "GET", "/", "")` devolve status e
-corpo em uma só chamada, em vez de montar a requisição manualmente.
-
-### Testes de auth
-
-Para exercitar uma requisição *autenticada*, o `doido-auth` traz um harness de testes em memória.
-O `seed_user` cria um usuário e o `sign_in_request` devolve uma requisição já com a sessão:
-
-```rust
-// tests/admin_auth_test.rs
-use doido_auth::testing::{seed_user, sign_in_request, AuthTestGuard};
-
-#[tokio::test]
-async fn author_can_reach_the_admin_area() {
-    let _guard = AuthTestGuard::new();
-    // …prepare o pool + tabelas como no teste de requisição…
-
-    seed_user(pool, "author@example.com", "s3cret").await.unwrap();
-    let response = sign_in_request(&app, "author@example.com", "s3cret").await.unwrap();
-
-    assert_eq!(response.status(), axum::http::StatusCode::OK);
-}
-```
-
-Veja a [referência de Auth](@/docs/reference/auth.md#testing) para a lista completa de helpers.
+Para testes de requisição e de auth (montar o router real, dirigir uma sessão logada), veja a
+[referência de Testes](@/docs/reference/auth.pt.md#testes). O fluxo completo acima — os comandos
+de gerador exatos mais estas customizações — também roda como um e2e de release
+(`blog_tutorial`), então este tutorial não apodrece em silêncio.
 
 ## Próximos passos
 
-- **[Models](@/docs/reference/models.md)** — associações, migrations, validações e factories.
-- **[Controllers & rotas](@/docs/reference/controllers.md)** — filtros, strong parameters e a DSL `routes!`.
-- **[Views](@/docs/reference/views.md)** — layouts, partials e view helpers.
-- **[Auth](@/docs/reference/auth.md)** — sessões, JWT, OAuth, 2FA e os extractors.
-- **[Geradores & CLI](@/docs/reference/generators.md)** — todos os geradores, incluindo o `scaffold` para CRUD completo em um comando.
+- **[Geradores & CLI](@/docs/reference/generators.pt.md)** — cada gerador, incluindo `scaffold`
+  e `resource`, e o padrão de tutoriais que estes passos seguem.
+- **[Models](@/docs/reference/models.pt.md)** — associações, migrations, validações e factories.
+- **[Controllers & roteamento](@/docs/reference/controllers.pt.md)** — filtros, strong parameters e a DSL `routes!`.
+- **[Views](@/docs/reference/views.pt.md)** — layouts, partials e helpers de view.
+- **[Auth](@/docs/reference/auth.pt.md)** — sessões, JWT, OAuth, 2FA e os extractors.

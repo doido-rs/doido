@@ -131,6 +131,34 @@ pub fn get_text(url: &str) -> String {
         .expect("response body")
 }
 
+/// Extract the `_doido_session=<value>` pair from a response's `Set-Cookie`
+/// headers, ready to be echoed back as a `Cookie` request header.
+pub fn session_cookie(set_cookie: &[String]) -> String {
+    set_cookie
+        .iter()
+        .find(|c| c.contains("_doido_session"))
+        .and_then(|c| c.split(';').next())
+        .unwrap_or_default()
+        .to_string()
+}
+
+/// POST a form while sending a session `Cookie` header (authenticated request).
+pub fn post_form_with_cookie(url: &str, fields: &[(&str, &str)], cookie: &str) -> HttpResponse {
+    let owned: Vec<(String, String)> = fields
+        .iter()
+        .map(|(k, v)| (k.to_string(), v.to_string()))
+        .collect();
+    let response = no_redirect_agent()
+        .post(url)
+        .header("Cookie", cookie)
+        .send_form(owned)
+        .expect("POST form");
+    HttpResponse {
+        status: response.status().as_u16(),
+        set_cookie: collect_set_cookie(response),
+    }
+}
+
 pub fn api_crud_cycle(base: &str, collection: &str, create_body: Value, update_body: Value) {
     let created = post_json(&format!("{base}/{collection}"), create_body);
     let id = created["id"].as_i64().expect("created id");

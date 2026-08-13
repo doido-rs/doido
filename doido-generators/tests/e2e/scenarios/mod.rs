@@ -1,5 +1,6 @@
 mod api_project;
 mod auth_install;
+mod blog_tutorial;
 mod bootstrap_migrations;
 mod db_commands;
 mod db_seed;

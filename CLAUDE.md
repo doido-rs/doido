@@ -63,3 +63,21 @@ doido/                  ← workspace root (Cargo.toml)
 - [x] 12-cable — **`#[channel]` macro + trait, pluggable PubSub (memory/redis/db), middleware+`CableConnection` auth, ActionCable wire protocol, generator added**
 - [x] 15-storage — **Pluggable `Service` (disk default/memory/S3/R2/Azure/GCS + custom-adapter registry via `register_adapter`/`type:`), blobs+polymorphic attachments (raw SQL), HMAC signed ids/URLs, axum redirect+proxy+direct-upload serving, `storage:install`/`storage:adapter` generators; variants/previews deferred**
 - [x] 16-auth — **`AuthUser` trait, axum extractors (`CurrentUser`/`MaybeUser`/`RequireAuth`/`AuthToken`), pluggable strategies (cookie/JWT/OAuth2), optional 2FA (`auth-2fa`), pre-built `routes::mount`, generators in `doido-auth` (CLI-visible when installed); `doido new --auth` bootstrap. Release e2e `auth_install` scaffolded (`#[ignore]`).**
+
+## Tutorial & docs standard (MUST follow)
+
+Tutorials under `docs-blog/content/docs/tutorials/` are executable specs. When writing or
+editing one:
+
+1. **Create controllers with generators**, never a hand-written `#[controller]` skeleton the
+   reader types from scratch — use `cargo doido generate scaffold <Name> …` for a resource or
+   `cargo doido generate controller <Name>` for a one-off; only *customize* the generated files.
+   (`scaffold` regenerates the model, so don't also `generate model` the same name.)
+2. **Routes come after the controller they reference.** Generators auto-inject the route with the
+   controller; any manual route edit is shown only after that controller exists — a reader
+   following top-to-bottom never points a route at a controller that isn't there yet.
+3. **Mirror every tutorial with an e2e scenario** in `doido-generators/tests/e2e/scenarios/` that
+   runs the same generator script + customizations, builds under `-D warnings`, and asserts the
+   behavior over HTTP. Tutorial code blocks and the scenario's embedded code are one source of
+   truth — change one, change the other. Pair: `building-a-blog.md` ↔ `blog_tutorial.rs`
+   (`make release-e2e`). Full rationale: [docs/06b-generators.md](docs/06b-generators.md#tutorial-standard-docs--e2e).
