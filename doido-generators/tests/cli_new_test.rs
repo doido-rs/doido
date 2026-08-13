@@ -148,7 +148,7 @@ fn test_doido_generate_model_writes_model_migration_and_lib() {
         .success();
 
     // Entity in _entities/; extension stub in app/models/.
-    let entity_path = dir.path().join("app/models/_entities/user.rs");
+    let entity_path = dir.path().join("app/models/_entities/users.rs");
     assert!(entity_path.exists());
     let entity = fs::read_to_string(&entity_path).unwrap();
     assert!(entity.contains("DeriveEntityModel"));
@@ -156,7 +156,7 @@ fn test_doido_generate_model_writes_model_migration_and_lib() {
     let model_path = dir.path().join("app/models/user.rs");
     assert!(model_path.exists());
     let content = fs::read_to_string(&model_path).unwrap();
-    assert!(content.contains("pub use super::_entities::user::*;"));
+    assert!(content.contains("pub use super::_entities::users::*;"));
 
     // Migration registered in the migration crate lib.rs.
     let lib = fs::read_to_string(dir.path().join("db/migration/src/lib.rs")).unwrap();

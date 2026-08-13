@@ -2,8 +2,9 @@
 //! Safe to edit; never overwritten by generators.
 #![allow(dead_code)]
 
-pub use super::_entities::user::*;
+pub use super::_entities::users::*;
 
+use doido::model::sea_orm::entity::prelude::*;
 use doido::model::sea_orm::Set;
 use doido::model::password::HasSecurePassword;
 use doido_auth::AuthUser;

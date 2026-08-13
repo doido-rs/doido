@@ -42,7 +42,7 @@ impl Generator for ModelGenerator {
 
         let extension = crate::templates::get("models/model.rs.template")
             .replace("{Model}", &model_name)
-            .replace("{singular}", &snake);
+            .replace("{table_name}", &table_name);
 
         // Migration file. The module/file name is the migration id (`MigrationName::name`).
         let timestamp = Utc::now().format("%Y%m%d_%H%M%S");
@@ -68,7 +68,7 @@ impl Generator for ModelGenerator {
 
         let entities_mod_existing = std::fs::read_to_string(ENTITIES_MOD_PATH)
             .unwrap_or_else(|_| ENTITIES_MOD_BASE.to_string());
-        let entities_mod = register_entity_module(&entities_mod_existing, &snake);
+        let entities_mod = register_entity_module(&entities_mod_existing, &table_name);
 
         // Model test stub (a standalone integration test target — a TODO
         // placeholder needs no imports, so it compiles in the binary app crate).
@@ -78,7 +78,7 @@ impl Generator for ModelGenerator {
 
         Ok(vec![
             GeneratedFile {
-                path: format!("app/models/_entities/{snake}.rs"),
+                path: format!("app/models/_entities/{table_name}.rs"),
                 content: entity,
             },
             GeneratedFile {

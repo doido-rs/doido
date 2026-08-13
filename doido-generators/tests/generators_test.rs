@@ -48,11 +48,11 @@ fn test_model_generator_produces_model_migration_and_updates_lib() {
     let paths: Vec<&str> = files.iter().map(|f| f.path.as_str()).collect();
 
     // Entity file in app/models/_entities/; extension stub in app/models/.
-    assert!(paths.contains(&"app/models/_entities/user.rs"));
+    assert!(paths.contains(&"app/models/_entities/users.rs"));
     assert!(paths.contains(&"app/models/user.rs"));
     let entity = files
         .iter()
-        .find(|f| f.path == "app/models/_entities/user.rs")
+        .find(|f| f.path == "app/models/_entities/users.rs")
         .unwrap();
     assert!(entity.content.contains("DeriveEntityModel"));
     assert!(entity.content.contains("table_name = \"users\""));
@@ -62,7 +62,7 @@ fn test_model_generator_produces_model_migration_and_updates_lib() {
         .unwrap();
     assert!(extension
         .content
-        .contains("pub use super::_entities::user::*;"));
+        .contains("pub use super::_entities::users::*;"));
 
     // Migration file in db/migration/src/.
     assert!(paths
@@ -104,10 +104,10 @@ fn test_model_generator_pluralizes_irregular_table_name() {
     let paths: Vec<&str> = files.iter().map(|f| f.path.as_str()).collect();
 
     assert!(paths.contains(&"app/models/person.rs"));
-    assert!(paths.contains(&"app/models/_entities/person.rs"));
+    assert!(paths.contains(&"app/models/_entities/people.rs"));
     let entity = files
         .iter()
-        .find(|f| f.path == "app/models/_entities/person.rs")
+        .find(|f| f.path == "app/models/_entities/people.rs")
         .unwrap();
     assert!(entity.content.contains("table_name = \"people\""));
     assert!(paths.iter().any(|p| p.ends_with("_create_people_table.rs")));
@@ -129,7 +129,7 @@ fn test_model_generator_emits_columns_from_field_specs() {
     // Entity struct carries one field per column with correct nullability.
     let entity = files
         .iter()
-        .find(|f| f.path == "app/models/_entities/post.rs")
+        .find(|f| f.path == "app/models/_entities/posts.rs")
         .unwrap();
     assert!(entity.content.contains("pub title: String,"));
     assert!(entity.content.contains("pub body: Option<String>,"));

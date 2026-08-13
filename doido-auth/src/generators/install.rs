@@ -75,7 +75,7 @@ fn user_entity(two_factor: bool) -> String {
 }
 
 fn entities_mod(existing: &str) -> String {
-    doido_model::entities::register_entity_module(existing, "user")
+    doido_model::entities::register_entity_module(existing, "users")
 }
 
 fn auth_mod(two_factor: bool) -> String {
@@ -140,7 +140,7 @@ impl AuthGenerator for AuthInstallGenerator {
                 content: lib,
             },
             GeneratedFile {
-                path: "app/models/_entities/user.rs".to_string(),
+                path: "app/models/_entities/users.rs".to_string(),
                 content: user_entity(two_factor),
             },
             GeneratedFile {

@@ -195,7 +195,7 @@ impl AuthGenerator for AuthScaffoldGenerator {
 
         let extension_content = template("scaffold/model.rs.template")
             .replace("{Model}", &model)
-            .replace("{singular}", &singular);
+            .replace("{table_name}", &plural);
 
         let entities_mod_base = files
             .iter()
@@ -204,7 +204,7 @@ impl AuthGenerator for AuthScaffoldGenerator {
             .or_else(|| std::fs::read_to_string(ENTITIES_MOD_PATH).ok())
             .unwrap_or_else(|| ENTITIES_MOD_BASE.to_string());
         let entities_mod =
-            doido_model::entities::register_entity_module(&entities_mod_base, &singular);
+            doido_model::entities::register_entity_module(&entities_mod_base, &plural);
 
         let controller_template = if api {
             template("scaffold/controller_api.rs.template")
@@ -214,7 +214,7 @@ impl AuthGenerator for AuthScaffoldGenerator {
 
         for file in [
             GeneratedFile {
-                path: format!("app/models/_entities/{singular}.rs"),
+                path: format!("app/models/_entities/{plural}.rs"),
                 content: entity_content,
             },
             GeneratedFile {

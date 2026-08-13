@@ -291,9 +291,9 @@ async fn export_entities_from_database(verbose: bool) {
 fn sync_model_extensions() {
     let entities_dir = Path::new(DEFAULT_ENTITY_OUTPUT_DIR);
     let models_dir = Path::new("app/models");
-    match doido_model::entities::sync_extension_stubs(entities_dir, models_dir) {
-        Ok(()) => doido_core::tracing::info!("synced model extension stubs"),
-        Err(e) => doido_core::tracing::error!("sync model extensions failed: {e}"),
+    match doido_model::entities::postprocess_entity_export(entities_dir, models_dir) {
+        Ok(()) => doido_core::tracing::info!("post-processed exported entities"),
+        Err(e) => doido_core::tracing::error!("entity post-process failed: {e}"),
     }
 }
 

@@ -4,7 +4,8 @@ use crate::common::cli;
 use crate::common::{AppHarness, BaseProfile};
 
 const ARTICLE_EXTENSION: &str = r#"//! Article extensions with Active Record-style validations.
-pub use super::_entities::article::*;
+#![allow(dead_code, unused_imports)]
+pub use super::_entities::articles::*;
 
 use doido::model::validation::{Errors, Validate};
 
@@ -91,10 +92,15 @@ fn model_validations_survive_entity_export_on_migrate() {
     h.build();
     h.prepare_database();
 
-    let entities = std::fs::read_to_string(h.app.join("app/models/_entities/article.rs")).unwrap();
+    let entity_path = h.app.join("app/models/_entities/articles.rs");
+    let entities = std::fs::read_to_string(&entity_path).unwrap();
     assert!(
         entities.contains("DeriveEntityModel"),
         "migrate should export entity into _entities/"
+    );
+    assert!(
+        entities.contains("table_name = \"articles\""),
+        "entity module should follow the table name"
     );
 
     let extension = std::fs::read_to_string(h.app.join("app/models/article.rs")).unwrap();

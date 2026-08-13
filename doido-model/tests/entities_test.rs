@@ -1,6 +1,6 @@
 use doido_model::entities::{
-    entity_modules, extension_stub, register_entity_module, register_model_module,
-    sync_extension_stubs,
+    entity_modules, extension_stub, model_modules, register_entity_module, register_model_module,
+    rewrite_generated_imports,
 };
 use std::fs;
 use tempfile::tempdir;
@@ -8,21 +8,27 @@ use tempfile::tempdir;
 #[test]
 fn entity_modules_parses_mod_declarations() {
     let content = r#"pub mod prelude;
-pub mod post;
-pub mod user;
+pub mod posts;
+pub mod users;
 pub mod sea_orm_active_enums;
 "#;
     assert_eq!(
         entity_modules(content),
-        vec!["post".to_string(), "user".to_string()]
+        vec!["posts".to_string(), "users".to_string()]
     );
 }
 
 #[test]
-fn extension_stub_reexports_entity() {
-    let stub = extension_stub("post");
-    assert!(stub.contains("pub use super::_entities::post::*;"));
-    assert!(stub.contains("never overwritten"));
+fn model_modules_skips_entities_registry() {
+    let content = "pub mod _entities;\npub mod post;\n// @generated-models\n";
+    assert_eq!(model_modules(content), vec!["post".to_string()]);
+}
+
+#[test]
+fn extension_stub_reexports_entity_table_module() {
+    let stub = extension_stub("post", "posts");
+    assert!(stub.contains("pub use super::_entities::posts::*;"));
+    assert!(stub.contains("#![allow(dead_code, unused_imports)]"));
 }
 
 #[test]
@@ -37,36 +43,51 @@ fn register_model_module_is_idempotent() {
 #[test]
 fn register_entity_module_is_idempotent() {
     let base = "// @generated-entities\n";
-    let once = register_entity_module(base, "post");
-    assert!(once.contains("pub mod post;"));
-    let twice = register_entity_module(&once, "post");
+    let once = register_entity_module(base, "posts");
+    assert!(once.contains("pub mod posts;"));
+    let twice = register_entity_module(&once, "posts");
     assert_eq!(once, twice);
 }
 
 #[test]
-fn sync_extension_stubs_creates_missing_files_and_registers_mod() {
+fn rewrite_generated_imports_replaces_sea_orm_paths() {
     let dir = tempdir().unwrap();
-    let entities = dir.path().join("_entities");
-    let models = dir.path().join("models");
-    fs::create_dir_all(&entities).unwrap();
-    fs::create_dir_all(&models).unwrap();
-
     fs::write(
-        entities.join("mod.rs"),
-        "pub mod article;\n// @generated-entities\n",
+        dir.path().join("posts.rs"),
+        "use sea_orm::entity::prelude::*;\nuse sea_orm::Set;\n",
     )
     .unwrap();
+    rewrite_generated_imports(dir.path()).unwrap();
+    let content = fs::read_to_string(dir.path().join("posts.rs")).unwrap();
+    assert!(content.contains("use doido::model::sea_orm as sea_orm;"));
+    assert!(content.contains("use doido::model::sea_orm::entity::prelude::*;"));
+    assert!(content.contains("use doido::model::sea_orm::Set;"));
+}
+
+#[test]
+fn rewrite_generated_imports_adds_alias_for_sea_orm_attributes() {
+    let dir = tempdir().unwrap();
     fs::write(
-        models.join("mod.rs"),
-        "pub mod _entities;\n\n// @generated-models\n",
+        dir.path().join("storage_blobs.rs"),
+        "use sea_orm::entity::prelude::*;\n\n#[sea_orm(table_name = \"storage_blobs\")]\n",
     )
     .unwrap();
+    rewrite_generated_imports(dir.path()).unwrap();
+    let content = fs::read_to_string(dir.path().join("storage_blobs.rs")).unwrap();
+    assert!(content.contains("use doido::model::sea_orm as sea_orm;"));
+    assert!(content.contains("use doido::model::sea_orm::entity::prelude::*;"));
+    assert!(content.contains("#![allow(dead_code, unused_imports)]"));
+}
 
-    sync_extension_stubs(&entities, &models).unwrap();
-
-    let article = fs::read_to_string(models.join("article.rs")).unwrap();
-    assert!(article.contains("pub use super::_entities::article::*;"));
-
-    let models_mod = fs::read_to_string(models.join("mod.rs")).unwrap();
-    assert!(models_mod.contains("pub mod article;"));
+#[test]
+fn rewrite_generated_imports_adds_lint_allows_to_prelude() {
+    let dir = tempdir().unwrap();
+    fs::write(
+        dir.path().join("prelude.rs"),
+        "pub use super::posts::Entity as Posts;\n",
+    )
+    .unwrap();
+    rewrite_generated_imports(dir.path()).unwrap();
+    let content = fs::read_to_string(dir.path().join("prelude.rs")).unwrap();
+    assert!(content.contains("#![allow(unused_imports)]"));
 }
