@@ -286,8 +286,8 @@ templates with blog-shaped markup (leave `new`, `edit`, and `_form` as the scaff
     <p><strong>{{ comment.author_name }}</strong>: {{ comment.body }}</p>
   {% endfor %}
   <form method="post" action="/posts/{{ post.id }}/comments">
-    <input type="text" name="author_name" required>
-    <textarea name="body" required></textarea>
+    <p><label>Name</label> <input type="text" name="author_name" required></p>
+    <p><label>Comment</label> <textarea name="body" required></textarea></p>
     <button type="submit">Post comment</button>
   </form>
 </section>

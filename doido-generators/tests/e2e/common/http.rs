@@ -37,6 +37,23 @@ pub fn post_json(url: &str, body: Value) -> Value {
         .expect("json body")
 }
 
+/// POST JSON tolerating 4xx/5xx (ureq treats those as errors by default), so a
+/// rejected sign-in (401) can be asserted without panicking. Returns status +
+/// any `Set-Cookie` headers.
+pub fn post_json_status_any(url: &str, body: Value) -> HttpResponse {
+    let response = ureq::Agent::config_builder()
+        .http_status_as_error(false)
+        .build()
+        .new_agent()
+        .post(url)
+        .send_json(body)
+        .expect("POST request");
+    HttpResponse {
+        status: response.status().as_u16(),
+        set_cookie: collect_set_cookie(response),
+    }
+}
+
 pub fn patch_json(url: &str, body: Value) -> Value {
     ureq::patch(url)
         .send_json(body)
@@ -129,6 +146,21 @@ pub fn get_text(url: &str) -> String {
         .into_body()
         .read_to_string()
         .expect("response body")
+}
+
+/// GET with a session `Cookie` header, returning the raw status (tolerates
+/// 4xx/5xx). Used to hit a protected route as a signed-in user.
+pub fn get_status_with_cookie(url: &str, cookie: &str) -> u16 {
+    ureq::Agent::config_builder()
+        .http_status_as_error(false)
+        .build()
+        .new_agent()
+        .get(url)
+        .header("Cookie", cookie)
+        .call()
+        .expect("GET request")
+        .status()
+        .as_u16()
 }
 
 /// Extract the `_doido_session=<value>` pair from a response's `Set-Cookie`

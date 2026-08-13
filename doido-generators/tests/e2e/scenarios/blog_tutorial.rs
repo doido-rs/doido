@@ -257,8 +257,8 @@ const SHOW_VIEW: &str = r#"{% extends "layouts/application.html.tera" %}
     <p><strong>{{ comment.author_name }}</strong>: {{ comment.body }}</p>
   {% endfor %}
   <form method="post" action="/posts/{{ post.id }}/comments">
-    <input type="text" name="author_name" required>
-    <textarea name="body" required></textarea>
+    <p><label>Name</label> <input type="text" name="author_name" required></p>
+    <p><label>Comment</label> <textarea name="body" required></textarea></p>
     <button type="submit">Post comment</button>
   </form>
 </section>
@@ -349,6 +349,11 @@ fn blog_tutorial_scaffold_controller_and_serve() {
             db::assert_column_exists(&h.app, "posts", "user_id");
             db::assert_column_exists(&h.app, "posts", "published");
             db::assert_column_exists(&h.app, "comments", "post_id");
+
+            // `--auth` apps ship a db/seed that creates an initial admin user.
+            // Runs before the HTTP sign-up below, while `users` is still empty.
+            h.seed_database();
+            db::assert_row_exists(&h.app, "users", "email", "admin@example.com");
         },
         |app| {
             let base = &app.base_url;

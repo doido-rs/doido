@@ -239,3 +239,19 @@ pub fn assert_row_count(app: &Path, table: &str, expected: i64) {
         "expected {expected} row(s) in `{table}`, found {count}"
     );
 }
+
+/// Asserts at least one row in `table` has `column = value` (e.g. a seeded user).
+pub fn assert_row_exists(app: &Path, table: &str, column: &str, value: &str) {
+    let conn = open_sqlite(app);
+    let count: i64 = conn
+        .query_row(
+            &format!("SELECT COUNT(*) FROM {table} WHERE {column} = ?1"),
+            rusqlite::params![value],
+            |row| row.get(0),
+        )
+        .expect("count matching rows");
+    assert!(
+        count >= 1,
+        "expected a row in `{table}` where {column} = {value:?}, found none"
+    );
+}
