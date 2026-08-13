@@ -294,6 +294,40 @@ templates with blog-shaped markup (leave `new`, `edit`, and `_form` as the scaff
 {% endblock %}
 ```
 
+### Add a navigation partial
+
+Every page needs the same handful of links — browse posts, start a new one, sign in or up.
+Rather than repeat them in each template, pull them into a **partial** and render it from the
+layout so every page picks it up. Partials live under `app/views/`, are named with a leading
+underscore, and are included by their path:
+
+```html
+{# app/views/shared/_nav.html.tera #}
+<nav>
+  <a href="/">Posts</a>
+  <a href="/posts/new">New post</a>
+  <a href="/users/sign_in">Sign in</a>
+  <a href="/users/sign_up">Sign up</a>
+</nav>
+```
+
+Render it from the generated layout, just inside `<body>`, so it wraps every page's content:
+
+```html
+{# app/views/layouts/application.html.tera #}
+<!DOCTYPE html>
+<html>
+<head><title>blog</title></head>
+<body>
+{% include "shared/_nav.html.tera" %}
+{% block content %}{% endblock %}
+</body>
+</html>
+```
+
+Now the blog index, each post page, and the generated sign-in / sign-up screens all carry the
+same navigation.
+
 ## The Comment model
 
 A comment belongs to a post and carries the reader's name and message. No login is required to

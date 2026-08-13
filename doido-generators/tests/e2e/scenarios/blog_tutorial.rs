@@ -265,8 +265,20 @@ const SHOW_VIEW: &str = r#"{% extends "layouts/application.html.tera" %}
 {% endblock %}
 "#;
 
+const NAV_PARTIAL: &str = r#"<nav>
+  <a href="/">Posts</a>
+  <a href="/posts/new">New post</a>
+  <a href="/users/sign_in">Sign in</a>
+  <a href="/users/sign_up">Sign up</a>
+</nav>
+"#;
+
 fn write(app: &Path, rel: &str, contents: &str) {
-    fs::write(app.join(rel), contents).unwrap_or_else(|e| panic!("write {rel}: {e}"));
+    let path = app.join(rel);
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).unwrap_or_else(|e| panic!("mkdir for {rel}: {e}"));
+    }
+    fs::write(&path, contents).unwrap_or_else(|e| panic!("write {rel}: {e}"));
 }
 
 /// Applies a single required substitution, panicking (with the file dumped) if
@@ -321,6 +333,17 @@ fn blog_tutorial_scaffold_controller_and_serve() {
     );
     write(&h.app, "app/views/posts/index.html.tera", INDEX_VIEW);
     write(&h.app, "app/views/posts/show.html.tera", SHOW_VIEW);
+    write(&h.app, "app/views/shared/_nav.html.tera", NAV_PARTIAL);
+
+    // Render the shared nav from the generated layout so every page carries it.
+    let layout_path = h.app.join("app/views/layouts/application.html.tera");
+    let layout = fs::read_to_string(&layout_path).expect("read layout");
+    let layout = replace_once(
+        &layout,
+        "<body>{% block content %}{% endblock %}</body>",
+        "<body>\n{% include \"shared/_nav.html.tera\" %}\n{% block content %}{% endblock %}\n</body>",
+    );
+    fs::write(&layout_path, layout).expect("write layout");
 
     // 3. Adjust routes *after* the controllers exist. The scaffold already injected
     //    `resources!(posts, PostsController)` and the controller generator injected
@@ -363,6 +386,11 @@ fn blog_tutorial_scaffold_controller_and_serve() {
             assert!(
                 empty.contains("Blog"),
                 "homepage should render the blog heading"
+            );
+            // The shared nav partial (rendered via the layout) links to every entry point.
+            assert!(
+                empty.contains("href=\"/posts/new\"") && empty.contains("href=\"/users/sign_in\""),
+                "nav partial should render its links on every page"
             );
 
             // Register + sign in the author, capturing the session cookie.
