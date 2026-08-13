@@ -41,7 +41,7 @@ impl RegistrationsController {
                 serde_json::json!({ "error": "Email has already been taken" }),
             ));
         }
-        let now = chrono::Utc::now().naive_utc();
+        let now = chrono::Utc::now();
         let digest = hash_password(&form.password)?;
         let record = ActiveModel {
             email: Set(form.email),
