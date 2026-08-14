@@ -30,6 +30,17 @@ pub fn inject_auth_routes(routes: &str) -> String {
     ensure_auth_routes_block(routes, "auth_routes!(User);", &[USER_IMPORT])
 }
 
+/// Like [`inject_auth_routes`] but restricts the mounted routes to the given
+/// route groups (`auth_routes!(User, only: [sessions, registrations, …]);`).
+/// Used when an explicit module set is chosen at install time. Idempotent.
+pub fn inject_auth_routes_only(routes: &str, groups: &[&str]) -> String {
+    if routes.contains("auth_routes!(User") {
+        return routes.to_string();
+    }
+    let line = format!("auth_routes!(User, only: [{}]);", groups.join(", "));
+    ensure_auth_routes_block(routes, &line, &[USER_IMPORT])
+}
+
 /// Builds the `auth_routes!` line that points every enabled route module at the
 /// app's local (ejected) controllers. When all modules are overridden the macro
 /// never references `User`, so the `User` import is dropped by the caller.
