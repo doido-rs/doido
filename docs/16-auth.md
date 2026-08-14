@@ -8,12 +8,25 @@ and **pre-built session/registration routes** that work after a single line in
 compose with the existing `doido-controller` session stack and `#[controller]`
 filters.
 
-> **Status (2026-08-03): implemented.** Crate `doido-auth` ships with `AuthUser`,
-> cookie/JWT/OAuth strategies, optional 2FA (`auth-2fa`), axum extractors, `routes::mount`,
-> and generators (`auth:install` / `auth:controller` / `auth:scaffold`). Generators appear
-> in `doido generate` only when `doido-auth` is a project dependency. Harness US-105→US-112
-> done; release e2e (`US-113`, `auth_install`) is scaffolded as `#[ignore]`.
-> Password hashing lives in `doido-model::password`; auth builds on it.
+> **Status (2026-08-14): implemented, built-in-by-default.** Crate `doido-auth` ships with
+> `AuthUser`, cookie/JWT/OAuth strategies, optional 2FA (`auth-2fa`), axum extractors,
+> `routes::mount`, and generators (`auth:install` / `auth:controllers` / `auth:controller` /
+> `auth:scaffold`). Generators appear in `doido generate` only when `doido-auth` is a project
+> dependency. Password hashing lives in `doido-model::password`; auth builds on it.
+>
+> **Devise-style modules.** `auth.modules` in `config/<env>.yml` selects which features are
+> active (`database_authenticatable`, `registerable`, `recoverable`, `rememberable`,
+> `trackable`, `timeoutable`, `validatable`, `confirmable`, `lockable`, `omniauthable`,
+> `two_factor_authenticatable`). `auth:install` is module-aware — it emits the matching
+> migration columns/entity fields, writes the `modules:` list, and (with `--modules=`)
+> restricts mounted routes via `auth_routes!(User, only: […])`. See [Modules](#modules).
+>
+> **Controllers are built-in, not copied.** `doido new --auth` / `auth:install` wire a bare
+> `auth_routes!(User)` onto doido-auth's built-in controllers and render HTML from
+> framework-provided, overridable views — **no controllers or views are written into the
+> app**. Run `doido generate auth:controllers` to *eject* them for customization (the
+> `devise:controllers` + `devise:views` analogue). Release e2e: `auth_generators` (built-in
+> default + eject) and `auth_install` (API/HTML flows), run via `make release-e2e`.
 
 ## Crate map
 
@@ -155,6 +168,54 @@ auth:
 
 Credentials come from `config/credentials.yml.enc` or environment variables and
 must not be committed.
+
+## Modules
+
+`auth.modules` is the Devise `devise :database_authenticatable, …` analogue: a list
+that selects which auth features are active. A module governs its **routes** (via the
+generated `auth_routes!` `only:` list), its **migration columns / entity fields**, and
+its **runtime behavior**. `strategies` (cookie/JWT) are orthogonal — they decide *how* a
+request is authenticated, modules decide *which* Devise features exist.
+
+```yaml
+auth:
+  modules:
+    - database_authenticatable   # password auth (required)
+    - registerable               # sign-up
+    - recoverable                # password reset
+    - rememberable               # remember-me cookie
+    - validatable                # email/password validation
+  timeout: 1800                  # timeoutable: idle seconds
+  password_length: 6             # validatable: minimum length
+  maximum_attempts: 20           # lockable: fails before lock
+```
+
+Defaults to Devise's default set (`database_authenticatable`, `registerable`,
+`recoverable`, `rememberable`, `validatable`). `auth:install --modules=a,b,c` selects an
+explicit set: it emits the matching migration columns + entity fields, writes the
+`modules:` block, and restricts mounted routes with `auth_routes!(User, only: [...])`.
+With no `--modules`, install keeps the permissive bare `auth_routes!(User)`.
+
+### Devise ↔ doido-auth module parity
+
+| Devise module | doido module | Migration columns | Routes | Status |
+|---------------|--------------|-------------------|--------|--------|
+| database_authenticatable | `database_authenticatable` | `email`, `password_digest` | `sessions` | ✅ implemented |
+| registerable | `registerable` | — | `registrations` | ✅ implemented |
+| omniauthable | `omniauthable` | — | `oauth` | ✅ implemented (OAuth2) |
+| validatable | `validatable` | — | — | ✅ implemented (email + length) |
+| trackable | `trackable` | `sign_in_count`, `current/last_sign_in_at`, `current/last_sign_in_ip` | — | ✅ implemented (recorded on sign-in) |
+| two_factor | `two_factor_authenticatable` | `two_factor_secret`, `two_factor_enabled` | `two_factor` | ⚙️ TOTP core; enroll/challenge stubs (`auth-2fa`) |
+| recoverable | `recoverable` | `reset_password_token`, `reset_password_sent_at` | `passwords` | ⚙️ schema + routes; reset flow pending mailer |
+| rememberable | `rememberable` | `remember_created_at` | — | ⚙️ schema; remember-cookie behavior pending |
+| timeoutable | `timeoutable` | — | — | ⚙️ `auth.timeout` config; idle-expiry behavior pending |
+| confirmable | `confirmable` | `confirmation_token`, `confirmed_at`, `confirmation_sent_at`, `unconfirmed_email` | `confirmation` | ⚙️ schema + route group; confirm flow pending mailer |
+| lockable | `lockable` | `failed_attempts`, `unlock_token`, `locked_at` | `unlock` | ⚙️ schema + route group; lock/unlock behavior pending |
+
+Legend: ✅ full runtime behavior · ⚙️ config + schema + routing recognized; runtime behavior
+is a tracked follow-up. All modules are selectable today (columns, config, `only:` routes);
+the ⚙️ rows have their behavior wired incrementally in the built-in handlers, gated on
+`auth.modules`.
 
 ## Strategies
 
@@ -380,7 +441,8 @@ with an error that tells the user to add the dependency or run `doido new --auth
 
 | Generator | Files created | Route injected |
 |-----------|---------------|----------------|
-| `auth:install` | User migration, `app/models/user.rs`, auth controllers, views, `auth:` config snippet | Yes — `auth_routes!(User);` |
+| `auth:install` | User migration + model + `auth:` config; **no** controllers/views (uses built-ins) | Yes — bare `auth_routes!(User);` (or `only:` with `--modules=`) |
+| `auth:controllers` | Ejects `app/controllers/auth/**` + `app/views/auth/**`, rewires routes to local controllers (`--api`/`--two-factor`/`--controllers-only`/`--views-only`) | Rewrites `auth_routes!(User, controllers: { … })` |
 | `auth:controller <Name>` | Controller with `CurrentUser` / `before_action` auth guards | Yes — REST or custom |
 | `auth:scaffold <Name> fields…` | `auth:install` (if missing) + model + migration + auth-aware scaffold | Yes — `resources!(...)` + auth |
 
@@ -405,23 +467,41 @@ helpers (`route_injector`), not the other way around.
 
 ### `auth:install`
 
-The `devise:install` analogue:
+The `devise:install` + `devise User` analogue. It wires auth onto the framework's
+**built-in** controllers and views — it does **not** copy any controllers/views into
+the app (run [`auth:controllers`](#authcontrollers-eject) to eject them):
 
 ```sh
 doido generate auth:install
-doido generate auth:install --api          # JSON responses, no HTML views
-doido generate auth:install --two-factor   # enables 2FA columns + views
+doido generate auth:install --two-factor                 # 2FA columns + module
+doido generate auth:install --modules=database_authenticatable,registerable,confirmable,lockable
 ```
 
 Produces:
-- Migration: `users` table (`email`, `password_digest`, optional 2FA columns,
-  `created_at`, `updated_at`).
-- `app/models/user.rs` implementing `AuthUser` + `HasSecurePassword`.
-- `app/controllers/auth/{sessions,registrations,passwords,oauth,two_factor}_controller.rs`.
-- HTML views under `app/views/auth/` (skipped with `--api`).
-- Appends `auth:` block to `config/development.yml` / `config/test.yml`.
-- Injects `auth_routes!(User);` into `config/routes.rs` (does **not** modify
-  `Cargo.toml` — `doido-auth` must already be a dependency).
+- Migration: `users` table (`email`, `password_digest`, `created_at`, `updated_at`) plus
+  the columns of each enabled [module](#modules) (e.g. `reset_password_token`,
+  `confirmation_token`, `failed_attempts`, `sign_in_count`, …).
+- `app/models/user.rs` implementing `AuthUser` + `HasSecurePassword` (+ `RegisterableAuthUser`)
+  and `app/models/_entities/users.rs` with the module fields.
+- Appends an `auth:` block (with the `modules:` list) to `config/development.yml` /
+  `config/test.yml`.
+- Injects `use crate::models::user::Model as User;` and a bare `auth_routes!(User);` (or
+  `auth_routes!(User, only: [...])` with `--modules=`) into `config/routes.rs`. Targets
+  doido-auth's built-in controllers; does **not** modify `Cargo.toml`.
+
+### `auth:controllers` (eject)
+
+The `devise:controllers` + `devise:views` analogue. Copies the auth controllers and views
+into the app for customization and rewires `config/routes.rs` to point `auth_routes!` at
+the local controllers (`controllers: { sessions: auth::SessionsController, … }`, dropping
+the now-unused `User` import):
+
+```sh
+doido generate auth:controllers                  # controllers + HTML views
+doido generate auth:controllers --api            # controllers only (JSON)
+doido generate auth:controllers --views-only     # just the views (built-in controllers stay)
+doido generate auth:controllers --controllers-only
+```
 
 ### `auth:controller`
 

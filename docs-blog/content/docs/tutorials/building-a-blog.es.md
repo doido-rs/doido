@@ -45,9 +45,11 @@ cargo doido db migrate      # crea la tabla users
 cargo doido server          # http://0.0.0.0:3000 — sign-in/up ya funcionan
 ```
 
-`--auth` te da un modelo `User`, un `SessionsController` y un `RegistrationsController`, y rutas
-de sign-in / sign-up / sign-out bajo `/users`. Nos apoyaremos en ellas para proteger la autoría.
-Ve la [referencia de Auth](@/docs/reference/auth.es.md) para el panorama completo.
+`--auth` te da un modelo `User` y rutas de sign-in / sign-up / sign-out bajo `/users`, servidas
+por los controladores y vistas **integrados** de doido-auth — no se copia nada en tu app. Nos
+apoyaremos en ellas para proteger la autoría. Ejecuta `cargo doido generate auth:controllers`
+cuando quieras personalizarlos (extrae los controladores + vistas). Ve la
+[referencia de Auth](@/docs/reference/auth.es.md) para el panorama completo.
 
 ## Scaffold del recurso Post
 

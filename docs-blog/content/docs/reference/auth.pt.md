@@ -13,6 +13,30 @@ por cookie, JWT bearer, OAuth2), **2FA** opcional (TOTP), **extractors** axum e
 **geradores** que montam controllers de sessão, registro, senha e OAuth. O hash
 de senha reutiliza `doido_model::password::HasSecurePassword`.
 
+## Controllers embutidos e módulos
+
+`doido new --auth` / `auth:install` geram um model `User`, uma migração, um bloco de config
+`auth:` e um `auth_routes!(User)` simples — mas **nenhum controller ou view é copiado no seu
+app**. A autenticação roda sobre os controllers **embutidos** do doido-auth e renderiza HTML a
+partir de views fornecidas pelo framework e sobrescrevíveis. Para personalizá-los, *ejete-os*
+(o análogo de `devise:controllers` + `devise:views`):
+
+```bash
+cargo doido generate auth:controllers          # controllers + views (+ --api / --views-only)
+```
+
+Os **módulos no estilo Devise** selecionam quais recursos ficam ativos, em `config/<env>.yml`:
+
+```yaml
+auth:
+  modules: [database_authenticatable, registerable, recoverable, rememberable, validatable]
+```
+
+`auth:install --modules=a,b,c` emite as colunas de migração de cada módulo e restringe as rotas
+aos grupos selecionados. Disponíveis: `database_authenticatable`, `registerable`,
+`recoverable`, `rememberable`, `trackable`, `timeoutable`, `validatable`, `confirmable`,
+`lockable`, `omniauthable`, `two_factor_authenticatable`.
+
 ## Visão geral
 
 ```rust
