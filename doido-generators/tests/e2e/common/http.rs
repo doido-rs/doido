@@ -37,6 +37,23 @@ pub fn post_json(url: &str, body: Value) -> Value {
         .expect("json body")
 }
 
+/// POST JSON tolerating 4xx/5xx (ureq treats those as errors by default), so a
+/// rejected sign-in (401) can be asserted without panicking. Returns status +
+/// any `Set-Cookie` headers.
+pub fn post_json_status_any(url: &str, body: Value) -> HttpResponse {
+    let response = ureq::Agent::config_builder()
+        .http_status_as_error(false)
+        .build()
+        .new_agent()
+        .post(url)
+        .send_json(body)
+        .expect("POST request");
+    HttpResponse {
+        status: response.status().as_u16(),
+        set_cookie: collect_set_cookie(response),
+    }
+}
+
 pub fn patch_json(url: &str, body: Value) -> Value {
     ureq::patch(url)
         .send_json(body)
@@ -129,6 +146,49 @@ pub fn get_text(url: &str) -> String {
         .into_body()
         .read_to_string()
         .expect("response body")
+}
+
+/// GET with a session `Cookie` header, returning the raw status (tolerates
+/// 4xx/5xx). Used to hit a protected route as a signed-in user.
+pub fn get_status_with_cookie(url: &str, cookie: &str) -> u16 {
+    ureq::Agent::config_builder()
+        .http_status_as_error(false)
+        .build()
+        .new_agent()
+        .get(url)
+        .header("Cookie", cookie)
+        .call()
+        .expect("GET request")
+        .status()
+        .as_u16()
+}
+
+/// Extract the `_doido_session=<value>` pair from a response's `Set-Cookie`
+/// headers, ready to be echoed back as a `Cookie` request header.
+pub fn session_cookie(set_cookie: &[String]) -> String {
+    set_cookie
+        .iter()
+        .find(|c| c.contains("_doido_session"))
+        .and_then(|c| c.split(';').next())
+        .unwrap_or_default()
+        .to_string()
+}
+
+/// POST a form while sending a session `Cookie` header (authenticated request).
+pub fn post_form_with_cookie(url: &str, fields: &[(&str, &str)], cookie: &str) -> HttpResponse {
+    let owned: Vec<(String, String)> = fields
+        .iter()
+        .map(|(k, v)| (k.to_string(), v.to_string()))
+        .collect();
+    let response = no_redirect_agent()
+        .post(url)
+        .header("Cookie", cookie)
+        .send_form(owned)
+        .expect("POST form");
+    HttpResponse {
+        status: response.status().as_u16(),
+        set_cookie: collect_set_cookie(response),
+    }
 }
 
 pub fn api_crud_cycle(base: &str, collection: &str, create_body: Value, update_body: Value) {

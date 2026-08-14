@@ -320,3 +320,32 @@ With `--dry-run` flag, prints files without writing anything.
 - Test field type mapping for all supported types
 - Test `project_has_doido_auth` — auth generators listed only when `doido-auth` is in Cargo.toml
 - Integration test: generate scaffold → `cargo check` compiles without errors
+
+## Tutorial standard (docs ↔ e2e)
+
+Tutorials in `docs-blog/content/docs/tutorials/` are executable specifications, not
+prose sketches. They MUST obey the following, and each rule is enforced by a
+release e2e scenario that reproduces the tutorial:
+
+1. **Generators create controllers, not hand-written skeletons.** A tutorial builds
+   its controllers with `cargo doido generate scaffold <Name> …` (full CRUD resource)
+   or `cargo doido generate controller <Name>` (single stub). Reach for `scaffold`
+   for a resource, `controller` for a one-off action. Never paste a `#[controller]`
+   skeleton the reader is told to type from scratch — only *customizations* of
+   generated files are hand-edited. (`scaffold` also regenerates the model, so do not
+   pair `generate model X` with `generate scaffold X` for the same `X`.)
+2. **Routes come after the controller they point at.** Generators inject the route
+   at generation time (`scaffold` → `resources!(…)`, `controller` → `get!(…)`), so the
+   route always references a controller that already exists. Any *manual* route edit
+   (a nested route, `root!`, a namespace) is shown only after its controller has been
+   generated — a reader following top-to-bottom never declares a route to a
+   controller that isn't there yet.
+3. **Every tutorial command script is mirrored by an e2e scenario.** For each
+   tutorial there is a scenario under `doido-generators/tests/e2e/scenarios/` that runs
+   the same generator commands, applies the same customizations (via `fs::write`),
+   builds the app under `-D warnings`, boots it, and asserts the documented behavior
+   over HTTP. The embedded code in the scenario and the code blocks in the tutorial
+   are the same source of truth: **changing one requires changing the other.**
+
+Reference pair: `docs-blog/content/docs/tutorials/building-a-blog.md` ↔
+`doido-generators/tests/e2e/scenarios/blog_tutorial.rs` (run via `make release-e2e`).

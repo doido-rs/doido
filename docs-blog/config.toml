@@ -167,6 +167,7 @@ kind = "introduction"
 trans_key = "sidebar_introduction"
 pages = [
     "docs/tutorials/getting-started.md",
+    "docs/tutorials/building-a-blog.md",
     "docs/setup/installation.md",
     "docs/reference/cli.md",
 ]

@@ -31,7 +31,7 @@ async fn run_seed() -> doido::Result<()> {
     //     .insert(&db)
     //     .await?;
     // }
-
+{doido_auth_seed}
     Ok(())
 }
 

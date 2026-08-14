@@ -28,6 +28,10 @@ fn auth_install_api_sign_up_and_sign_in() {
                 sessions.contains("body_json"),
                 "API sessions controller should accept JSON"
             );
+
+            // `db seed` creates the initial admin user (before the sign-up below).
+            h.seed_database();
+            crate::common::db::assert_row_exists(&h.app, "users", "email", "admin@example.com");
         },
         |app| {
             let sign_up = http::post_json_with_response(
@@ -54,6 +58,20 @@ fn auth_install_api_sign_up_and_sign_in() {
                     .iter()
                     .any(|c| c.contains("_doido_session")),
                 "sign in should set session cookie"
+            );
+
+            // The seeded admin (from `db seed`) can also sign in with its credentials.
+            let admin = http::post_json_with_response(
+                &format!("{}/users/sign_in", app.base_url),
+                json!({ "email": "admin@example.com", "password": "password" }),
+            );
+            assert_eq!(admin.status, 200, "seeded admin should sign in");
+            assert!(
+                admin
+                    .set_cookie
+                    .iter()
+                    .any(|c| c.contains("_doido_session")),
+                "seeded admin sign in should set session cookie"
             );
         },
     );
@@ -85,6 +103,10 @@ fn auth_install_html_sign_up_and_sign_in() {
                 !sessions.contains("body_json"),
                 "HTML sessions controller should not accept JSON body"
             );
+
+            // `db seed` creates the initial admin user (before the sign-up below).
+            h.seed_database();
+            crate::common::db::assert_row_exists(&h.app, "users", "email", "admin@example.com");
         },
         |app| {
             let sign_in_page = http::get_text(&format!("{}/users/sign_in", app.base_url));
@@ -142,6 +164,24 @@ fn auth_install_html_sign_up_and_sign_in() {
                     .iter()
                     .any(|c| c.contains("_doido_session")),
                 "sign in should set session cookie"
+            );
+
+            // The seeded admin (from `db seed`) can also sign in with its credentials.
+            let admin = http::post_form_with_response(
+                &format!("{}/users/sign_in", app.base_url),
+                &[("email", "admin@example.com"), ("password", "password")],
+            );
+            assert!(
+                (300..400).contains(&admin.status),
+                "seeded admin should sign in, got {}",
+                admin.status
+            );
+            assert!(
+                admin
+                    .set_cookie
+                    .iter()
+                    .any(|c| c.contains("_doido_session")),
+                "seeded admin sign in should set session cookie"
             );
         },
     );

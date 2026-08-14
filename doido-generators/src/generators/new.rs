@@ -34,6 +34,23 @@ const CABLE_TEMPLATE_PREFIX: &str = "app/channels/";
 /// `mod channels;` include spliced into `src/main.rs` when `--cable` is passed.
 const CABLE_MODULE_INCLUDE: &str = "\n#[path = \"../app/channels/mod.rs\"]\nmod channels;\n";
 
+/// Initial-user seed spliced into `db/seed/src/main.rs` when `--auth` is passed.
+/// The `User` model (from `auth:install`) is reachable through the `models`
+/// module the seed already includes via `#[path]`.
+const AUTH_SEED_BODY: &str = r#"    // Seed an initial user so a fresh --auth app has a login out of the box.
+    {
+        use doido::model::password::hash_password;
+        use doido::model::sea_orm::EntityTrait;
+        use doido_auth::RegisterableAuthUser;
+        use models::user::{Entity, Model};
+
+        if Entity::find().one(&db).await?.is_none() {
+            let digest = hash_password("password")?;
+            Model::register(&db, "admin@example.com".into(), digest).await?;
+            println!("seeded initial user: admin@example.com / password");
+        }
+    }"#;
+
 /// README section explaining how the generated doido-cable example is wired.
 /// `{doido_name}` is substituted like any other template token.
 const CABLE_README_SECTION: &str = r#"
@@ -349,6 +366,14 @@ fn substitute_template(template: &str, ctx: &TemplateContext<'_>) -> String {
         String::new()
     };
 
+    // With `--auth` the generated app has a `User` model, so seed an initial user
+    // (admin@example.com / password) so a fresh project has a login out of the box.
+    let auth_seed = if ctx.auth {
+        AUTH_SEED_BODY.to_string()
+    } else {
+        String::new()
+    };
+
     template
         .replace("{doido_name}", ctx.name)
         .replace("{doido_db_url_test}", &ctx.db_url_test)
@@ -378,6 +403,8 @@ fn substitute_template(template: &str, ctx: &TemplateContext<'_>) -> String {
         .replace("{doido_model_dep}", &ctx.doido_model_dep)
         .replace("{doido_cable_deps}", &cable_deps)
         .replace("{doido_auth_deps}", &doido_auth_deps)
+        .replace("{doido_seed_auth_deps}", &doido_auth_deps)
+        .replace("{doido_auth_seed}", &auth_seed)
         .replace(
             "{doido_api_only}",
             if ctx.api { "\napi_only = true" } else { "" },

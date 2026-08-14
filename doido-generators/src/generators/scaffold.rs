@@ -206,9 +206,13 @@ fn render_view(
 fn form_field(f: &Field) -> String {
     let col = f.column_name();
     match f.html_input_type() {
-        "textarea" => format!("  <label>{col}<br><textarea name=\"{col}\"></textarea></label>\n"),
-        "checkbox" => format!("  <label>{col} <input type=\"checkbox\" name=\"{col}\"></label>\n"),
-        input => format!("  <label>{col}<br><input type=\"{input}\" name=\"{col}\"></label>\n"),
+        "textarea" => {
+            format!("  <p><label>{col}</label> <textarea name=\"{col}\"></textarea></p>\n")
+        }
+        "checkbox" => {
+            format!("  <p><label>{col}</label> <input type=\"checkbox\" name=\"{col}\"></p>\n")
+        }
+        input => format!("  <p><label>{col}</label> <input type=\"{input}\" name=\"{col}\"></p>\n"),
     }
 }
 

@@ -1,5 +1,6 @@
 mod api_project;
 mod auth_install;
+mod blog_tutorial;
 mod bootstrap_migrations;
 mod db_commands;
 mod db_seed;
@@ -13,6 +14,7 @@ mod new_cable;
 mod resource;
 mod scaffold_api;
 mod scaffold_html;
+mod seed_initial_user;
 mod smoke_generators;
 mod storage_install;
 mod type_mapping;

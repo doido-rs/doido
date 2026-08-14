@@ -17,7 +17,7 @@ impl HasSecurePassword for Model {
 }
 
 impl AuthUser for Model {
-    type Id = i32;
+    type Id = i64;
 
     fn id(&self) -> Self::Id {
         self.id
@@ -53,7 +53,7 @@ impl RegisterableAuthUser for Model {
         email: String,
         password_digest: String,
     ) -> doido::Result<Self> {
-        let now = chrono::Utc::now().naive_utc();
+        let now = chrono::Utc::now();
         let record = ActiveModel {
             email: Set(email),
             password_digest: Set(password_digest),
