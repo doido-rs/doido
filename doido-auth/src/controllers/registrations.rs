@@ -3,7 +3,6 @@
 use crate::handlers::{register_user, sign_in};
 use crate::user::{AuthUser, RegisterableAuthUser};
 use doido_auth_macros::auth_controller;
-use doido_controller::respond::Format;
 use doido_core::Result;
 use doido_model::password::HasSecurePassword;
 use serde::Deserialize;
@@ -33,7 +32,7 @@ where
 
     /// POST `{prefix}/sign_up` — create an account and sign in.
     pub async fn create(mut ctx: doido_controller::Context) -> Result<doido_controller::Response> {
-        let json = ctx.negotiated_format() == Format::Json;
+        let json = ctx.wants_json();
         let form: SignUpForm = if json {
             ctx.body_json().await?
         } else {
@@ -58,8 +57,30 @@ where
                 Err(crate::error::AuthError::EmailTaken) => {
                     return registration_error(ctx, json, "Email has already been taken");
                 }
+                // `validatable`: surface validation failures as 422, not 500.
+                Err(crate::error::AuthError::Validation(msg)) => {
+                    return registration_error(ctx, json, &msg);
+                }
                 Err(e) => return Err(doido_core::anyhow::anyhow!(e.to_string())),
             };
+
+        // `confirmable`: don't sign in yet — send a confirmation email and ask the
+        // user to confirm their address first.
+        if crate::confirmable::is_enabled() {
+            if let Some(token) =
+                crate::confirmable::generate_confirmation(ctx.db(), &form.email).await?
+            {
+                let _ = crate::confirmable::send_confirmation_email(&form.email, &token).await;
+            }
+            return if json {
+                Ok(ctx.json(serde_json::json!({ "status": "confirmation_sent" })))
+            } else {
+                Ok(ctx.render(
+                    "auth/sign_in",
+                    serde_json::json!({ "notice": "Please confirm your email to finish signing up." }),
+                ))
+            };
+        }
 
         sign_in(ctx, &user)?;
         if json {

@@ -16,39 +16,42 @@ impl AuthGeneratorRegistry for TestRegistry {
 }
 
 #[test]
-fn register_exports_all_three_generators() {
+fn register_exports_all_generators() {
     let mut reg = TestRegistry { names: Vec::new() };
     register(&mut reg);
     assert!(reg.names.contains(&"auth:install".to_string()));
+    assert!(reg.names.contains(&"auth:controllers".to_string()));
     assert!(reg.names.contains(&"auth:controller".to_string()));
     assert!(reg.names.contains(&"auth:scaffold".to_string()));
-    assert_eq!(reg.names.len(), 3);
+    assert_eq!(reg.names.len(), 4);
 }
 
 #[test]
-fn auth_install_emits_user_migration_controllers_and_routes() {
+fn auth_install_emits_user_migration_and_builtin_routes() {
     let files = AuthInstallGenerator.generate(&[]).unwrap();
 
     assert!(files.iter().any(|f| f.path.contains("create_users_table")));
     assert!(files.iter().any(|f| f.path == "app/models/user.rs"));
-    assert!(files
-        .iter()
-        .any(|f| f.path == "app/controllers/auth/sessions_controller.rs"));
-    assert!(files
-        .iter()
-        .any(|f| f.path == "app/controllers/auth/registrations_controller.rs"));
-    assert!(files
-        .iter()
-        .any(|f| f.path == "app/controllers/auth/passwords_controller.rs"));
-    assert!(files
-        .iter()
-        .any(|f| f.path == "app/controllers/auth/oauth_controller.rs"));
+
+    // Built-in-by-default: no auth controllers/views are copied into the app.
+    assert!(
+        !files
+            .iter()
+            .any(|f| f.path.starts_with("app/controllers/auth/")),
+        "auth:install must not copy controllers"
+    );
+    assert!(
+        !files.iter().any(|f| f.path.starts_with("app/views/auth/")),
+        "auth:install must not copy views"
+    );
 
     let routes = files
         .iter()
         .find(|f| f.path == "config/routes.rs")
         .expect("routes.rs emitted");
-    assert!(routes.content.contains("auth_routes!(User"));
+    // Bare route targeting doido-auth's built-in controllers.
+    assert!(routes.content.contains("auth_routes!(User);"));
+    assert!(!routes.content.contains("controllers: {"));
 }
 
 #[test]
@@ -90,9 +93,6 @@ fn auth_install_two_factor_flag_adds_columns() {
         .unwrap();
     assert!(migration.content.contains("two_factor_secret"));
     assert!(migration.content.contains("two_factor_enabled"));
-    assert!(files
-        .iter()
-        .any(|f| f.path.ends_with("two_factor_controller.rs")));
 }
 
 #[test]

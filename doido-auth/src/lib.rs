@@ -1,15 +1,20 @@
 //! Unified authentication for Doido — Devise + OmniAuth + JWT analogue.
 
 pub mod config;
+pub mod confirmable;
 pub mod controllers;
 pub mod error;
 pub mod extractors;
+pub mod framework_views;
 pub mod handlers;
 pub mod identity;
 pub mod jwt;
 pub mod layer;
+pub mod lockable;
 pub mod oauth;
+pub mod recoverable;
 pub mod registry;
+pub mod rememberable;
 pub mod route_mount;
 pub mod session;
 pub mod state;
@@ -17,6 +22,8 @@ pub mod strategy;
 pub mod user;
 
 pub mod testing;
+pub mod trackable;
+pub mod validations;
 
 #[cfg(feature = "auth-2fa")]
 pub mod two_factor;
@@ -24,11 +31,14 @@ pub mod two_factor;
 #[cfg(feature = "auth-2fa")]
 pub use controllers::AuthTwoFactor;
 
-pub use config::{load as load_config, AuthConfig, AuthRoutesConfig, JwtConfig, YamlConfig};
+pub use config::{
+    load as load_config, AuthConfig, AuthModule, AuthRoutesConfig, JwtConfig, YamlConfig,
+};
 pub use controllers::{AuthOauth, AuthPasswords, AuthRegistrations, AuthSessions};
 pub use doido_auth_macros::{__auth_routes_decl, auth_controller, auth_routes, routes};
 pub use error::AuthError;
 pub use extractors::{AuthToken, CurrentUser, MaybeUser, RequireAuth};
+pub use framework_views::register_views;
 pub use handlers::{authenticate, register_user, sign_in, sign_in_with_session, sign_out};
 pub use identity::AuthIdentity;
 pub use jwt::{JwtClaims, JwtStrategy, TokenPair};

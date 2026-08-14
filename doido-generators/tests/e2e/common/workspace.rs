@@ -145,27 +145,23 @@ fn recreate_base(dir: &Path, profile: BaseProfile) {
     doido(dir).args(profile.new_args()).assert().success();
 }
 
-fn auth_base_is_valid(dir: &Path, api: bool) -> bool {
+fn auth_base_is_valid(dir: &Path, _api: bool) -> bool {
     let app = dir.join("blog");
     let routes = app.join("config/routes.rs");
-    let sessions = app.join("app/controllers/auth/sessions_controller.rs");
     let user_model = app.join("app/models/user.rs");
-    let sign_in_view = app.join("app/views/auth/sign_in.html.tera");
 
-    let sessions_content = fs::read_to_string(&sessions).unwrap_or_default();
     let routes_content = fs::read_to_string(&routes).unwrap_or_default();
-    let routes_ok = routes_content.contains("SessionsController::create")
-        && !routes_content.contains("use doido::auth::auth_routes;");
+    // Built-in-by-default: `doido new --auth` mounts a bare `auth_routes!(User)`
+    // targeting the framework's built-in controllers and copies no controllers or
+    // views into the app (those are ejected on demand via `auth:controllers`).
+    let routes_ok = routes_content.contains("auth_routes!(User")
+        && routes_content.contains("use crate::models::user::Model as User;")
+        && !routes_content.contains("controllers: {");
+    let no_copy_ok =
+        !app.join("app/controllers/auth").exists() && !app.join("app/views/auth").exists();
     let main_ok = fs::read_to_string(app.join("src/main.rs"))
         .map(|content| content.contains("mod helpers;"))
         .unwrap_or(false);
-    let sessions_ok = sessions_content.contains("sign_in(ctx, &user)")
-        && sessions_content.contains("doido::controller::Context")
-        && if api {
-            sessions_content.contains("body_json")
-        } else {
-            sessions_content.contains("ctx.render(\"auth/sign_in\"")
-        };
     let user_ok = fs::read_to_string(&user_model)
         .map(|content| {
             content.contains("pub use super::_entities::users::*")
@@ -179,24 +175,20 @@ fn auth_base_is_valid(dir: &Path, api: bool) -> bool {
         && fs::read_to_string(app.join("db/seed/Cargo.toml"))
             .map(|content| content.contains("serde ="))
             .unwrap_or(false);
-    let views_ok = if api {
-        !sign_in_view.exists()
-    } else {
-        sign_in_view.is_file()
-            && app.join("app/views/auth/sign_up.html.tera").is_file()
-            && fs::read_to_string(app.join("app/controllers/auth/passwords_controller.rs"))
-                .map(|content| content.contains("#[allow(dead_code)]"))
-                .unwrap_or(false)
-    };
+    // Module-aware install writes the Devise-style `modules:` list into the auth
+    // config; a base predating that is stale and must be regenerated.
+    let modules_ok = fs::read_to_string(app.join("config/development.yml"))
+        .map(|content| content.contains("modules:"))
+        .unwrap_or(false);
 
     app.join("Cargo.toml").is_file()
         && cargo_ok
         && seed_ok
         && routes_ok
-        && sessions_ok
+        && no_copy_ok
         && user_ok
-        && views_ok
         && main_ok
+        && modules_ok
 }
 
 fn recreate_auth_base(dir: &Path, profile: BaseProfile) {

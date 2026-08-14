@@ -10,7 +10,9 @@ pub mod tera_engine;
 
 pub use content_for::ContentFor;
 pub use engine::TemplateEngine;
-pub use global::{init, render, render_variant, set_engine, try_engine};
+pub use global::{
+    init, register_framework_template, render, render_variant, set_engine, try_engine,
+};
 pub use partials::{render_collection, render_partial};
 pub use renderer::Renderer;
 pub use response::ViewResponse;

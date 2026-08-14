@@ -62,6 +62,12 @@ impl AuthState {
             }
         }
 
+        // `rememberable` module: resolve the signed remember cookie after the
+        // configured strategies decline.
+        if config.has_module(crate::config::AuthModule::Rememberable) {
+            strategies.push(Arc::new(crate::rememberable::RememberStrategy));
+        }
+
         let oauth = providers_from_config(&config.oauth);
 
         Ok(Self {

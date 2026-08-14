@@ -27,10 +27,30 @@ pub async fn run(routes: Option<axum::Router>, env: Option<String>, port: Option
                 doido_core::tracing::error!("failed to connect to the database: {e}");
                 return;
             }
+
+            // Auth apps use the framework's built-in controllers/views (nothing is
+            // copied into the project by default). Register the built-in auth views
+            // *before* the view engine loads so the app can override them by name,
+            // and install auth state so `CurrentUser`/`RequireAuth` guards resolve.
+            #[cfg(feature = "auth-generators")]
+            let auth_app = crate::commands::generate::project_has_doido_auth();
+            #[cfg(feature = "auth-generators")]
+            if auth_app {
+                doido_auth::register_views();
+            }
+
             // Install the Tera view engine over `app/views` so `Context::render`
             // works. Non-fatal: an app may serve JSON only.
             if let Err(e) = doido_view::init("app/views") {
                 doido_core::tracing::warn!("failed to load views from app/views: {e}");
+            }
+
+            #[cfg(feature = "auth-generators")]
+            if auth_app {
+                let config = doido_auth::load_config();
+                if let Err(e) = doido_auth::init(doido_model::pool::pool().clone(), &config).await {
+                    doido_core::tracing::warn!("failed to initialise auth: {e}");
+                }
             }
             // Install the global cache store from the `cache` config section
             // (in-memory by default). Non-fatal: an app may not use the cache,

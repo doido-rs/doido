@@ -5,6 +5,7 @@
 //! apps from `auth:install` emit project-local controllers under
 //! `app/controllers/auth/` that mirror these defaults and can be extended.
 
+pub mod confirmations;
 pub mod oauth;
 pub mod passwords;
 pub mod registrations;
@@ -13,6 +14,7 @@ pub mod sessions;
 #[cfg(feature = "auth-2fa")]
 pub mod two_factor;
 
+pub use confirmations::AuthConfirmations;
 pub use oauth::AuthOauth;
 pub use passwords::AuthPasswords;
 pub use registrations::AuthRegistrations;

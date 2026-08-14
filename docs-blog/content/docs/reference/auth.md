@@ -15,6 +15,30 @@ session, JWT bearer, OAuth2), optional **2FA** (TOTP), axum **extractors**, and
 **generators** that scaffold sessions, registration, passwords, and OAuth
 controllers. Password hashing reuses `doido_model::password::HasSecurePassword`.
 
+## Built-in controllers &amp; modules
+
+`doido new --auth` / `auth:install` scaffold a `User` model, a migration, an `auth:`
+config block, and a bare `auth_routes!(User)` — but **no controllers or views are copied
+into your app**. Auth runs on doido-auth's **built-in** controllers and renders HTML from
+framework-provided, overridable views. To customize, *eject* them (the
+`devise:controllers` + `devise:views` analogue):
+
+```bash
+cargo doido generate auth:controllers          # controllers + views (+ --api / --views-only)
+```
+
+**Devise-style modules** select which features are active, in `config/<env>.yml`:
+
+```yaml
+auth:
+  modules: [database_authenticatable, registerable, recoverable, rememberable, validatable]
+```
+
+`auth:install --modules=a,b,c` emits each module's migration columns and restricts routes
+to the selected groups. Available: `database_authenticatable`, `registerable`,
+`recoverable`, `rememberable`, `trackable`, `timeoutable`, `validatable`, `confirmable`,
+`lockable`, `omniauthable`, `two_factor_authenticatable`.
+
 ## At a glance
 
 ```rust

@@ -8,9 +8,40 @@
 use crate::engine::TemplateEngine;
 use crate::tera_engine::TeraEngine;
 use doido_core::Result;
-use std::sync::{Arc, OnceLock};
+use std::sync::{Arc, Mutex, OnceLock};
 
 static ENGINE: OnceLock<Arc<dyn TemplateEngine>> = OnceLock::new();
+
+/// Framework-provided, overridable templates (e.g. `doido-auth`'s built-in auth
+/// views). Populated by framework crates *before* [`init`]; the engine loads
+/// these first and lets app templates of the same name override them.
+static FRAMEWORK_TEMPLATES: OnceLock<Mutex<Vec<(String, String)>>> = OnceLock::new();
+
+fn framework_templates() -> &'static Mutex<Vec<(String, String)>> {
+    FRAMEWORK_TEMPLATES.get_or_init(|| Mutex::new(Vec::new()))
+}
+
+/// Registers an overridable, framework-provided template so `Context::render`
+/// resolves it even when the app has not written its own copy. `name` is the
+/// Tera template name including the extension (e.g. `"auth/sign_in.html.tera"`);
+/// `content` is the raw template source (typically `include_str!`).
+///
+/// Call this *before* [`init`]/[`set_engine`]. An app template loaded from the
+/// view directory with the same `name` overrides the framework one. Idempotent:
+/// re-registering the same `name` is a no-op.
+pub fn register_framework_template(name: &str, content: &str) {
+    let mut templates = framework_templates().lock().unwrap();
+    if templates.iter().any(|(n, _)| n == name) {
+        return;
+    }
+    templates.push((name.to_string(), content.to_string()));
+}
+
+/// Snapshot of the registered framework templates as `(name, content)` pairs.
+/// Used by the Tera engine at load time; app templates override by name.
+pub fn framework_template_snapshot() -> Vec<(String, String)> {
+    framework_templates().lock().unwrap().clone()
+}
 
 /// Installs a template engine globally. Idempotent: a second call is ignored.
 pub fn set_engine(engine: Arc<dyn TemplateEngine>) {

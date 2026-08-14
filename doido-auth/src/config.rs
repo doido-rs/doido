@@ -14,6 +14,93 @@ pub enum StrategyKind {
     Jwt,
 }
 
+/// Devise-style auth modules, declared under `auth.modules` in `config/<env>.yml`.
+///
+/// A module toggles a coherent feature — its routes (via the generated
+/// `auth_routes!` `only:` list), its migration columns, and its runtime behavior.
+/// `strategies` (cookie/jwt) are orthogonal: they decide *how* a request is
+/// authenticated, while modules decide *which* Devise features are active.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum AuthModule {
+    /// Password authentication (email + `password_digest`). Effectively required.
+    DatabaseAuthenticatable,
+    /// Sign-up / account registration (`registrations` routes).
+    Registerable,
+    /// Password reset via emailed token (`passwords` routes).
+    Recoverable,
+    /// "Remember me" persistent cookie (`remember_created_at`).
+    Rememberable,
+    /// Sign-in tracking (count, timestamps, IPs).
+    Trackable,
+    /// Idle session expiry after `auth.timeout` seconds.
+    Timeoutable,
+    /// Email/password format + length validation on registration.
+    Validatable,
+    /// Email confirmation before sign-in (`confirmation` routes).
+    Confirmable,
+    /// Lock an account after repeated failed sign-ins (`unlock` routes).
+    Lockable,
+    /// OAuth / social sign-in (`oauth` routes).
+    Omniauthable,
+    /// TOTP two-factor authentication (requires the `auth-2fa` feature).
+    TwoFactorAuthenticatable,
+}
+
+impl AuthModule {
+    /// All modules, in declaration order.
+    pub const ALL: [AuthModule; 11] = [
+        AuthModule::DatabaseAuthenticatable,
+        AuthModule::Registerable,
+        AuthModule::Recoverable,
+        AuthModule::Rememberable,
+        AuthModule::Trackable,
+        AuthModule::Timeoutable,
+        AuthModule::Validatable,
+        AuthModule::Confirmable,
+        AuthModule::Lockable,
+        AuthModule::Omniauthable,
+        AuthModule::TwoFactorAuthenticatable,
+    ];
+
+    /// The snake_case name used in config and generator flags.
+    pub fn as_str(self) -> &'static str {
+        match self {
+            AuthModule::DatabaseAuthenticatable => "database_authenticatable",
+            AuthModule::Registerable => "registerable",
+            AuthModule::Recoverable => "recoverable",
+            AuthModule::Rememberable => "rememberable",
+            AuthModule::Trackable => "trackable",
+            AuthModule::Timeoutable => "timeoutable",
+            AuthModule::Validatable => "validatable",
+            AuthModule::Confirmable => "confirmable",
+            AuthModule::Lockable => "lockable",
+            AuthModule::Omniauthable => "omniauthable",
+            AuthModule::TwoFactorAuthenticatable => "two_factor_authenticatable",
+        }
+    }
+
+    /// Parse a module from its snake_case name.
+    pub fn from_name(s: &str) -> Option<AuthModule> {
+        AuthModule::ALL.into_iter().find(|m| m.as_str() == s)
+    }
+
+    /// The `auth_routes!` route-group name this module mounts, if any.
+    /// Behavior-only modules (trackable, timeoutable, rememberable, validatable,
+    /// database_authenticatable) return `None` — they add no dedicated routes.
+    pub fn route_group(self) -> Option<&'static str> {
+        match self {
+            AuthModule::Registerable => Some("registrations"),
+            AuthModule::Recoverable => Some("passwords"),
+            AuthModule::Confirmable => Some("confirmation"),
+            AuthModule::Lockable => Some("unlock"),
+            AuthModule::Omniauthable => Some("oauth"),
+            AuthModule::TwoFactorAuthenticatable => Some("two_factor"),
+            _ => None,
+        }
+    }
+}
+
 /// JWT bearer settings from the `auth.jwt` section.
 #[derive(Debug, Clone, Deserialize)]
 pub struct JwtConfig {
@@ -159,6 +246,8 @@ impl AuthRoutesConfig {
 pub struct AuthConfig {
     #[serde(default)]
     pub user_model: Option<String>,
+    #[serde(default = "default_modules")]
+    pub modules: Vec<AuthModule>,
     #[serde(default = "default_strategies")]
     pub strategies: Vec<String>,
     #[serde(default)]
@@ -167,6 +256,24 @@ pub struct AuthConfig {
     pub oauth: HashMap<String, OAuthProviderConfig>,
     #[serde(default)]
     pub two_factor: TwoFactorConfig,
+    /// Idle-session timeout in seconds for the `timeoutable` module.
+    #[serde(default = "default_timeout")]
+    pub timeout: u64,
+    /// Minimum password length enforced by the `validatable` module.
+    #[serde(default = "default_password_length")]
+    pub password_length: usize,
+    /// Failed sign-in attempts before `lockable` locks an account.
+    #[serde(default = "default_maximum_attempts")]
+    pub maximum_attempts: u32,
+    /// Seconds a `lockable` account stays locked before auto-unlocking.
+    #[serde(default = "default_unlock_in")]
+    pub unlock_in: i64,
+    /// Seconds a `recoverable` password-reset token stays valid.
+    #[serde(default = "default_reset_within")]
+    pub reset_password_within: i64,
+    /// Seconds a `rememberable` "remember me" cookie persists.
+    #[serde(default = "default_remember_for")]
+    pub remember_for: i64,
     #[serde(default)]
     pub routes: AuthRoutesConfig,
 }
@@ -175,14 +282,56 @@ fn default_strategies() -> Vec<String> {
     vec!["cookie".into()]
 }
 
+/// Devise's default module set for a generated model.
+fn default_modules() -> Vec<AuthModule> {
+    vec![
+        AuthModule::DatabaseAuthenticatable,
+        AuthModule::Registerable,
+        AuthModule::Recoverable,
+        AuthModule::Rememberable,
+        AuthModule::Validatable,
+    ]
+}
+
+fn default_timeout() -> u64 {
+    1_800
+}
+
+fn default_password_length() -> usize {
+    6
+}
+
+fn default_maximum_attempts() -> u32 {
+    20
+}
+
+fn default_unlock_in() -> i64 {
+    3_600
+}
+
+fn default_reset_within() -> i64 {
+    21_600
+}
+
+fn default_remember_for() -> i64 {
+    1_209_600
+}
+
 impl Default for AuthConfig {
     fn default() -> Self {
         Self {
             user_model: None,
+            modules: default_modules(),
             strategies: default_strategies(),
             jwt: None,
             oauth: HashMap::new(),
             two_factor: TwoFactorConfig::default(),
+            timeout: default_timeout(),
+            password_length: default_password_length(),
+            maximum_attempts: default_maximum_attempts(),
+            unlock_in: default_unlock_in(),
+            reset_password_within: default_reset_within(),
+            remember_for: default_remember_for(),
             routes: AuthRoutesConfig::default(),
         }
     }
@@ -194,7 +343,27 @@ impl AuthConfig {
         YamlConfig::from_yaml(yaml).map(|c| c.auth)
     }
 
-    /// Validate required secrets and strategy-specific settings.
+    /// Returns whether `module` is enabled.
+    pub fn has_module(&self, module: AuthModule) -> bool {
+        self.modules.contains(&module)
+    }
+
+    /// The `auth_routes!` route-group names for the enabled modules, in a stable
+    /// order (`sessions` is always present for `database_authenticatable`). Used
+    /// to generate the `only:` list and to gate the runtime route mounter.
+    pub fn enabled_route_groups(&self) -> Vec<&'static str> {
+        let mut groups = vec!["sessions"];
+        for module in AuthModule::ALL {
+            if self.has_module(module) {
+                if let Some(group) = module.route_group() {
+                    groups.push(group);
+                }
+            }
+        }
+        groups
+    }
+
+    /// Validate required secrets, strategy-specific settings, and module coherence.
     pub fn validate(&self) -> Result<(), AuthError> {
         for name in &self.strategies {
             match name.as_str() {
@@ -214,6 +383,18 @@ impl AuthConfig {
                 }
             }
         }
+
+        if !self.has_module(AuthModule::DatabaseAuthenticatable) {
+            return Err(AuthError::Config(
+                "auth.modules must include database_authenticatable".into(),
+            ));
+        }
+        if self.has_module(AuthModule::TwoFactorAuthenticatable) && !cfg!(feature = "auth-2fa") {
+            return Err(AuthError::Config(
+                "auth.modules includes two_factor_authenticatable but the `auth-2fa` feature is not enabled".into(),
+            ));
+        }
+
         Ok(())
     }
 

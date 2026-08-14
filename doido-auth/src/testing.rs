@@ -109,9 +109,15 @@ pub fn reset_store() {
     store().lock().unwrap().clear();
 }
 
-/// Build a default auth config for tests (cookie strategy only).
+/// Build a minimal auth config for tests: cookie strategy, only the
+/// `database_authenticatable` module. Kept minimal so module behaviors
+/// (validatable, trackable, …) don't implicitly affect unrelated tests — a test
+/// that exercises a module should enable it explicitly.
 pub fn test_auth_config() -> AuthConfig {
-    AuthConfig::default()
+    AuthConfig {
+        modules: vec![crate::config::AuthModule::DatabaseAuthenticatable],
+        ..Default::default()
+    }
 }
 
 /// Build auth config with JWT enabled.

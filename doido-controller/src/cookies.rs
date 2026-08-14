@@ -14,6 +14,8 @@ use std::collections::BTreeMap;
 struct SetCookie {
     name: String,
     value: String,
+    /// `Max-Age` in seconds for a persistent cookie; `None` = session cookie.
+    max_age: Option<i64>,
 }
 
 /// Read incoming cookies and stage outgoing ones for a single request.
@@ -52,6 +54,7 @@ impl CookieJar {
         self.outgoing.push(SetCookie {
             name: name.into(),
             value: value.into(),
+            max_age: None,
         });
     }
 
@@ -69,11 +72,33 @@ impl CookieJar {
 
     /// Stage a signed cookie (`base64url(value).signature`).
     pub fn set_signed(&mut self, name: impl Into<String>, value: impl AsRef<str>) {
+        self.push_signed(name, value, None);
+    }
+
+    /// Stage a signed cookie that persists for `max_age` seconds (e.g. a
+    /// "remember me" cookie). Unlike [`set_signed`](Self::set_signed) it is not a
+    /// session cookie — it survives the browser session until `Max-Age` elapses.
+    pub fn set_signed_permanent(
+        &mut self,
+        name: impl Into<String>,
+        value: impl AsRef<str>,
+        max_age: i64,
+    ) {
+        self.push_signed(name, value, Some(max_age));
+    }
+
+    fn push_signed(
+        &mut self,
+        name: impl Into<String>,
+        value: impl AsRef<str>,
+        max_age: Option<i64>,
+    ) {
         let msg = URL_SAFE_NO_PAD.encode(value.as_ref().as_bytes());
         let sig = signing::sign(&self.secret, msg.as_bytes());
         self.outgoing.push(SetCookie {
             name: name.into(),
             value: format!("{msg}.{sig}"),
+            max_age,
         });
     }
 
@@ -81,7 +106,10 @@ impl CookieJar {
     pub fn to_set_cookie_headers(&self) -> Vec<String> {
         self.outgoing
             .iter()
-            .map(|c| format!("{}={}; Path=/; HttpOnly", c.name, c.value))
+            .map(|c| match c.max_age {
+                Some(age) => format!("{}={}; Path=/; HttpOnly; Max-Age={age}", c.name, c.value),
+                None => format!("{}={}; Path=/; HttpOnly", c.name, c.value),
+            })
             .collect()
     }
 }

@@ -1,13 +1,69 @@
 //! Auth config YAML parsing tests.
 
 use doido_auth::config::{AuthConfig, YamlConfig};
-use doido_auth::AuthError;
+use doido_auth::{AuthError, AuthModule};
 
 #[test]
 fn defaults_to_cookie_strategy() {
     let config = AuthConfig::default();
     assert_eq!(config.strategies, vec!["cookie"]);
     assert_eq!(config.routes.prefix, "/users");
+}
+
+#[test]
+fn defaults_to_devise_default_modules() {
+    let config = AuthConfig::default();
+    assert!(config.has_module(AuthModule::DatabaseAuthenticatable));
+    assert!(config.has_module(AuthModule::Registerable));
+    assert!(config.has_module(AuthModule::Recoverable));
+    assert!(config.has_module(AuthModule::Rememberable));
+    assert!(config.has_module(AuthModule::Validatable));
+    // Not in the default set.
+    assert!(!config.has_module(AuthModule::Confirmable));
+    assert!(!config.has_module(AuthModule::Lockable));
+    assert!(!config.has_module(AuthModule::Omniauthable));
+}
+
+#[test]
+fn parses_modules_list() {
+    let yaml = r#"
+auth:
+  modules:
+    - database_authenticatable
+    - registerable
+    - confirmable
+    - lockable
+    - omniauthable
+"#;
+    let config = AuthConfig::from_yaml(yaml).unwrap();
+    assert!(config.has_module(AuthModule::Confirmable));
+    assert!(config.has_module(AuthModule::Lockable));
+    assert!(config.has_module(AuthModule::Omniauthable));
+    assert!(!config.has_module(AuthModule::Recoverable));
+}
+
+#[test]
+fn enabled_route_groups_reflect_modules() {
+    let yaml = r#"
+auth:
+  modules: [database_authenticatable, registerable, confirmable, lockable, omniauthable]
+"#;
+    let config = AuthConfig::from_yaml(yaml).unwrap();
+    let groups = config.enabled_route_groups();
+    assert_eq!(groups[0], "sessions"); // always present
+    assert!(groups.contains(&"registrations"));
+    assert!(groups.contains(&"confirmation"));
+    assert!(groups.contains(&"unlock"));
+    assert!(groups.contains(&"oauth"));
+    assert!(!groups.contains(&"passwords")); // recoverable not enabled
+}
+
+#[test]
+fn validate_requires_database_authenticatable() {
+    let yaml = "auth:\n  modules: [registerable]\n";
+    let config = AuthConfig::from_yaml(yaml).unwrap();
+    let err = config.validate().unwrap_err();
+    assert!(matches!(err, AuthError::Config(_)));
 }
 
 #[test]

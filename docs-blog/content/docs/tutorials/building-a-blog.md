@@ -45,9 +45,11 @@ cargo doido db migrate      # creates the users table
 cargo doido server          # http://0.0.0.0:3000 — sign-in/up already work
 ```
 
-`--auth` gives you a `User` model, a `SessionsController` and `RegistrationsController`, and
-sign-in / sign-up / sign-out routes under `/users`. We'll lean on those to guard authoring. See
-the [Auth reference](@/docs/reference/auth.md) for the full picture.
+`--auth` gives you a `User` model and sign-in / sign-up / sign-out routes under `/users`,
+served by doido-auth's **built-in** controllers and views — nothing is copied into your app.
+We'll lean on those to guard authoring. Run `cargo doido generate auth:controllers` when you
+want to customize them (it ejects the controllers + views). See the
+[Auth reference](@/docs/reference/auth.md) for the full picture.
 
 ## Scaffold the Post resource
 

@@ -83,6 +83,89 @@ fn render_named_resolves_exact_template_path() {
 }
 
 #[test]
+fn framework_template_renders_without_app_file() {
+    // Registered globally; unique standalone name avoids interfering with other
+    // tests that share this process's framework-template registry.
+    doido_view::register_framework_template(
+        "fwtest/builtin_only.html.tera",
+        "<p>{{ who }} from framework</p>",
+    );
+    let dir = TempDir::new().unwrap();
+    let engine = TeraEngine::new(dir.path().to_str().unwrap()).unwrap();
+    let html = engine
+        .render("fwtest/builtin_only", &serde_json::json!({ "who": "hi" }))
+        .unwrap();
+    assert_eq!(html, "<p>hi from framework</p>");
+}
+
+#[test]
+fn app_template_overrides_framework_template() {
+    doido_view::register_framework_template("fwtest/overridable.html.tera", "framework-version");
+    let dir = TempDir::new().unwrap();
+    write_tpl(&dir, "fwtest/overridable.html.tera", "app-version");
+    let engine = TeraEngine::new(dir.path().to_str().unwrap()).unwrap();
+    let html = engine
+        .render("fwtest/overridable", &serde_json::json!({}))
+        .unwrap();
+    assert_eq!(
+        html, "app-version",
+        "app template must override framework one"
+    );
+}
+
+#[test]
+fn framework_view_inheritance_resolves_in_single_load() {
+    // A framework view that `extends` another template must resolve inheritance
+    // in the single-pass load. Register the parent as a framework template too so
+    // this test never poisons the process-shared registry for other tests (the
+    // registry has no removal; an unsatisfiable framework template would trip the
+    // resilient app-only fallback everywhere else).
+    doido_view::register_framework_template(
+        "fwtest/layout.html.tera",
+        "<main>{% block content %}{% endblock content %}</main>",
+    );
+    doido_view::register_framework_template(
+        "fwtest/extends_layout.html.tera",
+        "{% extends \"fwtest/layout.html.tera\" %}{% block content %}framed{% endblock content %}",
+    );
+    let dir = TempDir::new().unwrap();
+    let engine = TeraEngine::new(dir.path().to_str().unwrap()).unwrap();
+    let html = engine
+        .render("fwtest/extends_layout", &serde_json::json!({}))
+        .unwrap();
+    assert_eq!(html, "<main>framed</main>");
+}
+
+#[test]
+fn app_layout_satisfies_framework_view_inheritance() {
+    // The production case: a framework view extends a layout the *app* provides.
+    // Registered globally with the app layout present here; the layout name is
+    // unique so it doesn't collide with other tests.
+    doido_view::register_framework_template(
+        "fwtest/uses_app_layout.html.tera",
+        "{% extends \"fwtest/applayout.html.tera\" %}{% block content %}from-app-layout{% endblock content %}",
+    );
+    // Also register the layout as a framework template so other tests (which lack
+    // this app file) still find the parent and don't hit the app-only fallback.
+    doido_view::register_framework_template(
+        "fwtest/applayout.html.tera",
+        "<section>{% block content %}{% endblock content %}</section>",
+    );
+    let dir = TempDir::new().unwrap();
+    // App provides its own layout of the same name — it must win over the framework one.
+    write_tpl(
+        &dir,
+        "fwtest/applayout.html.tera",
+        "<app-layout>{% block content %}{% endblock content %}</app-layout>",
+    );
+    let engine = TeraEngine::new(dir.path().to_str().unwrap()).unwrap();
+    let html = engine
+        .render("fwtest/uses_app_layout", &serde_json::json!({}))
+        .unwrap();
+    assert_eq!(html, "<app-layout>from-app-layout</app-layout>");
+}
+
+#[test]
 fn template_inheritance_renders_layout() {
     let dir = TempDir::new().unwrap();
     write_tpl(

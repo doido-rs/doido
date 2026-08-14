@@ -1,4 +1,5 @@
 mod api_project;
+mod auth_generators;
 mod auth_install;
 mod blog_tutorial;
 mod bootstrap_migrations;

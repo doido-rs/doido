@@ -24,10 +24,22 @@ where
         .map_err(|e| AuthError::Internal(e.to_string()))?
         .ok_or(AuthError::InvalidCredentials)?;
 
+    // `lockable` module: reject locked accounts before checking the password.
+    crate::lockable::ensure_not_locked(db, email).await?;
+
     if !authenticate_password(&user, password) {
+        // `lockable`: count the failure (best-effort — never masks the auth error).
+        let _ = crate::lockable::record_failure(db, email).await;
         return Err(AuthError::InvalidCredentials);
     }
 
+    // `confirmable`: block sign-in until the email is confirmed.
+    if !crate::confirmable::is_confirmed(db, email).await? {
+        return Err(AuthError::NotConfirmed);
+    }
+
+    // `lockable`: clear the failed-attempt counter on success.
+    let _ = crate::lockable::reset_attempts(db, email).await;
     Ok(user)
 }
 
@@ -60,6 +72,9 @@ where
     F: FnOnce(String, String) -> Fut,
     Fut: Future<Output = Result<U>>,
 {
+    // `validatable` module: email format + password length (no-op when disabled).
+    crate::validations::validate_registration(email, password)?;
+
     if U::find_by_email(db, email)
         .await
         .map_err(|e| AuthError::Internal(e.to_string()))?

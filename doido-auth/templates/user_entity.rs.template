@@ -13,7 +13,7 @@ pub struct Model {
     pub email: String,
     #[sea_orm(column_name = "password_digest")]
     pub password_digest: String,
-{two_factor_fields}    pub created_at: DateTimeUtc,
+{module_fields}    pub created_at: DateTimeUtc,
     pub updated_at: DateTimeUtc,
 }
 

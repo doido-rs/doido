@@ -10,10 +10,12 @@ pub use field::Field;
 pub use names::{to_pascal, to_snake, to_table_name};
 
 pub mod controller;
+pub mod eject;
 pub mod install;
 pub mod scaffold;
 
 pub use controller::AuthControllerGenerator;
+pub use eject::AuthControllersGenerator;
 pub use install::AuthInstallGenerator;
 pub use scaffold::AuthScaffoldGenerator;
 
@@ -41,6 +43,7 @@ pub trait AuthGeneratorRegistry {
 /// Register all auth generators into `reg`.
 pub fn register(reg: &mut impl AuthGeneratorRegistry) {
     reg.register_auth(Box::new(install::AuthInstallGenerator));
+    reg.register_auth(Box::new(eject::AuthControllersGenerator));
     reg.register_auth(Box::new(controller::AuthControllerGenerator));
     reg.register_auth(Box::new(scaffold::AuthScaffoldGenerator));
 }

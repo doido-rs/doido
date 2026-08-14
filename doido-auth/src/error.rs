@@ -11,6 +11,19 @@ pub enum AuthError {
     #[error("auth: email already taken")]
     EmailTaken,
 
+    /// A `validatable`-module check failed (email format, password length, …).
+    #[error("auth: {0}")]
+    Validation(String),
+
+    /// Sign-in blocked because the account's email is not confirmed
+    /// (`confirmable` module).
+    #[error("auth: email not confirmed")]
+    NotConfirmed,
+
+    /// Sign-in blocked because the account is locked (`lockable` module).
+    #[error("auth: account locked")]
+    AccountLocked,
+
     /// No authenticated identity was found on the request.
     #[error("auth: unauthorized")]
     Unauthorized,
