@@ -169,12 +169,16 @@ mod tests {
         let files = AuthControllersGenerator.generate(&[]).unwrap();
         let routes = files.iter().find(|f| f.path == ROUTES_PATH).unwrap();
         assert!(routes.content.contains("controllers: {"));
-        assert!(routes.content.contains("sessions: auth::SessionsController"));
+        assert!(routes
+            .content
+            .contains("sessions: auth::SessionsController"));
         assert!(routes.content.contains("use crate::controllers::auth;"));
         assert!(!routes.content.contains("auth_routes!(User);"));
         // The `User` import stays: non-overridden modules (e.g. confirmation)
         // still expand to built-in `AuthXxx::<User>` handlers.
-        assert!(routes.content.contains("use crate::models::user::Model as User;"));
+        assert!(routes
+            .content
+            .contains("use crate::models::user::Model as User;"));
 
         let _ = std::fs::remove_file(ROUTES_PATH);
     }

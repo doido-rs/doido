@@ -87,7 +87,12 @@ impl CookieJar {
         self.push_signed(name, value, Some(max_age));
     }
 
-    fn push_signed(&mut self, name: impl Into<String>, value: impl AsRef<str>, max_age: Option<i64>) {
+    fn push_signed(
+        &mut self,
+        name: impl Into<String>,
+        value: impl AsRef<str>,
+        max_age: Option<i64>,
+    ) {
         let msg = URL_SAFE_NO_PAD.encode(value.as_ref().as_bytes());
         let sig = signing::sign(&self.secret, msg.as_bytes());
         self.outgoing.push(SetCookie {

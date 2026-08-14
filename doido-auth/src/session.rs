@@ -94,7 +94,10 @@ pub fn is_session_expired(session: &Session) -> bool {
         Some(state) => state,
         None => return false,
     };
-    if !state.config.has_module(crate::config::AuthModule::Timeoutable) {
+    if !state
+        .config
+        .has_module(crate::config::AuthModule::Timeoutable)
+    {
         return false;
     }
     match session.data.get(SIGNED_IN_AT_KEY).and_then(|v| v.as_i64()) {

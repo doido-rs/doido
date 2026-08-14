@@ -100,17 +100,17 @@ fn framework_template_renders_without_app_file() {
 
 #[test]
 fn app_template_overrides_framework_template() {
-    doido_view::register_framework_template(
-        "fwtest/overridable.html.tera",
-        "framework-version",
-    );
+    doido_view::register_framework_template("fwtest/overridable.html.tera", "framework-version");
     let dir = TempDir::new().unwrap();
     write_tpl(&dir, "fwtest/overridable.html.tera", "app-version");
     let engine = TeraEngine::new(dir.path().to_str().unwrap()).unwrap();
     let html = engine
         .render("fwtest/overridable", &serde_json::json!({}))
         .unwrap();
-    assert_eq!(html, "app-version", "app template must override framework one");
+    assert_eq!(
+        html, "app-version",
+        "app template must override framework one"
+    );
 }
 
 #[test]

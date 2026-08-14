@@ -12,7 +12,10 @@ const CREATE_USERS: &str = "CREATE TABLE users (\
 
 async fn insert_user(db: &TestDb, locked_at: Option<&str>) {
     db.conn()
-        .execute_raw(Statement::from_string(DbBackend::Sqlite, CREATE_USERS.to_string()))
+        .execute_raw(Statement::from_string(
+            DbBackend::Sqlite,
+            CREATE_USERS.to_string(),
+        ))
         .await
         .unwrap();
     db.conn()
@@ -38,13 +41,19 @@ fn config(maximum_attempts: u32, unlock_in: i64) -> AuthConfig {
 async fn locks_after_maximum_attempts_then_rejects() {
     let db = TestDb::new().await.unwrap();
     insert_user(&db, None).await;
-    let _guard = init_test_auth(db.conn().clone(), config(3, 3600)).await.unwrap();
+    let _guard = init_test_auth(db.conn().clone(), config(3, 3600))
+        .await
+        .unwrap();
 
     // Not locked yet.
-    lockable::ensure_not_locked(db.conn(), "a@b.com").await.unwrap();
+    lockable::ensure_not_locked(db.conn(), "a@b.com")
+        .await
+        .unwrap();
 
     for _ in 0..3 {
-        lockable::record_failure(db.conn(), "a@b.com").await.unwrap();
+        lockable::record_failure(db.conn(), "a@b.com")
+            .await
+            .unwrap();
     }
 
     let err = lockable::ensure_not_locked(db.conn(), "a@b.com")
@@ -53,8 +62,12 @@ async fn locks_after_maximum_attempts_then_rejects() {
     assert!(matches!(err, AuthError::AccountLocked));
 
     // A successful sign-in resets the counter and unlocks.
-    lockable::reset_attempts(db.conn(), "a@b.com").await.unwrap();
-    lockable::ensure_not_locked(db.conn(), "a@b.com").await.unwrap();
+    lockable::reset_attempts(db.conn(), "a@b.com")
+        .await
+        .unwrap();
+    lockable::ensure_not_locked(db.conn(), "a@b.com")
+        .await
+        .unwrap();
 }
 
 #[tokio::test]
@@ -63,10 +76,14 @@ async fn auto_unlocks_after_window() {
     // Locked two minutes ago.
     let two_min_ago = (chrono::Utc::now() - chrono::Duration::seconds(120)).to_rfc3339();
     insert_user(&db, Some(&two_min_ago)).await;
-    let _guard = init_test_auth(db.conn().clone(), config(3, 60)).await.unwrap();
+    let _guard = init_test_auth(db.conn().clone(), config(3, 60))
+        .await
+        .unwrap();
 
     // Window (60s) has elapsed — the attempt is allowed and the lock cleared.
-    lockable::ensure_not_locked(db.conn(), "a@b.com").await.unwrap();
+    lockable::ensure_not_locked(db.conn(), "a@b.com")
+        .await
+        .unwrap();
 
     let row = db
         .conn()
@@ -77,7 +94,10 @@ async fn auto_unlocks_after_window() {
         .await
         .unwrap()
         .unwrap();
-    assert!(row.try_get::<Option<String>>("", "locked_at").unwrap().is_none());
+    assert!(row
+        .try_get::<Option<String>>("", "locked_at")
+        .unwrap()
+        .is_none());
 }
 
 #[tokio::test]
@@ -92,7 +112,11 @@ async fn noop_when_module_disabled() {
 
     // No columns touched, no lock enforced.
     for _ in 0..50 {
-        lockable::record_failure(db.conn(), "a@b.com").await.unwrap();
+        lockable::record_failure(db.conn(), "a@b.com")
+            .await
+            .unwrap();
     }
-    lockable::ensure_not_locked(db.conn(), "a@b.com").await.unwrap();
+    lockable::ensure_not_locked(db.conn(), "a@b.com")
+        .await
+        .unwrap();
 }

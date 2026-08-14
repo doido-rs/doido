@@ -54,7 +54,10 @@ fn local_controllers_line(two_factor: bool) -> String {
     if two_factor {
         overrides.push("two_factor: auth::TwoFactorController");
     }
-    format!("auth_routes!(User, controllers: {{ {} }});", overrides.join(", "))
+    format!(
+        "auth_routes!(User, controllers: {{ {} }});",
+        overrides.join(", ")
+    )
 }
 
 /// Rewrites an installed bare `auth_routes!(User);` to reference the app's local
@@ -147,7 +150,6 @@ fn insert_use(lines: &mut Vec<String>, import: &str) {
         .unwrap_or(0);
     lines.insert(pos, import.to_string());
 }
-
 
 /// Injects `resources!(…)` for a scaffold/resource. Idempotent.
 pub fn inject_resources(routes: &str, plural: &str, controller: &str, api: bool) -> String {

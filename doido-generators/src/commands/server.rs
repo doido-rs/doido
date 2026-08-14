@@ -48,9 +48,7 @@ pub async fn run(routes: Option<axum::Router>, env: Option<String>, port: Option
             #[cfg(feature = "auth-generators")]
             if auth_app {
                 let config = doido_auth::load_config();
-                if let Err(e) =
-                    doido_auth::init(doido_model::pool::pool().clone(), &config).await
-                {
+                if let Err(e) = doido_auth::init(doido_model::pool::pool().clone(), &config).await {
                     doido_core::tracing::warn!("failed to initialise auth: {e}");
                 }
             }

@@ -176,7 +176,7 @@ fn selected_modules(args: &[&str]) -> (Vec<AuthModule>, bool) {
     let mut modules: Vec<AuthModule> = match explicit {
         Some(list) => list
             .split(',')
-            .filter_map(|s| AuthModule::from_str(s.trim()))
+            .filter_map(|s| AuthModule::from_name(s.trim()))
             .collect(),
         None => crate::config::AuthConfig::default().modules,
     };
@@ -322,7 +322,9 @@ mod tests {
         for args in [&[][..], &["--api"][..], &["--two-factor"][..]] {
             let files = AuthInstallGenerator.generate(args).unwrap();
             assert!(
-                !files.iter().any(|f| f.path.contains("app/controllers/auth/")),
+                !files
+                    .iter()
+                    .any(|f| f.path.contains("app/controllers/auth/")),
                 "auth:install must not copy controllers (args {args:?})"
             );
             assert!(

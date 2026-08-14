@@ -120,8 +120,14 @@ fn auth_controllers_generator_ejects_and_customizes() {
 
     let sessions = h.app.join("app/controllers/auth/sessions_controller.rs");
     let view = h.app.join("app/views/auth/sign_in.html.tera");
-    assert!(sessions.is_file(), "auth:controllers should eject the sessions controller");
-    assert!(view.is_file(), "auth:controllers should eject the sign-in view");
+    assert!(
+        sessions.is_file(),
+        "auth:controllers should eject the sessions controller"
+    );
+    assert!(
+        view.is_file(),
+        "auth:controllers should eject the sign-in view"
+    );
 
     let routes = fs::read_to_string(h.app.join("config/routes.rs")).unwrap();
     assert!(
@@ -137,7 +143,10 @@ fn auth_controllers_generator_ejects_and_customizes() {
     let original = fs::read_to_string(&view).unwrap();
     fs::write(
         &view,
-        original.replace("<h1>Sign in</h1>", &format!("<h1>Sign in</h1><p>{EJECT_MARKER}</p>")),
+        original.replace(
+            "<h1>Sign in</h1>",
+            &format!("<h1>Sign in</h1><p>{EJECT_MARKER}</p>"),
+        ),
     )
     .unwrap();
 

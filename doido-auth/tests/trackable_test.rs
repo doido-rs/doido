@@ -14,7 +14,10 @@ const CREATE_USERS: &str = "CREATE TABLE users (\
 
 async fn setup(db: &TestDb) {
     db.conn()
-        .execute_raw(Statement::from_string(DbBackend::Sqlite, CREATE_USERS.to_string()))
+        .execute_raw(Statement::from_string(
+            DbBackend::Sqlite,
+            CREATE_USERS.to_string(),
+        ))
         .await
         .unwrap();
     db.conn()
@@ -70,15 +73,25 @@ async fn records_stats_when_module_enabled() {
         .await
         .unwrap()
         .unwrap();
-    assert!(row.try_get::<Option<String>>("", "current_sign_in_at").unwrap().is_some());
-    assert!(row.try_get::<Option<String>>("", "last_sign_in_at").unwrap().is_some());
+    assert!(row
+        .try_get::<Option<String>>("", "current_sign_in_at")
+        .unwrap()
+        .is_some());
+    assert!(row
+        .try_get::<Option<String>>("", "last_sign_in_at")
+        .unwrap()
+        .is_some());
     // current rolls to last on the second sign-in.
     assert_eq!(
-        row.try_get::<Option<String>>("", "current_sign_in_ip").unwrap().as_deref(),
+        row.try_get::<Option<String>>("", "current_sign_in_ip")
+            .unwrap()
+            .as_deref(),
         Some("5.6.7.8")
     );
     assert_eq!(
-        row.try_get::<Option<String>>("", "last_sign_in_ip").unwrap().as_deref(),
+        row.try_get::<Option<String>>("", "last_sign_in_ip")
+            .unwrap()
+            .as_deref(),
         Some("1.2.3.4")
     );
 }

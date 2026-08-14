@@ -13,7 +13,10 @@ const CREATE_USERS: &str = "CREATE TABLE users (\
 
 async fn setup(db: &TestDb) {
     db.conn()
-        .execute_raw(Statement::from_string(DbBackend::Sqlite, CREATE_USERS.to_string()))
+        .execute_raw(Statement::from_string(
+            DbBackend::Sqlite,
+            CREATE_USERS.to_string(),
+        ))
         .await
         .unwrap();
     db.conn()
@@ -35,7 +38,8 @@ async fn remember_created_at(db: &TestDb) -> Option<String> {
         .await
         .unwrap()
         .unwrap();
-    row.try_get::<Option<String>>("", "remember_created_at").unwrap()
+    row.try_get::<Option<String>>("", "remember_created_at")
+        .unwrap()
 }
 
 #[tokio::test]
@@ -43,12 +47,17 @@ async fn records_and_forgets_remember_timestamp() {
     let db = TestDb::new().await.unwrap();
     setup(&db).await;
     let cfg = AuthConfig {
-        modules: vec![AuthModule::DatabaseAuthenticatable, AuthModule::Rememberable],
+        modules: vec![
+            AuthModule::DatabaseAuthenticatable,
+            AuthModule::Rememberable,
+        ],
         ..Default::default()
     };
     let _guard = init_test_auth(db.conn().clone(), cfg).await.unwrap();
 
-    rememberable::record_remember(db.conn(), "a@b.com").await.unwrap();
+    rememberable::record_remember(db.conn(), "a@b.com")
+        .await
+        .unwrap();
     assert!(remember_created_at(&db).await.is_some());
 
     rememberable::forget(db.conn(), "a@b.com").await.unwrap();
@@ -60,7 +69,8 @@ async fn strategy_resolves_signed_remember_cookie() {
     let db = TestDb::new().await.unwrap();
 
     // Build a signed remember cookie the way the sessions controller does.
-    let mut jar = doido_controller::CookieJar::from_header(None, doido_controller::secret::key_base());
+    let mut jar =
+        doido_controller::CookieJar::from_header(None, doido_controller::secret::key_base());
     jar.set_signed_permanent(REMEMBER_COOKIE, rememberable::cookie_value(&5_i64), 100);
     let set_cookie = jar.to_set_cookie_headers().into_iter().next().unwrap();
     // "_doido_remember=<value>; Path=/; ..." → the "name=value" pair.
@@ -85,7 +95,11 @@ async fn strategy_resolves_signed_remember_cookie() {
 async fn strategy_returns_none_without_cookie() {
     let db = TestDb::new().await.unwrap();
     let parts = http::Request::builder().body(()).unwrap().into_parts().0;
-    assert!(RememberStrategy.authenticate(&parts, db.conn()).await.unwrap().is_none());
+    assert!(RememberStrategy
+        .authenticate(&parts, db.conn())
+        .await
+        .unwrap()
+        .is_none());
 }
 
 #[tokio::test]
@@ -98,6 +112,8 @@ async fn record_remember_noop_when_disabled() {
     };
     let _guard = init_test_auth(db.conn().clone(), cfg).await.unwrap();
 
-    rememberable::record_remember(db.conn(), "a@b.com").await.unwrap();
+    rememberable::record_remember(db.conn(), "a@b.com")
+        .await
+        .unwrap();
     assert!(remember_created_at(&db).await.is_none());
 }

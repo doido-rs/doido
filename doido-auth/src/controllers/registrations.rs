@@ -64,7 +64,9 @@ where
         // `confirmable`: don't sign in yet — send a confirmation email and ask the
         // user to confirm their address first.
         if crate::confirmable::is_enabled() {
-            if let Some(token) = crate::confirmable::generate_confirmation(ctx.db(), &form.email).await? {
+            if let Some(token) =
+                crate::confirmable::generate_confirmation(ctx.db(), &form.email).await?
+            {
                 let _ = crate::confirmable::send_confirmation_email(&form.email, &token).await;
             }
             return if json {

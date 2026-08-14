@@ -25,8 +25,14 @@ async fn expires_sessions_older_than_timeout() {
     let _guard = init_test_auth(db.conn().clone(), cfg).await.unwrap();
 
     let now = chrono::Utc::now().timestamp();
-    assert!(is_session_expired(&session_signed_in_at(now - 120)), "2m-old session should expire");
-    assert!(!is_session_expired(&session_signed_in_at(now - 10)), "fresh session should not expire");
+    assert!(
+        is_session_expired(&session_signed_in_at(now - 120)),
+        "2m-old session should expire"
+    );
+    assert!(
+        !is_session_expired(&session_signed_in_at(now - 10)),
+        "fresh session should not expire"
+    );
 }
 
 #[tokio::test]

@@ -81,7 +81,7 @@ impl AuthModule {
     }
 
     /// Parse a module from its snake_case name.
-    pub fn from_str(s: &str) -> Option<AuthModule> {
+    pub fn from_name(s: &str) -> Option<AuthModule> {
         AuthModule::ALL.into_iter().find(|m| m.as_str() == s)
     }
 
