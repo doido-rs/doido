@@ -172,9 +172,9 @@ mod tests {
         assert!(routes.content.contains("sessions: auth::SessionsController"));
         assert!(routes.content.contains("use crate::controllers::auth;"));
         assert!(!routes.content.contains("auth_routes!(User);"));
-        // With every module overridden, `User` is no longer referenced — its import
-        // must be dropped so the ejected routes compile under `-D warnings`.
-        assert!(!routes.content.contains("use crate::models::user::Model as User;"));
+        // The `User` import stays: non-overridden modules (e.g. confirmation)
+        // still expand to built-in `AuthXxx::<User>` handlers.
+        assert!(routes.content.contains("use crate::models::user::Model as User;"));
 
         let _ = std::fs::remove_file(ROUTES_PATH);
     }

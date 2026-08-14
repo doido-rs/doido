@@ -58,10 +58,11 @@ fn local_controllers_line(two_factor: bool) -> String {
 }
 
 /// Rewrites an installed bare `auth_routes!(User);` to reference the app's local
-/// (ejected) auth controllers: adds `use crate::controllers::auth;` and drops the
-/// now-unused `use crate::models::user::Model as User;`. Used by the
-/// `auth:controllers` generator. Idempotent: if a `controllers:` override is
-/// already present, the input is returned unchanged.
+/// (ejected) auth controllers, adding `use crate::controllers::auth;`. The
+/// `User` import stays: modules that aren't overridden (e.g. `confirmation`) still
+/// expand to built-in `AuthXxx::<User>` handlers. Used by the `auth:controllers`
+/// generator. Idempotent: if a `controllers:` override is already present, the
+/// input is returned unchanged.
 pub fn rewire_local_controllers(routes: &str, two_factor: bool) -> String {
     if routes.contains("controllers: {") {
         return routes.to_string();
@@ -70,11 +71,10 @@ pub fn rewire_local_controllers(routes: &str, two_factor: bool) -> String {
     // Common case: `auth:install` already left a bare `auth_routes!(User);`.
     if routes.contains("auth_routes!(User);") {
         let replaced = routes.replacen("auth_routes!(User);", &line, 1);
-        let with_mod = ensure_use(&replaced, AUTH_MOD_IMPORT);
-        return remove_line(&with_mod, USER_IMPORT);
+        return ensure_use(&replaced, AUTH_MOD_IMPORT);
     }
     // No auth routes yet — inject the block directly with local controllers.
-    ensure_auth_routes_block(routes, &line, &[AUTH_MOD_IMPORT])
+    ensure_auth_routes_block(routes, &line, &[USER_IMPORT, AUTH_MOD_IMPORT])
 }
 
 /// Switches the app's `routes!` block to `doido::auth::routes!`, drops the now
@@ -148,16 +148,6 @@ fn insert_use(lines: &mut Vec<String>, import: &str) {
     lines.insert(pos, import.to_string());
 }
 
-/// Removes any line equal to `needle` (used to drop a now-unused import).
-fn remove_line(routes: &str, needle: &str) -> String {
-    let mut out: String = routes
-        .lines()
-        .filter(|l| l.trim() != needle)
-        .collect::<Vec<_>>()
-        .join("\n");
-    out.push('\n');
-    out
-}
 
 /// Injects `resources!(…)` for a scaffold/resource. Idempotent.
 pub fn inject_resources(routes: &str, plural: &str, controller: &str, api: bool) -> String {

@@ -63,9 +63,15 @@ fn new_auth_uses_builtin_controllers_without_copying_files() {
                 sign_up.status
             );
 
+            // Sign in with "remember me" — the `rememberable` module (a default
+            // module) issues a persistent signed cookie alongside the session.
             let sign_in = http::post_form_with_response(
                 &format!("{}/users/sign_in", app.base_url),
-                &[("email", "alice@example.com"), ("password", "secret")],
+                &[
+                    ("email", "alice@example.com"),
+                    ("password", "secret"),
+                    ("remember", "1"),
+                ],
             );
             assert!(
                 (300..400).contains(&sign_in.status),
@@ -78,6 +84,25 @@ fn new_auth_uses_builtin_controllers_without_copying_files() {
                     .iter()
                     .any(|c| c.contains("_doido_session")),
                 "sign in should set the session cookie"
+            );
+            assert!(
+                sign_in
+                    .set_cookie
+                    .iter()
+                    .any(|c| c.contains("_doido_remember") && c.contains("Max-Age")),
+                "remember me should set a persistent remember cookie"
+            );
+
+            // `recoverable` (a default module): requesting a reset runs without
+            // error against the generated reset-password columns.
+            let reset = http::post_form_with_response(
+                &format!("{}/users/password", app.base_url),
+                &[("email", "admin@example.com")],
+            );
+            assert!(
+                reset.status < 500,
+                "password reset request should not error, got {}",
+                reset.status
             );
         },
     );

@@ -175,6 +175,11 @@ fn auth_base_is_valid(dir: &Path, _api: bool) -> bool {
         && fs::read_to_string(app.join("db/seed/Cargo.toml"))
             .map(|content| content.contains("serde ="))
             .unwrap_or(false);
+    // Module-aware install writes the Devise-style `modules:` list into the auth
+    // config; a base predating that is stale and must be regenerated.
+    let modules_ok = fs::read_to_string(app.join("config/development.yml"))
+        .map(|content| content.contains("modules:"))
+        .unwrap_or(false);
 
     app.join("Cargo.toml").is_file()
         && cargo_ok
@@ -183,6 +188,7 @@ fn auth_base_is_valid(dir: &Path, _api: bool) -> bool {
         && no_copy_ok
         && user_ok
         && main_ok
+        && modules_ok
 }
 
 fn recreate_auth_base(dir: &Path, profile: BaseProfile) {
