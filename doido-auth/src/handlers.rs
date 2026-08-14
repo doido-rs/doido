@@ -33,6 +33,11 @@ where
         return Err(AuthError::InvalidCredentials);
     }
 
+    // `confirmable`: block sign-in until the email is confirmed.
+    if !crate::confirmable::is_confirmed(db, email).await? {
+        return Err(AuthError::NotConfirmed);
+    }
+
     // `lockable`: clear the failed-attempt counter on success.
     let _ = crate::lockable::reset_attempts(db, email).await;
     Ok(user)

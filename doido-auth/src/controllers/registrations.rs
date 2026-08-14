@@ -61,6 +61,22 @@ where
                 Err(e) => return Err(doido_core::anyhow::anyhow!(e.to_string())),
             };
 
+        // `confirmable`: don't sign in yet — send a confirmation email and ask the
+        // user to confirm their address first.
+        if crate::confirmable::is_enabled() {
+            if let Some(token) = crate::confirmable::generate_confirmation(ctx.db(), &form.email).await? {
+                let _ = crate::confirmable::send_confirmation_email(&form.email, &token).await;
+            }
+            return if json {
+                Ok(ctx.json(serde_json::json!({ "status": "confirmation_sent" })))
+            } else {
+                Ok(ctx.render(
+                    "auth/sign_in",
+                    serde_json::json!({ "notice": "Please confirm your email to finish signing up." }),
+                ))
+            };
+        }
+
         sign_in(ctx, &user)?;
         if json {
             Ok(ctx.json(user))

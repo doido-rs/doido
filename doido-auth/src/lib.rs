@@ -1,6 +1,7 @@
 //! Unified authentication for Doido — Devise + OmniAuth + JWT analogue.
 
 pub mod config;
+pub mod confirmable;
 pub mod controllers;
 pub mod error;
 pub mod extractors;

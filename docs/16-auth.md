@@ -209,7 +209,7 @@ With no `--modules`, install keeps the permissive bare `auth_routes!(User)`.
 | recoverable | `recoverable` | `reset_password_token`, `reset_password_sent_at` | `passwords` (`new`/`create`/`edit`/`update`) | ✅ token reset + email via doido-mailer (`reset_password_within`) |
 | rememberable | `rememberable` | `remember_created_at` | — | ⚙️ schema; remember-cookie behavior pending |
 | timeoutable | `timeoutable` | — | — | ✅ absolute session-age expiry (`auth.timeout`); idle-reset pending |
-| confirmable | `confirmable` | `confirmation_token`, `confirmed_at`, `confirmation_sent_at`, `unconfirmed_email` | `confirmation` | ⚙️ schema + route group; confirm flow pending mailer |
+| confirmable | `confirmable` | `confirmation_token`, `confirmed_at`, `confirmation_sent_at`, `unconfirmed_email` | `confirmation` (`show`/`create`) | ✅ email confirmation + sign-in gating (registration sends confirmation; unconfirmed sign-in → 403) |
 | lockable | `lockable` | `failed_attempts`, `unlock_token`, `locked_at` | `unlock` | ✅ lock after `maximum_attempts`, time-based auto-unlock (`unlock_in`); email unlock pending |
 
 Legend: ✅ full runtime behavior · ⚙️ config + schema + routing recognized; runtime behavior

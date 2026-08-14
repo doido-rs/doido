@@ -151,6 +151,9 @@ fn handler_for(
             quote! { doido_auth::controllers::AuthRegistrations::<#user>::#action_ident }
         }
         "passwords" => quote! { doido_auth::controllers::AuthPasswords::<#user>::#action_ident },
+        "confirmation" => {
+            quote! { doido_auth::controllers::AuthConfirmations::<#user>::#action_ident }
+        }
         "oauth" => quote! { doido_auth::controllers::AuthOauth::#action_ident },
         "two_factor" => quote! { doido_auth::controllers::AuthTwoFactor::<#user>::#action_ident },
         other => {
@@ -231,6 +234,20 @@ fn route_specs(prefix: &str) -> Vec<RouteSpec> {
             path: join_path(prefix, "password"),
             module: "passwords",
             action: "update",
+            html_only: false,
+        },
+        RouteSpec {
+            method: "GET",
+            path: join_path(prefix, "confirmation"),
+            module: "confirmation",
+            action: "show",
+            html_only: false,
+        },
+        RouteSpec {
+            method: "POST",
+            path: join_path(prefix, "confirmation"),
+            module: "confirmation",
+            action: "create",
             html_only: false,
         },
         RouteSpec {
