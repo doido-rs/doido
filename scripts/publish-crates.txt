@@ -21,13 +21,13 @@ doido-jobs
 # Layer 3 — controller (model, view, cache, controller-macros)
 doido-controller
 
-# Layer 4 — auth macros (route-dsl), then auth (controller, model, macros)
-doido-auth-macros
-doido-auth
-
-# Layer 5 — cable (controller), mailer (jobs, view)
+# Layer 4 — cable (controller), mailer (jobs, view)
 doido-cable
 doido-mailer
+
+# Layer 5 — auth macros (route-dsl), then auth (controller, model, macros)
+doido-auth-macros
+doido-auth
 
 # Layer 6 — storage (controller, model; optional jobs)
 doido-storage
