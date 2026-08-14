@@ -14,6 +14,37 @@ fn ctx_with_accept(accept: &str) -> Context {
     Context::from_request_parts(parts)
 }
 
+fn ctx_with_content_type(content_type: &str) -> Context {
+    let parts = http::Request::builder()
+        .uri("/posts")
+        .header("content-type", content_type)
+        .body(())
+        .unwrap()
+        .into_parts()
+        .0;
+    Context::from_request_parts(parts)
+}
+
+#[test]
+fn wants_json_keys_body_parsing_on_content_type() {
+    // A JSON body without an explicit Accept header (e.g. `ureq::send_json`).
+    let ctx = ctx_with_content_type("application/json");
+    assert!(ctx.is_json_request(), "content-type json => json request");
+    assert!(ctx.wants_json());
+    // Accept is absent, so negotiation alone would (wrongly) say "Any".
+    assert_eq!(ctx.negotiated_format(), Format::Any);
+
+    // A form body is not a JSON request.
+    let form = ctx_with_content_type("application/x-www-form-urlencoded");
+    assert!(!form.is_json_request());
+    assert!(!form.wants_json());
+
+    // A JSON `Accept` (no body) still wants JSON.
+    let accept = ctx_with_accept("application/json");
+    assert!(!accept.is_json_request());
+    assert!(accept.wants_json());
+}
+
 #[test]
 fn negotiates_json_and_serves_the_json_branch() {
     let ctx = ctx_with_accept("application/json");

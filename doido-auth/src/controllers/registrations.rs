@@ -57,6 +57,10 @@ where
                 Err(crate::error::AuthError::EmailTaken) => {
                     return registration_error(ctx, json, "Email has already been taken");
                 }
+                // `validatable`: surface validation failures as 422, not 500.
+                Err(crate::error::AuthError::Validation(msg)) => {
+                    return registration_error(ctx, json, &msg);
+                }
                 Err(e) => return Err(doido_core::anyhow::anyhow!(e.to_string())),
             };
 
