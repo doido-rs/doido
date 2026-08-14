@@ -14,6 +14,7 @@ pub mod lockable;
 pub mod oauth;
 pub mod recoverable;
 pub mod registry;
+pub mod rememberable;
 pub mod route_mount;
 pub mod session;
 pub mod state;

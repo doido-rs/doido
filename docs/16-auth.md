@@ -207,15 +207,20 @@ With no `--modules`, install keeps the permissive bare `auth_routes!(User)`.
 | trackable | `trackable` | `sign_in_count`, `current/last_sign_in_at`, `current/last_sign_in_ip` | — | ✅ implemented (recorded on sign-in) |
 | two_factor | `two_factor_authenticatable` | `two_factor_secret`, `two_factor_enabled` | `two_factor` | ⚙️ TOTP core; enroll/challenge stubs (`auth-2fa`) |
 | recoverable | `recoverable` | `reset_password_token`, `reset_password_sent_at` | `passwords` (`new`/`create`/`edit`/`update`) | ✅ token reset + email via doido-mailer (`reset_password_within`) |
-| rememberable | `rememberable` | `remember_created_at` | — | ⚙️ schema; remember-cookie behavior pending |
+| rememberable | `rememberable` | `remember_created_at` | — | ✅ persistent signed remember cookie + `RememberStrategy` auto-login (`remember_for`) |
 | timeoutable | `timeoutable` | — | — | ✅ absolute session-age expiry (`auth.timeout`); idle-reset pending |
 | confirmable | `confirmable` | `confirmation_token`, `confirmed_at`, `confirmation_sent_at`, `unconfirmed_email` | `confirmation` (`show`/`create`) | ✅ email confirmation + sign-in gating (registration sends confirmation; unconfirmed sign-in → 403) |
 | lockable | `lockable` | `failed_attempts`, `unlock_token`, `locked_at` | `unlock` | ✅ lock after `maximum_attempts`, time-based auto-unlock (`unlock_in`); email unlock pending |
 
-Legend: ✅ full runtime behavior · ⚙️ config + schema + routing recognized; runtime behavior
-is a tracked follow-up. All modules are selectable today (columns, config, `only:` routes);
-the ⚙️ rows have their behavior wired incrementally in the built-in handlers, gated on
-`auth.modules`.
+Legend: ✅ full runtime behavior · ⚙️ config + schema + routing recognized; some runtime
+behavior is a tracked follow-up. Every module is selectable and behavioral today except
+`two_factor_authenticatable`, whose TOTP enroll/challenge handlers remain stubs (feature
+`auth-2fa`). All behaviors live in the built-in handlers and are gated on `auth.modules`,
+so they work whether you use the built-in controllers or eject with `auth:controllers`.
+
+**Config knobs.** `password_length` (validatable), `timeout` (timeoutable),
+`maximum_attempts`/`unlock_in` (lockable), `reset_password_within` (recoverable),
+`remember_for` (rememberable).
 
 ## Strategies
 
