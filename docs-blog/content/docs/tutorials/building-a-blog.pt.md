@@ -84,28 +84,11 @@ exatamente o que o scaffold gerou:
 
 ```rust
 // app/models/post.rs
-#![allow(dead_code)]
+#![allow(dead_code, unused_imports)]
 
-use doido::model::sea_orm;
-use doido::model::sea_orm::entity::prelude::*;
 use doido::model::validation::{Errors, Validate};
-use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
-#[sea_orm(table_name = "posts")]
-pub struct Model {
-    #[sea_orm(primary_key)]
-    pub id: i32,
-    pub title: String,
-    pub body: String,
-    pub published: bool,
-    pub user_id: i64,
-}
-
-#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
-pub enum Relation {}
-
-impl ActiveModelBehavior for ActiveModel {}
+pub use super::_entities::posts::*;
 
 impl Validate for Model {
     fn validate(&self) -> Errors {
