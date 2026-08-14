@@ -357,19 +357,37 @@ mod tests {
     }
 
     #[test]
-    fn explicit_modules_generate_only_routes_and_columns() {
+    fn explicit_modules_generate_only_route_list() {
+        // Build the routes form directly (deterministic; `generate()` reads the
+        // cwd's config/routes.rs which parallel tests may have written).
+        let cfg = crate::config::AuthConfig {
+            modules: selected_modules(&[
+                "--modules=database_authenticatable,trackable,lockable,confirmable",
+            ])
+            .0,
+            ..Default::default()
+        };
+        let base = "use crate::controllers::HelloController;\n\
+                    use doido::controller::{axum, routes};\n\n\
+                    pub fn router() -> axum::Router {\n    routes! {\n        get!(\"/\", HelloController::index);\n    }\n}\n";
+        let routes = crate::generators::route_injector::inject_auth_routes_only(
+            base,
+            &cfg.enabled_route_groups(),
+        );
+        assert!(routes.contains("auth_routes!(User, only: ["));
+        assert!(routes.contains("sessions"));
+        assert!(routes.contains("confirmation"));
+        assert!(routes.contains("unlock"));
+        // recoverable / registerable not selected — their groups are absent.
+        assert!(!routes.contains("registrations"));
+        assert!(!routes.contains("passwords"));
+    }
+
+    #[test]
+    fn explicit_modules_generate_columns_and_entity_fields() {
         let files = AuthInstallGenerator
             .generate(&["--modules=database_authenticatable,trackable,lockable,confirmable"])
             .unwrap();
-
-        let routes = files.iter().find(|f| f.path == ROUTES_PATH).unwrap();
-        assert!(routes.content.contains("auth_routes!(User, only: ["));
-        assert!(routes.content.contains("sessions"));
-        assert!(routes.content.contains("confirmation"));
-        assert!(routes.content.contains("unlock"));
-        // recoverable / registerable not selected — their route groups are absent.
-        assert!(!routes.content.contains("registrations"));
-        assert!(!routes.content.contains("passwords"));
 
         let migration = files
             .iter()

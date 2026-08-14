@@ -60,6 +60,9 @@ where
     F: FnOnce(String, String) -> Fut,
     Fut: Future<Output = Result<U>>,
 {
+    // `validatable` module: email format + password length (no-op when disabled).
+    crate::validations::validate_registration(email, password)?;
+
     if U::find_by_email(db, email)
         .await
         .map_err(|e| AuthError::Internal(e.to_string()))?

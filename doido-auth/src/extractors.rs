@@ -30,7 +30,10 @@ impl IntoResponse for AuthError {
             AuthError::Unauthorized | AuthError::InvalidCredentials | AuthError::InvalidToken => {
                 StatusCode::UNAUTHORIZED
             }
-            AuthError::EmailTaken => StatusCode::UNPROCESSABLE_ENTITY,
+            AuthError::EmailTaken | AuthError::Validation(_) => {
+                StatusCode::UNPROCESSABLE_ENTITY
+            }
+            AuthError::NotConfirmed | AuthError::AccountLocked => StatusCode::FORBIDDEN,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         };
         (status, self.to_string()).into_response()
