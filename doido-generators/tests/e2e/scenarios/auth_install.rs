@@ -17,16 +17,15 @@ fn auth_install_api_sign_up_and_sign_in() {
                     .contains("doido-auth"),
                 "app should depend on doido-auth"
             );
+            // Auth is built-in by default: no controllers/views are copied into
+            // the app (run `auth:controllers` to eject them). See auth_generators.rs.
+            assert!(
+                !h.app.join("app/controllers/auth").exists(),
+                "auth controllers should be built-in, not copied"
+            );
             assert!(
                 !h.app.join("app/views/auth/sign_in.html.tera").exists(),
                 "API auth should not emit HTML views"
-            );
-            let sessions =
-                std::fs::read_to_string(h.app.join("app/controllers/auth/sessions_controller.rs"))
-                    .unwrap();
-            assert!(
-                sessions.contains("body_json"),
-                "API sessions controller should accept JSON"
             );
 
             // `db seed` creates the initial admin user (before the sign-up below).
@@ -84,24 +83,15 @@ fn auth_install_html_sign_up_and_sign_in() {
     h.run_with_db(
         |h| {
             crate::common::db::assert_table_exists(&h.app, "users");
+            // Built-in-by-default: HTML auth renders the framework's overridable
+            // views without copying anything into the app.
             assert!(
-                h.app.join("app/views/auth/sign_in.html.tera").is_file(),
-                "HTML auth should emit sign-in view"
+                !h.app.join("app/controllers/auth").exists(),
+                "auth controllers should be built-in, not copied"
             );
             assert!(
-                h.app.join("app/views/auth/sign_up.html.tera").is_file(),
-                "HTML auth should emit sign-up view"
-            );
-            let sessions =
-                std::fs::read_to_string(h.app.join("app/controllers/auth/sessions_controller.rs"))
-                    .unwrap();
-            assert!(
-                sessions.contains("ctx.render(\"auth/sign_in\""),
-                "HTML sessions controller should render sign-in page"
-            );
-            assert!(
-                !sessions.contains("body_json"),
-                "HTML sessions controller should not accept JSON body"
+                !h.app.join("app/views/auth/sign_in.html.tera").exists(),
+                "auth views should be built-in, not copied by default"
             );
 
             // `db seed` creates the initial admin user (before the sign-up below).

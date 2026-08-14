@@ -1,15 +1,16 @@
 //! `doido generate auth:install` — the `devise:install` + `devise User` analogue.
 //!
-//! Emits a User migration and model, auth controllers, views (HTML mode),
-//! config snippets, and injects `auth_routes!(User);` into `config/routes.rs`.
-//! Does **not** modify `Cargo.toml`.
+//! Emits a User migration + model, an `auth:` config snippet, and injects a bare
+//! `auth_routes!(User);` into `config/routes.rs` that targets doido-auth's
+//! **built-in** controllers. It does **not** copy any auth controllers or views
+//! into the app (run `doido generate auth:controllers` to eject those for
+//! customization) and does **not** modify `Cargo.toml`.
 
 use super::migration_support::{
     register_migration, render_migration_file, MIGRATION_LIB_BASE, MIGRATION_SRC_DIR,
 };
 use super::route_injector::{
-    inject_auth_routes, read_controllers_mod, read_models_mod, read_routes,
-    register_auth_controllers_mod, register_model_module, CONTROLLERS_MOD_PATH, MODELS_MOD_PATH,
+    inject_auth_routes, read_models_mod, read_routes, register_model_module, MODELS_MOD_PATH,
     ROUTES_PATH,
 };
 use super::template;
@@ -78,31 +79,13 @@ fn entities_mod(existing: &str) -> String {
     doido_model::entities::register_entity_module(existing, "users")
 }
 
-fn auth_mod(two_factor: bool) -> String {
-    let oauth_module = "mod oauth_controller;\n";
-    let oauth_use = "pub use oauth_controller::OauthController;\n";
-    let (two_factor_module, two_factor_use) = if two_factor {
-        (
-            "mod two_factor_controller;\n",
-            "pub use two_factor_controller::TwoFactorController;\n",
-        )
-    } else {
-        ("", "")
-    };
-    template("auth/mod.rs.template")
-        .replace("{oauth_module}", oauth_module)
-        .replace("{oauth_use}", oauth_use)
-        .replace("{two_factor_module}", two_factor_module)
-        .replace("{two_factor_use}", two_factor_use)
-}
-
 impl AuthGenerator for AuthInstallGenerator {
     fn name(&self) -> &str {
         "auth:install"
     }
 
     fn generate(&self, args: &[&str]) -> Result<Vec<GeneratedFile>> {
-        let api = args.contains(&"--api");
+        let _api = args.contains(&"--api");
         let two_factor = args.contains(&"--two-factor");
 
         let timestamp = Utc::now().format("%Y%m%d_%H%M%S");
@@ -125,10 +108,9 @@ impl AuthGenerator for AuthInstallGenerator {
             include_str!("../../templates/new/app/models/_entities/mod.rs").to_string()
         });
         let entities_mod = entities_mod(&entities_mod_base);
-        let controllers_mod = register_auth_controllers_mod(&read_controllers_mod());
-        let routes = inject_auth_routes(&read_routes(), api);
-
-        let suffix = if api { "api" } else { "html" };
+        // Bare `auth_routes!(User);` targeting the framework's built-in controllers.
+        // Controllers/views are NOT copied — run `auth:controllers` to eject them.
+        let routes = inject_auth_routes(&read_routes());
 
         let mut files = vec![
             GeneratedFile {
@@ -156,67 +138,10 @@ impl AuthGenerator for AuthInstallGenerator {
                 content: models_mod,
             },
             GeneratedFile {
-                path: "app/controllers/auth/mod.rs".to_string(),
-                content: auth_mod(two_factor),
-            },
-            GeneratedFile {
-                path: "app/controllers/auth/sessions_controller.rs".to_string(),
-                content: template(&format!("auth/sessions_controller_{suffix}.rs.template"))
-                    .to_string(),
-            },
-            GeneratedFile {
-                path: "app/controllers/auth/registrations_controller.rs".to_string(),
-                content: template(&format!(
-                    "auth/registrations_controller_{suffix}.rs.template"
-                ))
-                .to_string(),
-            },
-            GeneratedFile {
-                path: "app/controllers/auth/passwords_controller.rs".to_string(),
-                content: template(&format!("auth/passwords_controller_{suffix}.rs.template"))
-                    .to_string(),
-            },
-            GeneratedFile {
-                path: "app/controllers/auth/oauth_controller.rs".to_string(),
-                content: template("auth/oauth_controller.rs.template").to_string(),
-            },
-            GeneratedFile {
-                path: CONTROLLERS_MOD_PATH.to_string(),
-                content: controllers_mod,
-            },
-            GeneratedFile {
                 path: ROUTES_PATH.to_string(),
                 content: routes,
             },
         ];
-
-        if two_factor {
-            files.push(GeneratedFile {
-                path: "app/controllers/auth/two_factor_controller.rs".to_string(),
-                content: template(&format!("auth/two_factor_controller_{suffix}.rs.template"))
-                    .to_string(),
-            });
-        }
-
-        if !api {
-            for (file, rel) in [
-                ("sign_in", "auth/views/sign_in.html.tera"),
-                ("sign_up", "auth/views/sign_up.html.tera"),
-                ("password_new", "auth/views/password_new.html.tera"),
-                ("password_edit", "auth/views/password_edit.html.tera"),
-            ] {
-                files.push(GeneratedFile {
-                    path: format!("app/views/auth/{file}.html.tera"),
-                    content: template(rel).to_string(),
-                });
-            }
-            if two_factor {
-                files.push(GeneratedFile {
-                    path: "app/views/auth/two_factor.html.tera".to_string(),
-                    content: template("auth/views/two_factor.html.tera").to_string(),
-                });
-            }
-        }
 
         if let Some(f) = config_file("config/development.yml", two_factor) {
             files.push(f);
@@ -234,7 +159,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn emits_users_migration_and_routes() {
+    fn emits_users_migration_and_bare_builtin_routes() {
         let files = AuthInstallGenerator.generate(&[]).unwrap();
         let migration = files
             .iter()
@@ -249,11 +174,17 @@ mod tests {
             .iter()
             .find(|f| f.path == ROUTES_PATH)
             .expect("routes.rs");
-        assert!(routes.content.contains("auth_routes!(User"));
+        // Bare route targeting the framework's built-in controllers.
+        assert!(routes.content.contains("auth_routes!(User);"));
+        assert!(routes.content.contains("doido::auth::routes!"));
+        // `auth_routes!(User)` expands to `AuthSessions::<User>` — the User model
+        // must be brought into scope.
         assert!(routes
             .content
-            .contains("sessions: auth::SessionsController"));
-        assert!(routes.content.contains("use crate::controllers::auth;"));
+            .contains("use crate::models::user::Model as User;"));
+        // No local controllers are referenced — nothing was copied into the app.
+        assert!(!routes.content.contains("controllers: {"));
+        assert!(!routes.content.contains("use crate::controllers::auth;"));
 
         let user = files
             .iter()
@@ -263,26 +194,28 @@ mod tests {
     }
 
     #[test]
-    fn two_factor_adds_columns_and_controller() {
+    fn install_does_not_copy_controllers_or_views() {
+        for args in [&[][..], &["--api"][..], &["--two-factor"][..]] {
+            let files = AuthInstallGenerator.generate(args).unwrap();
+            assert!(
+                !files.iter().any(|f| f.path.contains("app/controllers/auth/")),
+                "auth:install must not copy controllers (args {args:?})"
+            );
+            assert!(
+                !files.iter().any(|f| f.path.contains("app/views/auth/")),
+                "auth:install must not copy views (args {args:?})"
+            );
+        }
+    }
+
+    #[test]
+    fn two_factor_adds_migration_columns() {
         let files = AuthInstallGenerator.generate(&["--two-factor"]).unwrap();
         let migration = files
             .iter()
             .find(|f| f.path.contains("create_users_table"))
             .unwrap();
         assert!(migration.content.contains("two_factor_secret"));
-        assert!(files
-            .iter()
-            .any(|f| f.path.ends_with("two_factor_controller.rs")));
-    }
-
-    #[test]
-    fn api_mode_skips_html_views() {
-        let files = AuthInstallGenerator.generate(&["--api"]).unwrap();
-        assert!(!files.iter().any(|f| f.path.contains("app/views/auth/")));
-        let sessions = files
-            .iter()
-            .find(|f| f.path.ends_with("sessions_controller.rs"))
-            .unwrap();
-        assert!(sessions.content.contains("body_json"));
+        assert!(migration.content.contains("two_factor_enabled"));
     }
 }

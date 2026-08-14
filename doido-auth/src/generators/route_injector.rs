@@ -13,20 +13,64 @@ fn is_routes_block_open(line: &str) -> bool {
     (t.starts_with("routes!") || t.starts_with("doido::auth::routes!")) && t.contains('{')
 }
 
-/// Injects Devise-style auth routes for generated auth controllers.
-pub fn inject_auth_routes(routes: &str, _api: bool) -> String {
+/// Import that brings the app's `User` model type into scope for a bare
+/// `auth_routes!(User);`, which expands to `AuthSessions::<User>` etc.
+const USER_IMPORT: &str = "use crate::models::user::Model as User;";
+/// Import that brings the app's ejected `auth` controllers module into scope.
+const AUTH_MOD_IMPORT: &str = "use crate::controllers::auth;";
+
+/// Injects the framework's built-in auth routes: switches the app's plain
+/// `routes!` block to the auth-aware `doido::auth::routes!` variant, brings the
+/// `User` model into scope, and adds a bare `auth_routes!(User);` that targets
+/// doido-auth's **built-in** controllers (nothing copied into the app). Idempotent.
+pub fn inject_auth_routes(routes: &str) -> String {
     if routes.contains("auth_routes!(User") {
         return routes.to_string();
     }
+    ensure_auth_routes_block(routes, "auth_routes!(User);", &[USER_IMPORT])
+}
 
+/// Builds the `auth_routes!` line that points every enabled route module at the
+/// app's local (ejected) controllers. When all modules are overridden the macro
+/// never references `User`, so the `User` import is dropped by the caller.
+fn local_controllers_line(two_factor: bool) -> String {
+    let mut overrides = vec![
+        "sessions: auth::SessionsController",
+        "registrations: auth::RegistrationsController",
+        "passwords: auth::PasswordsController",
+        "oauth: auth::OauthController",
+    ];
+    if two_factor {
+        overrides.push("two_factor: auth::TwoFactorController");
+    }
+    format!("auth_routes!(User, controllers: {{ {} }});", overrides.join(", "))
+}
+
+/// Rewrites an installed bare `auth_routes!(User);` to reference the app's local
+/// (ejected) auth controllers: adds `use crate::controllers::auth;` and drops the
+/// now-unused `use crate::models::user::Model as User;`. Used by the
+/// `auth:controllers` generator. Idempotent: if a `controllers:` override is
+/// already present, the input is returned unchanged.
+pub fn rewire_local_controllers(routes: &str, two_factor: bool) -> String {
+    if routes.contains("controllers: {") {
+        return routes.to_string();
+    }
+    let line = local_controllers_line(two_factor);
+    // Common case: `auth:install` already left a bare `auth_routes!(User);`.
+    if routes.contains("auth_routes!(User);") {
+        let replaced = routes.replacen("auth_routes!(User);", &line, 1);
+        let with_mod = ensure_use(&replaced, AUTH_MOD_IMPORT);
+        return remove_line(&with_mod, USER_IMPORT);
+    }
+    // No auth routes yet — inject the block directly with local controllers.
+    ensure_auth_routes_block(routes, &line, &[AUTH_MOD_IMPORT])
+}
+
+/// Switches the app's `routes!` block to `doido::auth::routes!`, drops the now
+/// unused `routes` import, adds each `import` (if missing), and inserts
+/// `auth_line` before the block's closing brace.
+fn ensure_auth_routes_block(routes: &str, auth_line: &str, imports: &[&str]) -> String {
     let auth_block = "    doido::auth::routes! {";
-    let auth_line = "auth_routes!(User, controllers: { \
-        sessions: auth::SessionsController, \
-        registrations: auth::RegistrationsController, \
-        passwords: auth::PasswordsController, \
-        oauth: auth::OauthController \
-    });";
-
     let mut lines: Vec<String> = routes.lines().map(String::from).collect();
 
     if routes.contains("routes! {") && !routes.contains("doido::auth::routes!") {
@@ -45,14 +89,8 @@ pub fn inject_auth_routes(routes: &str, _api: bool) -> String {
         }
     }
 
-    let auth_use = "use crate::controllers::auth;";
-    if !routes.contains(auth_use) {
-        let pos = lines
-            .iter()
-            .rposition(|l| l.contains("use crate::controllers"))
-            .map(|i| i + 1)
-            .unwrap_or(0);
-        lines.insert(pos, auth_use.to_string());
+    for import in imports {
+        insert_use(&mut lines, import);
     }
 
     if let Some(open) = lines.iter().position(|l| is_routes_block_open(l)) {
@@ -63,6 +101,49 @@ pub fn inject_auth_routes(routes: &str, _api: bool) -> String {
     }
 
     let mut out = lines.join("\n");
+    out.push('\n');
+    out
+}
+
+/// Ensures `import` is present, returning the (possibly modified) source.
+fn ensure_use(routes: &str, import: &str) -> String {
+    if routes.contains(import) {
+        return routes.to_string();
+    }
+    let mut lines: Vec<String> = routes.lines().map(String::from).collect();
+    insert_use(&mut lines, import);
+    let mut out = lines.join("\n");
+    out.push('\n');
+    out
+}
+
+/// Inserts `import` after the last `use crate::...` line (or the last `use` line,
+/// or at the top) when it is not already present.
+fn insert_use(lines: &mut Vec<String>, import: &str) {
+    if lines.iter().any(|l| l.trim() == import) {
+        return;
+    }
+    let pos = lines
+        .iter()
+        .rposition(|l| l.contains("use crate::"))
+        .map(|i| i + 1)
+        .or_else(|| {
+            lines
+                .iter()
+                .rposition(|l| l.trim_start().starts_with("use "))
+                .map(|i| i + 1)
+        })
+        .unwrap_or(0);
+    lines.insert(pos, import.to_string());
+}
+
+/// Removes any line equal to `needle` (used to drop a now-unused import).
+fn remove_line(routes: &str, needle: &str) -> String {
+    let mut out: String = routes
+        .lines()
+        .filter(|l| l.trim() != needle)
+        .collect::<Vec<_>>()
+        .join("\n");
     out.push('\n');
     out
 }

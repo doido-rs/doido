@@ -80,7 +80,7 @@ fn test_doido_new_cargo_toml_has_cache_redis_feature() {
 }
 
 #[test]
-fn test_doido_new_auth_creates_html_sign_in_views() {
+fn test_doido_new_auth_uses_builtin_controllers_without_copying() {
     let dir = tempfile::tempdir().unwrap();
     let mut cmd = Command::cargo_bin("doido-generators").unwrap();
     cmd.current_dir(dir.path())
@@ -95,16 +95,19 @@ fn test_doido_new_auth_creates_html_sign_in_views() {
         .success();
 
     let app = dir.path().join("auth-app");
-    assert!(app.join("app/views/auth/sign_in.html.tera").exists());
-    assert!(app.join("app/views/auth/sign_up.html.tera").exists());
-    let sessions =
-        fs::read_to_string(app.join("app/controllers/auth/sessions_controller.rs")).unwrap();
-    assert!(sessions.contains("ctx.render(\"auth/sign_in\""));
-    assert!(!sessions.contains("body_json"));
+    // Built-in-by-default: model + migration, but no controllers/views copied.
+    assert!(app.join("app/models/user.rs").exists());
+    assert!(!app.join("app/controllers/auth").exists());
+    assert!(!app.join("app/views/auth").exists());
+
+    let routes = fs::read_to_string(app.join("config/routes.rs")).unwrap();
+    assert!(routes.contains("auth_routes!(User);"));
+    assert!(routes.contains("use crate::models::user::Model as User;"));
+    assert!(!routes.contains("controllers: {"));
 }
 
 #[test]
-fn test_doido_new_auth_api_skips_html_views() {
+fn test_doido_new_auth_api_also_uses_builtin_controllers() {
     let dir = tempfile::tempdir().unwrap();
     let mut cmd = Command::cargo_bin("doido-generators").unwrap();
     cmd.current_dir(dir.path())
@@ -120,10 +123,10 @@ fn test_doido_new_auth_api_skips_html_views() {
         .success();
 
     let app = dir.path().join("auth-api-app");
+    assert!(!app.join("app/controllers/auth").exists());
     assert!(!app.join("app/views/auth").exists());
-    let sessions =
-        fs::read_to_string(app.join("app/controllers/auth/sessions_controller.rs")).unwrap();
-    assert!(sessions.contains("body_json"));
+    let routes = fs::read_to_string(app.join("config/routes.rs")).unwrap();
+    assert!(routes.contains("auth_routes!(User);"));
 }
 
 #[test]

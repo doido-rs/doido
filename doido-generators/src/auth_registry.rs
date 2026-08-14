@@ -42,5 +42,10 @@ pub fn register_auth_generators(reg: &mut GeneratorRegistry) {
 
 /// Auth generator names owned by `doido-auth`.
 pub fn auth_generator_names() -> &'static [&'static str] {
-    &["auth:install", "auth:controller", "auth:scaffold"]
+    &[
+        "auth:install",
+        "auth:controllers",
+        "auth:controller",
+        "auth:scaffold",
+    ]
 }

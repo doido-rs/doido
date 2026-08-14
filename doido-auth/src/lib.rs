@@ -4,6 +4,7 @@ pub mod config;
 pub mod controllers;
 pub mod error;
 pub mod extractors;
+pub mod framework_views;
 pub mod handlers;
 pub mod identity;
 pub mod jwt;
@@ -29,6 +30,7 @@ pub use controllers::{AuthOauth, AuthPasswords, AuthRegistrations, AuthSessions}
 pub use doido_auth_macros::{__auth_routes_decl, auth_controller, auth_routes, routes};
 pub use error::AuthError;
 pub use extractors::{AuthToken, CurrentUser, MaybeUser, RequireAuth};
+pub use framework_views::register_views;
 pub use handlers::{authenticate, register_user, sign_in, sign_in_with_session, sign_out};
 pub use identity::AuthIdentity;
 pub use jwt::{JwtClaims, JwtStrategy, TokenPair};

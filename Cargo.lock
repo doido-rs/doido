@@ -1657,6 +1657,7 @@ dependencies = [
  "doido-controller",
  "doido-core",
  "doido-model",
+ "doido-view",
  "http 1.4.2",
  "http-body-util",
  "jsonwebtoken",

@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 doido-core.workspace = true
 doido-controller.workspace = true
+doido-view.workspace = true
 doido-auth-macros = { workspace = true, features = [] }
 doido-model = { workspace = true, default-features = false }
 async-trait.workspace = true
