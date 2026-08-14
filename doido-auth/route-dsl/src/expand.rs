@@ -437,8 +437,11 @@ mod tests {
         assert!(s.contains("AuthSessions"));
         assert!(s.contains("AuthRegistrations"));
         assert!(s.contains("AuthPasswords"));
+        assert!(s.contains("AuthConfirmations"));
         assert!(s.contains("AuthOauth"));
-        assert_eq!(descriptors.len(), 10);
+        // sessions(3) + registrations(2) + passwords(4: new/edit/create/update)
+        // + confirmation(2) + oauth(2) = 13 (2FA is feature-gated).
+        assert_eq!(descriptors.len(), 13);
     }
 
     #[test]
@@ -447,14 +450,16 @@ mod tests {
         assert_eq!(only.len(), 3);
 
         let (_, skipped) = plan_auth_routes(quote! { User, skip: [oauth] }, false).unwrap();
-        assert_eq!(skipped.len(), 8);
+        assert_eq!(skipped.len(), 11); // 13 total − 2 oauth routes
         assert!(!skipped.iter().any(|(_, path)| path.starts_with("/auth/")));
     }
 
     #[test]
     fn plan_auth_routes_api_only_skips_html_form_routes() {
         let (_, descriptors) = plan_auth_routes(quote! { User }, true).unwrap();
-        assert_eq!(descriptors.len(), 7);
+        // 13 total − 4 html-only GET forms (sign_in, sign_up, password/new,
+        // password/edit) = 9.
+        assert_eq!(descriptors.len(), 9);
         assert!(!descriptors
             .iter()
             .any(|(method, path)| method == "GET" && path == "/users/sign_in"));

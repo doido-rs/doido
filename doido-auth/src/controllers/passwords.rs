@@ -2,7 +2,6 @@
 
 use crate::recoverable;
 use doido_auth_macros::auth_controller;
-use doido_controller::respond::Format;
 use doido_core::Result;
 use serde::Deserialize;
 use std::marker::PhantomData;
@@ -42,7 +41,7 @@ where
     /// POST `{prefix}/password` — generate a token and email reset instructions.
     /// Always responds generically to avoid leaking which emails exist.
     pub async fn create(mut ctx: doido_controller::Context) -> Result<doido_controller::Response> {
-        let json = ctx.negotiated_format() == Format::Json;
+        let json = ctx.wants_json();
         let form: PasswordResetForm = if json {
             ctx.body_json().await?
         } else {
@@ -78,7 +77,7 @@ where
 
     /// PATCH `{prefix}/password` — set a new password using a valid reset token.
     pub async fn update(mut ctx: doido_controller::Context) -> Result<doido_controller::Response> {
-        let json = ctx.negotiated_format() == Format::Json;
+        let json = ctx.wants_json();
         let form: PasswordUpdateForm = if json {
             ctx.body_json().await?
         } else {

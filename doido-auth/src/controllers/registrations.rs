@@ -3,7 +3,6 @@
 use crate::handlers::{register_user, sign_in};
 use crate::user::{AuthUser, RegisterableAuthUser};
 use doido_auth_macros::auth_controller;
-use doido_controller::respond::Format;
 use doido_core::Result;
 use doido_model::password::HasSecurePassword;
 use serde::Deserialize;
@@ -33,7 +32,7 @@ where
 
     /// POST `{prefix}/sign_up` — create an account and sign in.
     pub async fn create(mut ctx: doido_controller::Context) -> Result<doido_controller::Response> {
-        let json = ctx.negotiated_format() == Format::Json;
+        let json = ctx.wants_json();
         let form: SignUpForm = if json {
             ctx.body_json().await?
         } else {

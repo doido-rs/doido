@@ -3,7 +3,6 @@
 use crate::handlers::{authenticate, sign_in, sign_out};
 use crate::user::AuthUser;
 use doido_auth_macros::auth_controller;
-use doido_controller::respond::Format;
 use doido_core::Result;
 use doido_model::password::HasSecurePassword;
 use serde::Deserialize;
@@ -38,7 +37,7 @@ where
 
     /// POST `{prefix}/sign_in` — authenticate and establish a session.
     pub async fn create(mut ctx: doido_controller::Context) -> Result<doido_controller::Response> {
-        let json = ctx.negotiated_format() == Format::Json;
+        let json = ctx.wants_json();
         let form: SignInForm = if json {
             ctx.body_json().await?
         } else {
@@ -83,7 +82,7 @@ where
         ctx.cookies()
             .set_signed_permanent(crate::rememberable::REMEMBER_COOKIE, "", 0);
         sign_out(ctx)?;
-        if ctx.negotiated_format() == Format::Json {
+        if ctx.wants_json() {
             Ok(ctx.status(204))
         } else {
             Ok(ctx.redirect_to("/"))

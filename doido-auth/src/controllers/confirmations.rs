@@ -2,7 +2,6 @@
 
 use crate::confirmable;
 use doido_auth_macros::auth_controller;
-use doido_controller::respond::Format;
 use doido_core::Result;
 use serde::Deserialize;
 use std::marker::PhantomData;
@@ -28,7 +27,7 @@ where
 {
     /// GET `{prefix}/confirmation?confirmation_token=…` — confirm an account.
     pub async fn show(ctx: doido_controller::Context) -> Result<doido_controller::Response> {
-        let json = ctx.negotiated_format() == Format::Json;
+        let json = ctx.wants_json();
         let token = ctx
             .params::<ConfirmQuery>()
             .map(|q| q.confirmation_token)
@@ -55,7 +54,7 @@ where
     /// POST `{prefix}/confirmation` — resend confirmation instructions. Responds
     /// generically to avoid leaking which emails exist.
     pub async fn create(mut ctx: doido_controller::Context) -> Result<doido_controller::Response> {
-        let json = ctx.negotiated_format() == Format::Json;
+        let json = ctx.wants_json();
         let form: ResendForm = if json {
             ctx.body_json().await?
         } else {

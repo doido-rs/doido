@@ -262,6 +262,26 @@ impl Context {
         }
     }
 
+    /// Whether the request *body* is JSON (`Content-Type: application/json`).
+    /// Use this to decide how to parse the body — independent of `Accept`, which
+    /// only says what the client wants back.
+    pub fn is_json_request(&self) -> bool {
+        self.parts
+            .headers
+            .get(header::CONTENT_TYPE)
+            .and_then(|v| v.to_str().ok())
+            .map(|ct| ct.contains("application/json"))
+            .unwrap_or(false)
+    }
+
+    /// Whether to treat this request as JSON: true when the body is JSON
+    /// (Content-Type) or the client negotiated JSON (`Accept`/`.json`). The
+    /// built-in auth controllers use this to both parse the body and pick the
+    /// response format, so a JSON client works without an explicit `Accept` header.
+    pub fn wants_json(&self) -> bool {
+        self.is_json_request() || self.negotiated_format() == crate::respond::Format::Json
+    }
+
     /// Begin format-based content negotiation (Rails `respond_to`).
     pub fn respond_to(&self) -> crate::respond::RespondTo {
         crate::respond::RespondTo::new(self.negotiated_format())
