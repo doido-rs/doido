@@ -208,7 +208,7 @@ With no `--modules`, install keeps the permissive bare `auth_routes!(User)`.
 | two_factor | `two_factor_authenticatable` | `two_factor_secret`, `two_factor_enabled` | `two_factor` | ⚙️ TOTP core; enroll/challenge stubs (`auth-2fa`) |
 | recoverable | `recoverable` | `reset_password_token`, `reset_password_sent_at` | `passwords` | ⚙️ schema + routes; reset flow pending mailer |
 | rememberable | `rememberable` | `remember_created_at` | — | ⚙️ schema; remember-cookie behavior pending |
-| timeoutable | `timeoutable` | — | — | ⚙️ `auth.timeout` config; idle-expiry behavior pending |
+| timeoutable | `timeoutable` | — | — | ✅ absolute session-age expiry (`auth.timeout`); idle-reset pending |
 | confirmable | `confirmable` | `confirmation_token`, `confirmed_at`, `confirmation_sent_at`, `unconfirmed_email` | `confirmation` | ⚙️ schema + route group; confirm flow pending mailer |
 | lockable | `lockable` | `failed_attempts`, `unlock_token`, `locked_at` | `unlock` | ✅ lock after `maximum_attempts`, time-based auto-unlock (`unlock_in`); email unlock pending |
 
