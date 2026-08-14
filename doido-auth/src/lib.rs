@@ -18,6 +18,7 @@ pub mod strategy;
 pub mod user;
 
 pub mod testing;
+pub mod trackable;
 pub mod validations;
 
 #[cfg(feature = "auth-2fa")]

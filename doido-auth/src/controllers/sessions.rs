@@ -40,6 +40,8 @@ where
 
         match authenticate::<U>(ctx.db(), &form.email, &form.password).await {
             Ok(user) => {
+                // `trackable` module (best-effort — never blocks sign-in).
+                let _ = crate::trackable::record_sign_in(ctx.db(), &form.email, None).await;
                 sign_in(ctx, &user)?;
                 if json {
                     Ok(ctx.json(user))
