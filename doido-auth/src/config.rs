@@ -265,6 +265,9 @@ pub struct AuthConfig {
     /// Failed sign-in attempts before `lockable` locks an account.
     #[serde(default = "default_maximum_attempts")]
     pub maximum_attempts: u32,
+    /// Seconds a `lockable` account stays locked before auto-unlocking.
+    #[serde(default = "default_unlock_in")]
+    pub unlock_in: i64,
     #[serde(default)]
     pub routes: AuthRoutesConfig,
 }
@@ -296,6 +299,10 @@ fn default_maximum_attempts() -> u32 {
     20
 }
 
+fn default_unlock_in() -> i64 {
+    3_600
+}
+
 impl Default for AuthConfig {
     fn default() -> Self {
         Self {
@@ -308,6 +315,7 @@ impl Default for AuthConfig {
             timeout: default_timeout(),
             password_length: default_password_length(),
             maximum_attempts: default_maximum_attempts(),
+            unlock_in: default_unlock_in(),
             routes: AuthRoutesConfig::default(),
         }
     }

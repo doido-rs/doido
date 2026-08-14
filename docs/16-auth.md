@@ -210,7 +210,7 @@ With no `--modules`, install keeps the permissive bare `auth_routes!(User)`.
 | rememberable | `rememberable` | `remember_created_at` | — | ⚙️ schema; remember-cookie behavior pending |
 | timeoutable | `timeoutable` | — | — | ⚙️ `auth.timeout` config; idle-expiry behavior pending |
 | confirmable | `confirmable` | `confirmation_token`, `confirmed_at`, `confirmation_sent_at`, `unconfirmed_email` | `confirmation` | ⚙️ schema + route group; confirm flow pending mailer |
-| lockable | `lockable` | `failed_attempts`, `unlock_token`, `locked_at` | `unlock` | ⚙️ schema + route group; lock/unlock behavior pending |
+| lockable | `lockable` | `failed_attempts`, `unlock_token`, `locked_at` | `unlock` | ✅ lock after `maximum_attempts`, time-based auto-unlock (`unlock_in`); email unlock pending |
 
 Legend: ✅ full runtime behavior · ⚙️ config + schema + routing recognized; runtime behavior
 is a tracked follow-up. All modules are selectable today (columns, config, `only:` routes);

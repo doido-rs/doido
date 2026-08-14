@@ -9,6 +9,7 @@ pub mod handlers;
 pub mod identity;
 pub mod jwt;
 pub mod layer;
+pub mod lockable;
 pub mod oauth;
 pub mod registry;
 pub mod route_mount;

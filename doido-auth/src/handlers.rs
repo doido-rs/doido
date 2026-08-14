@@ -24,10 +24,17 @@ where
         .map_err(|e| AuthError::Internal(e.to_string()))?
         .ok_or(AuthError::InvalidCredentials)?;
 
+    // `lockable` module: reject locked accounts before checking the password.
+    crate::lockable::ensure_not_locked(db, email).await?;
+
     if !authenticate_password(&user, password) {
+        // `lockable`: count the failure (best-effort — never masks the auth error).
+        let _ = crate::lockable::record_failure(db, email).await;
         return Err(AuthError::InvalidCredentials);
     }
 
+    // `lockable`: clear the failed-attempt counter on success.
+    let _ = crate::lockable::reset_attempts(db, email).await;
     Ok(user)
 }
 
