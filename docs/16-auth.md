@@ -206,7 +206,7 @@ With no `--modules`, install keeps the permissive bare `auth_routes!(User)`.
 | validatable | `validatable` | — | — | ✅ implemented (email + length) |
 | trackable | `trackable` | `sign_in_count`, `current/last_sign_in_at`, `current/last_sign_in_ip` | — | ✅ implemented (recorded on sign-in) |
 | two_factor | `two_factor_authenticatable` | `two_factor_secret`, `two_factor_enabled` | `two_factor` | ⚙️ TOTP core; enroll/challenge stubs (`auth-2fa`) |
-| recoverable | `recoverable` | `reset_password_token`, `reset_password_sent_at` | `passwords` | ⚙️ schema + routes; reset flow pending mailer |
+| recoverable | `recoverable` | `reset_password_token`, `reset_password_sent_at` | `passwords` (`new`/`create`/`edit`/`update`) | ✅ token reset + email via doido-mailer (`reset_password_within`) |
 | rememberable | `rememberable` | `remember_created_at` | — | ⚙️ schema; remember-cookie behavior pending |
 | timeoutable | `timeoutable` | — | — | ✅ absolute session-age expiry (`auth.timeout`); idle-reset pending |
 | confirmable | `confirmable` | `confirmation_token`, `confirmed_at`, `confirmation_sent_at`, `unconfirmed_email` | `confirmation` | ⚙️ schema + route group; confirm flow pending mailer |

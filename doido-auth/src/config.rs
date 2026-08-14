@@ -268,6 +268,9 @@ pub struct AuthConfig {
     /// Seconds a `lockable` account stays locked before auto-unlocking.
     #[serde(default = "default_unlock_in")]
     pub unlock_in: i64,
+    /// Seconds a `recoverable` password-reset token stays valid.
+    #[serde(default = "default_reset_within")]
+    pub reset_password_within: i64,
     #[serde(default)]
     pub routes: AuthRoutesConfig,
 }
@@ -303,6 +306,10 @@ fn default_unlock_in() -> i64 {
     3_600
 }
 
+fn default_reset_within() -> i64 {
+    21_600
+}
+
 impl Default for AuthConfig {
     fn default() -> Self {
         Self {
@@ -316,6 +323,7 @@ impl Default for AuthConfig {
             password_length: default_password_length(),
             maximum_attempts: default_maximum_attempts(),
             unlock_in: default_unlock_in(),
+            reset_password_within: default_reset_within(),
             routes: AuthRoutesConfig::default(),
         }
     }

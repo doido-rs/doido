@@ -1656,6 +1656,7 @@ dependencies = [
  "doido-auth-macros",
  "doido-controller",
  "doido-core",
+ "doido-mailer",
  "doido-model",
  "doido-view",
  "http 1.4.2",

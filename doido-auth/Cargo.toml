@@ -9,6 +9,7 @@ edition = "2021"
 doido-core.workspace = true
 doido-controller.workspace = true
 doido-view.workspace = true
+doido-mailer.workspace = true
 doido-auth-macros = { workspace = true, features = [] }
 doido-model = { workspace = true, default-features = false }
 async-trait.workspace = true

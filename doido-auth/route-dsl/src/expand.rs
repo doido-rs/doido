@@ -213,6 +213,13 @@ fn route_specs(prefix: &str) -> Vec<RouteSpec> {
             html_only: true,
         },
         RouteSpec {
+            method: "GET",
+            path: join_path(prefix, "password/edit"),
+            module: "passwords",
+            action: "edit",
+            html_only: true,
+        },
+        RouteSpec {
             method: "POST",
             path: join_path(prefix, "password"),
             module: "passwords",
