@@ -33,6 +33,7 @@ async fn run_seed() -> doido::Result<()> {
     // }
     // Seed an initial user so a fresh --auth app has a login out of the box.
     {
+        use doido::model::QueryFilter;
         use doido::model::password::hash_password;
         use doido::model::sea_orm::{ColumnTrait, EntityTrait};
         use doido_auth::RegisterableAuthUser;

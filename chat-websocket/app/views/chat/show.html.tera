@@ -1,4 +1,4 @@
-{% extends "layouts/chat" %}
+{% extends "layouts/chat.html.tera" %}
 
 {% block body %}
 <header class="topbar">

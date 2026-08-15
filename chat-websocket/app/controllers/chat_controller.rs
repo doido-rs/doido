@@ -1,29 +1,25 @@
 use crate::controllers::auth_helper::require_user;
 use crate::services::chat::participant_of;
 use doido::controller::{controller, Context, Response};
-use serde_json::json;
 
 pub struct ChatController;
 
 #[controller]
 impl ChatController {
-    /// GET /login
-    pub async fn login(mut ctx: Context) -> doido::Result<Response> {
-        if ctx.session().get::<i64>("user_id").is_some() {
-            return Ok(ctx.redirect_to("/chat"));
-        }
-        Ok(ctx.render("chat/login", json!({ "title": "Entrar" })))
+    /// GET /login — alias for the framework sign-in page.
+    pub async fn login(ctx: Context) -> Response {
+        ctx.redirect_to("/users/sign_in")
     }
 
     /// GET /chat — conversation list.
     pub async fn index(ctx: Context) -> doido::Result<Response> {
         let user = match require_user(ctx).await {
             Ok(u) => u,
-            Err(_) => return Ok(ctx.redirect_to("/login")),
+            Err(_) => return Ok(ctx.redirect_to("/users/sign_in")),
         };
         Ok(ctx.render(
             "chat/index",
-            json!({
+            serde_json::json!({
                 "title": "Conversas",
                 "user_id": user.id,
                 "user_email": user.email,
@@ -35,7 +31,7 @@ impl ChatController {
     pub async fn show(ctx: Context) -> doido::Result<Response> {
         let user = match require_user(ctx).await {
             Ok(u) => u,
-            Err(_) => return Ok(ctx.redirect_to("/login")),
+            Err(_) => return Ok(ctx.redirect_to("/users/sign_in")),
         };
         let id = parse_id(&ctx);
         if id == 0 || !participant_of(ctx.db(), id, user.id).await? {
@@ -43,7 +39,7 @@ impl ChatController {
         }
         Ok(ctx.render(
             "chat/show",
-            json!({
+            serde_json::json!({
                 "title": "Conversa",
                 "conversation_id": id,
                 "user_id": user.id,

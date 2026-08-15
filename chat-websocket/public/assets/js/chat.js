@@ -13,7 +13,7 @@ const Chat = (() => {
     });
 
     if (res.status === 401 || res.status === 403) {
-      window.location.href = "/login";
+      window.location.href = "/users/sign_in";
       throw new Error("Não autorizado");
     }
 
@@ -41,7 +41,7 @@ const Chat = (() => {
 
   async function signOut() {
     await request("/users/sign_out", { method: "DELETE" });
-    window.location.href = "/login";
+    window.location.href = "/users/sign_in";
   }
 
   function cableUrl() {
