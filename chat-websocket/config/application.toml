@@ -1,0 +1,6 @@
+[app]
+name = "chat-websocket"
+api_only = true
+
+[database]
+url = "sqlite://db/development.db"

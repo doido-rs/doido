@@ -1,0 +1,46 @@
+server:
+  bind: 0.0.0.0
+  port: 3000
+database:
+  url: sqlite://db/development.db
+logger:
+  # Base application log level: trace, debug, info, warn, or error.
+  # Set `directives` for a full tracing EnvFilter string instead, e.g.
+  # `directives: info,chat-websocket=debug,sqlx=warn`. RUST_LOG overrides both.
+  level: debug
+  # Output renderer: compact (default) | verbose (pretty, all fields) |
+  # json_response (one JSON line per response, with latency_ms).
+  format: verbose
+cache:
+  type: memory
+jobs:
+  type: db
+  queues: [default]
+  concurrency: 5
+storage:
+  service: local
+  services:
+    local:
+      type: disk
+      root: storage
+    test:
+      type: memory
+mailer:
+  type: smtp
+  smtp:
+    address: localhost:1025
+auth:
+  user_model: User
+  modules:
+    - database_authenticatable
+    - registerable
+    - recoverable
+    - rememberable
+    - validatable
+  strategies:
+    - cookie
+  two_factor:
+    enabled: false
+    issuer: MyApp
+  routes:
+    prefix: /users

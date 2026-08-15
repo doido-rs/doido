@@ -1,0 +1,26 @@
+//! Generated user entity — overwritten on every `doido db migrate`.
+#![allow(dead_code)]
+
+use doido::model::sea_orm;
+use doido::model::sea_orm::entity::prelude::*;
+use serde::{Deserialize, Serialize};
+
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "users")]
+pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i64,
+    pub email: String,
+    #[sea_orm(column_name = "password_digest")]
+    pub password_digest: String,
+    pub reset_password_token: Option<String>,
+    pub reset_password_sent_at: Option<DateTimeUtc>,
+    pub remember_created_at: Option<DateTimeUtc>,
+    pub created_at: DateTimeUtc,
+    pub updated_at: DateTimeUtc,
+}
+
+#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+pub enum Relation {}
+
+impl ActiveModelBehavior for ActiveModel {}

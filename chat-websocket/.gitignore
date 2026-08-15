@@ -1,0 +1,6 @@
+/target
+.env
+config/master.key
+config/credentials.yml.enc
+*.db
+/log

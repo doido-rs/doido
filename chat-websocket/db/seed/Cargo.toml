@@ -1,0 +1,20 @@
+[package]
+name = "seed"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[[bin]]
+name = "seed"
+path = "src/main.rs"
+
+[dependencies]
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1", features = ["derive"] }
+# SeaORM helpers and app models via the doido meta crate (`doido::model`).
+doido = { path = "/home/fabiano/projetos_doido/doido/doido", default-features = false, features = ["sqlite"] }
+# With `--auth`, the seed compiles `app/models/user.rs` (via the `#[path]` include
+# in src/main.rs), so it needs doido-auth + chrono like the app itself.
+doido-auth = { path = "/home/fabiano/projetos_doido/doido/doido-auth" }
+chrono = { version = "0.4", features = ["clock"] }
+
