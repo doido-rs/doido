@@ -51,6 +51,7 @@ CRATE_VERSION := $(shell sed -nE 's/^version[[:space:]]*=[[:space:]]*"([^"]+)".*
 PUBLISH_CRATES := $(shell grep -vE '^\s*(#|$$)' scripts/publish-crates.txt | tr '\n' ' ')
 
 .PHONY: help publish publish-dry-run verify-publish-crates clean-package check supply-chain yank unyank \
+        release-prep release-notes \
         fmt test verify example install-check verify-published-generator services-up services-down test-backends \
         coverage coverage-check \
         blog blog-build blog-install
@@ -142,6 +143,17 @@ yank: ## Yank a published version of every workspace crate (VERSION=x.y.z)
 unyank: YANK_FLAGS += --undo
 unyank: ## Restore (un-yank) a previously yanked version (VERSION=x.y.z)
 unyank: yank
+
+# Prepare a release on the current `release/X.Y.Z` branch: set the workspace
+# version, stamp every crate CHANGELOG, and commit. See RELEASING.md.
+release-prep: ## Prep a release on the current release/* branch (VERSION=x.y.z): bump + stamp + commit
+	@test -n "$(VERSION)" || { echo "error: pass VERSION=x.y.z" >&2; exit 1; }
+	./scripts/release-prep.sh "$(VERSION)"
+
+# Assemble the GitHub Release body from each crate's CHANGELOG section.
+release-notes: ## Print the GitHub Release body assembled from per-crate changelogs (VERSION=x.y.z)
+	@test -n "$(VERSION)" || { echo "error: pass VERSION=x.y.z" >&2; exit 1; }
+	@./scripts/release-notes.sh "$(VERSION)"
 
 # ---------------------------------------------------------------------------
 # Development & harness targets.
