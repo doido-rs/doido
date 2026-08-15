@@ -1,0 +1,47 @@
+{% extends "layouts/chat" %}
+
+{% block body %}
+<header class="topbar">
+  <div class="topbar-left">
+    <h1>Conversas</h1>
+    <span class="user-badge">{{ user_email }}</span>
+  </div>
+  <div class="topbar-actions">
+    <button type="button" class="btn btn-primary" id="new-chat-btn">Nova conversa</button>
+    <button type="button" class="btn btn-ghost" id="sign-out-btn">Sair</button>
+  </div>
+</header>
+
+<main class="conversations-page">
+  <div id="conversations-loading" class="state-message">Carregando conversas…</div>
+  <div id="conversations-empty" class="state-message" hidden>
+    Nenhuma conversa ainda. Clique em <strong>Nova conversa</strong> para começar.
+  </div>
+  <ul id="conversations-list" class="conversations-list" hidden></ul>
+</main>
+
+<dialog id="new-chat-dialog" class="dialog">
+  <form method="dialog" id="new-chat-form">
+    <h2>Nova conversa</h2>
+    <label>
+      Usuário
+      <select id="recipient-select" required>
+        <option value="">Selecione…</option>
+      </select>
+    </label>
+    <p id="new-chat-error" class="form-error" hidden></p>
+    <div class="dialog-actions">
+      <button type="button" class="btn btn-ghost" id="new-chat-cancel">Cancelar</button>
+      <button type="submit" class="btn btn-primary">Iniciar</button>
+    </div>
+  </form>
+</dialog>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  window.CHAT_USER_ID = {{ user_id }};
+</script>
+<script src="/assets/js/chat.js"></script>
+<script src="/assets/js/conversations.js"></script>
+{% endblock %}

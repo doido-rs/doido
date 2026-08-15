@@ -1,11 +1,14 @@
 use crate::channels::conversation_channel::ConversationChannel;
-use crate::controllers::{ConversationsController, HelloController, MessagesController};
+use crate::controllers::{
+    ChatController, ConversationsController, HelloController, MessagesController, UsersController,
+};
 use crate::models::user::Model as User;
 use crate::state;
 use doido::cable::{self, Cable};
 use doido::controller::axum;
 use doido::storage::{self, Storage};
 use std::sync::Arc;
+use tower_http::services::ServeDir;
 
 fn needs_full_router() -> bool {
     matches!(
@@ -35,6 +38,11 @@ async fn full_router() -> axum::Router {
         get!("/", HelloController::index);
         auth_routes!(User);
 
+        get!("/login", ChatController::login);
+        get!("/chat", ChatController::index);
+        get!("/chat/{id}", ChatController::show);
+
+        get!("/users", UsersController::index);
         get!("/conversations", ConversationsController::index);
         post!("/conversations", ConversationsController::create);
         get!("/conversations/{id}", ConversationsController::show);
@@ -49,7 +57,9 @@ async fn full_router() -> axum::Router {
         .expect("storage config");
     let storage_routes = storage::serving::routes(storage);
 
-    http.merge(ws).merge(storage_routes)
+    http.merge(ws)
+        .merge(storage_routes)
+        .nest_service("/assets", ServeDir::new("public/assets"))
 }
 
 pub fn router() -> axum::Router {

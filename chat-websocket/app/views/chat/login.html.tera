@@ -1,0 +1,41 @@
+{% extends "layouts/chat" %}
+
+{% block body %}
+<main class="auth-page">
+  <section class="auth-card">
+    <h1>Chat</h1>
+    <p class="auth-subtitle">Entre para ver suas conversas</p>
+    <form id="login-form" class="auth-form">
+      <label>
+        E-mail
+        <input type="email" name="email" required autocomplete="username" placeholder="admin@example.com">
+      </label>
+      <label>
+        Senha
+        <input type="password" name="password" required autocomplete="current-password" placeholder="••••••••">
+      </label>
+      <p id="login-error" class="form-error" hidden></p>
+      <button type="submit" class="btn btn-primary">Entrar</button>
+    </form>
+  </section>
+</main>
+{% endblock %}
+
+{% block scripts %}
+<script src="/assets/js/chat.js"></script>
+<script>
+  document.getElementById("login-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const errorEl = document.getElementById("login-error");
+    errorEl.hidden = true;
+    try {
+      await Chat.signIn(form.email.value, form.password.value);
+      window.location.href = "/chat";
+    } catch (err) {
+      errorEl.textContent = err.message || "Credenciais inválidas";
+      errorEl.hidden = false;
+    }
+  });
+</script>
+{% endblock %}

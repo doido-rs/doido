@@ -34,7 +34,7 @@ async fn run_seed() -> doido::Result<()> {
     // Seed an initial user so a fresh --auth app has a login out of the box.
     {
         use doido::model::password::hash_password;
-        use doido::model::sea_orm::EntityTrait;
+        use doido::model::sea_orm::{ColumnTrait, EntityTrait};
         use doido_auth::RegisterableAuthUser;
         use models::user::{Entity, Model};
 
@@ -42,6 +42,17 @@ async fn run_seed() -> doido::Result<()> {
             let digest = hash_password("password")?;
             Model::register(&db, "admin@example.com".into(), digest).await?;
             println!("seeded initial user: admin@example.com / password");
+        }
+
+        if Entity::find()
+            .filter(models::user::Column::Email.eq("user@example.com"))
+            .one(&db)
+            .await?
+            .is_none()
+        {
+            let digest = hash_password("password")?;
+            Model::register(&db, "user@example.com".into(), digest).await?;
+            println!("seeded demo user: user@example.com / password");
         }
     }
     Ok(())
