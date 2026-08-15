@@ -1,10 +1,15 @@
 name: Release
 
+# Releases publish ONLY from a `release/X.Y.Z` branch whose tree already carries
+# the version bump + stamped changelogs (produced by `make release-prep`). The
+# workflow verifies that committed state, publishes crates.io + binaries, tags
+# `vX.Y.Z`, and builds the GitHub Release body from the per-crate changelogs.
+# See RELEASING.md.
 on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Exact semver to publish (required; no leading v, e.g. 0.1.0; when unstable=true use a suffix, e.g. 0.0.25-test.1)"
+        description: "Exact semver to publish (required; no leading v, e.g. 0.1.0; when unstable=true use a suffix, e.g. 0.0.25-test.1). Must match the committed release branch."
         required: true
         type: string
       unstable:
@@ -19,8 +24,20 @@ on:
         default: false
 
 jobs:
+  guard:
+    name: Guard — release branch only
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require a release/* branch
+        run: |
+          case "${GITHUB_REF_NAME}" in
+            release/*) echo "ok: dispatched from ${GITHUB_REF_NAME}" ;;
+            *) echo "::error::Release must be dispatched from a release/* branch (got '${GITHUB_REF_NAME}'). See RELEASING.md." ; exit 1 ;;
+          esac
+
   test:
     name: Test
+    needs: guard
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -34,28 +51,27 @@ jobs:
           CARGO_TARGET_DIR: target/e2e-cargo
 
   version:
-    name: Resolve version
+    name: Verify version
     needs: test
     runs-on: ubuntu-latest
     outputs:
-      version: ${{ steps.bump.outputs.version }}
+      version: ${{ steps.check.outputs.version }}
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@1.95.0
-      - run: cargo install cargo-workspaces --locked
-      - name: Set workspace version
-        id: bump
+      - name: Assert committed version matches input
+        id: check
         env:
           VERSION: ${{ inputs.version }}
-          UNSTABLE: ${{ inputs.unstable }}
-        run: ./scripts/bump-workspace-version.sh
-      - name: Pack versioned Cargo manifests
-        run: ./scripts/pack-cargo-manifests.sh cargo-manifests.tar.gz
-      - name: Upload versioned manifests
-        uses: actions/upload-artifact@v4
-        with:
-          name: cargo-manifests
-          path: cargo-manifests.tar.gz
+        run: |
+          # The release branch already committed the bump (make release-prep), so
+          # the tree is the source of truth — no in-CI mutation or manifest packing.
+          committed="$(sed -nE 's/^version = "([^"]+)".*/\1/p' Cargo.toml | head -1)"
+          if [ "$committed" != "$VERSION" ]; then
+            echo "::error::Committed workspace version ($committed) != requested ($VERSION). Run 'make release-prep VERSION=$VERSION' on the release branch and commit before releasing."
+            exit 1
+          fi
+          echo "version=$VERSION" >>"$GITHUB_OUTPUT"
+          echo "==> release version: $VERSION (matches committed tree)"
 
   publish:
     name: Publish to crates.io
@@ -64,10 +80,6 @@ jobs:
     if: ${{ inputs.dry_run == false }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
-        with:
-          name: cargo-manifests
-      - run: ./scripts/unpack-cargo-manifests.sh cargo-manifests.tar.gz
       - uses: dtolnay/rust-toolchain@1.95.0
       - uses: Swatinem/rust-cache@v2
       - run: make publish
@@ -103,11 +115,6 @@ jobs:
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
-        with:
-          name: cargo-manifests
-      - run: ./scripts/unpack-cargo-manifests.sh cargo-manifests.tar.gz
-        shell: bash
       - uses: dtolnay/rust-toolchain@1.95.0
         with:
           targets: ${{ matrix.target }}
@@ -168,6 +175,30 @@ jobs:
           git tag -a "${tag}" -m "${tag_msg}"
           git push origin "refs/tags/${tag}"
           echo "==> tagged $(git rev-parse HEAD) as ${tag}"
+      - name: Assemble release notes from changelogs
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+          UNSTABLE: ${{ inputs.unstable }}
+        run: |
+          if [ "${UNSTABLE}" = "true" ]; then
+            {
+              echo "**Unstable / test release** — not promoted to \`latest\`. Delete this release and run \`make yank VERSION=${VERSION}\` when done."
+              echo
+            } > release-notes.md
+          else
+            : > release-notes.md
+          fi
+          ./scripts/release-notes.sh "$VERSION" >> release-notes.md
+          {
+            printf '\n## Install\n\n**Linux / macOS**\n\n```bash\n'
+            printf 'curl -fsSL https://github.com/doido-rs/doido/releases/download/v%s/install.sh | bash\n' "$VERSION"
+            printf '```\n\nPin a version:\n\n```bash\n'
+            printf 'curl -fsSL https://github.com/doido-rs/doido/releases/download/v%s/install.sh | DOIDO_VERSION=%s bash\n' "$VERSION" "$VERSION"
+            printf '```\n\n**Windows (PowerShell)**\n\n```powershell\n'
+            printf 'irm https://github.com/doido-rs/doido/releases/download/v%s/install.ps1 | iex\n' "$VERSION"
+            printf '```\n\nBinaries are also attached as `doido-<target>` for manual install.\n'
+          } >> release-notes.md
+          echo "----- release-notes.md -----"; cat release-notes.md
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
@@ -177,49 +208,10 @@ jobs:
           mkdir -p release-assets
           cp scripts/install.sh scripts/install.ps1 release-assets/
           chmod +x release-assets/install.sh
-          find artifacts -type f \( -name 'doido-*' ! -name 'cargo-manifests.tar.gz' \) | while read -r f; do
+          find artifacts -type f -name 'doido-*' | while read -r f; do
             cp "$f" "release-assets/$(basename "$f")"
           done
           ls -la release-assets
-      - name: Write release notes
-        env:
-          VERSION: ${{ needs.version.outputs.version }}
-          UNSTABLE: ${{ inputs.unstable }}
-        run: |
-          write_install_notes() {
-            {
-              echo "## Install"
-              echo
-              echo "**Linux / macOS**"
-              echo
-              echo '```bash'
-              echo "curl -fsSL https://github.com/doido-rs/doido/releases/download/v${VERSION}/install.sh | bash"
-              echo '```'
-              echo
-              echo "Pin a version:"
-              echo
-              echo '```bash'
-              echo "curl -fsSL https://github.com/doido-rs/doido/releases/download/v${VERSION}/install.sh | DOIDO_VERSION=${VERSION} bash"
-              echo '```'
-              echo
-              echo "**Windows (PowerShell)**"
-              echo
-              echo '```powershell'
-              echo "irm https://github.com/doido-rs/doido/releases/download/v${VERSION}/install.ps1 | iex"
-              echo '```'
-              echo
-              echo "Binaries are also attached as \`doido-<target>\` for manual install."
-            } >> release-notes.md
-          }
-
-          : > release-notes.md
-          if [ "${UNSTABLE}" = "true" ]; then
-            {
-              echo "**Unstable / test release** — not promoted to \`latest\`. Delete this release and run \`make yank VERSION=${VERSION}\` when done."
-              echo
-            } >> release-notes.md
-          fi
-          write_install_notes
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
