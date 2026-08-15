@@ -173,8 +173,9 @@ Pull Requests), and retarget any open PRs from `master` onto `develop`.
 ## Housekeeping notes
 
 - **`v0.1.0` is not a real release.** The latest legitimate release is `v0.0.24`.
-  The stray tag is removed (`git push origin :refs/tags/v0.1.0`); if `0.1.0` was
-  ever pushed to crates.io it is yanked (`make yank VERSION=0.1.0`), which **burns**
-  that number — the next minor must then be `0.2.0`.
+  `0.1.0` was, however, published to crates.io, so cleanup is two steps:
+  remove the git tag (`git push origin :refs/tags/v0.1.0`) **and** yank the crates
+  (`make yank VERSION=0.1.0`). A yanked version keeps its number reserved, so the
+  **next minor must be `0.2.0`** — `0.1.0` cannot be reused.
 - The committed workspace version is reconciled to the last released version so the
   tree never lies about what shipped.
