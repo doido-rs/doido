@@ -7,18 +7,19 @@ use doido::model::sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, Serialize, Deserialize)]
-#[sea_orm(table_name = "users")]
+#[sea_orm(table_name = "doido_jobs")]
 pub struct Model {
-    #[sea_orm(primary_key)]
-    pub id: i64,
-    #[sea_orm(unique)]
-    pub email: String,
-    pub password_digest: String,
-    pub reset_password_token: Option<String>,
-    pub reset_password_sent_at: Option<DateTimeUtc>,
-    pub remember_created_at: Option<DateTimeUtc>,
-    pub created_at: DateTimeUtc,
-    pub updated_at: DateTimeUtc,
+    #[sea_orm(primary_key, auto_increment = false, column_type = "Text")]
+    pub id: String,
+    #[sea_orm(column_type = "Text")]
+    pub queue: String,
+    #[sea_orm(column_type = "Text")]
+    pub status: String,
+    pub priority: i64,
+    pub run_at: i64,
+    pub locked_at: Option<i64>,
+    #[sea_orm(column_type = "Text")]
+    pub data: String,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

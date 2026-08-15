@@ -18,6 +18,8 @@ storage:
   services:
     test:
       type: memory
+cable:
+  type: memory
 auth:
   user_model: User
   modules:

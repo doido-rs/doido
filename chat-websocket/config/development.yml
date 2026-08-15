@@ -29,6 +29,10 @@ mailer:
   type: smtp
   smtp:
     address: localhost:1025
+cable:
+  type: memory
+  ping_interval: 3
+  mount_path: /cable
 auth:
   user_model: User
   modules:

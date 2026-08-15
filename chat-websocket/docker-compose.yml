@@ -2,28 +2,6 @@
 name: chat-websocket
 
 services:
-  web:
-    build:
-      context: .
-      dockerfile: Dockerfile.dev
-    ports:
-      - "3000:3000"
-    volumes:
-      - .:/app
-      - cargo-registry:/usr/local/cargo/registry
-      - cargo-git:/usr/local/cargo/git
-      - ./db:/app/db
-    environment:
-      DOIDO_ENV: development
-      DATABASE__URL: sqlite://db/development.db
-      MAILER__TYPE: smtp
-      MAILER__SMTP__ADDRESS: mailpit:1025
-    depends_on:
-      mailpit:
-        condition: service_started
-      redis:
-        condition: service_healthy
-
   redis:
     image: redis:8-alpine
     ports:

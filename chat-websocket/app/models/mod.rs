@@ -7,4 +7,7 @@
 pub mod _entities;
 
 pub mod user;
+pub mod conversation;
+pub mod conversation_participant;
+pub mod message;
 // @generated-models

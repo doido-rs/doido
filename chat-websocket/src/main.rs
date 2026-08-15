@@ -16,14 +16,16 @@ mod helpers;
 #[path = "../app/channels/mod.rs"]
 mod channels;
 
+#[path = "../app/services/mod.rs"]
+mod services;
+
+#[path = "../app/state.rs"]
+mod state;
+
 #[path = "../config/routes.rs"]
 mod routes;
 
 #[tokio::main]
 async fn main() {
-    // Delegates to the Doido CLI (server, console, db, worker, generate, …),
-    // handing it this app's routes so `doido server` can boot the HTTP server.
-    // The `jobs`/`mailers` modules above are compiled as part of this crate, so
-    // generated jobs/mailers are type-checked even before they are wired up.
     doido::run(Some(routes::router())).await;
 }

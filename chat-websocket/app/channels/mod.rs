@@ -2,4 +2,5 @@
 //! registers its module here, just above the marker below.
 pub mod chat_channel;
 
+pub mod conversation_channel;
 // @generated-channels
