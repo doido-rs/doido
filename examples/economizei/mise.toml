@@ -1,0 +1,4 @@
+# mise local config — pins the toolchain for this project.
+# Run `mise install` to install the versions below. See https://mise.jdx.dev
+[tools]
+rust = "1.95.0"

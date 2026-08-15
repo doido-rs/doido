@@ -1,0 +1,13 @@
+{% extends "layouts/application.html.tera" %}
+{% block content %}
+<section class="max-w-2xl">
+  <div class="flex flex-wrap items-center justify-between gap-4">
+    <h1 class="text-3xl font-bold text-white">{{ title }}</h1>
+    {% if editable %}
+    <a href="{{ base_path }}/{{ record_id }}/edit" class="text-sm text-accent hover:underline">{{ nav.edit }}</a>
+    {% endif %}
+  </div>
+  {% include "layouts/_show_fields.html.tera" %}
+  <a href="{{ base_path }}" class="mt-6 inline-block text-sm text-slate-400 hover:text-white">{{ back_label }}</a>
+</section>
+{% endblock %}

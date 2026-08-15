@@ -1,0 +1,41 @@
+[package]
+name = "economizei"
+description = "Starter Doido web application: Axum server, routed hello endpoint, templating scaffolding."
+version = "0.1.0"
+edition = "2021"
+default-run = "economizei"
+
+# The SeaORM migration project lives in `db/migration` and is built as part of
+# this workspace.
+[workspace]
+members = ["db/migration", "db/seed"]
+
+[dependencies]
+doido = { version = "0.0.24", default-features = false, features = ["postgres"] }
+doido-core = { version = "0.0.24" }
+doido-controller = { version = "0.0.24", features = ["postgres"] }
+doido-model = { version = "0.0.24", features = ["postgres"] }
+doido-jobs = { version = "0.0.24", features = ["jobs-db", "postgres"] }
+doido-mailer = { version = "0.0.24" }
+doido-auth = { version = "0.0.24" }
+doido-auth-macros = "0.0.24"
+doido-view = { version = "0.0.24" }
+tower-http = { version = "0.7", features = ["fs"] }
+chrono = { version = "0.4", features = ["clock"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sqlx = { version = "0.8", features = ["runtime-tokio", "postgres"] }
+tokio = { version = "1", features = ["full"] }
+csv = "1.3"
+flate2 = "1.0"
+sha2 = "0.10"
+hex = "0.4"
+base64 = "0.22"
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
+regex = "1"
+encoding_rs = "0.8"
+thiserror = "2"
+
+[dev-dependencies]
+# Used by generated scaffold controller request tests (Router::oneshot).
+tower = { version = "0.5", features = ["util"] }

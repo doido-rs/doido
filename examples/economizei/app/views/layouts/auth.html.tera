@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% if title %}{{ title }} · {% endif %}{{ app_name | default(value="economizei") }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Ubuntu+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/application.css">
+</head>
+<body class="min-h-full bg-slate-950 text-slate-100 font-mono antialiased flex items-center justify-center p-6">
+  <div class="w-full max-w-md rounded-xl border border-slate-800 bg-slate-900/80 p-8 shadow-2xl">
+    {% block content %}{% endblock %}
+  </div>
+</body>
+</html>

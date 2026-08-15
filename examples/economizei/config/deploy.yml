@@ -1,0 +1,19 @@
+# Kamal deployment config (https://kamal-deploy.org). Fill in your host/registry.
+service: economizei
+image: your-user/economizei
+
+servers:
+  - 192.168.0.1
+
+proxy:
+  ssl: true
+  host: app.example.com
+
+registry:
+  username: your-user
+  password:
+    - KAMAL_REGISTRY_PASSWORD
+
+env:
+  clear:
+    DOIDO_ENV: production

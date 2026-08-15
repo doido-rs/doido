@@ -1,0 +1,5 @@
+target/
+.git/
+.env
+config/master.key
+config/credentials.yml.enc

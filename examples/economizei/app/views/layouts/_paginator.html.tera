@@ -1,0 +1,62 @@
+{# Paginator partial — include below every HTML table listing records.
+   Required context:
+   - pagination.page, pagination.per_page, pagination.total_pages, pagination.total_count
+   - base_path (collection URL without query string)
+   Optional:
+   - export_path (defaults to base_path ~ "/export")
+#}
+<nav class="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-800 pt-4 text-sm text-slate-300" aria-label="Pagination">
+  <p>
+    {{ pagination_labels.showing | default(value="Showing") }}
+    {{ pagination.per_page }}
+    {{ pagination_labels.per_page | default(value="per page") }}
+    ·
+    {{ pagination.total_count }}
+    {{ pagination_labels.total | default(value="total") }}
+  </p>
+  <div class="flex flex-wrap items-center gap-2">
+    <label class="flex items-center gap-2">
+      <span>{{ pagination_labels.per_page_label | default(value="Per page") }}</span>
+      <select
+        class="rounded-lg border border-slate-700 bg-slate-900 px-2 py-1"
+        onchange="window.location.href='{{ base_path }}?page=1&per_page=' + this.value"
+      >
+        <option value="20" {% if pagination.per_page == 20 %}selected{% endif %}>20</option>
+        <option value="50" {% if pagination.per_page == 50 %}selected{% endif %}>50</option>
+        <option value="100" {% if pagination.per_page == 100 %}selected{% endif %}>100</option>
+      </select>
+    </label>
+    {% if export_path %}
+    <a
+      href="{{ export_path }}"
+      class="rounded-lg border border-slate-700 px-3 py-1 hover:border-accent/50 hover:text-accent"
+    >
+      {{ pagination_labels.export_csv | default(value="Export CSV") }}
+    </a>
+    {% endif %}
+    <div class="flex items-center gap-1">
+      {% if pagination.page > 1 %}
+      <a
+        href="{{ base_path }}?page={{ pagination.page - 1 }}&per_page={{ pagination.per_page }}"
+        class="rounded-lg border border-slate-700 px-3 py-1 hover:border-accent/50"
+      >
+        {{ pagination_labels.previous | default(value="Previous") }}
+      </a>
+      {% endif %}
+      <span class="px-2">
+        {{ pagination_labels.page | default(value="Page") }}
+        {{ pagination.page }}
+        /
+        {{ pagination.total_pages | default(value=1) }}
+      </span>
+      {% if pagination.page < pagination.total_pages %}
+      <a
+        href="{{ base_path }}?page={{ pagination.page + 1 }}&per_page={{ pagination.per_page }}"
+        class="rounded-lg border border-slate-700 px-3 py-1 hover:border-accent/50"
+      >
+        {{ pagination_labels.next | default(value="Next") }}
+      </a>
+      {% endif %}
+    </div>
+  </div>
+</nav>

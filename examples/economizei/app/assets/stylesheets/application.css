@@ -1,0 +1,11 @@
+@import "tailwindcss";
+
+@source "../../../app/views/**/*.html.tera";
+
+@theme {
+  --font-sans: "Ubuntu Mono", ui-monospace, monospace;
+  --font-mono: "Ubuntu Mono", ui-monospace, monospace;
+  --color-sidebar: #0f172a;
+  --color-sidebar-hover: #1e293b;
+  --color-accent: #14b8a6;
+}

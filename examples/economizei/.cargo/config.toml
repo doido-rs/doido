@@ -1,0 +1,8 @@
+# Project-local Cargo aliases. From the app root, `cargo doido` is equivalent to
+# `cargo run --bin economizei` — subcommands and flags pass through unchanged:
+#
+#   cargo doido server
+#   cargo doido db migrate
+#   cargo doido generate model User
+[alias]
+doido = "run --bin economizei --"

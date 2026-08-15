@@ -1,0 +1,41 @@
+server:
+  bind: 127.0.0.1
+  port: 3001
+database:
+  url: postgres://postgres:postgres@localhost:5432/economizei_test
+logger:
+  # Tests are noisy enough; only surface warnings and errors by default, and
+  # send them to a file so they don't clutter test runner output.
+  level: warn
+  file: log/test.log
+cache:
+  # Tests use the in-process memory store for isolation and speed.
+  type: memory
+jobs:
+  type: memory
+storage:
+  service: test
+  services:
+    test:
+      type: memory
+auth:
+  user_model: User
+  modules:
+    - database_authenticatable
+    - registerable
+    - recoverable
+    - rememberable
+    - validatable
+  strategies:
+    - cookie
+  two_factor:
+    enabled: false
+    issuer: Economizei
+  timeout: 1800
+  password_length: 6
+  maximum_attempts: 20
+  unlock_in: 3600
+  reset_password_within: 21600
+  remember_for: 1209600
+  routes:
+    prefix: /users
