@@ -63,6 +63,10 @@ The sibling `app/models/<name>.rs` re-exports the entity and holds anything you 
 // app/models/post.rs — safe to edit
 pub use super::_entities::post::*;
 
+use doido::model::sea_orm::ActiveModelBehavior;
+
+impl ActiveModelBehavior for ActiveModel {}
+
 use doido_model::validation::{Errors, Validate};
 
 impl Validate for Model {
@@ -92,8 +96,6 @@ pub struct Model {
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {}
-
-impl ActiveModelBehavior for ActiveModel {}
 ```
 
 Queries follow sea-orm conventions (import through `app/models/post.rs` or `models::post`):

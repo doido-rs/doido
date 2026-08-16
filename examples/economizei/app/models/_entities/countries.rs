@@ -29,5 +29,3 @@ impl Related<super::banks::Entity> for Entity {
         Relation::Banks.def()
     }
 }
-
-impl ActiveModelBehavior for ActiveModel {}

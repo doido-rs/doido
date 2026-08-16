@@ -28,6 +28,7 @@ fn model_modules_skips_entities_registry() {
 fn extension_stub_reexports_entity_table_module() {
     let stub = extension_stub("post", "posts");
     assert!(stub.contains("pub use super::_entities::posts::*;"));
+    assert!(stub.contains("impl ActiveModelBehavior for ActiveModel {}"));
     assert!(stub.contains("#![allow(dead_code, unused_imports)]"));
 }
 
@@ -77,6 +78,22 @@ fn rewrite_generated_imports_adds_alias_for_sea_orm_attributes() {
     assert!(content.contains("use doido::model::sea_orm as sea_orm;"));
     assert!(content.contains("use doido::model::sea_orm::entity::prelude::*;"));
     assert!(content.contains("#![allow(dead_code, unused_imports)]"));
+}
+
+#[test]
+fn rewrite_generated_imports_strips_active_model_behavior_impl() {
+    let dir = tempdir().unwrap();
+    fs::write(
+        dir.path().join("posts.rs"),
+        "use sea_orm::entity::prelude::*;\n\n\
+         #[derive(DeriveEntityModel)]\n\
+         pub struct Model {}\n\n\
+         impl ActiveModelBehavior for ActiveModel {}\n",
+    )
+    .unwrap();
+    rewrite_generated_imports(dir.path()).unwrap();
+    let content = fs::read_to_string(dir.path().join("posts.rs")).unwrap();
+    assert!(!content.contains("impl ActiveModelBehavior for ActiveModel {}"));
 }
 
 #[test]

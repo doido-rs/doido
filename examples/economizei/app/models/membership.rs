@@ -2,3 +2,7 @@
 #![allow(dead_code, unused_imports)]
 
 pub use super::_entities::memberships::*;
+
+use doido::model::sea_orm::ActiveModelBehavior;
+
+impl ActiveModelBehavior for ActiveModel {}

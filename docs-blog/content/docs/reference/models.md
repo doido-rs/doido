@@ -32,6 +32,10 @@ overwritten). The extension file re-exports the entity:
 ```rust
 // app/models/post.rs — safe to edit
 pub use super::_entities::post::*;
+
+use doido::model::sea_orm::ActiveModelBehavior;
+
+impl ActiveModelBehavior for ActiveModel {}
 ```
 
 The entity definition itself is plain sea-orm — there is nothing Doido-specific to learn:
@@ -55,8 +59,6 @@ pub enum Relation {
     #[sea_orm(has_many = "super::comment::Entity")]
     Comments,
 }
-
-impl ActiveModelBehavior for ActiveModel {}
 ```
 
 Query with sea-orm directly (there is intentionally no `Model::find_by_id` sugar):

@@ -325,7 +325,7 @@ fn default_entity_generate_command(database_url: String) -> GenerateSubcommands 
         enum_extra_attributes: Vec::new(),
         column_extra_derives: Vec::new(),
         seaography: false,
-        impl_active_model_behavior: true,
+        impl_active_model_behavior: false,
         preserve_user_modifications: false,
         banner_version: BannerVersion::Minor,
         er_diagram: false,

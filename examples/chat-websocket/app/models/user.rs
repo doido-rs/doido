@@ -4,6 +4,10 @@
 
 pub use super::_entities::users::*;
 
+use doido::model::sea_orm::ActiveModelBehavior;
+
+impl ActiveModelBehavior for ActiveModel {}
+
 use doido::model::sea_orm::entity::prelude::*;
 use doido::model::sea_orm::Set;
 use doido::model::password::HasSecurePassword;

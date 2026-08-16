@@ -53,7 +53,9 @@ pub fn extension_stub(model_module: &str, entity_module: &str) -> String {
          //! The SeaORM entity definition lives in `_entities/{entity_module}.rs` and is\n\
          //! regenerated on every `doido db migrate`.\n\
          #![allow(dead_code, unused_imports)]\n\n\
-         pub use super::_entities::{entity_module}::*;\n"
+         pub use super::_entities::{entity_module}::*;\n\n\
+         use doido::model::sea_orm::ActiveModelBehavior;\n\n\
+         impl ActiveModelBehavior for ActiveModel {{}}\n"
     )
 }
 
@@ -76,7 +78,8 @@ pub fn rewrite_generated_imports(entities_dir: &Path) -> Result<()> {
             ensure_inner_attribute(&content, "#![allow(unused_imports)]")
         } else {
             let imports_fixed = rewrite_entity_file_imports(&content);
-            ensure_inner_attribute(&imports_fixed, "#![allow(dead_code, unused_imports)]")
+            let stripped = strip_active_model_behavior(&imports_fixed);
+            ensure_inner_attribute(&stripped, "#![allow(dead_code, unused_imports)]")
         };
         if rewritten != content {
             fs::write(path, rewritten)?;
@@ -130,6 +133,21 @@ fn rewrite_entity_file_imports(content: &str) -> String {
 
     other_lines.splice(insert_at..insert_at, imports);
     let mut out = other_lines.join("\n");
+    if content.ends_with('\n') {
+        out.push('\n');
+    }
+    out
+}
+
+/// Removes the default SeaORM `ActiveModelBehavior` impl from exported entity files.
+/// The impl belongs in `app/models/<name>.rs` extension stubs instead.
+fn strip_active_model_behavior(content: &str) -> String {
+    let mut lines: Vec<&str> = content.lines().collect();
+    lines.retain(|line| line.trim() != "impl ActiveModelBehavior for ActiveModel {}");
+    while lines.last().is_some_and(|l| l.trim().is_empty()) {
+        lines.pop();
+    }
+    let mut out = lines.join("\n");
     if content.ends_with('\n') {
         out.push('\n');
     }

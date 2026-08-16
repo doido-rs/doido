@@ -44,8 +44,6 @@ pub enum Relation {
     #[sea_orm(has_many = "super::comment::Entity")]
     Comments,
 }
-
-impl ActiveModelBehavior for ActiveModel {}
 ```
 
 Faça queries direto com o sea-orm (não existe, intencionalmente, um `Model::find_by_id`):

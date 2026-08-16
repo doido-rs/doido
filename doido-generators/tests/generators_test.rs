@@ -56,6 +56,9 @@ fn test_model_generator_produces_model_migration_and_updates_lib() {
         .unwrap();
     assert!(entity.content.contains("DeriveEntityModel"));
     assert!(entity.content.contains("table_name = \"users\""));
+    assert!(!entity
+        .content
+        .contains("impl ActiveModelBehavior for ActiveModel {}"));
     let extension = files
         .iter()
         .find(|f| f.path == "app/models/user.rs")
@@ -63,6 +66,9 @@ fn test_model_generator_produces_model_migration_and_updates_lib() {
     assert!(extension
         .content
         .contains("pub use super::_entities::users::*;"));
+    assert!(extension
+        .content
+        .contains("impl ActiveModelBehavior for ActiveModel {}"));
 
     // Migration file in db/migration/src/.
     assert!(paths
