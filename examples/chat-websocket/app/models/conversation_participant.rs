@@ -5,3 +5,7 @@
 #![allow(dead_code, unused_imports)]
 
 pub use super::_entities::conversation_participants::*;
+
+use doido::model::sea_orm::ActiveModelBehavior;
+
+impl ActiveModelBehavior for ActiveModel {}

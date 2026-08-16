@@ -17,4 +17,8 @@ pub mod country;
 pub mod membership;
 pub mod transaction;
 pub mod user;
+pub mod doido_job;
+pub mod storage_blob;
+pub mod storage_attachment;
+pub mod storage_variant_record;
 // @generated-models

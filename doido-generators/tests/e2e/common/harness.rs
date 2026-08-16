@@ -40,6 +40,12 @@ impl AppHarness {
     }
 
     pub fn build(&self) {
+        let entities = self.app.join("app/models/_entities");
+        let models = self.app.join("app/models");
+        if entities.is_dir() {
+            doido_model::entities::postprocess_entity_export(&entities, &models)
+                .expect("sync model extensions before build");
+        }
         cli::cargo_build(&self.app);
     }
 

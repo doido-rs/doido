@@ -36,5 +36,3 @@ impl Related<super::countries::Entity> for Entity {
         Relation::Countries.def()
     }
 }
-
-impl ActiveModelBehavior for ActiveModel {}

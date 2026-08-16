@@ -289,12 +289,7 @@ async fn export_entities_from_database(verbose: bool) {
 }
 
 fn sync_model_extensions() {
-    let entities_dir = Path::new(DEFAULT_ENTITY_OUTPUT_DIR);
-    let models_dir = Path::new("app/models");
-    match doido_model::entities::postprocess_entity_export(entities_dir, models_dir) {
-        Ok(()) => doido_core::tracing::info!("post-processed exported entities"),
-        Err(e) => doido_core::tracing::error!("entity post-process failed: {e}"),
-    }
+    crate::commands::sync_model_extensions_at(Path::new("."));
 }
 
 fn default_entity_generate_command(database_url: String) -> GenerateSubcommands {
@@ -325,7 +320,7 @@ fn default_entity_generate_command(database_url: String) -> GenerateSubcommands 
         enum_extra_attributes: Vec::new(),
         column_extra_derives: Vec::new(),
         seaography: false,
-        impl_active_model_behavior: true,
+        impl_active_model_behavior: false,
         preserve_user_modifications: false,
         banner_version: BannerVersion::Minor,
         er_diagram: false,
