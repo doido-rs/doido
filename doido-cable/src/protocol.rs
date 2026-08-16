@@ -1,8 +1,23 @@
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 
 // Client→server frames are tagged with `command` per the ActionCable wire
 // protocol (subscribe/unsubscribe/message); `type` is reserved for the
 // server→client frames modelled by `ServerFrame`/`ServerMessage`.
+
+/// ActionCable sends `data` as a JSON-encoded string inside the frame; parse
+/// it into a [`serde_json::Value`] object for channel handlers.
+fn deserialize_message_data<'de, D>(deserializer: D) -> Result<serde_json::Value, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let value = serde_json::Value::deserialize(deserializer)?;
+    Ok(match value {
+        serde_json::Value::String(s) => {
+            serde_json::from_str(&s).unwrap_or(serde_json::Value::String(s))
+        }
+        other => other,
+    })
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(tag = "command", rename_all = "lowercase")]
@@ -15,6 +30,7 @@ pub enum CableFrame {
     },
     Message {
         identifier: String,
+        #[serde(deserialize_with = "deserialize_message_data")]
         data: serde_json::Value,
     },
 }
