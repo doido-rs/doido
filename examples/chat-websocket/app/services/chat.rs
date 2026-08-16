@@ -1,5 +1,7 @@
 //! Chat domain helpers: conversations, messages, cable broadcasts, attachments.
-use crate::models::conversation::ActiveModel as ConversationActive;
+use crate::models::conversation::{
+    ActiveModel as ConversationActive, Entity as ConversationEntity, Model as Conversation,
+};
 use crate::models::conversation_participant::{
     ActiveModel as ParticipantActive, Column as ParticipantColumn, Entity as ParticipantEntity,
 };
@@ -18,6 +20,8 @@ use serde_json::json;
 pub const TYPE_TEXT: &str = "text";
 pub const TYPE_IMAGE: &str = "image";
 pub const TYPE_FILE: &str = "file";
+pub const KIND_DIRECT: &str = "direct";
+pub const KIND_GROUP: &str = "group";
 
 const ATTACHMENT_NAME: &str = "attachment";
 const RECORD_TYPE: &str = "Message";
@@ -127,10 +131,36 @@ pub async fn find_direct_conversation(
 
     for (conversation_id, users) in by_conversation {
         if users.len() == 2 && users.contains(&user_a) && users.contains(&user_b) {
-            return Ok(Some(conversation_id));
+            let conversation = ConversationEntity::find_by_id(conversation_id)
+                .one(db)
+                .await?;
+            if conversation.as_ref().is_some_and(|c| c.kind == KIND_DIRECT) {
+                return Ok(Some(conversation_id));
+            }
         }
     }
     Ok(None)
+}
+
+/// Human-readable title for a conversation in the UI.
+pub fn conversation_display_name(
+    conversation: &Conversation,
+    participants: &[(i64, String)],
+    current_user_id: i64,
+) -> String {
+    if conversation.kind == KIND_GROUP {
+        return conversation
+            .name
+            .clone()
+            .filter(|n| !n.trim().is_empty())
+            .unwrap_or_else(|| "Grupo".into());
+    }
+
+    participants
+        .iter()
+        .find(|(id, _)| *id != current_user_id)
+        .map(|(_, email)| email.clone())
+        .unwrap_or_else(|| format!("Conversa #{}", conversation.id))
 }
 
 /// Create a new conversation with two participants.
@@ -140,6 +170,7 @@ pub async fn create_direct_conversation(
     user_b: i64,
 ) -> doido::Result<i64> {
     let conversation = ConversationActive {
+        kind: Set(KIND_DIRECT.to_string()),
         ..Default::default()
     }
     .insert(db)
@@ -173,6 +204,66 @@ pub async fn find_or_create_direct(
     }
 
     create_direct_conversation(db, current_user_id, recipient_id).await
+}
+
+/// Create a group conversation with a name and at least one other member.
+pub async fn create_group_conversation(
+    db: &DatabaseConnection,
+    creator_id: i64,
+    name: &str,
+    member_ids: &[i64],
+) -> doido::Result<i64> {
+    let name = name.trim();
+    if name.is_empty() {
+        return Err(doido::core::anyhow::anyhow!("group name is required").into());
+    }
+
+    let mut participants: Vec<i64> = member_ids
+        .iter()
+        .copied()
+        .filter(|id| *id != creator_id)
+        .collect();
+    participants.sort_unstable();
+    participants.dedup();
+
+    if participants.is_empty() {
+        return Err(
+            doido::core::anyhow::anyhow!("select at least one member besides yourself").into(),
+        );
+    }
+
+    let conversation = ConversationActive {
+        kind: Set(KIND_GROUP.to_string()),
+        name: Set(Some(name.to_string())),
+        ..Default::default()
+    }
+    .insert(db)
+    .await?;
+
+    let mut all_members = vec![creator_id];
+    all_members.extend(participants);
+
+    for user_id in all_members {
+        ParticipantActive {
+            conversation_id: Set(conversation.id),
+            user_id: Set(user_id),
+            ..Default::default()
+        }
+        .insert(db)
+        .await?;
+    }
+
+    Ok(conversation.id)
+}
+
+pub async fn load_conversation(
+    db: &DatabaseConnection,
+    conversation_id: i64,
+) -> doido::Result<Option<Conversation>> {
+    ConversationEntity::find_by_id(conversation_id)
+        .one(db)
+        .await
+        .map_err(Into::into)
 }
 
 pub async fn list_messages(

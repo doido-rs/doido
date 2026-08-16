@@ -1,8 +1,9 @@
 use crate::controllers::auth_helper::require_user;
 use crate::models::user::Entity as UserEntity;
 use crate::services::chat::{
-    find_or_create_direct, list_messages, mark_conversation_read, message_payload, participant_of,
-    unread_count, MessagePayload,
+    conversation_display_name, create_group_conversation, find_or_create_direct, load_conversation,
+    list_messages, mark_conversation_read, message_payload, participant_of, unread_count,
+    MessagePayload,
 };
 use doido::controller::{controller, Context, Response};
 use doido::model::sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
@@ -15,8 +16,10 @@ use crate::models::conversation_participant::{
 };
 
 #[derive(Deserialize)]
-pub struct CreateConversationForm {
-    pub recipient_id: i64,
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum CreateConversationForm {
+    Direct { recipient_id: i64 },
+    Group { name: String, member_ids: Vec<i64> },
 }
 
 #[derive(Serialize, Clone)]
@@ -28,6 +31,9 @@ pub struct ParticipantInfo {
 #[derive(Serialize)]
 pub struct ConversationPayload {
     pub id: i64,
+    pub kind: String,
+    pub name: Option<String>,
+    pub display_name: String,
     pub participant_ids: Vec<i64>,
     pub participants: Vec<ParticipantInfo>,
     pub unread_count: u64,
@@ -61,6 +67,39 @@ async fn load_participants(
         .collect())
 }
 
+async fn build_payload(
+    db: &doido::model::sea_orm::DatabaseConnection,
+    conversation_id: i64,
+    current_user_id: i64,
+) -> doido::Result<Option<ConversationPayload>> {
+    let Some(conversation) = load_conversation(db, conversation_id).await? else {
+        return Ok(None);
+    };
+
+    let participants = load_participants(db, conversation_id).await?;
+    let participant_ids: Vec<i64> = participants.iter().map(|p| p.id).collect();
+    let unread_count = unread_count(db, conversation_id, current_user_id).await?;
+    let display_name = conversation_display_name(
+        &conversation,
+        &participants
+            .iter()
+            .map(|p| (p.id, p.email.clone()))
+            .collect::<Vec<_>>(),
+        current_user_id,
+    );
+
+    Ok(Some(ConversationPayload {
+        id: conversation.id,
+        kind: conversation.kind,
+        name: conversation.name,
+        display_name,
+        participant_ids,
+        participants,
+        has_unread: unread_count > 0,
+        unread_count,
+    }))
+}
+
 #[controller]
 impl ConversationsController {
     /// GET /conversations — list conversations for the signed-in user.
@@ -73,17 +112,9 @@ impl ConversationsController {
 
         let mut payloads = Vec::new();
         for row in rows {
-            let participants = load_participants(ctx.db(), row.conversation_id).await?;
-            let participant_ids: Vec<i64> = participants.iter().map(|p| p.id).collect();
-            let unread_count =
-                unread_count(ctx.db(), row.conversation_id, user.id).await?;
-            payloads.push(ConversationPayload {
-                id: row.conversation_id,
-                participant_ids,
-                participants,
-                has_unread: unread_count > 0,
-                unread_count,
-            });
+            if let Some(payload) = build_payload(ctx.db(), row.conversation_id, user.id).await? {
+                payloads.push(payload);
+            }
         }
 
         Ok(ctx.json(payloads))
@@ -97,34 +128,32 @@ impl ConversationsController {
             return Ok(ctx.status(403));
         }
 
-        let participants = load_participants(ctx.db(), id).await?;
-        let participant_ids: Vec<i64> = participants.iter().map(|p| p.id).collect();
-        let unread_count = unread_count(ctx.db(), id, user.id).await?;
+        let Some(payload) = build_payload(ctx.db(), id, user.id).await? else {
+            return Ok(ctx.status(404));
+        };
 
-        Ok(ctx.json(ConversationPayload {
-            id,
-            participant_ids,
-            participants,
-            has_unread: unread_count > 0,
-            unread_count,
-        }))
+        Ok(ctx.json(payload))
     }
 
-    /// POST /conversations — start (or reopen) a direct chat with `recipient_id`.
+    /// POST /conversations — start a direct chat or create a group.
     pub async fn create(mut ctx: Context) -> doido::Result<Response> {
         let user = require_user(ctx).await?;
         let form: CreateConversationForm = ctx.body_json().await?;
-        let id = find_or_create_direct(ctx.db(), user.id, form.recipient_id).await?;
-        let participants = load_participants(ctx.db(), id).await?;
-        let participant_ids: Vec<i64> = participants.iter().map(|p| p.id).collect();
 
-        Ok(ctx.json(ConversationPayload {
-            id,
-            participant_ids,
-            participants,
-            has_unread: false,
-            unread_count: 0,
-        }))
+        let id = match form {
+            CreateConversationForm::Direct { recipient_id } => {
+                find_or_create_direct(ctx.db(), user.id, recipient_id).await?
+            }
+            CreateConversationForm::Group { name, member_ids } => {
+                create_group_conversation(ctx.db(), user.id, &name, &member_ids).await?
+            }
+        };
+
+        let Some(payload) = build_payload(ctx.db(), id, user.id).await? else {
+            return Ok(ctx.status(500));
+        };
+
+        Ok(ctx.json(payload))
     }
 
     /// GET /conversations/:id/messages

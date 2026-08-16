@@ -11,6 +11,7 @@
 
   const renderedIds = new Set();
   let cable = null;
+  let conversationMeta = null;
 
   function setStatus(text) {
     if (!text) {
@@ -37,6 +38,20 @@
     return Chat.escapeHtml(msg.body || "");
   }
 
+  function senderLabel(msg) {
+    if (
+      !conversationMeta ||
+      conversationMeta.kind !== "group" ||
+      msg.user_id === userId
+    ) {
+      return "";
+    }
+    const sender = conversationMeta.participants.find((p) => p.id === msg.user_id);
+    return sender
+      ? `<div class="message-sender">${Chat.escapeHtml(sender.email)}</div>`
+      : "";
+  }
+
   function appendMessage(msg, scroll = true) {
     if (renderedIds.has(msg.id)) return;
     renderedIds.add(msg.id);
@@ -45,6 +60,7 @@
     li.className = `message ${msg.user_id === userId ? "mine" : "theirs"}`;
     li.dataset.id = msg.id;
     li.innerHTML = `
+      ${senderLabel(msg)}
       ${messageBody(msg)}
       <div class="message-meta">${Chat.formatTime(msg.created_at)}</div>
     `;
@@ -73,9 +89,13 @@
   }
 
   async function loadConversation() {
-    const conversation = await Chat.request(`/conversations/${conversationId}`);
-    const other = conversation.participants.find((p) => p.id !== userId);
-    titleEl.textContent = other ? other.email : `Conversa #${conversationId}`;
+    conversationMeta = await Chat.request(`/conversations/${conversationId}`);
+    titleEl.textContent = conversationMeta.display_name || `Conversa #${conversationId}`;
+
+    if (conversationMeta.kind === "group") {
+      const count = conversationMeta.participants.length;
+      titleEl.title = `${count} membros`;
+    }
   }
 
   async function loadMessages() {

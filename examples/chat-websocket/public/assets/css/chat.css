@@ -163,6 +163,60 @@ body {
   white-space: nowrap;
 }
 
+.group-badge {
+  flex-shrink: 0;
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  padding: 0.12rem 0.45rem;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.conversation-item.is-group .peer-email {
+  font-weight: 600;
+}
+
+.dialog input[type="text"],
+.dialog select[multiple] {
+  display: block;
+  width: 100%;
+  margin-top: 0.35rem;
+  padding: 0.65rem 0.85rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 1rem;
+  font-family: inherit;
+}
+
+.dialog select[multiple] {
+  min-height: 8rem;
+}
+
+.dialog input[type="text"]:focus,
+.dialog select[multiple]:focus {
+  outline: 2px solid var(--accent);
+  border-color: transparent;
+}
+
+.field-hint {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.message-sender {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--accent);
+  margin-bottom: 0.25rem;
+}
+
 /* Dialog */
 .dialog {
   border: 1px solid var(--border);

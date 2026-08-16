@@ -8,6 +8,7 @@
   </div>
   <div class="topbar-actions">
     <button type="button" class="btn btn-primary" id="new-chat-btn">Nova conversa</button>
+    <button type="button" class="btn btn-ghost" id="new-group-btn">Novo grupo</button>
     <button type="button" class="btn btn-ghost" id="sign-out-btn">Sair</button>
   </div>
 </header>
@@ -15,7 +16,7 @@
 <main class="conversations-page">
   <div id="conversations-loading" class="state-message">Carregando conversas…</div>
   <div id="conversations-empty" class="state-message" hidden>
-    Nenhuma conversa ainda. Clique em <strong>Nova conversa</strong> para começar.
+    Nenhuma conversa ainda. Clique em <strong>Nova conversa</strong> ou <strong>Novo grupo</strong> para começar.
   </div>
   <ul id="conversations-list" class="conversations-list" hidden></ul>
 </main>
@@ -31,8 +32,28 @@
     </label>
     <p id="new-chat-error" class="form-error" hidden></p>
     <div class="dialog-actions">
-      <button type="button" class="btn btn-ghost" id="new-chat-cancel">Cancelar</button>
+      <button type="button" class="btn btn-ghost dialog-cancel">Cancelar</button>
       <button type="submit" class="btn btn-primary">Iniciar</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="new-group-dialog" class="dialog">
+  <form method="dialog" id="new-group-form">
+    <h2>Novo grupo</h2>
+    <label>
+      Nome do grupo
+      <input type="text" id="group-name-input" placeholder="Ex.: Equipe de produto" required maxlength="80">
+    </label>
+    <label>
+      Membros
+      <select id="group-members-select" multiple size="6" required></select>
+      <span class="field-hint">Segure Ctrl (ou Cmd) para selecionar vários usuários.</span>
+    </label>
+    <p id="new-group-error" class="form-error" hidden></p>
+    <div class="dialog-actions">
+      <button type="button" class="btn btn-ghost dialog-cancel">Cancelar</button>
+      <button type="submit" class="btn btn-primary">Criar grupo</button>
     </div>
   </form>
 </dialog>
