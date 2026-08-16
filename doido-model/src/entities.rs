@@ -2,7 +2,7 @@
 //! `app/models/<name>.rs` holds safe-to-edit extensions.
 
 use doido_core::{Inflector, Result};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::Path;
 
@@ -200,6 +200,101 @@ fn ensure_inner_attribute(content: &str, attr: &str) -> String {
     out
 }
 
+/// Returns the `_entities/<name>` module re-exported by a model extension, if any.
+pub fn reexported_entity_module(content: &str) -> Option<String> {
+    for line in content.lines() {
+        let trimmed = line.trim();
+        let Some(rest) = trimmed.strip_prefix("pub use super::_entities::") else {
+            continue;
+        };
+        let Some(entity) = rest.strip_suffix("::*;") else {
+            continue;
+        };
+        let entity = entity.trim();
+        if !entity.is_empty() {
+            return Some(entity.to_string());
+        }
+    }
+    None
+}
+
+/// Returns true when some model extension already re-exports `entity_module`.
+pub fn entity_has_model_extension(models_dir: &Path, entity_module: &str) -> bool {
+    fs::read_dir(models_dir)
+        .ok()
+        .into_iter()
+        .flatten()
+        .filter_map(|entry| entry.ok())
+        .filter(|entry| {
+            entry.path().extension() == Some(std::ffi::OsStr::new("rs"))
+                && entry.file_name() != "mod.rs"
+        })
+        .filter_map(|entry| fs::read_to_string(entry.path()).ok())
+        .any(|content| reexported_entity_module(&content).as_deref() == Some(entity_module))
+}
+
+/// Removes duplicate model extensions that re-export the same entity module.
+/// Keeps the canonical stub (prefer a module name different from the table name,
+/// e.g. `sku` over `skus` for entity `skus`).
+pub fn dedupe_model_extension_stubs(models_dir: &Path) -> Result<()> {
+    let models_mod_path = models_dir.join("mod.rs");
+    let models_mod = fs::read_to_string(&models_mod_path).unwrap_or_default();
+
+    let mut by_entity: HashMap<String, Vec<String>> = HashMap::new();
+    for entry in fs::read_dir(models_dir)? {
+        let path = entry?.path();
+        if path.extension().is_none_or(|ext| ext != "rs") {
+            continue;
+        }
+        let Some(stem) = path.file_stem().and_then(|s| s.to_str()) else {
+            continue;
+        };
+        if stem == "mod" {
+            continue;
+        }
+        let content = fs::read_to_string(&path)?;
+        if let Some(entity) = reexported_entity_module(&content) {
+            by_entity.entry(entity).or_default().push(stem.to_string());
+        }
+    }
+
+    let mut models_mod_updated = models_mod.clone();
+    for (entity, mut models) in by_entity {
+        if models.len() <= 1 {
+            continue;
+        }
+        models.sort();
+        let keep = models
+            .iter()
+            .find(|name| **name != entity)
+            .or(models.first())
+            .expect("len > 1")
+            .clone();
+        for duplicate in &models {
+            if duplicate == &keep {
+                continue;
+            }
+            fs::remove_file(models_dir.join(format!("{duplicate}.rs")))?;
+            let decl = format!("pub mod {duplicate};");
+            models_mod_updated = models_mod_updated
+                .lines()
+                .filter(|line| line.trim() != decl)
+                .collect::<Vec<_>>()
+                .join("\n");
+        }
+    }
+
+    if models_mod_updated != models_mod {
+        let mut out = models_mod_updated;
+        if !out.ends_with('\n') {
+            out.push('\n');
+        }
+        fs::write(&models_mod_path, out)?;
+    }
+
+    Ok(())
+}
+
 /// Creates missing `app/models/<name>.rs` extension stubs (with
 /// `ActiveModelBehavior`) for every entity module under `_entities/`.
 pub fn ensure_model_extension_stubs(entities_dir: &Path, models_dir: &Path) -> Result<()> {
@@ -215,6 +310,9 @@ pub fn ensure_model_extension_stubs(entities_dir: &Path, models_dir: &Path) -> R
     let mut models_mod_updated = models_mod.clone();
 
     for entity_module in entity_modules {
+        if entity_has_model_extension(models_dir, &entity_module) {
+            continue;
+        }
         let model_module = Inflector::singularize(&entity_module);
         let model_path = models_dir.join(format!("{model_module}.rs"));
         if model_path.exists() || existing_models.contains(&model_module) {
@@ -368,6 +466,7 @@ pub fn write_active_model_behavior_module(entities_dir: &Path, models_dir: &Path
 /// Post-processes exported entities so they compile inside a Doido app.
 pub fn postprocess_entity_export(entities_dir: &Path, models_dir: &Path) -> Result<()> {
     rewrite_generated_imports(entities_dir)?;
+    dedupe_model_extension_stubs(models_dir)?;
     ensure_model_extension_stubs(entities_dir, models_dir)?;
     ensure_active_model_behavior_in_extensions(models_dir)?;
     write_active_model_behavior_module(entities_dir, models_dir)

@@ -1,6 +1,7 @@
 use doido_model::entities::{
-    ensure_active_model_behavior_in_extensions, ensure_model_extension_stubs, entity_modules,
-    extension_stub, model_extension_covers_entity, model_modules, register_entity_module,
+    dedupe_model_extension_stubs, ensure_active_model_behavior_in_extensions,
+    ensure_model_extension_stubs, entity_has_model_extension, entity_modules, extension_stub,
+    model_extension_covers_entity, model_modules, reexported_entity_module, register_entity_module,
     register_model_module, rewrite_generated_imports, write_active_model_behavior_module,
 };
 use std::fs;
@@ -209,6 +210,67 @@ fn model_extension_covers_entity_when_reexport_and_impl_present() {
 }
 
 #[test]
+fn ensure_model_extension_stubs_skips_when_entity_already_reexported() {
+    let dir = tempdir().unwrap();
+    let entities = dir.path().join("_entities");
+    let models = dir.path().join("models");
+    fs::create_dir_all(&entities).unwrap();
+    fs::create_dir_all(&models).unwrap();
+    fs::write(entities.join("mod.rs"), "pub mod skus;\n").unwrap();
+    fs::write(
+        models.join("mod.rs"),
+        "pub mod _entities;\npub mod sku;\n// @generated-models\n",
+    )
+    .unwrap();
+    fs::write(
+        models.join("sku.rs"),
+        "pub use super::_entities::skus::*;\nimpl ActiveModelBehavior for ActiveModel {}\n",
+    )
+    .unwrap();
+
+    ensure_model_extension_stubs(&entities, &models).unwrap();
+
+    assert!(!models.join("skus.rs").exists());
+    assert!(entity_has_model_extension(&models, "skus"));
+}
+
+#[test]
+fn dedupe_model_extension_stubs_removes_plural_duplicate() {
+    let dir = tempdir().unwrap();
+    let models = dir.path().join("models");
+    fs::create_dir_all(&models).unwrap();
+    fs::write(
+        models.join("mod.rs"),
+        "pub mod _entities;\npub mod sku;\npub mod skus;\n// @generated-models\n",
+    )
+    .unwrap();
+    fs::write(
+        models.join("sku.rs"),
+        "pub use super::_entities::skus::*;\n",
+    )
+    .unwrap();
+    fs::write(
+        models.join("skus.rs"),
+        "pub use super::_entities::skus::*;\n",
+    )
+    .unwrap();
+
+    dedupe_model_extension_stubs(&models).unwrap();
+
+    assert!(models.join("sku.rs").exists());
+    assert!(!models.join("skus.rs").exists());
+    let models_mod = fs::read_to_string(models.join("mod.rs")).unwrap();
+    assert!(models_mod.contains("pub mod sku;"));
+    assert!(!models_mod.contains("pub mod skus;"));
+}
+
+#[test]
+fn reexported_entity_module_parses_pub_use_line() {
+    let content = "pub use super::_entities::skus::*;\n";
+    assert_eq!(reexported_entity_module(content), Some("skus".to_string()));
+}
+
+#[test]
 fn ensure_model_extension_stubs_skips_existing_model_modules() {
     let dir = tempdir().unwrap();
     let entities = dir.path().join("_entities");
@@ -243,4 +305,12 @@ fn rewrite_generated_imports_adds_lint_allows_to_prelude() {
     rewrite_generated_imports(dir.path()).unwrap();
     let content = fs::read_to_string(dir.path().join("prelude.rs")).unwrap();
     assert!(content.contains("#![allow(unused_imports)]"));
+}
+
+#[test]
+fn reexported_entity_module_skips_doc_comments_before_pub_use() {
+    let content = "//! Model extensions\n\
+                   #![allow(dead_code)]\n\n\
+                   pub use super::_entities::skus::*;\n";
+    assert_eq!(reexported_entity_module(content), Some("skus".to_string()));
 }
