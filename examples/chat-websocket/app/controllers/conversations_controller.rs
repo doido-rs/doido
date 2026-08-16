@@ -1,7 +1,8 @@
 use crate::controllers::auth_helper::require_user;
 use crate::models::user::Entity as UserEntity;
 use crate::services::chat::{
-    find_or_create_direct, list_messages, message_payload, participant_of, MessagePayload,
+    find_or_create_direct, list_messages, mark_conversation_read, message_payload, participant_of,
+    unread_count, MessagePayload,
 };
 use doido::controller::{controller, Context, Response};
 use doido::model::sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
@@ -29,6 +30,8 @@ pub struct ConversationPayload {
     pub id: i64,
     pub participant_ids: Vec<i64>,
     pub participants: Vec<ParticipantInfo>,
+    pub unread_count: u64,
+    pub has_unread: bool,
 }
 
 pub struct ConversationsController;
@@ -72,10 +75,14 @@ impl ConversationsController {
         for row in rows {
             let participants = load_participants(ctx.db(), row.conversation_id).await?;
             let participant_ids: Vec<i64> = participants.iter().map(|p| p.id).collect();
+            let unread_count =
+                unread_count(ctx.db(), row.conversation_id, user.id).await?;
             payloads.push(ConversationPayload {
                 id: row.conversation_id,
                 participant_ids,
                 participants,
+                has_unread: unread_count > 0,
+                unread_count,
             });
         }
 
@@ -92,11 +99,14 @@ impl ConversationsController {
 
         let participants = load_participants(ctx.db(), id).await?;
         let participant_ids: Vec<i64> = participants.iter().map(|p| p.id).collect();
+        let unread_count = unread_count(ctx.db(), id, user.id).await?;
 
         Ok(ctx.json(ConversationPayload {
             id,
             participant_ids,
             participants,
+            has_unread: unread_count > 0,
+            unread_count,
         }))
     }
 
@@ -112,6 +122,8 @@ impl ConversationsController {
             id,
             participant_ids,
             participants,
+            has_unread: false,
+            unread_count: 0,
         }))
     }
 
@@ -122,6 +134,8 @@ impl ConversationsController {
         if !participant_of(ctx.db(), id, user.id).await? {
             return Ok(ctx.status(403));
         }
+
+        mark_conversation_read(ctx.db(), id, user.id).await?;
 
         let storage = Storage::from_config(ctx.db().clone()).await?;
         let records = list_messages(ctx.db(), id).await?;

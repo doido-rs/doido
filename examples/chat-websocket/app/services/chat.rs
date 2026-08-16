@@ -1,14 +1,15 @@
 //! Chat domain helpers: conversations, messages, cable broadcasts, attachments.
 use crate::models::conversation::ActiveModel as ConversationActive;
 use crate::models::conversation_participant::{
-    Column as ParticipantColumn, Entity as ParticipantEntity,
+    ActiveModel as ParticipantActive, Column as ParticipantColumn, Entity as ParticipantEntity,
 };
 use crate::models::message::{ActiveModel as MessageActive, Entity as MessageEntity, Model as Message};
 use crate::state;
 use base64::Engine;
 use chrono::Utc;
 use doido::model::sea_orm::{
-    entity::prelude::*, ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, Set,
+    entity::prelude::*, ActiveModelTrait, ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter,
+    QueryOrder, Set,
 };
 use doido::storage::Storage;
 use serde::Serialize;
@@ -53,6 +54,55 @@ pub async fn participant_of(
         .one(db)
         .await?;
     Ok(found.is_some())
+}
+
+/// Count messages from other participants that the user has not read yet.
+pub async fn unread_count(
+    db: &DatabaseConnection,
+    conversation_id: i64,
+    user_id: i64,
+) -> doido::Result<u64> {
+    let participant = ParticipantEntity::find()
+        .filter(ParticipantColumn::ConversationId.eq(conversation_id))
+        .filter(ParticipantColumn::UserId.eq(user_id))
+        .one(db)
+        .await?;
+
+    let Some(participant) = participant else {
+        return Ok(0);
+    };
+
+    let mut query = MessageEntity::find()
+        .filter(crate::models::message::Column::ConversationId.eq(conversation_id))
+        .filter(crate::models::message::Column::UserId.ne(user_id));
+
+    if let Some(last_read_at) = participant.last_read_at {
+        query = query.filter(crate::models::message::Column::CreatedAt.gt(last_read_at));
+    }
+
+    query.count(db).await.map_err(Into::into)
+}
+
+/// Mark all messages in a conversation as read for the given participant.
+pub async fn mark_conversation_read(
+    db: &DatabaseConnection,
+    conversation_id: i64,
+    user_id: i64,
+) -> doido::Result<()> {
+    let participant = ParticipantEntity::find()
+        .filter(ParticipantColumn::ConversationId.eq(conversation_id))
+        .filter(ParticipantColumn::UserId.eq(user_id))
+        .one(db)
+        .await?;
+
+    let Some(participant) = participant else {
+        return Ok(());
+    };
+
+    let mut active: ParticipantActive = participant.into();
+    active.last_read_at = Set(Some(Utc::now()));
+    active.update(db).await?;
+    Ok(())
 }
 
 /// Find an existing 1:1 conversation between two users, if any.

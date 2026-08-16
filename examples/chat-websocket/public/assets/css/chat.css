@@ -141,6 +141,28 @@ body {
 .conversation-item .peer-email { font-weight: 500; }
 .conversation-item .meta { font-size: 0.8rem; color: var(--text-muted); }
 
+.conversation-main {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.conversation-item.has-unread .peer-email {
+  font-weight: 600;
+}
+
+.unread-badge {
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #0a1218;
+  background: var(--accent);
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
 /* Dialog */
 .dialog {
   border: 1px solid var(--border);

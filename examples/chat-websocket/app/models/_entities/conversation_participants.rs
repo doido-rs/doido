@@ -13,6 +13,7 @@ pub struct Model {
     pub id: i64,
     pub conversation_id: i64,
     pub user_id: i64,
+    pub last_read_at: Option<DateTimeUtc>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

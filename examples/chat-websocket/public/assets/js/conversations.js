@@ -12,6 +12,14 @@
     return other ? other.email : `Conversa #${conversation.id}`;
   }
 
+  function unreadLabel(conversation) {
+    if (!conversation.has_unread) return "";
+    const count = conversation.unread_count;
+    const text =
+      count === 1 ? "1 não lida" : `${count} não lidas`;
+    return `<span class="unread-badge" aria-label="${text}">${text}</span>`;
+  }
+
   function renderConversations(conversations) {
     loadingEl.hidden = true;
     if (!conversations.length) {
@@ -24,9 +32,12 @@
     listEl.innerHTML = conversations
       .map(
         (c) => `
-      <li class="conversation-item">
+      <li class="conversation-item${c.has_unread ? " has-unread" : ""}">
         <a href="/chat/${c.id}">
-          <span class="peer-email">${Chat.escapeHtml(peerLabel(c))}</span>
+          <span class="conversation-main">
+            <span class="peer-email">${Chat.escapeHtml(peerLabel(c))}</span>
+            ${unreadLabel(c)}
+          </span>
           <span class="meta">#${c.id}</span>
         </a>
       </li>`
