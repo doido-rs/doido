@@ -1,0 +1,7 @@
+/target
+.env
+config/master.key
+config/credentials.yml.enc
+*.db
+/node_modules
+/public/assets/application.css.map

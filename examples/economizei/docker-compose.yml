@@ -1,0 +1,48 @@
+# Dev stack for economizei. Start with: docker compose up --build
+name: economizei
+
+services:
+#  web:
+#    build:
+#      context: .
+#      dockerfile: Dockerfile.dev
+#    ports:
+#      - "3000:3000"
+#    volumes:
+#      - .:/app
+#      - cargo-registry:/usr/local/cargo/registry
+#      - cargo-git:/usr/local/cargo/git
+#    environment:
+#      DOIDO_ENV: development
+#      DATABASE__URL: postgres://postgres:postgres@postgres:5432/economizei_development
+#      MAILER__TYPE: smtp
+#      MAILER__SMTP__ADDRESS: mailpit:1025
+#    depends_on:
+#      mailpit:
+#        condition: service_started
+#      postgres:
+#        condition: service_healthy
+
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: economizei_development
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+volumes:
+  cargo-registry:
+  cargo-git:

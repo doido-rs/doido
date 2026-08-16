@@ -1,0 +1,16 @@
+{% extends "layouts/application.html.tera" %}
+{% block content %}
+<section class="max-w-2xl">
+  <h1 class="text-3xl font-bold text-white">{{ title }}</h1>
+  <form method="post" action="{% if category.id %}{{ cancel_path }}/{{ category.id }}{% else %}{{ cancel_path }}{% endif %}" class="mt-6 space-y-4">
+    {% if category.id %}<input type="hidden" name="_method" value="patch">{% endif %}
+    <label class="block text-sm text-slate-300">{{ labels.name }}
+      <input type="text" name="name" value="{{ category.name | default(value="") }}" required class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-white focus:border-accent focus:outline-none">
+    </label>
+    <div class="flex gap-3 pt-2">
+      <button type="submit" class="rounded-lg bg-accent px-4 py-2 font-bold text-slate-950 hover:opacity-90">{{ submit_label }}</button>
+      <a href="{{ cancel_path }}" class="rounded-lg border border-slate-700 px-4 py-2 hover:bg-slate-900">{{ cancel_label | default(value="Cancel") }}</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

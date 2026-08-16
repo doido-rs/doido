@@ -1,0 +1,37 @@
+server:
+  bind: 127.0.0.1
+  port: 3001
+database:
+  url: sqlite://db/test.db
+logger:
+  # Tests are noisy enough; only surface warnings and errors by default, and
+  # send them to a file so they don't clutter test runner output.
+  level: warn
+  file: log/test.log
+cache:
+  # Tests use the in-process memory store for isolation and speed.
+  type: memory
+jobs:
+  type: memory
+storage:
+  service: test
+  services:
+    test:
+      type: memory
+cable:
+  type: memory
+auth:
+  user_model: User
+  modules:
+    - database_authenticatable
+    - registerable
+    - recoverable
+    - rememberable
+    - validatable
+  strategies:
+    - cookie
+  two_factor:
+    enabled: false
+    issuer: MyApp
+  routes:
+    prefix: /users

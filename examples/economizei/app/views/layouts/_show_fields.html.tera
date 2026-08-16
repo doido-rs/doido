@@ -1,0 +1,19 @@
+<dl class="mt-6 divide-y divide-slate-800 rounded-xl border border-slate-800">
+  {% for field in fields %}
+  <div class="grid gap-1 px-4 py-3 sm:grid-cols-3">
+    <dt class="text-sm text-slate-400">{{ field.label }}</dt>
+    <dd class="text-sm text-white sm:col-span-2">
+      {% if field.link is defined %}
+        {% if field.link.url is defined and field.link.url %}
+        {% set link = field.link %}
+        {% include "layouts/_association_link.html.tera" %}
+        {% else %}
+        {{ field.link.label }}
+        {% endif %}
+      {% else %}
+      {{ field.value | default(value="—") }}
+      {% endif %}
+    </dd>
+  </div>
+  {% endfor %}
+</dl>

@@ -1,0 +1,14 @@
+{
+  "name": "economizei",
+  "private": true,
+  "scripts": {
+    "css:build": "bunx @tailwindcss/cli -i app/assets/stylesheets/application.css -o public/assets/application.css",
+    "css:watch": "bunx @tailwindcss/cli -i app/assets/stylesheets/application.css -o public/assets/application.css --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.1.11",
+    "tailwindcss": "^4.1.11",
+    "typescript": "^5.9.2"
+  }
+}

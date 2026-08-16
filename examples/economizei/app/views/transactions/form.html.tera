@@ -1,0 +1,60 @@
+{% extends "layouts/application.html.tera" %}
+{% block content %}
+<section class="max-w-2xl">
+  <h1 class="text-3xl font-bold text-white">{{ title }}</h1>
+  <form method="post" action="{% if transaction.id %}{{ cancel_path }}/{{ transaction.id }}{% else %}{{ cancel_path }}{% endif %}" class="mt-6 space-y-4">
+    {% if transaction.id %}<input type="hidden" name="_method" value="patch">{% endif %}
+    <label class="block text-sm text-slate-300">{{ labels.bank_account_id }}
+      <select name="bank_account_id" required class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-white focus:border-accent focus:outline-none">
+        {% for account in bank_accounts %}
+        <option value="{{ account.id }}" {% if transaction.bank_account_id == account.id %}selected{% endif %}>{{ account.label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label class="block text-sm text-slate-300">{{ labels.category_id }}
+      <select name="category_id" required class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-white focus:border-accent focus:outline-none">
+        {% for category in categories %}
+        <option value="{{ category.id }}" {% if transaction.category_id == category.id %}selected{% endif %}>{{ category.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <div class="space-y-2">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <label class="text-sm text-slate-300">{{ labels.counterparty_id }}</label>
+        <div class="flex gap-3 text-sm">
+          <a href="{{ counterparties_path }}" class="text-accent hover:underline">{{ labels.manage_counterparties }}</a>
+          <a href="{{ counterparties_path }}/new" class="text-accent hover:underline">{{ labels.new_counterparty }}</a>
+        </div>
+      </div>
+      <select name="counterparty_id" class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-white focus:border-accent focus:outline-none">
+        <option value="">—</option>
+        {% for counterparty in counterparties %}
+        <option value="{{ counterparty.id }}" {% if transaction.counterparty_id == counterparty.id %}selected{% endif %}>{{ counterparty.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <label class="block text-sm text-slate-300">{{ labels.occurred_at }}
+      <input type="datetime-local" name="occurred_at" value="{{ transaction.occurred_at | default(value="") }}" required class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-white focus:border-accent focus:outline-none">
+    </label>
+    <label class="block text-sm text-slate-300">{{ labels.amount }}
+      <input type="text" name="amount" value="{{ transaction.amount | default(value="") }}" required class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-white focus:border-accent focus:outline-none">
+    </label>
+    <label class="block text-sm text-slate-300">{{ labels.operation }}
+      <select name="operation" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-white focus:border-accent focus:outline-none">
+        <option value="ENTRADA" {% if transaction.operation == "ENTRADA" %}selected{% endif %}>ENTRADA</option>
+        <option value="SAIDA" {% if transaction.operation == "SAIDA" %}selected{% endif %}>SAIDA</option>
+      </select>
+    </label>
+    <label class="block text-sm text-slate-300">{{ labels.movement_type }}
+      <select name="movement_type" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-white focus:border-accent focus:outline-none">
+        <option value="balance" {% if transaction.movement_type == "balance" %}selected{% endif %}>balance</option>
+        <option value="credit_card" {% if transaction.movement_type == "credit_card" %}selected{% endif %}>credit_card</option>
+      </select>
+    </label>
+    <div class="flex gap-3 pt-2">
+      <button type="submit" class="rounded-lg bg-accent px-4 py-2 font-bold text-slate-950 hover:opacity-90">{{ submit_label }}</button>
+      <a href="{{ cancel_path }}" class="rounded-lg border border-slate-700 px-4 py-2 hover:bg-slate-900">{{ cancel_label | default(value="Cancel") }}</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

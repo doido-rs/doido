@@ -1,0 +1,15 @@
+{% extends "layouts/auth.html.tera" %}
+{% block content %}
+<h1 class="text-2xl font-bold text-white">{{ title | default(value="Sign in") }}</h1>
+{% if error %}<p class="mt-4 rounded-lg border border-red-900 bg-red-950/40 px-3 py-2 text-sm text-red-300">{{ error }}</p>{% endif %}
+<form method="post" action="/users/sign_in" class="mt-6 space-y-4">
+  <label class="block text-sm text-slate-300">{{ email_label | default(value="Email") }}
+    <input type="email" name="email" required class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-white focus:border-accent focus:outline-none">
+  </label>
+  <label class="block text-sm text-slate-300">{{ password_label | default(value="Password") }}
+    <input type="password" name="password" required class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-white focus:border-accent focus:outline-none">
+  </label>
+  <button type="submit" class="w-full rounded-lg bg-accent px-4 py-2 font-bold text-slate-950 hover:opacity-90">{{ submit_label | default(value="Sign in") }}</button>
+</form>
+<p class="mt-6 text-sm text-slate-400"><a href="/users/sign_up" class="text-accent hover:underline">Sign up</a> · <a href="/users/password/new" class="text-accent hover:underline">Forgot password?</a></p>
+{% endblock %}

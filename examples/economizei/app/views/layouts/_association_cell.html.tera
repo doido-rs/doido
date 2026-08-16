@@ -1,0 +1,5 @@
+{% if link.url is defined and link.url %}
+{% include "layouts/_association_link.html.tera" %}
+{% else %}
+{{ link.label }}
+{% endif %}

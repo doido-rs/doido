@@ -1,0 +1,35 @@
+[package]
+name = "chat-websocket"
+description = "Starter Doido web application: Axum server, routed hello endpoint, templating scaffolding."
+version = "0.1.0"
+edition = "2021"
+# Default binary when running `cargo run` from the app root (workspace also has
+# `db/migration`). Equivalent to `cargo run --bin chat-websocket` / `cargo doido`.
+default-run = "chat-websocket"
+
+# The SeaORM migration project lives in `db/migration` and is built as part of
+# this workspace.
+[workspace]
+members = ["db/migration", "db/seed"]
+
+[dependencies]
+doido = { path = "/home/fabiano/projetos_doido/doido/doido", default-features = false, features = ["sqlite", "auth"] }
+doido-core = { path = "/home/fabiano/projetos_doido/doido/doido-core" }
+doido-controller = { path = "/home/fabiano/projetos_doido/doido/doido-controller", features = ["sqlite"] }
+doido-model = { path = "/home/fabiano/projetos_doido/doido/doido-model", features = ["sqlite"] }
+doido-jobs = { path = "/home/fabiano/projetos_doido/doido/doido-jobs", features = ["jobs-db", "sqlite"] }
+doido-mailer = { path = "/home/fabiano/projetos_doido/doido/doido-mailer" }
+doido-cable = { path = "/home/fabiano/projetos_doido/doido/doido-cable" }
+async-trait = "0.1"
+doido-auth = { path = "/home/fabiano/projetos_doido/doido/doido-auth" }
+chrono = { version = "0.4", features = ["clock"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sqlx = { version = "0.8", features = ["runtime-tokio", "sqlite"] }
+tokio = { version = "1", features = ["full"] }
+tower-http = { version = "0.6", features = ["fs"] }
+base64 = "0.23"
+
+[dev-dependencies]
+# Used by generated scaffold controller request tests (Router::oneshot).
+tower = { version = "0.5", features = ["util"] }

@@ -1,0 +1,35 @@
+{% extends "layouts/application.html.tera" %}
+{% block content %}
+<section class="max-w-2xl">
+  <h1 class="text-3xl font-bold text-white">{{ title }}</h1>
+  <form method="post" action="{% if account.id %}/bank_accounts/{{ account.id }}{% else %}/bank_accounts{% endif %}" class="mt-6 space-y-4">
+    {% if account.id %}<input type="hidden" name="_method" value="patch">{% endif %}
+    <label class="block text-sm text-slate-300">{{ labels.bank_id }}
+      <select name="bank_id" required class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-white focus:border-accent focus:outline-none">
+        {% for bank in banks %}
+        <option value="{{ bank.id }}" {% if account.bank_id == bank.id %}selected{% endif %}>{{ bank.name }} ({{ bank.code }})</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label class="block text-sm text-slate-300">{{ labels.agency }}
+      <input type="text" name="agency" value="{{ account.agency | default(value="") }}" required class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-white focus:border-accent focus:outline-none">
+    </label>
+    <label class="block text-sm text-slate-300">{{ labels.account_number }}
+      <input type="text" name="account_number" value="{{ account.account_number | default(value="") }}" required class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-white focus:border-accent focus:outline-none">
+    </label>
+    <label class="block text-sm text-slate-300">{{ labels.cpf_cnpj }}
+      <input type="text" name="cpf_cnpj" value="{{ account.cpf_cnpj | default(value="") }}" required class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-white focus:border-accent focus:outline-none">
+    </label>
+    <label class="block text-sm text-slate-300">{{ labels.account_type }}
+      <select name="account_type" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-white focus:border-accent focus:outline-none">
+        <option value="corrente" {% if account.account_type == "corrente" %}selected{% endif %}>corrente</option>
+        <option value="investimento" {% if account.account_type == "investimento" %}selected{% endif %}>investimento</option>
+      </select>
+    </label>
+    <div class="flex gap-3 pt-2">
+      <button type="submit" class="rounded-lg bg-accent px-4 py-2 font-bold text-slate-950 hover:opacity-90">{{ submit_label }}</button>
+      <a href="{{ cancel_path }}" class="rounded-lg border border-slate-700 px-4 py-2 hover:bg-slate-900">{{ cancel_label | default(value="Cancel") }}</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

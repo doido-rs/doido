@@ -1,0 +1,37 @@
+{% extends "layouts/application.html.tera" %}
+{% block content %}
+<section>
+  <div class="flex flex-wrap items-center justify-between gap-4">
+    <h1 class="text-3xl font-bold text-white">{{ title }}</h1>
+    <a href="{{ base_path }}/new" class="rounded-lg bg-accent px-4 py-2 text-sm font-bold text-slate-950 hover:opacity-90">{{ nav.new_category | default(value="New category") }}</a>
+  </div>
+  <div class="mt-6 overflow-x-auto rounded-xl border border-slate-800">
+    <table class="w-full border-collapse text-left text-sm">
+      <thead>
+        <tr class="border-b border-slate-800 bg-slate-900/50 text-slate-400">
+          <th class="px-4 py-3">{{ labels.id }}</th>
+          <th class="px-4 py-3">{{ labels.name }}</th>
+          <th class="px-4 py-3"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr class="border-b border-slate-900 hover:bg-slate-900/40">
+          <td class="px-4 py-3"><a href="{{ base_path }}/{{ row.id }}" class="text-accent hover:underline">{{ row.id }}</a></td>
+          <td class="px-4 py-3">{{ row.name }}</td>
+          <td class="px-4 py-3 space-x-3">
+            <a href="{{ base_path }}/{{ row.id }}" class="text-accent hover:underline">{{ nav.view | default(value="View") }}</a>
+            <a href="{{ base_path }}/{{ row.id }}/edit" class="text-accent hover:underline">{{ nav.edit | default(value="Edit") }}</a>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="3" class="px-4 py-6 text-slate-500">—</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% include "layouts/_paginator.html.tera" %}
+</section>
+{% endblock %}

@@ -1,0 +1,46 @@
+{% extends "layouts/application.html.tera" %}
+{% block content %}
+<section class="max-w-3xl">
+  <h1 class="text-3xl font-bold text-white">{{ title }}</h1>
+  {% if error %}
+  <p class="mt-4 rounded-lg border border-red-800 bg-red-950/40 px-4 py-3 text-sm text-red-200">{{ error }}</p>
+  {% endif %}
+  <form method="post" action="/bank_statement_imports" class="mt-6 space-y-5 rounded-xl border border-slate-800 bg-slate-900/30 p-6">
+    <div>
+      <label class="mb-1 block text-sm text-slate-400" for="bank_account_id">{{ labels.bank_account_id }}</label>
+      <select id="bank_account_id" name="bank_account_id" required class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm">
+        <option value="">—</option>
+        {% for account in bank_accounts %}
+        <option value="{{ account.id }}" {% if bank_account_id == account.id %}selected{% endif %}>{{ account.label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label class="mb-1 block text-sm text-slate-400" for="source">{{ labels.source }}</label>
+      <select id="source" name="source" required class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm">
+        {% for option in sources %}
+        <option value="{{ option.value }}">{{ option.label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label class="mb-1 block text-sm text-slate-400" for="statement_type">{{ labels.statement_type }}</label>
+      <select id="statement_type" name="statement_type" required class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm">
+        {% for option in statement_types %}
+        <option value="{{ option.value }}">{{ option.label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label class="mb-1 block text-sm text-slate-400" for="csv_file">{{ labels.original_filename }}</label>
+      <input id="csv_file" type="file" accept=".csv,text/csv" class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm file:mr-3 file:rounded file:border-0 file:bg-accent file:px-3 file:py-1 file:text-slate-950" onchange="const r=new FileReader();r.onload=()=>{document.getElementById('csv_content').value=r.result;document.getElementById('original_filename').value=this.files[0]?.name||'import.csv';};if(this.files[0])r.readAsText(this.files[0]);">
+      <input id="original_filename" type="hidden" name="original_filename" value="import.csv">
+      <textarea id="csv_content" name="csv_content" required rows="8" class="mt-3 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 font-mono text-xs"></textarea>
+    </div>
+    <div class="flex gap-3">
+      <button type="submit" class="rounded-lg bg-accent px-4 py-2 text-sm font-bold text-slate-950 hover:opacity-90">{{ submit_label }}</button>
+      <a href="{{ cancel_path }}" class="rounded-lg border border-slate-700 px-4 py-2 text-sm hover:bg-slate-900">{{ cancel_label }}</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

@@ -1,0 +1,5 @@
+[app]
+name = "economizei"
+
+[database]
+url = "postgres://postgres:postgres@localhost:5432/economizei_development"

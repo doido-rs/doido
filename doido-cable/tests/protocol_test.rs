@@ -26,6 +26,21 @@ fn test_parse_message_frame() {
 }
 
 #[test]
+fn test_parse_message_frame_with_string_data() {
+    // ActionCable wire format: `data` is a JSON string, not an object.
+    let json = r#"{"command":"message","identifier":"PostsChannel","data":"{\"action\":\"speak\",\"body\":\"hello\"}"}"#;
+    let frame = CableFrame::parse(json).unwrap();
+    match frame {
+        CableFrame::Message { identifier, data } => {
+            assert_eq!(identifier, "PostsChannel");
+            assert_eq!(data["action"], "speak");
+            assert_eq!(data["body"], "hello");
+        }
+        _ => panic!("expected message frame"),
+    }
+}
+
+#[test]
 fn test_roundtrip_unsubscribe_frame() {
     let frame = CableFrame::Unsubscribe {
         identifier: "ChatChannel".to_string(),

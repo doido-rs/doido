@@ -1,0 +1,1 @@
+<a href="{{ link.url }}" class="text-accent hover:underline">{{ link.label }}</a>

@@ -1,0 +1,37 @@
+{% extends "layouts/chat.html.tera" %}
+
+{% block body %}
+<header class="topbar">
+  <div class="topbar-left">
+    <a href="/chat" class="back-link">← Conversas</a>
+    <h1 id="conversation-title">Conversa</h1>
+  </div>
+  <span class="user-badge">{{ user_email }}</span>
+</header>
+
+<main class="conversation-page">
+  <div id="messages-loading" class="state-message">Carregando mensagens…</div>
+  <ul id="messages-list" class="messages-list" hidden></ul>
+
+  <footer class="composer">
+    <form id="message-form" class="composer-form">
+      <input type="file" id="attachment-input" hidden accept="image/*,.pdf,.doc,.docx,.txt,.zip">
+      <button type="button" class="btn btn-icon" id="attach-btn" title="Anexar arquivo">📎</button>
+      <input type="text" id="message-input" placeholder="Digite uma mensagem…" autocomplete="off" required>
+      <button type="submit" class="btn btn-primary">Enviar</button>
+    </form>
+    <p id="composer-status" class="composer-status" hidden></p>
+  </footer>
+</main>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  window.CHAT_CONFIG = {
+    conversationId: {{ conversation_id }},
+    userId: {{ user_id }},
+  };
+</script>
+<script src="/assets/js/chat.js"></script>
+<script src="/assets/js/conversation.js"></script>
+{% endblock %}

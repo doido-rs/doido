@@ -1,0 +1,50 @@
+server:
+  bind: 0.0.0.0
+  port: 8080
+database:
+  # The password below is a CHANGE_ME placeholder — never commit real
+  # production credentials. Override with a full connection string at deploy
+  # time via the DATABASE__URL environment variable (SECTION__KEY overrides
+  # config.database.url).
+  url: postgres://postgres:CHANGE_ME@localhost:5432/economizei_production
+logger:
+  # Quieter logging in production. Override at deploy time with RUST_LOG.
+  level: info
+  # Structured access logs: one JSON line per response (status, latency_ms,
+  # request_id). Override at deploy time with RUST_LOG if you need more.
+  format: json_response
+cache:
+  type: memory
+jobs:
+  type: db
+  queues: [default]
+  concurrency: 5
+storage:
+  service: local
+  services:
+    local:
+      type: disk
+      root: storage
+    test:
+      type: memory
+auth:
+  user_model: User
+  modules:
+    - database_authenticatable
+    - registerable
+    - recoverable
+    - rememberable
+    - validatable
+  strategies:
+    - cookie
+  two_factor:
+    enabled: false
+    issuer: Economizei
+  timeout: 1800
+  password_length: 6
+  maximum_attempts: 20
+  unlock_in: 3600
+  reset_password_within: 21600
+  remember_for: 1209600
+  routes:
+    prefix: /users

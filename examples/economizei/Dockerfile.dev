@@ -1,0 +1,20 @@
+# Development image with hot reload via cargo-watch and Bun for Tailwind CSS.
+FROM rust:1-bookworm
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl unzip \
+    && rm -rf /var/lib/apt/lists/* \
+    && curl -fsSL https://bun.sh/install | bash
+
+ENV PATH="/root/.bun/bin:${PATH}"
+
+RUN cargo install cargo-watch --locked
+
+WORKDIR /app
+
+COPY package.json bun.lock ./
+RUN bun install && bun run css:build
+
+EXPOSE 3000
+
+CMD ["cargo", "watch", "-w", "src", "-w", "app", "-w", "config", "-w", "db", "-x", "doido server"]
