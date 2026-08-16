@@ -7,6 +7,10 @@ const ARTICLE_EXTENSION: &str = r#"//! Article extensions with Active Record-sty
 #![allow(dead_code, unused_imports)]
 pub use super::_entities::articles::*;
 
+use doido::model::sea_orm::ActiveModelBehavior;
+
+impl ActiveModelBehavior for ActiveModel {}
+
 use doido::model::validation::{Errors, Validate};
 
 impl Validate for Model {

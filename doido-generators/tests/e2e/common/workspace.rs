@@ -165,6 +165,7 @@ fn auth_base_is_valid(dir: &Path, _api: bool) -> bool {
     let user_ok = fs::read_to_string(&user_model)
         .map(|content| {
             content.contains("pub use super::_entities::users::*")
+                && content.contains("impl ActiveModelBehavior for ActiveModel {}")
                 && content.contains(".map_err(Into::into)")
         })
         .unwrap_or(false);

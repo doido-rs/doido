@@ -86,6 +86,7 @@ pub fn run_generate(generator: &str, args: &[&str]) {
                 doido_core::tracing::error!("error writing files: {e}");
                 std::process::exit(1);
             }
+            crate::commands::sync_model_extensions_at(Path::new("."));
         }
         Err(e) => {
             doido_core::tracing::error!("{e}");

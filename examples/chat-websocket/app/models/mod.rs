@@ -10,4 +10,8 @@ pub mod user;
 pub mod conversation;
 pub mod conversation_participant;
 pub mod message;
+pub mod doido_job;
+pub mod storage_blob;
+pub mod storage_attachment;
+pub mod storage_variant_record;
 // @generated-models

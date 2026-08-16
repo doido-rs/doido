@@ -31,6 +31,20 @@ pub(crate) fn write_files(files: &[GeneratedFile], root: &Path) -> Result<()> {
     Ok(())
 }
 
+/// Ensures model extension stubs and fallback `ActiveModelBehavior` impls exist
+/// after generators write entity files or before compiling the app.
+pub(crate) fn sync_model_extensions_at(app_root: &Path) {
+    let entities_dir = app_root.join("app/models/_entities");
+    let models_dir = app_root.join("app/models");
+    if !entities_dir.is_dir() {
+        return;
+    }
+    match doido_model::entities::postprocess_entity_export(&entities_dir, &models_dir) {
+        Ok(()) => doido_core::tracing::debug!("synced model extensions"),
+        Err(e) => doido_core::tracing::error!("model extension sync failed: {e}"),
+    }
+}
+
 /// `app/models/<name>.rs` extension stubs are never overwritten; `_entities/` and
 /// `mod.rs` are always rewritten.
 fn is_model_extension_path(path: &str) -> bool {
