@@ -48,6 +48,7 @@ async fn full_router() -> axum::Router {
         get!("/conversations/{id}", ConversationsController::show);
         get!("/conversations/{id}/messages", ConversationsController::messages);
         post!("/messages", MessagesController::create);
+        get!("/messages/{id}/attachment", MessagesController::attachment);
     };
 
     let ws = doido::cable::cable!(pubsub, [ConversationChannel]);

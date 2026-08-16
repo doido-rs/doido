@@ -6,6 +6,7 @@ mod m20260815_175359_create_users_table;
 mod m20260815_180801_create_conversations_table;
 mod m20260815_180906_create_conversation_participants_table;
 mod m20260815_180913_create_messages_table;
+mod m20260815_181500_add_image_data_to_messages;
 // @generated-migrations-mod — `doido generate model` inserts `mod` declarations above this line. Do not remove.
 
 pub struct Migrator;
@@ -22,6 +23,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20260815_180801_create_conversations_table::Migration),
             Box::new(m20260815_180906_create_conversation_participants_table::Migration),
             Box::new(m20260815_180913_create_messages_table::Migration),
+            Box::new(m20260815_181500_add_image_data_to_messages::Migration),
             // @generated-migrations-list
         ]
     }

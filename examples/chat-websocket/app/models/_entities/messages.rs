@@ -17,6 +17,10 @@ pub struct Model {
     pub user_id: i64,
     pub message_type: String,
     pub created_at: DateTimeUtc,
+    #[sea_orm(column_type = "Binary(1)", nullable)]
+    pub image_data: Option<Vec<u8>>,
+    pub image_content_type: Option<String>,
+    pub image_filename: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

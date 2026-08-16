@@ -81,6 +81,9 @@ impl Channel for ConversationChannel {
             TYPE_TEXT,
             Some(body),
             None,
+            None,
+            None,
+            None,
         )
         .await?;
 

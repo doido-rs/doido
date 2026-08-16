@@ -11,7 +11,6 @@
 
   const renderedIds = new Set();
   let cable = null;
-  let subscription = null;
 
   function setStatus(text) {
     if (!text) {
@@ -63,6 +62,16 @@
     listEl.scrollTop = listEl.scrollHeight;
   }
 
+  function handleIncomingPayload(payload) {
+    if (
+      payload &&
+      (payload.action === "new_message" || payload.action === "message_sent") &&
+      payload.message
+    ) {
+      appendMessage(payload.message);
+    }
+  }
+
   async function loadConversation() {
     const conversation = await Chat.request(`/conversations/${conversationId}`);
     const other = conversation.participants.find((p) => p.id !== userId);
@@ -100,16 +109,21 @@
     cable.addEventListener("message", (event) => {
       try {
         const frame = JSON.parse(event.data);
-        if (frame.type === "ping" || frame.type === "welcome") return;
+        if (
+          frame.type === "ping" ||
+          frame.type === "welcome" ||
+          frame.type === "confirm_subscription" ||
+          frame.type === "reject_subscription"
+        ) {
+          return;
+        }
 
         const payload =
           typeof frame.message === "string"
             ? JSON.parse(frame.message)
             : frame.message;
 
-        if (payload && payload.action === "new_message" && payload.message) {
-          appendMessage(payload.message);
-        }
+        handleIncomingPayload(payload);
       } catch {
         /* ignore malformed frames */
       }
@@ -139,11 +153,37 @@
     );
   }
 
+  function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(new Error("Falha ao ler o arquivo"));
+      reader.readAsDataURL(file);
+    });
+  }
+
   async function uploadAttachment(file) {
     const isImage = file.type.startsWith("image/");
     const messageType = isImage ? "image" : "file";
 
     setStatus("Enviando arquivo…");
+
+    if (isImage) {
+      const imageData = await fileToBase64(file);
+      const message = await Chat.request("/messages", {
+        method: "POST",
+        body: JSON.stringify({
+          conversation_id: conversationId,
+          message_type: messageType,
+          image_data: imageData,
+          image_content_type: file.type || "application/octet-stream",
+          image_filename: file.name,
+        }),
+      });
+      appendMessage(message);
+      setStatus("");
+      return;
+    }
 
     const meta = await Chat.request("/doido/storage/direct_uploads", {
       method: "POST",

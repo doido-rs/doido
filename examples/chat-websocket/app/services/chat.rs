@@ -1,8 +1,11 @@
 //! Chat domain helpers: conversations, messages, cable broadcasts, attachments.
-use crate::models::conversation_participant::{Column as ParticipantColumn, Entity as ParticipantEntity};
-use crate::models::message::{ActiveModel as MessageActive, Entity as MessageEntity, Model as Message};
 use crate::models::conversation::ActiveModel as ConversationActive;
+use crate::models::conversation_participant::{
+    Column as ParticipantColumn, Entity as ParticipantEntity,
+};
+use crate::models::message::{ActiveModel as MessageActive, Entity as MessageEntity, Model as Message};
 use crate::state;
+use base64::Engine;
 use chrono::Utc;
 use doido::model::sea_orm::{
     entity::prelude::*, ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, Set,
@@ -140,6 +143,9 @@ pub async fn insert_message(
     user_id: i64,
     message_type: &str,
     body: Option<String>,
+    image_data: Option<Vec<u8>>,
+    image_content_type: Option<String>,
+    image_filename: Option<String>,
 ) -> doido::Result<Message> {
     let now = Utc::now();
     let record = MessageActive {
@@ -147,10 +153,23 @@ pub async fn insert_message(
         user_id: Set(user_id),
         message_type: Set(message_type.to_string()),
         body: Set(body),
+        image_data: Set(image_data),
+        image_content_type: Set(image_content_type),
+        image_filename: Set(image_filename),
         created_at: Set(now),
         ..Default::default()
     };
     record.insert(db).await.map_err(Into::into)
+}
+
+pub fn decode_image_data(encoded: &str) -> doido::Result<Vec<u8>> {
+    let payload = encoded
+        .split_once(',')
+        .map(|(_, data)| data)
+        .unwrap_or(encoded);
+    base64::engine::general_purpose::STANDARD
+        .decode(payload.trim())
+        .map_err(|e| doido::core::anyhow::anyhow!("invalid base64 image data: {e}").into())
 }
 
 pub async fn attach_blob(
@@ -164,11 +183,35 @@ pub async fn attach_blob(
         .await
 }
 
+fn db_image_attachment(message: &Message) -> Option<AttachmentPayload> {
+    let data = message.image_data.as_ref()?;
+    Some(AttachmentPayload {
+        filename: message
+            .image_filename
+            .clone()
+            .unwrap_or_else(|| "image".into()),
+        content_type: message.image_content_type.clone(),
+        byte_size: data.len() as i64,
+        url: format!("/messages/{}/attachment", message.id),
+    })
+}
+
 pub async fn message_payload(
     storage: &Storage,
     message: &Message,
 ) -> doido::Result<MessagePayload> {
-    let attachment = if message.message_type == TYPE_IMAGE || message.message_type == TYPE_FILE {
+    let attachment = if message.message_type == TYPE_IMAGE {
+        db_image_attachment(message).or_else(|| {
+            // Legacy messages may still use doido-storage attachments.
+            None
+        })
+    } else {
+        None
+    };
+
+    let attachment = if attachment.is_some() {
+        attachment
+    } else if message.message_type == TYPE_IMAGE || message.message_type == TYPE_FILE {
         if let Some(blob) = storage
             .one(RECORD_TYPE, &message.id.to_string(), ATTACHMENT_NAME)
             .await?
@@ -226,8 +269,21 @@ pub async fn create_and_broadcast(
     message_type: &str,
     body: Option<String>,
     attachment_signed_id: Option<String>,
+    image_data: Option<Vec<u8>>,
+    image_content_type: Option<String>,
+    image_filename: Option<String>,
 ) -> doido::Result<MessagePayload> {
-    let message = insert_message(db, conversation_id, user_id, message_type, body).await?;
+    let message = insert_message(
+        db,
+        conversation_id,
+        user_id,
+        message_type,
+        body,
+        image_data,
+        image_content_type,
+        image_filename,
+    )
+    .await?;
 
     if let Some(signed_id) = attachment_signed_id {
         attach_blob(storage, message.id, &signed_id).await?;
