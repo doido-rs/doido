@@ -135,13 +135,9 @@ fn api_cors_honors_development_yml() {
                 Some("authorization, content-type"),
             );
             assert!(
-                auth_preflight
-                    .allow_headers
-                    .as_deref()
-                    .is_some_and(|h| {
-                        h.contains('*')
-                            || (h.contains("authorization") && h.contains("content-type"))
-                    }),
+                auth_preflight.allow_headers.as_deref().is_some_and(|h| {
+                    h.contains('*') || (h.contains("authorization") && h.contains("content-type"))
+                }),
                 "preflight should allow authorization and content-type, got {:?}",
                 auth_preflight.allow_headers
             );
@@ -201,13 +197,9 @@ fn api_cors_permissive_wildcard_defaults() {
                 preflight.allow_methods
             );
             assert!(
-                preflight
-                    .allow_headers
-                    .as_deref()
-                    .is_some_and(|h| {
-                        h.contains('*')
-                            || (h.contains("authorization") && h.contains("content-type"))
-                    }),
+                preflight.allow_headers.as_deref().is_some_and(|h| {
+                    h.contains('*') || (h.contains("authorization") && h.contains("content-type"))
+                }),
                 "empty allowed_headers should default permissively, got {:?}",
                 preflight.allow_headers
             );

@@ -50,7 +50,10 @@ async fn cors_permissive_defaults_answer_preflight_with_auth_headers() {
         .uri("/")
         .header("origin", "http://localhost:3001")
         .header("access-control-request-method", "POST")
-        .header("access-control-request-headers", "authorization, content-type")
+        .header(
+            "access-control-request-headers",
+            "authorization, content-type",
+        )
         .body(doido_controller::axum::body::Body::empty())
         .unwrap();
     let resp = app.oneshot(req).await.unwrap();
@@ -93,7 +96,10 @@ async fn cors_explicit_headers_list() {
         .uri("/")
         .header("origin", "https://app.example")
         .header("access-control-request-method", "POST")
-        .header("access-control-request-headers", "authorization, content-type")
+        .header(
+            "access-control-request-headers",
+            "authorization, content-type",
+        )
         .body(doido_controller::axum::body::Body::empty())
         .unwrap();
     let resp = app.oneshot(req).await.unwrap();
