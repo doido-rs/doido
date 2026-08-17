@@ -10,7 +10,7 @@ use http::{header, HeaderValue, Method, StatusCode};
 use std::sync::Arc;
 use tower_http::{
     catch_panic::CatchPanicLayer,
-    cors::{Any, CorsLayer},
+    cors::{AllowHeaders, AllowMethods, AllowOrigin, Any, CorsLayer},
 };
 
 /// A router transformation registered by the app to insert its own middleware
@@ -243,32 +243,74 @@ async fn host_guard(
     }
 }
 
-/// Build a [`CorsLayer`] from configuration. `"*"` in `allowed_origins` maps to
-/// "any origin"; otherwise each origin/method is parsed and unparseable entries
-/// are skipped.
+/// Build a [`CorsLayer`] from configuration. Empty lists and `"*"` are
+/// permissive; with `allow_credentials: true`, wildcards mirror the preflight
+/// request instead of sending `*` (which `tower-http` rejects).
 fn build_cors(config: &CorsConfig) -> CorsLayer {
     let mut layer = CorsLayer::new();
-    if config.allowed_origins.iter().any(|o| o == "*") {
-        layer = layer.allow_origin(Any);
+    if config.allow_credentials {
+        layer = layer.allow_credentials(true);
+    }
+
+    layer = layer.allow_origin(configured_allow_origin(config));
+    layer = layer.allow_methods(configured_allow_methods(config));
+    layer = layer.allow_headers(configured_allow_headers(config));
+    layer
+}
+
+fn list_is_wildcard(values: &[String]) -> bool {
+    values.is_empty() || values.iter().any(|v| v == "*")
+}
+
+fn configured_allow_origin(config: &CorsConfig) -> AllowOrigin {
+    if list_is_wildcard(&config.allowed_origins) {
+        if config.allow_credentials {
+            AllowOrigin::mirror_request()
+        } else {
+            Any.into()
+        }
     } else {
         let origins: Vec<HeaderValue> = config
             .allowed_origins
             .iter()
             .filter_map(|o| o.parse().ok())
             .collect();
-        if !origins.is_empty() {
-            layer = layer.allow_origin(origins);
+        AllowOrigin::list(origins)
+    }
+}
+
+fn configured_allow_methods(config: &CorsConfig) -> AllowMethods {
+    if list_is_wildcard(&config.allowed_methods) {
+        if config.allow_credentials {
+            AllowMethods::mirror_request()
+        } else {
+            Any.into()
         }
+    } else {
+        let methods: Vec<Method> = config
+            .allowed_methods
+            .iter()
+            .filter_map(|m| Method::from_bytes(m.as_bytes()).ok())
+            .collect();
+        AllowMethods::list(methods)
     }
-    let methods: Vec<Method> = config
-        .allowed_methods
-        .iter()
-        .filter_map(|m| Method::from_bytes(m.as_bytes()).ok())
-        .collect();
-    if !methods.is_empty() {
-        layer = layer.allow_methods(methods);
+}
+
+fn configured_allow_headers(config: &CorsConfig) -> AllowHeaders {
+    if list_is_wildcard(&config.allowed_headers) {
+        if config.allow_credentials {
+            AllowHeaders::mirror_request()
+        } else {
+            Any.into()
+        }
+    } else {
+        let headers: Vec<http::HeaderName> = config
+            .allowed_headers
+            .iter()
+            .filter_map(|h| h.parse().ok())
+            .collect();
+        AllowHeaders::list(headers)
     }
-    layer
 }
 
 impl Default for MiddlewareStack {
