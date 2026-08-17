@@ -7,6 +7,14 @@ pub struct HttpResponse {
     pub set_cookie: Vec<String>,
 }
 
+/// CORS-related response headers from a cross-origin request or preflight.
+pub struct CorsHeaders {
+    pub status: u16,
+    pub allow_origin: Option<String>,
+    pub allow_methods: Option<String>,
+    pub allow_headers: Option<String>,
+}
+
 pub fn post_json_with_response(url: &str, body: Value) -> HttpResponse {
     let response = ureq::post(url).send_json(body).expect("POST request");
     let status = response.status().as_u16();
@@ -189,6 +197,63 @@ pub fn post_form_with_cookie(url: &str, fields: &[(&str, &str)], cookie: &str) -
         status: response.status().as_u16(),
         set_cookie: collect_set_cookie(response),
     }
+}
+
+fn status_tolerant_agent() -> ureq::Agent {
+    ureq::Agent::config_builder()
+        .http_status_as_error(false)
+        .build()
+        .new_agent()
+}
+
+fn read_cors_headers(response: ureq::http::Response<ureq::Body>) -> CorsHeaders {
+    CorsHeaders {
+        status: response.status().as_u16(),
+        allow_origin: header_value(&response, "access-control-allow-origin"),
+        allow_methods: header_value(&response, "access-control-allow-methods"),
+        allow_headers: header_value(&response, "access-control-allow-headers"),
+    }
+}
+
+fn header_value(response: &ureq::http::Response<ureq::Body>, name: &str) -> Option<String> {
+    response
+        .headers()
+        .get(name)
+        .and_then(|v| v.to_str().ok())
+        .map(str::to_string)
+}
+
+/// GET with an `Origin` header, returning status and CORS response headers.
+pub fn get_with_origin(url: &str, origin: &str) -> CorsHeaders {
+    let response = status_tolerant_agent()
+        .get(url)
+        .header("Origin", origin)
+        .call()
+        .expect("GET with Origin");
+    read_cors_headers(response)
+}
+
+/// OPTIONS preflight (`Access-Control-Request-Method`) for CORS negotiation.
+pub fn options_preflight(url: &str, origin: &str, request_method: &str) -> CorsHeaders {
+    options_preflight_with_headers(url, origin, request_method, None)
+}
+
+/// OPTIONS preflight with optional `Access-Control-Request-Headers`.
+pub fn options_preflight_with_headers(
+    url: &str,
+    origin: &str,
+    request_method: &str,
+    request_headers: Option<&str>,
+) -> CorsHeaders {
+    let mut request = status_tolerant_agent()
+        .options(url)
+        .header("Origin", origin)
+        .header("Access-Control-Request-Method", request_method);
+    if let Some(headers) = request_headers {
+        request = request.header("Access-Control-Request-Headers", headers);
+    }
+    let response = request.call().expect("OPTIONS preflight");
+    read_cors_headers(response)
 }
 
 pub fn api_crud_cycle(base: &str, collection: &str, create_body: Value, update_body: Value) {

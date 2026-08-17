@@ -29,8 +29,11 @@ impl Default for ServerConfig {
 }
 
 /// Opt-in CORS settings (spec 07 `[middleware.cors]`). Disabled unless
-/// `enabled: true`; an empty `allowed_origins`/`allowed_methods` leaves that
-/// dimension unset on the layer. Use `"*"` in `allowed_origins` for any origin.
+/// `enabled: true`. Each dimension must be configured explicitly: empty lists
+/// deny that dimension. Use `"*"` in a list to allow any value for that
+/// dimension. With `allow_credentials: true`, origin/method/header wildcards
+/// use mirror-request semantics instead of `*` (required by the CORS spec and
+/// `tower-http`).
 #[derive(Debug, Clone, Default, Deserialize)]
 pub struct CorsConfig {
     #[serde(default)]
@@ -39,6 +42,10 @@ pub struct CorsConfig {
     pub allowed_origins: Vec<String>,
     #[serde(default)]
     pub allowed_methods: Vec<String>,
+    #[serde(default)]
+    pub allowed_headers: Vec<String>,
+    #[serde(default)]
+    pub allow_credentials: bool,
 }
 
 /// Opt-in middleware settings (spec 07 `[middleware]`).
