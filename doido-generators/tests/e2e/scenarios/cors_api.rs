@@ -8,10 +8,6 @@ use std::path::Path;
 const ALLOWED_ORIGIN: &str = "https://app.example";
 const BLOCKED_ORIGIN: &str = "https://evil.example";
 
-fn append_cors_config(app: &Path, origins: &[&str], methods: &[&str]) {
-    append_full_cors_config(app, origins, methods, None);
-}
-
 fn append_full_cors_config(
     app: &Path,
     origins: &[&str],
@@ -80,10 +76,11 @@ fn api_cors_honors_development_yml() {
         "body:text",
         "--api",
     ]);
-    append_cors_config(
+    append_full_cors_config(
         &h.app,
         &[ALLOWED_ORIGIN],
         &["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+        Some(&["authorization", "content-type"]),
     );
 
     h.run_with_db(
@@ -135,10 +132,11 @@ fn api_cors_honors_development_yml() {
                 Some("authorization, content-type"),
             );
             assert!(
-                auth_preflight.allow_headers.as_deref().is_some_and(|h| {
-                    h.contains('*') || (h.contains("authorization") && h.contains("content-type"))
-                }),
-                "preflight should allow authorization and content-type, got {:?}",
+                auth_preflight
+                    .allow_headers
+                    .as_deref()
+                    .is_some_and(|h| h.contains("authorization") && h.contains("content-type")),
+                "preflight should allow configured authorization and content-type, got {:?}",
                 auth_preflight.allow_headers
             );
 
@@ -154,8 +152,8 @@ fn api_cors_honors_development_yml() {
 
 #[test]
 #[ignore = "slow: release e2e — run via `make release-e2e`"]
-fn api_cors_permissive_wildcard_defaults() {
-    let h = AppHarness::new("cors_api_wildcard", BaseProfile::ApiOnly);
+fn api_cors_restrictive_empty_lists() {
+    let h = AppHarness::new("cors_api_restrictive", BaseProfile::ApiOnly);
     h.generate(&[
         "generate",
         "scaffold",
@@ -180,27 +178,22 @@ fn api_cors_permissive_wildcard_defaults() {
             );
             assert!(
                 preflight.status == 200 || preflight.status == 204,
-                "wildcard CORS preflight should succeed, got {}",
+                "preflight should succeed, got {}",
                 preflight.status
             );
             assert_eq!(
                 preflight.allow_origin.as_deref(),
                 Some("*"),
-                "wildcard origin should answer with *"
+                "explicit wildcard origin should answer with *"
             );
             assert!(
-                preflight
-                    .allow_methods
-                    .as_deref()
-                    .is_some_and(|m| m.contains('*') || m.contains("POST")),
-                "empty allowed_methods should default permissively, got {:?}",
+                preflight.allow_methods.is_none(),
+                "empty allowed_methods must not advertise methods, got {:?}",
                 preflight.allow_methods
             );
             assert!(
-                preflight.allow_headers.as_deref().is_some_and(|h| {
-                    h.contains('*') || (h.contains("authorization") && h.contains("content-type"))
-                }),
-                "empty allowed_headers should default permissively, got {:?}",
+                preflight.allow_headers.is_none(),
+                "empty allowed_headers must not advertise headers, got {:?}",
                 preflight.allow_headers
             );
         },

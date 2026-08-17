@@ -40,8 +40,8 @@ async fn cors_disabled_by_default() {
 }
 
 #[tokio::test]
-async fn cors_permissive_defaults_answer_preflight_with_auth_headers() {
-    // Fivia-like config: enabled, wildcard origin, empty method/header lists.
+async fn cors_restrictive_empty_lists_omit_methods_and_headers() {
+    // Enabled with wildcard origin only; empty method/header lists stay restrictive.
     let yaml = "middleware:\n  cors:\n    enabled: true\n    allowed_origins: [\"*\"]\n    allowed_methods: []\n    allowed_headers: []\n";
     let app = cors_app(yaml);
 
@@ -68,17 +68,44 @@ async fn cors_permissive_defaults_answer_preflight_with_auth_headers() {
             .and_then(|v| v.to_str().ok()),
         Some("*")
     );
+    assert!(
+        resp.headers().get("access-control-allow-methods").is_none(),
+        "empty allowed_methods must not advertise any method"
+    );
+    assert!(
+        resp.headers().get("access-control-allow-headers").is_none(),
+        "empty allowed_headers must not advertise any header"
+    );
+}
+
+#[tokio::test]
+async fn cors_wildcard_methods_and_headers_are_permissive() {
+    let yaml = "middleware:\n  cors:\n    enabled: true\n    allowed_origins: [\"*\"]\n    allowed_methods: [\"*\"]\n    allowed_headers: [\"*\"]\n";
+    let app = cors_app(yaml);
+
+    let req = Request::builder()
+        .method(Method::OPTIONS)
+        .uri("/")
+        .header("origin", "http://localhost:3001")
+        .header("access-control-request-method", "POST")
+        .header(
+            "access-control-request-headers",
+            "authorization, content-type",
+        )
+        .body(doido_controller::axum::body::Body::empty())
+        .unwrap();
+    let resp = app.oneshot(req).await.unwrap();
     let allow_methods = resp
         .headers()
         .get("access-control-allow-methods")
         .and_then(|v| v.to_str().ok())
-        .expect("empty allowed_methods should default to any method");
+        .expect("explicit wildcard allowed_methods should be advertised");
     assert!(allow_methods.contains('*') || allow_methods.contains("POST"));
     let allow_headers = resp
         .headers()
         .get("access-control-allow-headers")
         .and_then(|v| v.to_str().ok())
-        .expect("empty allowed_headers should default to any header");
+        .expect("explicit wildcard allowed_headers should be advertised");
     assert!(
         allow_headers.contains('*')
             || (allow_headers.contains("authorization") && allow_headers.contains("content-type")),

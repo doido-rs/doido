@@ -29,10 +29,11 @@ impl Default for ServerConfig {
 }
 
 /// Opt-in CORS settings (spec 07 `[middleware.cors]`). Disabled unless
-/// `enabled: true`. Empty lists and `"*"` entries are treated as permissive for
-/// that dimension (any origin/method/header). With `allow_credentials: true`,
-/// wildcards use mirror-request semantics instead of `*` (required by the CORS
-/// spec and `tower-http`).
+/// `enabled: true`. Each dimension must be configured explicitly: empty lists
+/// deny that dimension. Use `"*"` in a list to allow any value for that
+/// dimension. With `allow_credentials: true`, origin/method/header wildcards
+/// use mirror-request semantics instead of `*` (required by the CORS spec and
+/// `tower-http`).
 #[derive(Debug, Clone, Default, Deserialize)]
 pub struct CorsConfig {
     #[serde(default)]
