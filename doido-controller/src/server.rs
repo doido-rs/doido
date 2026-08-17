@@ -53,6 +53,7 @@ pub async fn start_server_with(
     // API-only projects, HTML-only middleware (e.g. CSRF) is skipped.
     let router = MiddlewareStack::default()
         .with_api_only(api_only())
+        .with_cors_config(config.middleware().cors.clone())
         .apply(router);
 
     let listener = tokio::net::TcpListener::bind(&addr).await?;
