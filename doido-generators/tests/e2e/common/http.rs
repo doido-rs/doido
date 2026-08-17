@@ -12,6 +12,7 @@ pub struct CorsHeaders {
     pub status: u16,
     pub allow_origin: Option<String>,
     pub allow_methods: Option<String>,
+    pub allow_headers: Option<String>,
 }
 
 pub fn post_json_with_response(url: &str, body: Value) -> HttpResponse {
@@ -210,6 +211,7 @@ fn read_cors_headers(response: ureq::http::Response<ureq::Body>) -> CorsHeaders 
         status: response.status().as_u16(),
         allow_origin: header_value(&response, "access-control-allow-origin"),
         allow_methods: header_value(&response, "access-control-allow-methods"),
+        allow_headers: header_value(&response, "access-control-allow-headers"),
     }
 }
 
@@ -233,12 +235,24 @@ pub fn get_with_origin(url: &str, origin: &str) -> CorsHeaders {
 
 /// OPTIONS preflight (`Access-Control-Request-Method`) for CORS negotiation.
 pub fn options_preflight(url: &str, origin: &str, request_method: &str) -> CorsHeaders {
-    let response = status_tolerant_agent()
+    options_preflight_with_headers(url, origin, request_method, None)
+}
+
+/// OPTIONS preflight with optional `Access-Control-Request-Headers`.
+pub fn options_preflight_with_headers(
+    url: &str,
+    origin: &str,
+    request_method: &str,
+    request_headers: Option<&str>,
+) -> CorsHeaders {
+    let mut request = status_tolerant_agent()
         .options(url)
         .header("Origin", origin)
-        .header("Access-Control-Request-Method", request_method)
-        .call()
-        .expect("OPTIONS preflight");
+        .header("Access-Control-Request-Method", request_method);
+    if let Some(headers) = request_headers {
+        request = request.header("Access-Control-Request-Headers", headers);
+    }
+    let response = request.call().expect("OPTIONS preflight");
     read_cors_headers(response)
 }
 
