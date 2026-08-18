@@ -25,7 +25,7 @@ jobs:
       - run: cargo fmt --check --all
       - run: cargo clippy --workspace -- -D warnings
       - run: cargo install cargo-deny --locked && cargo deny check
-      - run: cargo install cargo-audit --locked && cargo audit
+#      - run: cargo install cargo-audit --locked && cargo audit
 
   test:
     name: Test

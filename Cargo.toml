@@ -19,7 +19,6 @@ members = [
     "doido-auth/route-dsl",
     "doido-auth",
     "doido",
-    "doido-payments-cli",
 ]
 
 [workspace.package]
