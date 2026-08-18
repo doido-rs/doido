@@ -225,3 +225,36 @@ async fn run_inner(
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use doido_generators::{GeneratedFile, Generator};
+
+    struct DummyGenerator;
+    impl Generator for DummyGenerator {
+        fn name(&self) -> &str {
+            "dummy"
+        }
+        fn generate(&self, _args: &[&str]) -> doido_core::Result<Vec<GeneratedFile>> {
+            Ok(Vec::new())
+        }
+    }
+
+    #[test]
+    fn builder_collects_router_and_registered_generators() {
+        let doido = Doido::new()
+            .router(axum::Router::new())
+            .register_generator(Box::new(DummyGenerator))
+            .register_generator(Box::new(DummyGenerator));
+        assert!(doido.router.is_some());
+        assert_eq!(doido.generators.len(), 2);
+    }
+
+    #[test]
+    fn generators_replaces_the_installed_list_and_default_is_empty() {
+        let doido = Doido::default().generators(vec![Box::new(DummyGenerator)]);
+        assert!(doido.router.is_none());
+        assert_eq!(doido.generators.len(), 1);
+    }
+}

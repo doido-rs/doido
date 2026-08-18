@@ -55,3 +55,24 @@ pub fn print(mode: &str) {
     let _ = writeln!(out, "{:>11}: {}", "modes", mode);
     let _ = writeln!(out);
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn db_backend_extracts_scheme_before_the_separator() {
+        assert_eq!(db_backend("postgres://user@host/db"), "postgres");
+        assert_eq!(db_backend("sqlite://db/dev.db"), "sqlite");
+        // A URL without `://` has no scheme to extract.
+        assert_eq!(db_backend("not-a-url"), "unknown");
+    }
+
+    #[test]
+    fn print_writes_the_banner_without_panicking() {
+        // Exercises the full info block (stderr is not a TTY under test, so the
+        // no-color branches are taken). Config falls back to defaults.
+        print("server");
+        print("worker");
+    }
+}
