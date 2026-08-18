@@ -29,6 +29,14 @@ pub fn query(sql: &str, duration_ms: u64) {
     tracing::info!(sql = sql, duration_ms = duration_ms, "query");
 }
 
+/// Emit a structured ERROR event with the error message and optional context.
+///
+/// The centralized logger appends a Rust backtrace and tracing span stack to
+/// every ERROR event when `logger.format` is `compact` or `verbose`.
+pub fn error(error: impl std::fmt::Display, message: &str) {
+    tracing::error!(error = %error, "{message}");
+}
+
 /// Emit a structured event for email delivery
 pub fn mail(to: &str, subject: &str, deliverer: &str) {
     tracing::info!(to = to, subject = subject, deliverer = deliverer, "mail");

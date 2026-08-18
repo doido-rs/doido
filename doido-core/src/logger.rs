@@ -24,8 +24,14 @@ use serde::Deserialize;
 use std::fs::{File, OpenOptions};
 use std::path::Path;
 use std::sync::{Mutex, Once};
+mod format;
+
+use format::ErrorContextFormat;
+use tracing_error::ErrorLayer;
 use tracing_subscriber::fmt::writer::BoxMakeWriter;
-use tracing_subscriber::{fmt, EnvFilter};
+use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::util::SubscriberInitExt;
+use tracing_subscriber::{fmt, EnvFilter, Registry};
 
 /// `tracing` target for the "request received" event emitted by
 /// `doido-controller`'s logging middleware.
@@ -161,8 +167,10 @@ pub fn init_with(default_directives: &str) {
 /// Installs the global tracing subscriber from a [`LoggerConfig`]: verbosity
 /// from `RUST_LOG` or the config's [`directives`](LoggerConfig::directives),
 /// output to the config's `file` when set (otherwise stdout), and rendering per
-/// the config's [`format`](LoggerConfig::format). Idempotent and safe to call
-/// more than once; only the first call takes effect.
+/// the config's [`format`](LoggerConfig::format). ERROR events automatically
+/// include a Rust backtrace and a tracing span stack when the format is
+/// `compact` or `verbose`. Idempotent and safe to call more than once; only the
+/// first call takes effect.
 pub fn init_with_config(config: &LoggerConfig) {
     INIT.call_once(|| {
         let filter = EnvFilter::try_from_default_env()
@@ -175,32 +183,62 @@ pub fn init_with_config(config: &LoggerConfig) {
             Some(file) => (BoxMakeWriter::new(Mutex::new(file)), true),
             None => (BoxMakeWriter::new(std::io::stdout), false),
         };
-        let builder = fmt().with_env_filter(filter).with_writer(writer);
-        let builder = if to_file {
-            builder.with_ansi(false)
-        } else {
-            builder
-        };
 
         // `try_init` returns Err if a subscriber is already set (e.g. in tests);
         // ignore it — the `Once` already guards against repeated setup here.
         match config.format {
             LogFormat::Compact => {
-                let _ = builder.with_target(true).try_init();
+                let fmt_layer = fmt::layer()
+                    .with_target(true)
+                    .event_format(ErrorContextFormat::compact())
+                    .with_writer(writer);
+                let fmt_layer = if to_file {
+                    fmt_layer.with_ansi(false)
+                } else {
+                    fmt_layer
+                };
+                let _ = Registry::default()
+                    .with(filter)
+                    .with(ErrorLayer::default())
+                    .with(fmt_layer)
+                    .try_init();
             }
             LogFormat::Verbose => {
-                let _ = builder
-                    .pretty()
+                let fmt_layer = fmt::layer()
                     .with_target(true)
                     .with_thread_names(true)
                     .with_file(true)
                     .with_line_number(true)
+                    .event_format(ErrorContextFormat::pretty())
+                    .with_writer(writer);
+                let fmt_layer = if to_file {
+                    fmt_layer.with_ansi(false)
+                } else {
+                    fmt_layer
+                };
+                let _ = Registry::default()
+                    .with(filter)
+                    .with(ErrorLayer::default())
+                    .with(fmt_layer)
                     .try_init();
             }
             LogFormat::JsonResponse => {
                 // Flatten the event fields (status, latency_ms, request_id, …)
-                // to the top level of each JSON line.
-                let _ = builder.json().flatten_event(true).try_init();
+                // to the top level of each JSON line. Access logs omit error
+                // diagnostics; use `compact`/`verbose` when debugging failures.
+                let fmt_layer = fmt::layer()
+                    .json()
+                    .flatten_event(true)
+                    .with_writer(writer);
+                let fmt_layer = if to_file {
+                    fmt_layer.with_ansi(false)
+                } else {
+                    fmt_layer
+                };
+                let _ = Registry::default()
+                    .with(filter)
+                    .with(fmt_layer)
+                    .try_init();
             }
         }
     });
