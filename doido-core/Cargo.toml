@@ -7,6 +7,7 @@ edition = "2021"
 
 [dependencies]
 chrono = { workspace = true }
+clap = { workspace = true, features = ["derive"] }
 anyhow = "1"
 thiserror.workspace = true
 async-trait.workspace = true

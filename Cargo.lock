@@ -1630,19 +1630,27 @@ name = "doido"
 version = "0.0.9"
 dependencies = [
  "assert_cmd",
+ "clap",
  "doido-auth",
  "doido-cable",
  "doido-cache",
  "doido-controller",
- "doido-core",
+ "doido-core 0.0.9",
  "doido-generators",
  "doido-jobs",
  "doido-mailer",
  "doido-model",
+ "doido-payments",
  "doido-storage",
  "doido-view",
+ "figlet-rs",
  "predicates",
+ "rusqlite",
+ "serde_json",
+ "tempfile",
  "tokio",
+ "toml",
+ "ureq",
 ]
 
 [[package]]
@@ -1655,7 +1663,7 @@ dependencies = [
  "chrono",
  "doido-auth-macros",
  "doido-controller",
- "doido-core",
+ "doido-core 0.0.9",
  "doido-mailer",
  "doido-model",
  "doido-view",
@@ -1701,7 +1709,7 @@ dependencies = [
  "async-trait",
  "doido-cable-macros",
  "doido-controller",
- "doido-core",
+ "doido-core 0.0.9",
  "doido-model",
  "futures-util",
  "redis",
@@ -1726,7 +1734,7 @@ name = "doido-cache"
 version = "0.0.9"
 dependencies = [
  "async-trait",
- "doido-core",
+ "doido-core 0.0.9",
  "flate2",
  "memcache",
  "redis",
@@ -1745,7 +1753,7 @@ dependencies = [
  "base64 0.23.0",
  "doido-cache",
  "doido-controller-macros",
- "doido-core",
+ "doido-core 0.0.9",
  "doido-model",
  "doido-view",
  "hmac 0.13.0",
@@ -1782,6 +1790,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "chrono",
+ "clap",
  "regex",
  "serde",
  "serde_norway",
@@ -1795,28 +1804,40 @@ dependencies = [
 ]
 
 [[package]]
+name = "doido-core"
+version = "0.0.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7ef44613e62ac27b13b6b1bf83bea5d93ed282624a045ad0e8a5838e37bb71eb"
+dependencies = [
+ "aes-gcm",
+ "anyhow",
+ "async-trait",
+ "chrono",
+ "regex",
+ "serde",
+ "serde_norway",
+ "sha2 0.10.9",
+ "thiserror 2.0.19",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "doido-generators"
 version = "0.0.9"
 dependencies = [
  "assert_cmd",
  "chrono",
- "clap",
+ "doido",
  "doido-auth",
- "doido-cache",
- "doido-controller",
- "doido-core",
- "doido-jobs",
+ "doido-core 0.0.9",
  "doido-model",
- "doido-view",
- "figlet-rs",
+ "doido-payments",
  "include_dir",
  "predicates",
- "rusqlite",
- "serde_json",
  "tempfile",
  "tokio",
  "toml",
- "ureq",
 ]
 
 [[package]]
@@ -1825,7 +1846,8 @@ version = "0.0.9"
 dependencies = [
  "async-trait",
  "chrono",
- "doido-core",
+ "clap",
+ "doido-core 0.0.9",
  "doido-jobs-macros",
  "doido-model",
  "inventory",
@@ -1853,7 +1875,7 @@ version = "0.0.9"
 dependencies = [
  "async-trait",
  "base64 0.23.0",
- "doido-core",
+ "doido-core 0.0.9",
  "doido-jobs",
  "doido-mailer-macros",
  "doido-view",
@@ -1881,7 +1903,8 @@ name = "doido-model"
 version = "0.0.9"
 dependencies = [
  "bcrypt",
- "doido-core",
+ "clap",
+ "doido-core 0.0.9",
  "sea-orm",
  "sea-orm-cli",
  "sea-orm-migration",
@@ -1891,6 +1914,20 @@ dependencies = [
  "tempfile",
  "tokio",
  "url",
+ "uuid",
+]
+
+[[package]]
+name = "doido-payments"
+version = "0.0.1"
+dependencies = [
+ "chrono",
+ "doido-core 0.0.9 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde",
+ "serde_json",
+ "serde_norway",
+ "thiserror 2.0.19",
+ "toml",
  "uuid",
 ]
 
@@ -1905,7 +1942,7 @@ dependencies = [
  "base64 0.23.0",
  "chrono",
  "doido-controller",
- "doido-core",
+ "doido-core 0.0.9",
  "doido-jobs",
  "doido-model",
  "gcloud-storage",
@@ -1929,7 +1966,7 @@ name = "doido-view"
 version = "0.0.9"
 dependencies = [
  "doido-cache",
- "doido-core",
+ "doido-core 0.0.9",
  "serde_json",
  "serde_norway",
  "tempfile",

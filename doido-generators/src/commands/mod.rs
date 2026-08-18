@@ -1,21 +1,14 @@
-pub mod console;
-pub mod credentials;
-pub mod db;
-pub mod dbconsole;
 pub mod destroy;
 pub mod generate;
-pub mod jobs;
 pub mod new;
 pub mod runner;
-pub mod server;
-pub mod worker;
 
 use crate::generator::GeneratedFile;
 use doido_core::Result;
 use std::fs;
 use std::path::Path;
 
-pub(crate) fn write_files(files: &[GeneratedFile], root: &Path) -> Result<()> {
+pub fn write_files(files: &[GeneratedFile], root: &Path) -> Result<()> {
     for file in files {
         let dest = root.join(&file.path);
         if is_model_extension_path(&file.path) && dest.is_file() {
@@ -33,7 +26,7 @@ pub(crate) fn write_files(files: &[GeneratedFile], root: &Path) -> Result<()> {
 
 /// Ensures model extension stubs and fallback `ActiveModelBehavior` impls exist
 /// after generators write entity files or before compiling the app.
-pub(crate) fn sync_model_extensions_at(app_root: &Path) {
+pub fn sync_model_extensions_at(app_root: &Path) {
     let entities_dir = app_root.join("app/models/_entities");
     let models_dir = app_root.join("app/models");
     if !entities_dir.is_dir() {
@@ -45,8 +38,6 @@ pub(crate) fn sync_model_extensions_at(app_root: &Path) {
     }
 }
 
-/// `app/models/<name>.rs` extension stubs are never overwritten; `_entities/` and
-/// `mod.rs` are always rewritten.
 fn is_model_extension_path(path: &str) -> bool {
     path.starts_with("app/models/")
         && !path.starts_with("app/models/_entities/")

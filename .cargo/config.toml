@@ -11,3 +11,6 @@ doido = "run --bin doido --"
 
 [build]
 jobs = 4
+
+[patch.crates-io]
+doido-payments = { path = "../doido-payments/doido-payments" }

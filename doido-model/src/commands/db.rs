@@ -281,7 +281,15 @@ async fn export_entities_from_database(verbose: bool) {
 }
 
 fn sync_model_extensions() {
-    crate::commands::sync_model_extensions_at(Path::new("."));
+    let entities_dir = Path::new("app/models/_entities");
+    let models_dir = Path::new("app/models");
+    if !entities_dir.is_dir() {
+        return;
+    }
+    match crate::entities::postprocess_entity_export(entities_dir, models_dir) {
+        Ok(()) => doido_core::tracing::debug!("synced model extensions"),
+        Err(e) => doido_core::tracing::error!("model extension sync failed: {e}"),
+    }
 }
 
 fn default_entity_generate_command(database_url: String) -> GenerateSubcommands {

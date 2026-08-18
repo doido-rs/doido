@@ -1,6 +1,8 @@
 pub mod auth_registry;
-mod banner;
-mod cli;
+#[cfg(feature = "payments-generators")]
+pub mod payments_registry;
+#[cfg(feature = "payments-generators")]
+pub mod project_payments;
 pub mod commands;
 pub mod dev_workspace;
 pub mod generator;
@@ -11,13 +13,10 @@ pub mod project_generator;
 pub mod registry;
 pub mod templates;
 
-// CLI entry point (merged in from the former `doido-cli` crate).
-pub use cli::run;
-
 pub use dev_workspace::DependencyMode;
 
-/// The Doido release version generated apps depend on when this binary is
-/// isolated or published. Matches `CARGO_PKG_VERSION` of this crate.
+/// The Doido release version generated apps depend on when this crate is
+/// isolated or published. Matches `CARGO_PKG_VERSION` of the `doido` metacrate.
 pub const DOIDO_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 pub use generator::{GeneratedFile, Generator};

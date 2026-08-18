@@ -4,8 +4,8 @@
 //! key (`config/master.key` or the `DOIDO_MASTER_KEY` env var).
 
 use clap::Subcommand;
-use doido_core::anyhow::anyhow;
-use doido_core::Result;
+use crate::anyhow::anyhow;
+use crate::Result;
 use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -37,7 +37,7 @@ pub fn run(cmd: CredentialsCommand) {
         CredentialsCommand::Show => show(config_dir),
     };
     if let Err(e) = result {
-        doido_core::tracing::error!("credentials: {e}");
+        crate::tracing::error!("credentials: {e}");
         std::process::exit(1);
     }
 }
@@ -68,12 +68,12 @@ fn ensure_master_key(config_dir: &Path) -> Result<Vec<u8>> {
     if let Some(key) = read_master_key(config_dir) {
         return Ok(key);
     }
-    let key = doido_core::crypto::generate_key_hex();
+    let key = crate::crypto::generate_key_hex();
     fs::create_dir_all(config_dir).map_err(|e| anyhow!("could not create {CONFIG_DIR}: {e}"))?;
     fs::write(master_key_path(config_dir), &key)
         .map_err(|e| anyhow!("could not write master key: {e}"))?;
     gitignore_master_key();
-    doido_core::tracing::info!(
+    crate::tracing::info!(
         "generated {}/{MASTER_KEY_NAME} (keep it secret — it was added to .gitignore)",
         config_dir.display()
     );
@@ -151,7 +151,7 @@ fn edit(config_dir: &Path) -> Result<()> {
     let _ = fs::remove_file(&tmp);
 
     write_credentials(config_dir, &key, &edited)?;
-    doido_core::tracing::info!(
+    crate::tracing::info!(
         "credentials saved to {}",
         credentials_path(config_dir).display()
     );

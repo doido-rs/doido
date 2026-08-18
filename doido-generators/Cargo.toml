@@ -1,6 +1,6 @@
 [package]
 name = "doido-generators"
-description = "Doido code generators plus the unified CLI (server, console, db, worker, generate, new, credentials)."
+description = "Doido code generators and embedded application templates."
 version.workspace = true
 license.workspace = true
 edition = "2021"
@@ -10,43 +10,32 @@ build = "build.rs"
 name = "doido_generators"
 path = "src/lib.rs"
 
-[[bin]]
-name = "doido-generators"
-path = "src/main.rs"
-
 [dependencies]
 doido-core.workspace = true
-doido-controller = { workspace = true, default-features = false, features = ["sqlite"] }
-doido-model = { workspace = true, default-features = false, features = [
-    "cli",
-    "sqlite",
-    "postgres",
-    "mysql",
-] }
-doido-view.workspace = true
-doido-cache.workspace = true
-# Enable the db + redis job backends so `doido worker`/`doido jobs` can honour a
-# non-default `jobs.type` in config/<env>.yml (not just the in-memory default).
-doido-jobs = { workspace = true, features = ["jobs-db", "jobs-redis", "sqlite"] }
+doido-model = { workspace = true, default-features = false, features = ["sqlite"] }
 doido-auth = { workspace = true, optional = true, default-features = false, features = ["generators"] }
+doido-payments = { version = "0.0.1", optional = true, default-features = false, features = [
+    "generators",
+] }
 chrono.workspace = true
-figlet-rs.workspace = true
-clap.workspace = true
-tokio = { workspace = true, features = ["full"] }
+tokio = { workspace = true, features = ["macros", "rt"] }
 include_dir = "0.7"
 toml = "0.8"
 
 [features]
 default = ["auth-generators"]
 auth-generators = ["dep:doido-auth"]
+payments-generators = ["dep:doido-payments"]
+payments-generators-always = ["payments-generators"]
 
 [dev-dependencies]
 assert_cmd = "2"
 predicates = "3"
 tempfile.workspace = true
 toml = "0.8"
-doido-model = { workspace = true, features = ["sqlite"] }
-# Light HTTP client for the runtime CRUD e2e (make example).
-ureq = { version = "3", features = ["json"] }
-serde_json = "1"
-rusqlite = { version = "0.32", features = ["bundled"] }
+doido = { path = "../doido", default-features = true }
+doido-model = { workspace = true, features = ["sqlite", "cli"] }
+
+[[test]]
+name = "payments_cli_test"
+required-features = ["payments-generators"]

@@ -1,3 +1,4 @@
+pub mod commands;
 pub mod config;
 pub mod constraints;
 pub mod context;

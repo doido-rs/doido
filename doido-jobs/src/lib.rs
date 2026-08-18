@@ -1,3 +1,5 @@
+#[cfg(feature = "cli")]
+pub mod commands;
 pub mod batch;
 pub mod callbacks;
 pub mod config;

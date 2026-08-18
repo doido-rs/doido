@@ -23,8 +23,6 @@ pub fn print(mode: &str) {
     let dim = if color { "\x1b[2m" } else { "" };
     let reset = if color { "\x1b[0m" } else { "" };
 
-    // Logo: render "DOIDO" with the standard FIGlet font, printed as-is for
-    // legibility. Bail quietly if the font is unavailable.
     if let Ok(font) = FIGlet::standard() {
         if let Some(figure) = font.convert("DOIDO") {
             let _ = writeln!(out);
@@ -34,7 +32,6 @@ pub fn print(mode: &str) {
         }
     }
 
-    // Tagline.
     let _ = writeln!(
         out,
         "{dim}      doido · rails-inspired rust framework · v{}{reset}",
@@ -42,7 +39,6 @@ pub fn print(mode: &str) {
     );
     let _ = writeln!(out);
 
-    // Info block (values sourced honestly, never fabricated).
     let environment = doido_core::Environment::get_env().to_string();
     let database = doido_model::config::load().database().url.clone();
     let logger = std::env::var("RUST_LOG").unwrap_or_else(|_| "info".to_string());
