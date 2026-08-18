@@ -94,7 +94,78 @@ enum Commands {
 /// `routes` carries the application's router. The `server` command starts the
 /// HTTP server only when `routes` is `Some`; with `None` (e.g. the standalone
 /// `doido` binary without an app router) the server is not started.
+///
+/// To also install app-owned code generators into `doido generate`, use the
+/// [`Doido`] builder instead.
 pub async fn run(routes: Option<axum::Router>) {
+    run_inner(routes, Vec::new()).await;
+}
+
+/// Builder for the Doido CLI. Lets an application install custom code
+/// generators — any type implementing [`doido_generators::Generator`] — into
+/// `doido generate`, alongside the framework built-ins, before handing control
+/// to the CLI. The app binary is compiled with the app's own dependencies, so
+/// generators defined in the app (or in a crate it depends on) become reachable
+/// via `cargo doido generate <name>`.
+///
+/// ```ignore
+/// #[tokio::main]
+/// async fn main() {
+///     doido::Doido::new()
+///         .router(routes::router())
+///         .register_generator(Box::new(MyGenerator))
+///         .run()
+///         .await;
+/// }
+/// ```
+pub struct Doido {
+    router: Option<axum::Router>,
+    generators: Vec<Box<dyn doido_generators::Generator>>,
+}
+
+impl Doido {
+    /// Start a CLI builder with no router and no custom generators.
+    pub fn new() -> Self {
+        Self {
+            router: None,
+            generators: Vec::new(),
+        }
+    }
+
+    /// Attach the application's router so `doido server` can boot the HTTP server.
+    pub fn router(mut self, router: axum::Router) -> Self {
+        self.router = Some(router);
+        self
+    }
+
+    /// Replace the installed generators with `generators`.
+    pub fn generators(mut self, generators: Vec<Box<dyn doido_generators::Generator>>) -> Self {
+        self.generators = generators;
+        self
+    }
+
+    /// Install one custom generator into `doido generate`.
+    pub fn register_generator(mut self, generator: Box<dyn doido_generators::Generator>) -> Self {
+        self.generators.push(generator);
+        self
+    }
+
+    /// Run the CLI: like [`run`], plus any generators installed on this builder.
+    pub async fn run(self) {
+        run_inner(self.router, self.generators).await;
+    }
+}
+
+impl Default for Doido {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+async fn run_inner(
+    routes: Option<axum::Router>,
+    generators: Vec<Box<dyn doido_generators::Generator>>,
+) {
     let mode = std::env::args()
         .skip(1)
         .find(|a| !a.starts_with('-'))
@@ -128,7 +199,7 @@ pub async fn run(routes: Option<axum::Router>) {
         Commands::Db { verbose, command } => doido_model::commands::db::run(command, verbose).await,
         Commands::Jobs { action } => doido_jobs::commands::jobs::run(action).await,
         Commands::Credentials { action } => doido_core::commands::credentials::run(action),
-        Commands::Generate { args } => generator_commands::generate::run(&args),
+        Commands::Generate { args } => generator_commands::generate::run_with(&args, generators),
         Commands::New {
             name,
             non_interactive,

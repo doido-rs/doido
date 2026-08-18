@@ -560,6 +560,46 @@ fn test_registry_unknown_generator_returns_error() {
     assert!(reg.run("nonexistent", &[]).is_err());
 }
 
+// --- App-installed custom generators (doido::Doido::register_generator) ---
+
+use doido_generators::commands::generate::registry_for_project_at_with;
+use doido_generators::GeneratedFile;
+
+/// A generator defined outside `doido-generators`, as an app would define one.
+struct GreeterGenerator;
+
+impl Generator for GreeterGenerator {
+    fn name(&self) -> &str {
+        "greeter"
+    }
+
+    fn generate(&self, args: &[&str]) -> doido_core::Result<Vec<GeneratedFile>> {
+        let name = args.first().copied().unwrap_or("World");
+        Ok(vec![GeneratedFile {
+            path: format!("lib/{}.rs", name.to_lowercase()),
+            content: format!("// hello {name}\n"),
+        }])
+    }
+}
+
+#[test]
+fn test_custom_generator_registers_lists_and_dispatches() {
+    // `dir` has no Cargo.toml, so only built-ins + the app-supplied extra apply.
+    let dir = tempfile::tempdir().unwrap();
+    let reg = registry_for_project_at_with(dir.path(), vec![Box::new(GreeterGenerator)]);
+
+    // The custom generator is listed alongside the framework built-ins.
+    let names = reg.list();
+    assert!(names.contains(&"greeter"), "custom generator not listed");
+    assert!(names.contains(&"controller"), "built-ins still present");
+
+    // ...and dispatches by name exactly like a built-in.
+    let files = reg.run("greeter", &["Foo"]).unwrap();
+    assert_eq!(files.len(), 1);
+    assert_eq!(files[0].path, "lib/foo.rs");
+    assert!(files[0].content.contains("hello Foo"));
+}
+
 // --- Template overrides + project generators ---
 
 use doido_generators::{project_generator, templates, GeneratorGenerator, TemplatesGenerator};

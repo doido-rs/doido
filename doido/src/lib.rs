@@ -3,7 +3,7 @@ pub mod cli;
 mod banner;
 mod server;
 
-pub use cli::run;
+pub use cli::{run, Doido};
 
 pub use doido_cache as cache;
 pub use doido_controller as controller;
