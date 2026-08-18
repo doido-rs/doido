@@ -18,6 +18,7 @@ fn test_new_generates_all_expected_files() {
     assert!(paths.contains(&"my-app/app/controllers/mod.rs"));
     assert!(paths.contains(&"my-app/app/helpers/mod.rs"));
     assert!(paths.contains(&"my-app/app/helpers/application_helper.rs"));
+    assert!(paths.contains(&"my-app/app/generators/mod.rs"));
     assert!(paths.contains(&"my-app/app/models/.gitkeep"));
     // `doido db generate entity` writes SeaORM entities here by default.
     assert!(paths.contains(&"my-app/app/models/_entities/.gitkeep"));
@@ -36,6 +37,10 @@ fn test_new_generates_all_expected_files() {
         .find(|f| f.path == "my-app/src/main.rs")
         .unwrap();
     assert!(main_rs.content.contains("mod helpers;"));
+    // The app CLI is the Doido builder, with a marker for app generators.
+    assert!(main_rs.content.contains("mod generators;"));
+    assert!(main_rs.content.contains("doido::Doido::new()"));
+    assert!(main_rs.content.contains("@generated-generators"));
     assert!(paths.contains(&"my-app/.gitignore"));
     assert!(paths.contains(&"my-app/README.md"));
     assert!(paths.contains(&"my-app/mise.toml"));

@@ -129,6 +129,23 @@ merges them onto `registry_for_project()` (built-ins + optional crate generators
 before dispatch — so custom, built-in, `doido-auth`, and `lib/generators/` generators
 all resolve through one registry.
 
+#### Scaffolding one with `generate generator`
+
+`doido generate generator <Name>` writes this wiring for you, so you rarely register a
+generator by hand. It:
+
+1. emits `app/generators/<snake>.rs` — a real `Generator` impl (a `TODO` you customise);
+2. registers it in `app/generators/mod.rs` (`mod <snake>;` + `pub use …`), just above the
+   `// @generated-generators` marker;
+3. injects `.register_generator(Box::new(generators::<Name>Generator))` into the `Doido`
+   builder in `src/main.rs`, above the same marker.
+
+The `new` app template ships an empty `app/generators/mod.rs` and a `Doido` builder
+carrying the marker in `src/main.rs`, so the very first `generate generator` has an
+anchor to inject into. After a rebuild, `cargo doido generate <snake> <Arg>` dispatches
+the new generator. (`destroy` treats `src/main.rs`/`mod.rs` as shared, so it removes the
+generator's own file but leaves the registrations.)
+
 ### Optional crate generators (`doido-auth`, …)
 
 Some generators live in optional first-party crates rather than in

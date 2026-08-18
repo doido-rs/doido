@@ -644,14 +644,35 @@ fn test_templates_generator_ejects_all_and_filtered() {
 }
 
 #[test]
-fn test_generator_generator_scaffolds_project_generator() {
+fn test_generator_generator_scaffolds_and_registers_rust_generator() {
     let files = GeneratorGenerator.generate(&["Widget"]).unwrap();
-    assert!(files
+
+    // A real Rust generator the app compiles in — not a runtime template folder.
+    let gen = files
         .iter()
-        .any(|f| f.path == "lib/generators/widget/app/widgets/{snake}.rs.template"));
-    assert!(files
+        .find(|f| f.path == "app/generators/widget.rs")
+        .expect("generator source emitted");
+    assert!(gen.content.contains("pub struct WidgetGenerator;"));
+    assert!(gen.content.contains("impl Generator for WidgetGenerator"));
+    assert!(gen.content.contains("\"widget\""));
+
+    // Registered in the app/generators/mod.rs registry, above the marker.
+    let mod_rs = files
         .iter()
-        .any(|f| f.path == "lib/generators/widget/README.md"));
+        .find(|f| f.path == "app/generators/mod.rs")
+        .expect("generators mod.rs emitted");
+    assert!(mod_rs.content.contains("mod widget;"));
+    assert!(mod_rs.content.contains("pub use widget::WidgetGenerator;"));
+    assert!(mod_rs.content.contains("@generated-generators"));
+
+    // Wired into the Doido builder in src/main.rs.
+    let main_rs = files
+        .iter()
+        .find(|f| f.path == "src/main.rs")
+        .expect("src/main.rs emitted");
+    assert!(main_rs
+        .content
+        .contains(".register_generator(Box::new(generators::WidgetGenerator))"));
 }
 
 #[test]

@@ -124,7 +124,7 @@ fn base_app_is_valid(dir: &Path, profile: BaseProfile) -> bool {
     }
 
     let main_content = fs::read_to_string(&main_rs).unwrap_or_default();
-    if !main_content.contains("mod helpers;") {
+    if !main_content.contains("mod helpers;") || !main_content.contains("mod generators;") {
         return false;
     }
 
@@ -160,7 +160,7 @@ fn auth_base_is_valid(dir: &Path, _api: bool) -> bool {
     let no_copy_ok =
         !app.join("app/controllers/auth").exists() && !app.join("app/views/auth").exists();
     let main_ok = fs::read_to_string(app.join("src/main.rs"))
-        .map(|content| content.contains("mod helpers;"))
+        .map(|content| content.contains("mod helpers;") && content.contains("mod generators;"))
         .unwrap_or(false);
     let user_ok = fs::read_to_string(&user_model)
         .map(|content| {
