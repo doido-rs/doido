@@ -1,4 +1,4 @@
-//! Release e2e suite for doido-generators — server + HTTP/CLI + migrations.
+//! Release e2e suite for the `doido` CLI — server + HTTP/CLI + migrations.
 
 mod common;
 mod scenarios;
