@@ -11,6 +11,7 @@ anyhow = "1"
 thiserror.workspace = true
 async-trait.workspace = true
 tracing.workspace = true
+tracing-error = "0.2"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt", "json"] }
 serde.workspace = true
 serde_norway.workspace = true

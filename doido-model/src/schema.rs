@@ -3,6 +3,7 @@
 
 use crate::sea_orm::{ConnectionTrait, DatabaseConnection, DbBackend, Statement};
 use doido_core::Result;
+use std::path::Path;
 
 /// Dump the SQLite schema: the `CREATE TABLE` statements, one per line.
 pub async fn dump(conn: &DatabaseConnection) -> Result<String> {
@@ -24,6 +25,28 @@ pub async fn dump(conn: &DatabaseConnection) -> Result<String> {
         out.push_str(";\n");
     }
     Ok(out)
+}
+
+/// Dumps the live schema from `conn` and writes it to `path`.
+pub async fn dump_to_file(conn: &DatabaseConnection, path: impl AsRef<Path>) -> Result<()> {
+    let sql = dump(conn).await?;
+    write_file(path, &sql)
+}
+
+/// Writes `schema` to `path`.
+///
+/// Creates parent directories and the file when missing; truncates and replaces
+/// the entire file when it already exists (Rails `db:schema:dump` semantics).
+pub fn write_file(path: impl AsRef<Path>, schema: &str) -> Result<()> {
+    let path = path.as_ref();
+    if let Some(parent) = path.parent() {
+        if !parent.as_os_str().is_empty() {
+            std::fs::create_dir_all(parent)
+                .map_err(|e| doido_core::anyhow::anyhow!("create {}: {e}", parent.display()))?;
+        }
+    }
+    std::fs::write(path, schema)
+        .map_err(|e| doido_core::anyhow::anyhow!("write {}: {e}", path.display()))
 }
 
 /// Load a schema (as produced by [`dump`]) into `conn`, executing each statement.
