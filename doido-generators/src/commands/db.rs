@@ -180,16 +180,8 @@ async fn seed() {
 async fn schema(action: SchemaCommand) {
     let conn = connect().await;
     match action {
-        SchemaCommand::Dump => match doido_model::schema::dump(&conn).await {
-            Ok(sql) => {
-                if let Some(parent) = std::path::Path::new(SCHEMA_FILE).parent() {
-                    let _ = std::fs::create_dir_all(parent);
-                }
-                match std::fs::write(SCHEMA_FILE, sql) {
-                    Ok(()) => doido_core::tracing::info!("wrote schema to {SCHEMA_FILE}"),
-                    Err(e) => doido_core::tracing::error!("could not write {SCHEMA_FILE}: {e}"),
-                }
-            }
+        SchemaCommand::Dump => match doido_model::schema::dump_to_file(&conn, SCHEMA_FILE).await {
+            Ok(()) => doido_core::tracing::info!("wrote schema to {SCHEMA_FILE}"),
             Err(e) => doido_core::tracing::error!("schema dump failed: {e}"),
         },
         SchemaCommand::Load => {
