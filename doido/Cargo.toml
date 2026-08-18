@@ -35,7 +35,6 @@ doido-mailer.workspace = true
 doido-cable.workspace = true
 doido-auth = { workspace = true, optional = true }
 doido-generators = { workspace = true, default-features = true }
-doido-payments = { version = "0.0.1", optional = true }
 clap.workspace = true
 figlet-rs.workspace = true
 tokio = { workspace = true, features = ["full"] }
@@ -72,8 +71,6 @@ storage-gcs = ["doido-storage/storage-gcs"]
 storage-image = ["doido-storage/storage-image"]
 storage-jobs = ["doido-storage/storage-jobs"]
 auth = ["dep:doido-auth"]
-payments = ["dep:doido-payments", "doido-generators/payments-generators"]
-payments-cli = ["payments", "doido-generators/payments-generators-always"]
 
 [dev-dependencies]
 assert_cmd = "2"

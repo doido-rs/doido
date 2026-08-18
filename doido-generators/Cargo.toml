@@ -14,9 +14,6 @@ path = "src/lib.rs"
 doido-core.workspace = true
 doido-model = { workspace = true, default-features = false, features = ["sqlite"] }
 doido-auth = { workspace = true, optional = true, default-features = false, features = ["generators"] }
-doido-payments = { version = "0.0.1", optional = true, default-features = false, features = [
-    "generators",
-] }
 chrono.workspace = true
 clap.workspace = true
 tokio = { workspace = true, features = ["macros", "rt"] }
@@ -26,8 +23,6 @@ toml = "0.8"
 [features]
 default = ["auth-generators"]
 auth-generators = ["dep:doido-auth"]
-payments-generators = ["dep:doido-payments"]
-payments-generators-always = ["payments-generators"]
 
 [dev-dependencies]
 assert_cmd = "2"
@@ -36,7 +31,3 @@ tempfile.workspace = true
 toml = "0.8"
 doido = { path = "../doido", default-features = true }
 doido-model = { workspace = true, features = ["sqlite", "cli"] }
-
-[[test]]
-name = "payments_cli_test"
-required-features = ["payments-generators"]
