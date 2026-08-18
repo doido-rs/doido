@@ -1,5 +1,5 @@
-use doido_model::commands::dbconsole::client_command;
 use doido_generators::commands::runner::runner_command;
+use doido_model::commands::dbconsole::client_command;
 
 #[test]
 fn dbconsole_resolves_the_client() {

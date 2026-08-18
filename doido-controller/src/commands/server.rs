@@ -1,4 +1,4 @@
-use doido_controller::axum;
+use crate::axum;
 
 /// Boots the HTTP server with the application's `routes`.
 pub async fn run(routes: Option<axum::Router>, env: Option<String>, port: Option<u16>) {
@@ -20,7 +20,7 @@ pub async fn run(routes: Option<axum::Router>, env: Option<String>, port: Option
             if let Err(e) = doido_cache::init_cache().await {
                 doido_core::tracing::warn!("failed to initialize cache: {e}");
             }
-            if let Err(e) = doido_controller::start_server_with(router, None, port).await {
+            if let Err(e) = crate::start_server_with(router, None, port).await {
                 doido_core::tracing::error!("server error: {e}");
             }
         }

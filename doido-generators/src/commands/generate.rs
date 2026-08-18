@@ -1,21 +1,25 @@
 use crate::auth_registry;
 use crate::commands::write_files;
 use crate::project_auth;
+use crate::{default_registry, project_generator, GeneratorRegistry};
 #[cfg(feature = "payments-generators")]
 use crate::{payments_registry, project_payments};
-use crate::{default_registry, project_generator, GeneratorRegistry};
 use doido_core::Result;
 use std::path::Path;
 
 const CARGO_TOML: &str = "Cargo.toml";
 
+#[cfg(feature = "payments-generators")]
 fn payments_generators_enabled_at(base: &Path) -> bool {
     #[cfg(feature = "payments-generators-always")]
     {
         let _ = base;
         true
     }
-    #[cfg(all(feature = "payments-generators", not(feature = "payments-generators-always")))]
+    #[cfg(all(
+        feature = "payments-generators",
+        not(feature = "payments-generators-always")
+    ))]
     {
         project_payments::project_has_doido_payments(base.join(CARGO_TOML))
     }
@@ -32,6 +36,7 @@ pub fn registry_for_project_at(base: &Path) -> GeneratorRegistry {
     if project_auth::project_has_doido_auth(base.join(CARGO_TOML)) {
         auth_registry::register_auth_generators(&mut reg);
     }
+    #[cfg(feature = "payments-generators")]
     if payments_generators_enabled_at(base) {
         payments_registry::register_payments_generators(&mut reg);
     }
@@ -79,6 +84,7 @@ pub fn run(args: &[String]) {
 fn print_generator_list() {
     let registry = registry_for_project();
     let auth_installed = project_has_doido_auth();
+    #[cfg(feature = "payments-generators")]
     let payments_installed = payments_generators_enabled_at(Path::new("."));
 
     println!("Available generators:\n");

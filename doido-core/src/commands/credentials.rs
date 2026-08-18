@@ -3,9 +3,9 @@
 //! encrypted `config/credentials.yml.enc`, decryptable with the app's master
 //! key (`config/master.key` or the `DOIDO_MASTER_KEY` env var).
 
-use clap::Subcommand;
 use crate::anyhow::anyhow;
 use crate::Result;
+use clap::Subcommand;
 use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -109,7 +109,7 @@ fn gitignore_master_key() {
 fn read_credentials(config_dir: &Path, key: &[u8]) -> Result<String> {
     match fs::read(credentials_path(config_dir)) {
         Ok(blob) => {
-            let plain = doido_core::crypto::decrypt(key, &blob).ok_or_else(|| {
+            let plain = crate::crypto::decrypt(key, &blob).ok_or_else(|| {
                 anyhow!("could not decrypt {CREDENTIALS_NAME} (wrong master key?)")
             })?;
             String::from_utf8(plain).map_err(|e| anyhow!("credentials are not valid UTF-8: {e}"))
@@ -121,7 +121,7 @@ fn read_credentials(config_dir: &Path, key: &[u8]) -> Result<String> {
 /// Encrypt `plaintext` to the credentials file.
 fn write_credentials(config_dir: &Path, key: &[u8], plaintext: &str) -> Result<()> {
     fs::create_dir_all(config_dir).map_err(|e| anyhow!("could not create {CONFIG_DIR}: {e}"))?;
-    let blob = doido_core::crypto::encrypt(key, plaintext.as_bytes());
+    let blob = crate::crypto::encrypt(key, plaintext.as_bytes());
     fs::write(credentials_path(config_dir), blob)
         .map_err(|e| anyhow!("could not write {CREDENTIALS_NAME}: {e}"))
 }
@@ -171,10 +171,8 @@ mod tests {
     use super::*;
 
     fn temp_dir() -> PathBuf {
-        let dir = std::env::temp_dir().join(format!(
-            "doido-cred-{}",
-            doido_core::crypto::generate_key_hex()
-        ));
+        let dir =
+            std::env::temp_dir().join(format!("doido-cred-{}", crate::crypto::generate_key_hex()));
         fs::create_dir_all(&dir).unwrap();
         dir
     }

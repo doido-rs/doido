@@ -1,7 +1,7 @@
-#[cfg(feature = "cli")]
-pub mod commands;
 pub mod batch;
 pub mod callbacks;
+#[cfg(feature = "cli")]
+pub mod commands;
 pub mod config;
 pub mod context;
 #[cfg(feature = "jobs-db")]

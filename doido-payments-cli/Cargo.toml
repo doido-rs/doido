@@ -1,0 +1,23 @@
+[package]
+name = "doido-payments-cli"
+description = "Doido CLI extended with doido-payments generators (server, db, generate, …)."
+version.workspace = true
+license.workspace = true
+edition = "2021"
+publish = false
+
+[[bin]]
+name = "doido-payments"
+path = "src/main.rs"
+
+[dependencies]
+doido = { path = "../doido", default-features = false, features = [
+    "sqlite",
+    "auth",
+    "payments-cli",
+] }
+tokio = { workspace = true, features = ["full"] }
+
+[dev-dependencies]
+assert_cmd = "2"
+predicates = "3"

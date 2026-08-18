@@ -1828,6 +1828,7 @@ version = "0.0.9"
 dependencies = [
  "assert_cmd",
  "chrono",
+ "clap",
  "doido",
  "doido-auth",
  "doido-core 0.0.9",
@@ -1929,6 +1930,16 @@ dependencies = [
  "thiserror 2.0.19",
  "toml",
  "uuid",
+]
+
+[[package]]
+name = "doido-payments-cli"
+version = "0.0.9"
+dependencies = [
+ "assert_cmd",
+ "doido",
+ "predicates",
+ "tokio",
 ]
 
 [[package]]

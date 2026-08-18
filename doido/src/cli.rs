@@ -1,11 +1,11 @@
 use crate::banner;
 use clap::{Parser, Subcommand};
 use doido_controller::axum;
+use doido_core::commands::credentials::CredentialsCommand;
+use doido_generators::commands as generator_commands;
 use doido_generators::new_options::{CacheBackend, DatabaseBackend, JobsBackend, NewOptions};
-use doido_generators::{commands as generator_commands};
 use doido_jobs::commands::jobs::JobsCommand;
 use doido_model::commands::db::DbCommand;
-use doido_core::commands::credentials::CredentialsCommand;
 
 #[derive(Parser)]
 #[command(name = "doido", version = env!("CARGO_PKG_VERSION"), about = "Doido framework CLI")]
@@ -125,9 +125,7 @@ pub async fn run(routes: Option<axum::Router>) {
         }
         Commands::Console => doido_controller::commands::console::run(),
         Commands::Worker { once } => doido_jobs::commands::worker::run(once).await,
-        Commands::Db { verbose, command } => {
-            doido_model::commands::db::run(command, verbose).await
-        }
+        Commands::Db { verbose, command } => doido_model::commands::db::run(command, verbose).await,
         Commands::Jobs { action } => doido_jobs::commands::jobs::run(action).await,
         Commands::Credentials { action } => doido_core::commands::credentials::run(action),
         Commands::Generate { args } => generator_commands::generate::run(&args),

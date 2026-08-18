@@ -1,15 +1,15 @@
 pub mod auth_registry;
-#[cfg(feature = "payments-generators")]
-pub mod payments_registry;
-#[cfg(feature = "payments-generators")]
-pub mod project_payments;
 pub mod commands;
 pub mod dev_workspace;
 pub mod generator;
 pub mod generators;
 pub mod new_options;
+#[cfg(feature = "payments-generators")]
+pub mod payments_registry;
 pub mod project_auth;
 pub mod project_generator;
+#[cfg(feature = "payments-generators")]
+pub mod project_payments;
 pub mod registry;
 pub mod templates;
 

@@ -18,6 +18,7 @@ doido-payments = { version = "0.0.1", optional = true, default-features = false,
     "generators",
 ] }
 chrono.workspace = true
+clap.workspace = true
 tokio = { workspace = true, features = ["macros", "rt"] }
 include_dir = "0.7"
 toml = "0.8"

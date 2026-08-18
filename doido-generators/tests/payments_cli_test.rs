@@ -1,6 +1,8 @@
 //! CLI discovery tests for conditional payments generators.
 
-use doido_generators::commands::generate::{registry_for_project_at, project_has_doido_payments_at};
+use doido_generators::commands::generate::{
+    project_has_doido_payments_at, registry_for_project_at,
+};
 use doido_generators::default_registry;
 use doido_generators::payments_registry;
 

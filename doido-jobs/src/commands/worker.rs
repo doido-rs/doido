@@ -1,4 +1,4 @@
-use doido_jobs::{JobContext, JobRegistry, WorkerEngine};
+use crate::{JobContext, JobRegistry, WorkerEngine};
 use std::sync::Arc;
 
 /// Start the background worker.
@@ -11,9 +11,9 @@ pub async fn run(once: bool) {
     // Backend + queues + concurrency come from the `jobs` section of
     // `config/<env>.yml` (in-memory when absent). The `db` backend connects
     // using the app's `database` config.
-    let config = doido_jobs::config::load();
+    let config = crate::config::load();
 
-    let queue = match doido_jobs::config::build_configured_queue(&config).await {
+    let queue = match crate::config::build_configured_queue(&config).await {
         Ok(q) => q,
         Err(e) => {
             doido_core::tracing::error!("failed to build jobs backend: {e}");
