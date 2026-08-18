@@ -226,19 +226,13 @@ pub fn init_with_config(config: &LoggerConfig) {
                 // Flatten the event fields (status, latency_ms, request_id, …)
                 // to the top level of each JSON line. Access logs omit error
                 // diagnostics; use `compact`/`verbose` when debugging failures.
-                let fmt_layer = fmt::layer()
-                    .json()
-                    .flatten_event(true)
-                    .with_writer(writer);
+                let fmt_layer = fmt::layer().json().flatten_event(true).with_writer(writer);
                 let fmt_layer = if to_file {
                     fmt_layer.with_ansi(false)
                 } else {
                     fmt_layer
                 };
-                let _ = Registry::default()
-                    .with(filter)
-                    .with(fmt_layer)
-                    .try_init();
+                let _ = Registry::default().with(filter).with(fmt_layer).try_init();
             }
         }
     });

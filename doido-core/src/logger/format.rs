@@ -36,7 +36,9 @@ where
         event: &Event<'_>,
     ) -> fmt::Result {
         if self.pretty {
-            Format::default().pretty().format_event(ctx, writer.by_ref(), event)?;
+            Format::default()
+                .pretty()
+                .format_event(ctx, writer.by_ref(), event)?;
         } else {
             Format::default().format_event(ctx, writer.by_ref(), event)?;
         }
