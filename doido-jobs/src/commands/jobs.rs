@@ -4,8 +4,8 @@
 //! `jobs` section of `config/<env>.yml` (in-memory when absent) — the same
 //! backend the worker drains.
 
+use crate::{JobPayload, JobQueue, JobsConfig};
 use clap::Subcommand;
-use doido_jobs::{JobPayload, JobQueue, JobsConfig};
 
 #[derive(Subcommand)]
 pub enum JobsCommand {
@@ -18,8 +18,8 @@ pub enum JobsCommand {
 }
 
 pub async fn run(cmd: JobsCommand) {
-    let config = doido_jobs::config::load();
-    let queue = match doido_jobs::config::build_configured_queue(&config).await {
+    let config = crate::config::load();
+    let queue = match crate::config::build_configured_queue(&config).await {
         Ok(q) => q,
         Err(e) => {
             doido_core::tracing::error!("failed to build jobs backend: {e}");

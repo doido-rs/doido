@@ -1,5 +1,6 @@
 //! Smoke scenarios for generators without a dedicated HTTP surface.
 
+use crate::common::cli;
 use crate::common::http;
 use crate::common::{AppHarness, BaseProfile};
 use std::path::Path;
@@ -54,15 +55,18 @@ fn templates_generator_ejects_files() {
 
 #[test]
 #[ignore = "slow: release e2e — run via `make release-e2e`"]
-fn generator_generator_scaffolds_project_generator() {
+fn generator_generator_scaffolds_and_registers_generator() {
     let h = AppHarness::new("generator_meta", BaseProfile::Default);
-    h.generate(&["generate", "generator", "widget"]);
+    // Scaffold an app-owned generator: writes app/generators/greeter.rs, updates
+    // app/generators/mod.rs, and registers it on the Doido builder in main.rs.
+    h.generate(&["generate", "generator", "greeter"]);
     h.run_with_db(
         |h| {
-            assert!(
-                h.app.join("lib/generators/widget/README.md").is_file(),
-                "project generator stub missing"
-            );
+            assert_file(&h.app, "app/generators/greeter.rs");
+            // App is rebuilt with the generator compiled + registered, so the
+            // app's own binary now dispatches `greeter`.
+            cli::run_app(&h.bin(), &h.app, &["generate", "greeter", "Hello"]);
+            assert_file(&h.app, "app/greeters/hello.rs");
         },
         |app| assert_eq!(http::get_status(&format!("{}/", app.base_url)), 200),
     );

@@ -3,7 +3,7 @@ use std::io::Write;
 use std::process::{Command, Stdio};
 
 fn bin_path() -> std::path::PathBuf {
-    AssertCommand::cargo_bin("doido-generators")
+    AssertCommand::cargo_bin("doido")
         .unwrap()
         .get_program()
         .into()

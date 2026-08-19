@@ -86,16 +86,65 @@ pub struct GeneratedFile {
 ## `GeneratorRegistry`
 
 ```rust
-// Built-in generators registered automatically
-// Apps add custom generators at boot:
-doido_generators::registry().register(Box::new(MyGenerator));
-
-// List all
-doido_generators::registry().list();  // → Vec<(&str, &str)>  (name, description)
-
-// Dispatch (built-in + project-local + optional crate generators when installed)
-doido_generators::dispatch("scaffold", args)?;
+// GeneratorRegistry: name → Box<dyn Generator>. Built-ins come from
+// default_registry(); auth generators merge in when doido-auth is present.
+let mut reg = GeneratorRegistry::new();
+reg.register(Box::new(MyGenerator));   // add a custom generator
+reg.list();                            // → Vec<&str> (sorted names)
+reg.run("scaffold", &args)?;           // dispatch by name → Vec<GeneratedFile>
 ```
+
+### App-installed generators (the `Doido` builder)
+
+Apps (and any crate an app depends on) install custom generators **at the CLI
+entry point**, via the `doido::Doido` builder in `src/main.rs`. The app binary is
+compiled with the app's own dependencies, so a generator defined in the app — or in
+a third-party crate — is reachable through `cargo doido generate <name>`, listed and
+dispatched exactly like a built-in. Any type implementing `Generator` qualifies; it
+need not live in `doido-generators`.
+
+```rust
+// src/main.rs
+use doido::{GeneratedFile, Generator};
+
+struct MyGenerator;
+impl Generator for MyGenerator {
+    fn name(&self) -> &str { "my_thing" }
+    fn generate(&self, args: &[&str]) -> doido::core::Result<Vec<GeneratedFile>> { /* … */ }
+}
+
+#[tokio::main]
+async fn main() {
+    doido::Doido::new()
+        .router(routes::router())
+        .register_generator(Box::new(MyGenerator))
+        .run()
+        .await;
+}
+```
+
+Plain `doido::run(routes)` remains the no-custom-generators shortcut. Internally the
+builder threads the extra generators through `commands::generate::run_with`, which
+merges them onto `registry_for_project()` (built-ins + optional crate generators)
+before dispatch — so custom, built-in, `doido-auth`, and `lib/generators/` generators
+all resolve through one registry.
+
+#### Scaffolding one with `generate generator`
+
+`doido generate generator <Name>` writes this wiring for you, so you rarely register a
+generator by hand. It:
+
+1. emits `app/generators/<snake>.rs` — a real `Generator` impl (a `TODO` you customise);
+2. registers it in `app/generators/mod.rs` (`mod <snake>;` + `pub use …`), just above the
+   `// @generated-generators` marker;
+3. injects `.register_generator(Box::new(generators::<Name>Generator))` into the `Doido`
+   builder in `src/main.rs`, above the same marker.
+
+The `new` app template ships an empty `app/generators/mod.rs` and a `Doido` builder
+carrying the marker in `src/main.rs`, so the very first `generate generator` has an
+anchor to inject into. After a rebuild, `cargo doido generate <snake> <Arg>` dispatches
+the new generator. (`destroy` treats `src/main.rs`/`mod.rs` as shared, so it removes the
+generator's own file but leaves the registrations.)
 
 ### Optional crate generators (`doido-auth`, …)
 

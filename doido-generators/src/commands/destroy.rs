@@ -1,13 +1,16 @@
 //! `doido destroy <generator> <name>` — undo a generator by removing the files
-//! it created. Shared/injected files (`mod.rs`/`routes.rs`/`lib.rs`) are left in
-//! place because they hold other registrations.
+//! it created. Shared/injected files (`mod.rs`/`routes.rs`/`lib.rs`/`main.rs`) are
+//! left in place because they hold other registrations.
 
 use crate::GeneratedFile;
 use std::path::Path;
 
 /// Whether `path` is a shared/injected file that destroy must not delete.
 fn is_shared(path: &str) -> bool {
-    path.ends_with("mod.rs") || path.ends_with("routes.rs") || path.ends_with("lib.rs")
+    path.ends_with("mod.rs")
+        || path.ends_with("routes.rs")
+        || path.ends_with("lib.rs")
+        || path.ends_with("main.rs")
 }
 
 /// The paths destroy would remove for `files`: the standalone generated files.

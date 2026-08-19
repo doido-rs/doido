@@ -3,9 +3,9 @@
 //! encrypted `config/credentials.yml.enc`, decryptable with the app's master
 //! key (`config/master.key` or the `DOIDO_MASTER_KEY` env var).
 
+use crate::anyhow::anyhow;
+use crate::Result;
 use clap::Subcommand;
-use doido_core::anyhow::anyhow;
-use doido_core::Result;
 use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -37,7 +37,7 @@ pub fn run(cmd: CredentialsCommand) {
         CredentialsCommand::Show => show(config_dir),
     };
     if let Err(e) = result {
-        doido_core::tracing::error!("credentials: {e}");
+        crate::tracing::error!("credentials: {e}");
         std::process::exit(1);
     }
 }
@@ -68,12 +68,12 @@ fn ensure_master_key(config_dir: &Path) -> Result<Vec<u8>> {
     if let Some(key) = read_master_key(config_dir) {
         return Ok(key);
     }
-    let key = doido_core::crypto::generate_key_hex();
+    let key = crate::crypto::generate_key_hex();
     fs::create_dir_all(config_dir).map_err(|e| anyhow!("could not create {CONFIG_DIR}: {e}"))?;
     fs::write(master_key_path(config_dir), &key)
         .map_err(|e| anyhow!("could not write master key: {e}"))?;
     gitignore_master_key();
-    doido_core::tracing::info!(
+    crate::tracing::info!(
         "generated {}/{MASTER_KEY_NAME} (keep it secret — it was added to .gitignore)",
         config_dir.display()
     );
@@ -109,7 +109,7 @@ fn gitignore_master_key() {
 fn read_credentials(config_dir: &Path, key: &[u8]) -> Result<String> {
     match fs::read(credentials_path(config_dir)) {
         Ok(blob) => {
-            let plain = doido_core::crypto::decrypt(key, &blob).ok_or_else(|| {
+            let plain = crate::crypto::decrypt(key, &blob).ok_or_else(|| {
                 anyhow!("could not decrypt {CREDENTIALS_NAME} (wrong master key?)")
             })?;
             String::from_utf8(plain).map_err(|e| anyhow!("credentials are not valid UTF-8: {e}"))
@@ -121,7 +121,7 @@ fn read_credentials(config_dir: &Path, key: &[u8]) -> Result<String> {
 /// Encrypt `plaintext` to the credentials file.
 fn write_credentials(config_dir: &Path, key: &[u8], plaintext: &str) -> Result<()> {
     fs::create_dir_all(config_dir).map_err(|e| anyhow!("could not create {CONFIG_DIR}: {e}"))?;
-    let blob = doido_core::crypto::encrypt(key, plaintext.as_bytes());
+    let blob = crate::crypto::encrypt(key, plaintext.as_bytes());
     fs::write(credentials_path(config_dir), blob)
         .map_err(|e| anyhow!("could not write {CREDENTIALS_NAME}: {e}"))
 }
@@ -151,7 +151,7 @@ fn edit(config_dir: &Path) -> Result<()> {
     let _ = fs::remove_file(&tmp);
 
     write_credentials(config_dir, &key, &edited)?;
-    doido_core::tracing::info!(
+    crate::tracing::info!(
         "credentials saved to {}",
         credentials_path(config_dir).display()
     );
@@ -171,10 +171,8 @@ mod tests {
     use super::*;
 
     fn temp_dir() -> PathBuf {
-        let dir = std::env::temp_dir().join(format!(
-            "doido-cred-{}",
-            doido_core::crypto::generate_key_hex()
-        ));
+        let dir =
+            std::env::temp_dir().join(format!("doido-cred-{}", crate::crypto::generate_key_hex()));
         fs::create_dir_all(&dir).unwrap();
         dir
     }

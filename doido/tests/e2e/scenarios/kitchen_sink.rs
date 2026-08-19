@@ -53,7 +53,7 @@ fn every_generator_compiles_migrates_and_serves() {
             db::assert_table_exists(&h.app, "comments");
             db::assert_table_exists(&h.app, "storage_blobs");
             assert!(h.app.join("config/locales/fr.yml").is_file());
-            assert!(h.app.join("lib/generators/widget").is_dir());
+            assert!(h.app.join("app/generators/widget.rs").is_file());
         },
         |app| {
             assert_eq!(http::get_status(&format!("{}/", app.base_url)), 200);

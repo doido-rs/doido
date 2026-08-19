@@ -14,11 +14,11 @@
 //!
 //! A user-supplied `-d/--migration-dir` or `-o/--output-dir` always wins.
 
-use clap::Subcommand;
-use doido_model::sea_orm_cli::{
+use crate::sea_orm_cli::{
     handle_error, run_generate_command, run_migrate_command, BannerVersion, BigIntegerType,
     Commands, DateTimeCrate, GenerateSubcommands, MigrateSubcommands,
 };
+use clap::Subcommand;
 use std::path::Path;
 
 /// Subcommands of `doido db`: Doido's `create` plus the flattened SeaORM CLI.
@@ -81,7 +81,7 @@ pub fn ensure_database_url_from_config() {
     // Only seed from a real config file; absent config leaves DATABASE_URL unset
     // so the user gets the usual "missing database URL" error rather than a
     // surprising default.
-    if let Ok(config) = doido_model::config::YamlConfig::load() {
+    if let Ok(config) = crate::config::YamlConfig::load() {
         std::env::set_var("DATABASE_URL", config.database.url);
     }
 }
@@ -99,9 +99,9 @@ pub async fn run(command: DbCommand, verbose: bool) {
 }
 
 /// Opens a connection to the resolved [`database_url`], exiting on failure.
-async fn connect() -> doido_model::DatabaseConnection {
+async fn connect() -> crate::DatabaseConnection {
     let url = database_url();
-    match doido_model::connect_with_url(&url).await {
+    match crate::connect_with_url(&url).await {
         Ok(conn) => conn,
         Err(e) => {
             doido_core::tracing::error!("failed to connect to {url}: {e}");
@@ -127,7 +127,7 @@ async fn reset() {
         return;
     };
     let conn = connect().await;
-    match doido_model::tasks::reset(&conn, &schema).await {
+    match crate::tasks::reset(&conn, &schema).await {
         Ok(()) => doido_core::tracing::info!("reset database from {SCHEMA_FILE}"),
         Err(e) => doido_core::tracing::error!("db reset failed: {e}"),
     }
@@ -139,7 +139,7 @@ async fn prepare() {
         return;
     };
     let conn = connect().await;
-    match doido_model::tasks::prepare(&conn, &schema).await {
+    match crate::tasks::prepare(&conn, &schema).await {
         Ok(()) => doido_core::tracing::info!("prepared database from {SCHEMA_FILE}"),
         Err(e) => doido_core::tracing::error!("db prepare failed: {e}"),
     }
@@ -180,7 +180,7 @@ async fn seed() {
 async fn schema(action: SchemaCommand) {
     let conn = connect().await;
     match action {
-        SchemaCommand::Dump => match doido_model::schema::dump_to_file(&conn, SCHEMA_FILE).await {
+        SchemaCommand::Dump => match crate::schema::dump_to_file(&conn, SCHEMA_FILE).await {
             Ok(()) => doido_core::tracing::info!("wrote schema to {SCHEMA_FILE}"),
             Err(e) => doido_core::tracing::error!("schema dump failed: {e}"),
         },
@@ -188,7 +188,7 @@ async fn schema(action: SchemaCommand) {
             let Some(sql) = read_sql_file(SCHEMA_FILE) else {
                 return;
             };
-            match doido_model::schema::load(&conn, &sql).await {
+            match crate::schema::load(&conn, &sql).await {
                 Ok(()) => doido_core::tracing::info!("loaded schema from {SCHEMA_FILE}"),
                 Err(e) => doido_core::tracing::error!("schema load failed: {e}"),
             }
@@ -199,7 +199,7 @@ async fn schema(action: SchemaCommand) {
 /// Creates the database named by the resolved [`database_url`].
 async fn create() {
     let url = database_url();
-    match doido_model::create_database(&url).await {
+    match crate::create_database(&url).await {
         Ok(()) => doido_core::tracing::info!("created database: {url}"),
         Err(e) if e.to_string().contains("already exists") => {
             doido_core::tracing::info!("database already exists: {url}");
@@ -214,7 +214,7 @@ fn database_url() -> String {
     if let Ok(url) = std::env::var("DATABASE_URL") {
         return url;
     }
-    if let Ok(config) = doido_model::config::YamlConfig::load() {
+    if let Ok(config) = crate::config::YamlConfig::load() {
         return config.database.url;
     }
     doido_core::tracing::error!("DATABASE_URL is not set and config/<env>.yml could not be read");
@@ -281,7 +281,15 @@ async fn export_entities_from_database(verbose: bool) {
 }
 
 fn sync_model_extensions() {
-    crate::commands::sync_model_extensions_at(Path::new("."));
+    let entities_dir = Path::new("app/models/_entities");
+    let models_dir = Path::new("app/models");
+    if !entities_dir.is_dir() {
+        return;
+    }
+    match crate::entities::postprocess_entity_export(entities_dir, models_dir) {
+        Ok(()) => doido_core::tracing::debug!("synced model extensions"),
+        Err(e) => doido_core::tracing::error!("model extension sync failed: {e}"),
+    }
 }
 
 fn default_entity_generate_command(database_url: String) -> GenerateSubcommands {

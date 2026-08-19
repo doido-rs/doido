@@ -1,4 +1,4 @@
-//! CLI helpers for driving the real `doido-generators` binary.
+//! CLI helpers for driving the real `doido` binary.
 
 use assert_cmd::Command;
 use std::path::Path;
@@ -8,7 +8,7 @@ use std::sync::OnceLock;
 use super::workspace::{self, BaseProfile};
 
 pub fn doido(dir: &Path) -> Command {
-    let mut cmd = Command::cargo_bin("doido-generators").expect("doido-generators binary");
+    let mut cmd = Command::cargo_bin("doido").expect("doido binary");
     cmd.current_dir(dir);
     cmd
 }

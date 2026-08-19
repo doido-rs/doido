@@ -1,15 +1,15 @@
-# doido-generators release e2e
+# doido release e2e
 
 Final gate before publishing: each scenario scaffolds a SQLite app via the real
-`doido-generators` CLI, runs migrations, boots the generated server, and drives a
-real interaction (HTTP, WebSocket unit test, or CLI smoke).
+`doido` CLI, runs migrations, boots the generated server, and drives a real
+interaction (HTTP, WebSocket unit test, or CLI smoke).
 
 ## Run locally
 
 ```sh
 make release-e2e
 # or
-CARGO_TARGET_DIR=target/e2e-cargo cargo test -p doido-generators --test e2e -- --ignored --nocapture --test-threads=1
+CARGO_TARGET_DIR=target/e2e-cargo cargo test -p doido --test e2e -- --ignored --nocapture --test-threads=1
 ```
 
 Set `E2E_KEEP=1` to preserve generated apps under `target/e2e/apps/` for debugging.
@@ -37,7 +37,7 @@ Set `E2E_KEEP=1` to preserve generated apps under `target/e2e/apps/` for debuggi
 | `bootstrap_migrations` | bootstrap storage tables (always) and `doido_jobs` (with `--jobs=db` only); asserts `db/seed/` scaffold |
 | `db_seed` | `doido db seed` via `db/seed` crate + HTTP index lists seeded row |
 | `seed_initial_user` | `doido new --auth` seeds an initial admin user; asserts `users` row + idempotency |
-| `db_commands` | `doido db schema dump|load`, `reset`, `prepare`, `create`, `migrate` on a scaffolded app |
+| `db_commands` | `doido db schema dump\|load`, `reset`, `prepare`, `create`, `migrate` on a scaffolded app |
 | `new_cable` | `new --cable` + `generate channel` |
 | `scaffold_api` | `scaffold --api` |
 | `scaffold_html` | `scaffold` (HTML forms) |

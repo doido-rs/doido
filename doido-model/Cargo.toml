@@ -19,6 +19,7 @@ sea-orm = { workspace = true, features = [
 ] }
 sea-orm-migration.workspace = true
 sea-orm-cli = { workspace = true, optional = true }
+clap = { workspace = true, optional = true }
 tokio.workspace = true
 serde.workspace = true
 serde_json.workspace = true
@@ -29,7 +30,7 @@ uuid = { workspace = true }
 
 [features]
 default = ["sqlite"]
-cli = ["dep:sea-orm-cli", "sea-orm-migration/cli"]
+cli = ["dep:sea-orm-cli", "dep:clap", "sea-orm-migration/cli"]
 sqlite = [
     "sea-orm/sqlx-sqlite",
     "sea-orm-migration/sqlx-sqlite",

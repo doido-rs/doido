@@ -3,7 +3,7 @@ use predicates::prelude::*;
 use std::fs;
 
 fn cmd() -> Command {
-    Command::cargo_bin("doido-generators").unwrap()
+    Command::cargo_bin("doido").unwrap()
 }
 
 #[test]

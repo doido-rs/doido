@@ -4,7 +4,7 @@ use std::fs;
 #[test]
 fn test_doido_new_creates_project_files() {
     let dir = tempfile::tempdir().unwrap();
-    let mut cmd = Command::cargo_bin("doido-generators").unwrap();
+    let mut cmd = Command::cargo_bin("doido").unwrap();
     cmd.current_dir(dir.path())
         .args(["new", "my-app", "--non-interactive", "--database=sqlite"])
         .assert()
@@ -37,7 +37,7 @@ fn test_doido_new_creates_project_files() {
 #[test]
 fn test_doido_new_cargo_toml_has_correct_name_and_database() {
     let dir = tempfile::tempdir().unwrap();
-    let mut cmd = Command::cargo_bin("doido-generators").unwrap();
+    let mut cmd = Command::cargo_bin("doido").unwrap();
     cmd.current_dir(dir.path())
         .args([
             "new",
@@ -60,7 +60,7 @@ fn test_doido_new_cargo_toml_has_correct_name_and_database() {
 #[test]
 fn test_doido_new_cargo_toml_has_cache_redis_feature() {
     let dir = tempfile::tempdir().unwrap();
-    let mut cmd = Command::cargo_bin("doido-generators").unwrap();
+    let mut cmd = Command::cargo_bin("doido").unwrap();
     cmd.current_dir(dir.path())
         .args([
             "new",
@@ -82,7 +82,7 @@ fn test_doido_new_cargo_toml_has_cache_redis_feature() {
 #[test]
 fn test_doido_new_auth_uses_builtin_controllers_without_copying() {
     let dir = tempfile::tempdir().unwrap();
-    let mut cmd = Command::cargo_bin("doido-generators").unwrap();
+    let mut cmd = Command::cargo_bin("doido").unwrap();
     cmd.current_dir(dir.path())
         .args([
             "new",
@@ -109,7 +109,7 @@ fn test_doido_new_auth_uses_builtin_controllers_without_copying() {
 #[test]
 fn test_doido_new_auth_api_also_uses_builtin_controllers() {
     let dir = tempfile::tempdir().unwrap();
-    let mut cmd = Command::cargo_bin("doido-generators").unwrap();
+    let mut cmd = Command::cargo_bin("doido").unwrap();
     cmd.current_dir(dir.path())
         .args([
             "new",
@@ -132,7 +132,7 @@ fn test_doido_new_auth_api_also_uses_builtin_controllers() {
 #[test]
 fn test_doido_new_creates_git_repository() {
     let dir = tempfile::tempdir().unwrap();
-    let mut cmd = Command::cargo_bin("doido-generators").unwrap();
+    let mut cmd = Command::cargo_bin("doido").unwrap();
     cmd.current_dir(dir.path())
         .args(["new", "my-app", "--non-interactive", "--database=sqlite"])
         .assert()
@@ -144,7 +144,7 @@ fn test_doido_new_creates_git_repository() {
 #[test]
 fn test_doido_generate_model_writes_model_migration_and_lib() {
     let dir = tempfile::tempdir().unwrap();
-    let mut cmd = Command::cargo_bin("doido-generators").unwrap();
+    let mut cmd = Command::cargo_bin("doido").unwrap();
     cmd.current_dir(dir.path())
         .args(["generate", "model", "User"])
         .assert()

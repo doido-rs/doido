@@ -1,3 +1,4 @@
+pub mod commands;
 pub mod concerns;
 pub mod core_ext;
 pub mod crypto;

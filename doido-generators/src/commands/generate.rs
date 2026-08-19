@@ -1,7 +1,7 @@
 use crate::auth_registry;
 use crate::commands::write_files;
 use crate::project_auth;
-use crate::{default_registry, project_generator, GeneratorRegistry};
+use crate::{default_registry, project_generator, Generator, GeneratorRegistry};
 use doido_core::Result;
 use std::path::Path;
 
@@ -12,6 +12,20 @@ pub fn registry_for_project_at(base: &Path) -> GeneratorRegistry {
     let mut reg = default_registry();
     if project_auth::project_has_doido_auth(base.join(CARGO_TOML)) {
         auth_registry::register_auth_generators(&mut reg);
+    }
+    reg
+}
+
+/// Build the effective registry for `base`, then merge app-supplied `extra`
+/// generators on top. This is how a `doido::Doido` builder installs custom
+/// generators; later registrations win on name collisions.
+pub fn registry_for_project_at_with(
+    base: &Path,
+    extra: Vec<Box<dyn Generator>>,
+) -> GeneratorRegistry {
+    let mut reg = registry_for_project_at(base);
+    for generator in extra {
+        reg.register(generator);
     }
     reg
 }
@@ -32,20 +46,29 @@ pub fn project_has_doido_auth() -> bool {
 /// Entry point for `doido generate [name] [args...]`. With no name — or a help
 /// flag — it lists the available generators; otherwise it runs the named one.
 pub fn run(args: &[String]) {
+    run_with(args, Vec::new());
+}
+
+/// Like [`run`], but with app-supplied `extra` generators merged into the
+/// registry — the mechanism behind `doido::Doido::register_generator`. Custom
+/// generators are listed and dispatched exactly like the framework built-ins.
+pub fn run_with(args: &[String], extra: Vec<Box<dyn Generator>>) {
+    let custom_names: Vec<String> = extra.iter().map(|g| g.name().to_string()).collect();
+    let registry = registry_for_project_at_with(Path::new("."), extra);
+
     let first = args.first().map(String::as_str);
     if matches!(first, None | Some("-h" | "--help" | "help")) {
-        print_generator_list();
+        print_generator_list(&registry, &custom_names);
         return;
     }
     let generator = args[0].as_str();
     let rest: Vec<&str> = args[1..].iter().map(String::as_str).collect();
-    run_generate(generator, &rest);
+    run_generate_with(&registry, generator, &rest);
 }
 
-/// Print the built-in and project-local generators, to stdout (the command's
-/// primary output).
-fn print_generator_list() {
-    let registry = registry_for_project();
+/// Print the built-in, app-installed and project-local generators, to stdout
+/// (the command's primary output).
+fn print_generator_list(registry: &GeneratorRegistry, custom_names: &[String]) {
     let auth_installed = project_has_doido_auth();
 
     println!("Available generators:\n");
@@ -54,12 +77,22 @@ fn print_generator_list() {
         if auth_installed && auth_registry::auth_generator_names().contains(&name) {
             continue;
         }
+        if custom_names.iter().any(|c| c == name) {
+            continue;
+        }
         println!("  {name}");
     }
 
     if auth_installed {
         println!("\nAuth (doido-auth):");
         for name in auth_registry::auth_generator_names() {
+            println!("  {name}");
+        }
+    }
+
+    if !custom_names.is_empty() {
+        println!("\nInstalled (app):");
+        for name in custom_names {
             println!("  {name}");
         }
     }
@@ -75,8 +108,14 @@ fn print_generator_list() {
     println!("\nUsage: doido generate <name> [args...]");
 }
 
+/// Run a generator by name against the process-cwd registry. Used by internal
+/// callers (e.g. `doido new --auth`) that don't install extra generators.
 pub fn run_generate(generator: &str, args: &[&str]) {
-    match resolve_and_run(generator, args) {
+    run_generate_with(&registry_for_project(), generator, args);
+}
+
+fn run_generate_with(registry: &GeneratorRegistry, generator: &str, args: &[&str]) {
+    match resolve_and_run(registry, generator, args) {
         Ok(files) => {
             if files.is_empty() {
                 doido_core::tracing::info!("no files generated");
@@ -95,9 +134,13 @@ pub fn run_generate(generator: &str, args: &[&str]) {
     }
 }
 
-/// Run a built-in generator, or fall back to a project-local generator under
-/// `lib/generators/<name>/`.
-fn resolve_and_run(generator: &str, args: &[&str]) -> Result<Vec<crate::GeneratedFile>> {
+/// Run a generator from `registry`, or fall back to a project-local generator
+/// under `lib/generators/<name>/`.
+fn resolve_and_run(
+    registry: &GeneratorRegistry,
+    generator: &str,
+    args: &[&str],
+) -> Result<Vec<crate::GeneratedFile>> {
     if auth_registry::auth_generator_names().contains(&generator) && !project_has_doido_auth() {
         return Err(doido_core::anyhow::anyhow!(
             "auth generator '{generator}' requires doido-auth in Cargo.toml. \
@@ -105,7 +148,6 @@ fn resolve_and_run(generator: &str, args: &[&str]) -> Result<Vec<crate::Generate
         ));
     }
 
-    let registry = registry_for_project();
     if registry.list().contains(&generator) {
         registry.run(generator, args)
     } else if let Some(dir) = project_generator::find(generator) {

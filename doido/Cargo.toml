@@ -15,20 +15,32 @@ path = "src/main.rs"
 
 [dependencies]
 doido-core.workspace = true
-doido-controller.workspace = true
-doido-model = { workspace = true, default-features = false }
+doido-controller = { workspace = true, default-features = false, features = ["sqlite"] }
+doido-model = { workspace = true, default-features = false, features = [
+    "cli",
+    "sqlite",
+    "postgres",
+    "mysql",
+] }
 doido-view.workspace = true
 doido-cache.workspace = true
 doido-storage.workspace = true
-doido-jobs.workspace = true
+doido-jobs = { workspace = true, default-features = false, features = [
+    "cli",
+    "jobs-db",
+    "jobs-redis",
+    "sqlite",
+] }
 doido-mailer.workspace = true
 doido-cable.workspace = true
 doido-auth = { workspace = true, optional = true }
-doido-generators.workspace = true
+doido-generators = { workspace = true, default-features = true }
+clap.workspace = true
+figlet-rs.workspace = true
 tokio = { workspace = true, features = ["full"] }
 
 [features]
-default = ["sqlite"]
+default = ["sqlite", "auth"]
 sqlite = [
     "doido-model/sqlite",
     "doido-controller/sqlite",
@@ -50,19 +62,27 @@ mysql = [
     "doido-cable/mysql",
     "doido-jobs/mysql",
 ]
-# SeaORM migration binary (`db/migration`): `sea_orm_migration::cli::run_cli`.
 cli = ["doido-model/cli"]
-# Distributed cache backends, selected at runtime via `config/<env>.yml`.
 cache-redis = ["doido-cache/cache-redis"]
 cache-memcache = ["doido-cache/cache-memcache"]
-# Storage service backends and add-ons, selected at runtime via `config/<env>.yml`.
-storage-s3 = ["doido-storage/storage-s3"]        # AWS S3 + Cloudflare R2
-storage-azure = ["doido-storage/storage-azure"]  # Azure Blob Storage
-storage-gcs = ["doido-storage/storage-gcs"]      # Google Cloud Storage
-storage-image = ["doido-storage/storage-image"]  # image dimension analyzer
-storage-jobs = ["doido-storage/storage-jobs"]    # purge_later / analyze_later
+storage-s3 = ["doido-storage/storage-s3"]
+storage-azure = ["doido-storage/storage-azure"]
+storage-gcs = ["doido-storage/storage-gcs"]
+storage-image = ["doido-storage/storage-image"]
+storage-jobs = ["doido-storage/storage-jobs"]
 auth = ["dep:doido-auth"]
 
 [dev-dependencies]
-assert_cmd  = "2"
-predicates  = "3"
+assert_cmd = "2"
+predicates = "3"
+tempfile.workspace = true
+toml = "0.8"
+doido-model = { workspace = true, features = ["sqlite"] }
+ureq = { version = "3", features = ["json"] }
+serde_json = "1"
+rusqlite = { version = "0.32", features = ["bundled"] }
+
+[[test]]
+name = "e2e"
+path = "tests/e2e/main.rs"
+harness = true

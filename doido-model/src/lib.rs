@@ -9,6 +9,8 @@ pub use sea_orm_migration::SchemaManager;
 
 pub mod association;
 pub mod callbacks;
+#[cfg(feature = "cli")]
+pub mod commands;
 pub mod config;
 pub mod create;
 pub mod databases;

@@ -11,10 +11,11 @@ doido-jobs-macros.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 serde_norway.workspace = true
-tokio = { workspace = true, features = ["sync", "time", "rt", "macros"] }
+tokio = { workspace = true, features = ["sync", "time", "rt", "macros", "signal"] }
 async-trait.workspace = true
 uuid.workspace = true
 inventory.workspace = true
+clap = { workspace = true, optional = true }
 chrono = { workspace = true, features = ["serde"] }
 doido-model = { workspace = true, optional = true, default-features = false }
 redis = { workspace = true, optional = true }
@@ -26,6 +27,7 @@ postgres = ["doido-model?/postgres"]
 mysql = ["doido-model?/mysql"]
 jobs-db = ["dep:doido-model"]
 jobs-redis = ["dep:redis"]
+cli = ["dep:clap"]
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["rt-multi-thread", "macros", "time"] }

@@ -1,16 +1,16 @@
 //! Integration tests for `doido db` subcommands (SQLite, in-memory).
 
 use assert_cmd::Command;
-use doido_generators::commands::db::seed_command;
 use doido_generators::generators::new::ProjectGenerator;
 use doido_generators::Generator;
+use doido_model::commands::db::seed_command;
 use predicates::prelude::*;
 use std::fs;
 use std::path::Path;
 use tempfile::TempDir;
 
 fn cmd() -> Command {
-    Command::cargo_bin("doido-generators").unwrap()
+    Command::cargo_bin("doido").unwrap()
 }
 
 fn write_generated_app(dir: &Path, name: &str) {
