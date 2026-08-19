@@ -173,6 +173,53 @@ Auth generators (`auth:install`, `auth:controller`, `auth:scaffold`) are specifi
 in [16-auth.md](16-auth.md). See that doc for bootstrap via `doido new --auth` or
 `cargo add doido-auth`.
 
+### Extension crates (`doido extension`)
+
+Third-party extension authors scaffold a **publishable lib crate** with:
+
+```sh
+doido extension Payments   # → doido-payments/
+```
+
+The command mirrors `doido new`: embedded templates under
+`doido-generators/templates/extension/`, path-or-version deps via `DependencyMode`,
+`write_files`, and best-effort `git init`. The crate name is always `doido-<snake>`
+(`Payments`, `payments`, and `doido-payments` all resolve to `doido-payments`).
+
+| Path | Purpose |
+|------|---------|
+| `Cargo.toml` | lib crate; `generators` feature (default) |
+| `src/lib.rs` | public API; `pub mod generators` behind the feature |
+| `src/generators/mod.rs` | `ExtensionGenerator` trait, `register()`, `DoidoGenerator` adapter, `install_on()` |
+| `src/generators/install.rs` | example `{snake}:install` generator |
+| `templates/install/` | templates consumed by install generator |
+| `tests/generators_test.rs` | harness: `register()` + install output |
+
+**Distinction from other generator scaffolds:**
+
+| Mechanism | Output | Audience |
+|-----------|--------|----------|
+| `doido extension <Name>` | standalone `doido-<snake>/` lib crate | extension authors (crates.io) |
+| `doido generate generator <Name>` | `app/generators/<snake>.rs` in the current app | app developers |
+| `lib/generators/<name>/` | runtime template folder in the app | app developers (no compile step) |
+
+Extension crates follow the same integration pattern as `doido-auth`: a local
+`ExtensionGenerator` trait (no `doido-generators` dependency) plus a `DoidoGenerator`
+adapter that implements `doido::Generator`. Consuming apps register the extension on
+the `Doido` builder in `src/main.rs`:
+
+```rust
+doido::Doido::new()
+    .router(routes::router())
+    .register_generator(Box::new(doido_payments::generators::DoidoGenerator))
+    // or: doido_payments::generators::install_on(doido::Doido::new())...
+    .run()
+    .await;
+```
+
+Unlike `doido-auth`, third-party extensions are **not** auto-discovered from
+`Cargo.toml` in v1 — apps wire `.register_generator` (or `install_on`) explicitly.
+
 ## Built-in Generators (v1)
 
 | Generator | Files Created | Route Injected |
