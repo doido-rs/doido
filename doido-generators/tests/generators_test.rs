@@ -703,3 +703,45 @@ fn test_project_generator_substitutes_path_and_content() {
     assert_eq!(f.path, "app/blog_posts/blog_post.rs"); // tokens + .template stripped
     assert_eq!(f.content, "pub struct BlogPost; // blog_posts\n");
 }
+
+// --- Extension crate scaffold (`doido extension`) ---
+
+use doido_generators::ExtensionGenerator;
+
+#[test]
+fn test_extension_generator_scaffolds_crate_tree() {
+    let files = ExtensionGenerator.generate(&["Payments"]).unwrap();
+
+    assert!(files.iter().any(|f| f.path == "doido-payments/Cargo.toml"));
+    assert!(files.iter().any(|f| f.path == "doido-payments/src/lib.rs"));
+    assert!(files
+        .iter()
+        .any(|f| f.path == "doido-payments/src/generators/mod.rs"));
+    assert!(files
+        .iter()
+        .any(|f| f.path == "doido-payments/src/generators/install.rs"));
+    assert!(files
+        .iter()
+        .any(|f| f.path == "doido-payments/tests/generators_test.rs"));
+
+    let cargo = files
+        .iter()
+        .find(|f| f.path == "doido-payments/Cargo.toml")
+        .unwrap();
+    assert!(cargo.content.contains("name = \"doido-payments\""));
+    cargo.content.parse::<toml::Table>().unwrap();
+
+    let gen_mod = files
+        .iter()
+        .find(|f| f.path == "doido-payments/src/generators/mod.rs")
+        .unwrap();
+    assert!(gen_mod.content.contains("pub trait ExtensionGenerator"));
+    assert!(gen_mod.content.contains("pub fn register"));
+    assert!(gen_mod.content.contains("pub fn install_on"));
+
+    let install = files
+        .iter()
+        .find(|f| f.path == "doido-payments/src/generators/install.rs")
+        .unwrap();
+    assert!(install.content.contains("\"payments:install\""));
+}

@@ -61,6 +61,11 @@ enum Commands {
         #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
         args: Vec<String>,
     },
+    /// Scaffold a new Doido extension crate (e.g. Payments → doido-payments)
+    Extension {
+        /// Extension name
+        name: String,
+    },
     /// Create a new Doido application
     New {
         /// Application name
@@ -200,6 +205,7 @@ async fn run_inner(
         Commands::Jobs { action } => doido_jobs::commands::jobs::run(action).await,
         Commands::Credentials { action } => doido_core::commands::credentials::run(action),
         Commands::Generate { args } => generator_commands::generate::run_with(&args, generators),
+        Commands::Extension { name } => generator_commands::extension::run_extension(&name),
         Commands::New {
             name,
             non_interactive,
