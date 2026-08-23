@@ -11,6 +11,8 @@ pub mod association;
 pub mod callbacks;
 #[cfg(feature = "cli")]
 pub mod commands;
+#[cfg(feature = "cli")]
+pub mod schema_design;
 pub mod config;
 pub mod create;
 pub mod databases;
@@ -34,6 +36,9 @@ pub mod validation;
 pub use config::{Config, DatabaseConfig, LoggerConfig, YamlConfig};
 pub use create::create_database;
 pub use pool::{connect, connect_with_url};
+
+#[cfg(feature = "cli")]
+pub use schema_design::{export_html, introspect_from_url, resolve_ignore_tables, SchemaDesign};
 
 // Rails-style migration helpers: create_table, alter_table, add_column, …
 pub use migration::{

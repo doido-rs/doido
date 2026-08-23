@@ -19,6 +19,7 @@ use crate::sea_orm_cli::{
     Commands, DateTimeCrate, GenerateSubcommands, MigrateSubcommands,
 };
 use clap::Subcommand;
+use std::path::PathBuf;
 use std::path::Path;
 
 /// Subcommands of `doido db`: Doido's `create` plus the flattened SeaORM CLI.
@@ -52,6 +53,15 @@ pub enum SchemaCommand {
     Dump,
     /// Load `db/schema.sql` into the database
     Load,
+    /// Export an interactive ER diagram to HTML
+    Diagram {
+        /// Output path (default: db/schema.html)
+        #[arg(short, long, default_value = "db/schema.html")]
+        output: PathBuf,
+        /// Tables to skip (repeatable; `seaql_migrations` is always ignored)
+        #[arg(long = "ignore-table")]
+        ignore_tables: Vec<String>,
+    },
 }
 
 /// Where Doido keeps its SeaORM migration crate.
@@ -176,23 +186,46 @@ async fn seed() {
     }
 }
 
-/// `doido db schema dump|load` over [`SCHEMA_FILE`].
+/// `doido db schema dump|load|diagram`.
 async fn schema(action: SchemaCommand) {
-    let conn = connect().await;
     match action {
-        SchemaCommand::Dump => match crate::schema::dump_to_file(&conn, SCHEMA_FILE).await {
-            Ok(()) => doido_core::tracing::info!("wrote schema to {SCHEMA_FILE}"),
-            Err(e) => doido_core::tracing::error!("schema dump failed: {e}"),
-        },
+        SchemaCommand::Dump => {
+            let conn = connect().await;
+            match crate::schema::dump_to_file(&conn, SCHEMA_FILE).await {
+                Ok(()) => doido_core::tracing::info!("wrote schema to {SCHEMA_FILE}"),
+                Err(e) => doido_core::tracing::error!("schema dump failed: {e}"),
+            }
+        }
         SchemaCommand::Load => {
             let Some(sql) = read_sql_file(SCHEMA_FILE) else {
                 return;
             };
+            let conn = connect().await;
             match crate::schema::load(&conn, &sql).await {
                 Ok(()) => doido_core::tracing::info!("loaded schema from {SCHEMA_FILE}"),
                 Err(e) => doido_core::tracing::error!("schema load failed: {e}"),
             }
         }
+        SchemaCommand::Diagram {
+            output,
+            ignore_tables,
+        } => schema_diagram(output, ignore_tables).await,
+    }
+}
+
+/// `doido db schema diagram` — introspect the live database and write HTML.
+async fn schema_diagram(output: PathBuf, ignore_tables: Vec<String>) {
+    let url = database_url();
+    let ignore = crate::schema_design::resolve_ignore_tables(&ignore_tables);
+    match crate::schema_design::introspect_from_url(&url, None, &ignore).await {
+        Ok(design) => match crate::schema_design::write_html(&design, &output) {
+            Ok(()) => doido_core::tracing::info!(
+                "wrote ER diagram to {}",
+                output.display()
+            ),
+            Err(e) => doido_core::tracing::error!("schema diagram export failed: {e}"),
+        },
+        Err(e) => doido_core::tracing::error!("schema introspection failed: {e}"),
     }
 }
 
