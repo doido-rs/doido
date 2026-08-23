@@ -116,6 +116,34 @@ let posts = Entity::find()
   `app/models/_entities/` and missing extension stubs are created under `app/models/`
   (see `doido_model::entities`)
 
+## Schema ER diagram export
+
+`doido db schema diagram` introspects the live database via `sea-schema`, maps the result
+into an engine-agnostic [`SchemaDesign`](doido-model/src/schema_design/model.rs) model
+(tables, columns, primary keys, foreign keys, indexes, constraints), and writes a
+self-contained HTML ER diagram (default: `db/schema.html`).
+
+```sh
+doido db schema diagram
+doido db schema diagram --output docs/er.html
+doido db schema diagram --ignore-table audit_logs
+```
+
+The HTML shows table/column names with **PK** / **FK** badges; hover tooltips expose
+column types, nullability, defaults, indexes, and foreign-key actions. A
+`<script id="doido-schema-design">` block embeds the full `SchemaDesign` JSON for tooling
+and e2e validation.
+
+Programmatic use (feature `cli` on `doido-model`):
+
+```rust
+use doido_model::{introspect_from_url, export_html, resolve_ignore_tables};
+
+let ignore = resolve_ignore_tables(&[]);
+let design = introspect_from_url(&database_url, None, &ignore).await?;
+let html = export_html(&design)?;
+```
+
 ## Open Questions (remaining)
 
 - [ ] Should `doido_model` expose a convenience `Model::find_by_id(db, id)` shorthand, or leave that to sea-orm's `Entity::find_by_id(id).one(db)`?
