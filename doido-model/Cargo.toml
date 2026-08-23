@@ -19,6 +19,8 @@ sea-orm = { workspace = true, features = [
 ] }
 sea-orm-migration.workspace = true
 sea-orm-cli = { workspace = true, optional = true }
+sea-schema = { version = "0.18", default-features = false, optional = true }
+sqlx = { version = "0.9", default-features = false, optional = true }
 clap = { workspace = true, optional = true }
 tokio.workspace = true
 serde.workspace = true
@@ -30,23 +32,45 @@ uuid = { workspace = true }
 
 [features]
 default = ["sqlite"]
-cli = ["dep:sea-orm-cli", "dep:clap", "sea-orm-migration/cli"]
+cli = [
+    "dep:sea-orm-cli",
+    "dep:clap",
+    "dep:sea-schema",
+    "dep:sqlx",
+    "sea-orm-migration/cli",
+]
 sqlite = [
     "sea-orm/sqlx-sqlite",
     "sea-orm-migration/sqlx-sqlite",
     "sea-orm-cli?/sqlx-sqlite",
+    "sea-schema?/sqlx-sqlite",
+    "sqlx?/sqlite",
+    "sqlx?/runtime-tokio",
 ]
 postgres = [
     "sea-orm/sqlx-postgres",
     "sea-orm-migration/sqlx-postgres",
     "sea-orm-cli?/sqlx-postgres",
+    "sea-schema?/sqlx-postgres",
+    "sqlx?/postgres",
+    "sqlx?/runtime-tokio",
+    "sqlx?/tls-rustls",
 ]
 mysql = [
     "sea-orm/sqlx-mysql",
     "sea-orm-migration/sqlx-mysql",
     "sea-orm-cli?/sqlx-mysql",
+    "sea-schema?/sqlx-mysql",
+    "sqlx?/mysql",
+    "sqlx?/runtime-tokio",
+    "sqlx?/tls-rustls",
 ]
 
 [dev-dependencies]
 tokio.workspace = true
 tempfile = "3"
+
+[[test]]
+name = "schema_design_test"
+path = "tests/schema_design_test.rs"
+required-features = ["cli"]
