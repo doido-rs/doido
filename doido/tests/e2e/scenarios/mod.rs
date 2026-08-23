@@ -16,6 +16,7 @@ mod model_validations;
 mod new_baseline;
 mod new_cable;
 mod resource;
+mod schema_diagram;
 mod scaffold_api;
 mod scaffold_html;
 mod seed_initial_user;
