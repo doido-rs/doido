@@ -87,6 +87,9 @@ failed_files=()
 coverage_extra_args() {
 	case "$1" in
 	doido-jobs) echo "--features jobs-db,jobs-redis" ;;
+	# schema_design and its tests require `cli`; without it, llvm-cov can
+	# still attribute 0% lines from binaries built earlier by `doido`.
+	doido-model) echo "--features cli" ;;
 	esac
 }
 
@@ -97,12 +100,11 @@ coverage_ignore_regex() {
 	# server.rs boots the real HTTP server (DB pool + views + axum::serve);
 	# it is covered end-to-end by the release e2e, not by in-process unit tests.
 	doido) echo 'doido/src/server\.rs' ;;
-	# commands/ is `#[cfg(feature = "cli")]`, so it is NOT built under the
-	# default (sqlite) features this gate measures. It surfaces at 0% only
-	# because an earlier crate (`doido`) compiles doido-model with `cli` and
-	# `cargo llvm-cov` aggregates that stale binary — exclude it so the gate
-	# reflects the code actually built for doido-model here.
-	doido-model) echo 'doido-model/src/commands/' ;;
+	# commands/ is `#[cfg(feature = "cli")]` and covered by release e2e, not
+	# unit tests. postgres/mysql introspect adapters are feature-gated and
+	# not exercised in the sqlite coverage run. Without these exclusions,
+	# llvm-cov can attribute 0% lines from binaries built earlier by `doido`.
+	doido-model) echo 'doido-model/src/commands/|doido-model/src/schema_design/introspect/(postgres|mysql)\.rs' ;;
 	esac
 }
 
