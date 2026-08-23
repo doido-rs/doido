@@ -3,7 +3,9 @@
 use std::collections::HashSet;
 
 use doido_core::Result;
-use sea_schema::sqlite::def::{ColumnInfo, ColumnVisibility, DefaultType, ForeignKeyAction, TableDef};
+use sea_schema::sqlite::def::{
+    ColumnInfo, ColumnVisibility, DefaultType, ForeignKeyAction, TableDef,
+};
 use sea_schema::sqlite::discovery::SchemaDiscovery;
 use sqlx::Sqlite;
 

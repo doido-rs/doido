@@ -103,11 +103,8 @@ fn map_table(table: TableDef, schema: &str) -> TableDesign {
         })
         .collect();
 
-    let foreign_keys: Vec<ForeignKeyDesign> = table
-        .foreign_keys
-        .iter()
-        .map(map_foreign_key)
-        .collect();
+    let foreign_keys: Vec<ForeignKeyDesign> =
+        table.foreign_keys.iter().map(map_foreign_key).collect();
 
     TableDesign {
         name: table.info.name,

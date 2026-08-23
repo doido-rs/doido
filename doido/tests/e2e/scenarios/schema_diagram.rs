@@ -64,10 +64,7 @@ fn schema_diagram_exports_html_with_full_metadata() {
     let tables = schema["tables"]
         .as_array()
         .expect("tables array in embedded schema json");
-    let table_names: Vec<&str> = tables
-        .iter()
-        .map(|t| t["name"].as_str().unwrap())
-        .collect();
+    let table_names: Vec<&str> = tables.iter().map(|t| t["name"].as_str().unwrap()).collect();
     assert!(
         table_names.iter().any(|n| *n == "comments"),
         "expected comments table, got {table_names:?}"
@@ -117,12 +114,7 @@ fn schema_diagram_exports_html_with_full_metadata() {
         .as_array()
         .into_iter()
         .flatten()
-        .chain(
-            skus["constraints"]
-                .as_array()
-                .into_iter()
-                .flatten(),
-        )
+        .chain(skus["constraints"].as_array().into_iter().flatten())
         .any(|idx| {
             idx["columns"]
                 .as_array()

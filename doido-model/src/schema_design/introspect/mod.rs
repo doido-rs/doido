@@ -54,7 +54,9 @@ pub async fn introspect_from_url(
                 Err(doido_core::anyhow::anyhow!("mysql feature is off"))
             }
         }
-        other => Err(doido_core::anyhow::anyhow!("unsupported database scheme: {other}")),
+        other => Err(doido_core::anyhow::anyhow!(
+            "unsupported database scheme: {other}"
+        )),
     }
 }
 

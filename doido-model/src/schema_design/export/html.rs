@@ -66,9 +66,8 @@ pub fn write_html(schema: &SchemaDesign, path: impl AsRef<Path>) -> Result<()> {
     let path = path.as_ref();
     if let Some(parent) = path.parent() {
         if !parent.as_os_str().is_empty() {
-            std::fs::create_dir_all(parent).map_err(|e| {
-                doido_core::anyhow::anyhow!("create {}: {e}", parent.display())
-            })?;
+            std::fs::create_dir_all(parent)
+                .map_err(|e| doido_core::anyhow::anyhow!("create {}: {e}", parent.display()))?;
         }
     }
     std::fs::write(path, html)
@@ -181,7 +180,16 @@ fn table_tooltip(table: &TableDesign) -> String {
                 .as_ref()
                 .map(|d| format!(": {d}"))
                 .unwrap_or_default();
-            lines.push(format!("  - {:?}{}{}{}", c.kind, cols, def, c.name.as_ref().map(|n| format!(" [{n}]")).unwrap_or_default()));
+            lines.push(format!(
+                "  - {:?}{}{}{}",
+                c.kind,
+                cols,
+                def,
+                c.name
+                    .as_ref()
+                    .map(|n| format!(" [{n}]"))
+                    .unwrap_or_default()
+            ));
         }
     }
     if !table.foreign_keys.is_empty() {

@@ -25,9 +25,7 @@ async fn load_blog_schema(name: &str) -> String {
     let path = dir.path().join(format!("{name}.db"));
     let url = format!("sqlite://{}", path.display());
     doido_model::create_database(&url).await.unwrap();
-    let conn = doido_model::sea_orm::Database::connect(&url)
-        .await
-        .unwrap();
+    let conn = doido_model::sea_orm::Database::connect(&url).await.unwrap();
     for statement in BLOG_SCHEMA.split(';') {
         let sql = statement.trim();
         if sql.is_empty() {
@@ -53,15 +51,16 @@ async fn introspect_sqlite_builds_abstract_schema() {
     let file_url = load_blog_schema("schema_design_introspect").await;
 
     let ignore = resolve_ignore_tables(&[]);
-    let schema = introspect_from_url(&file_url, None, &ignore)
-        .await
-        .unwrap();
+    let schema = introspect_from_url(&file_url, None, &ignore).await.unwrap();
 
     assert_eq!(schema.tables.len(), 2);
     let authors = table(&schema, "authors");
     assert_eq!(authors.primary_key.columns, vec!["id"]);
     assert!(authors.primary_key.autoincrement);
-    assert!(authors.columns.iter().any(|c| c.name == "email" && c.unique));
+    assert!(authors
+        .columns
+        .iter()
+        .any(|c| c.name == "email" && c.unique));
 
     let author_index = authors
         .indexes
@@ -99,9 +98,7 @@ async fn export_html_embeds_parseable_schema_json() {
     let file_url = load_blog_schema("schema_design_export").await;
 
     let ignore = resolve_ignore_tables(&[]);
-    let schema = introspect_from_url(&file_url, None, &ignore)
-        .await
-        .unwrap();
+    let schema = introspect_from_url(&file_url, None, &ignore).await.unwrap();
     let html = export_html(&schema).unwrap();
 
     assert!(html.contains("id=\"doido-schema-design\""));
@@ -117,10 +114,7 @@ async fn export_html_embeds_parseable_schema_json() {
 
 fn extract_embedded_json(html: &str) -> String {
     let marker = r#"<script type="application/json" id="doido-schema-design">"#;
-    let start = html
-        .find(marker)
-        .expect("embedded schema json marker")
-        + marker.len();
+    let start = html.find(marker).expect("embedded schema json marker") + marker.len();
     let rest = &html[start..];
     let end = rest.find("</script>").expect("closing script tag");
     rest[..end].to_string()

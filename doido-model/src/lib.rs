@@ -11,8 +11,6 @@ pub mod association;
 pub mod callbacks;
 #[cfg(feature = "cli")]
 pub mod commands;
-#[cfg(feature = "cli")]
-pub mod schema_design;
 pub mod config;
 pub mod create;
 pub mod databases;
@@ -25,6 +23,8 @@ pub mod normalization;
 pub mod password;
 pub mod pool;
 pub mod schema;
+#[cfg(feature = "cli")]
+pub mod schema_design;
 pub mod scope;
 pub mod seeds;
 pub mod serialization;

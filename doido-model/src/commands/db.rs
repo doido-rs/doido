@@ -19,8 +19,8 @@ use crate::sea_orm_cli::{
     Commands, DateTimeCrate, GenerateSubcommands, MigrateSubcommands,
 };
 use clap::Subcommand;
-use std::path::PathBuf;
 use std::path::Path;
+use std::path::PathBuf;
 
 /// Subcommands of `doido db`: Doido's `create` plus the flattened SeaORM CLI.
 #[derive(Subcommand)]
@@ -219,10 +219,7 @@ async fn schema_diagram(output: PathBuf, ignore_tables: Vec<String>) {
     let ignore = crate::schema_design::resolve_ignore_tables(&ignore_tables);
     match crate::schema_design::introspect_from_url(&url, None, &ignore).await {
         Ok(design) => match crate::schema_design::write_html(&design, &output) {
-            Ok(()) => doido_core::tracing::info!(
-                "wrote ER diagram to {}",
-                output.display()
-            ),
+            Ok(()) => doido_core::tracing::info!("wrote ER diagram to {}", output.display()),
             Err(e) => doido_core::tracing::error!("schema diagram export failed: {e}"),
         },
         Err(e) => doido_core::tracing::error!("schema introspection failed: {e}"),
