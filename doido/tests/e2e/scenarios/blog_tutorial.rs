@@ -86,7 +86,8 @@ use serde_json::json;
 pub struct PostForm {
     pub title: String,
     pub body: String,
-    pub published: Option<String>,
+    #[serde(default)]
+    pub published: bool,
 }
 
 pub struct PostsController;
@@ -147,7 +148,7 @@ impl PostsController {
         let record = post::ActiveModel {
             title: Set(form.title),
             body: Set(form.body),
-            published: Set(form.published.is_some()),
+            published: Set(form.published),
             user_id: Set(author_id),
             ..Default::default()
         };
@@ -172,7 +173,7 @@ impl PostsController {
             let mut record: post::ActiveModel = existing.into();
             record.title = Set(form.title);
             record.body = Set(form.body);
-            record.published = Set(form.published.is_some());
+            record.published = Set(form.published);
             record.update(ctx.db()).await?;
         }
         Ok(ctx.redirect_to("/posts"))
@@ -429,7 +430,7 @@ fn blog_tutorial_scaffold_controller_and_serve() {
                 &[
                     ("title", "My First Post"),
                     ("body", "Hello, world — this is the body."),
-                    ("published", "1"),
+                    ("published", "true"),
                 ],
                 &cookie,
             );

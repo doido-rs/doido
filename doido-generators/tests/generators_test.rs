@@ -496,6 +496,36 @@ fn test_scaffold_generator_produces_multiple_files() {
 }
 
 #[test]
+fn test_scaffold_boolean_field_form_and_params() {
+    let files = ScaffoldGenerator
+        .generate(&[
+            "Post",
+            "title:string:not_null",
+            "published:boolean:not_null",
+        ])
+        .unwrap();
+
+    let ctrl = files
+        .iter()
+        .find(|f| f.path == "app/controllers/posts_controller.rs")
+        .unwrap();
+    assert!(ctrl.content.contains("#[serde(default)]"));
+    assert!(ctrl.content.contains("pub published: bool,"));
+    assert!(ctrl.content.contains("published: Set(form.published),"));
+
+    let form = files
+        .iter()
+        .find(|f| f.path == "app/views/posts/_form.html.tera")
+        .unwrap();
+    assert!(form.content.contains("type=\"checkbox\""));
+    assert!(form.content.contains("name=\"published\""));
+    assert!(form.content.contains("value=\"true\""));
+    assert!(form
+        .content
+        .contains("{% if post is defined and post.published %} checked{% endif %}"));
+}
+
+#[test]
 fn test_scaffold_api_emits_json_controller_and_no_views() {
     let files = ScaffoldGenerator
         .generate(&["Post", "title:string", "--api"])

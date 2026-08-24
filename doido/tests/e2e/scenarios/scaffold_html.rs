@@ -14,23 +14,49 @@ fn scaffold_html_form_and_index() {
         "Article",
         "title:string:not_null",
         "body:text",
+        "published:boolean:not_null",
     ]);
     h.run_with_db(
         |h| {
             db::assert_table_exists(&h.app, "articles");
             db::assert_column_exists(&h.app, "articles", "title");
+            db::assert_column_exists(&h.app, "articles", "published");
         },
         |app| {
-            let status = http::post_form(
-                &format!("{}/articles", app.base_url),
-                &[("title", "News"), ("body", "content")],
+            let create_url = format!("{}/articles", app.base_url);
+
+            // Unchecked checkbox is omitted from the body; `#[serde(default)]` → false.
+            let draft = http::post_form(&create_url, &[("title", "Draft"), ("body", "content")]);
+            assert!(
+                draft == 200 || (300..400).contains(&draft),
+                "draft create should succeed or redirect, got {draft}"
+            );
+
+            let published = http::post_form(
+                &create_url,
+                &[
+                    ("title", "News"),
+                    ("body", "content"),
+                    ("published", "true"),
+                ],
             );
             assert!(
-                status == 200 || (300..400).contains(&status),
-                "create should succeed or redirect, got {status}"
+                published == 200 || (300..400).contains(&published),
+                "published create should succeed or redirect, got {published}"
             );
+
             let index = http::get_text(&format!("{}/articles", app.base_url));
-            assert!(index.contains("News"), "index should list created article");
+            assert!(index.contains("Draft"), "index should list draft article");
+            assert!(
+                index.contains("News"),
+                "index should list published article"
+            );
+
+            let form = http::get_text(&format!("{}/articles/1/edit", app.base_url));
+            assert!(
+                form.contains("value=\"true\"") && form.contains("name=\"published\""),
+                "edit form should render checkbox with value=true"
+            );
         },
     );
 }

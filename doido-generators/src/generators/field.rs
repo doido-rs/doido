@@ -187,9 +187,17 @@ impl Field {
     }
 
     /// Render a field for the scaffold's form-params struct, e.g.
-    /// `pub title: String,` — mirrors the column's nullability.
+    /// `pub title: String,` — mirrors the column's nullability. Required booleans
+    /// get `#[serde(default)]` so an unchecked checkbox (absent from the form
+    /// body) deserializes to `false`.
     pub fn params_struct_field(&self) -> String {
-        format!("pub {}: {},", self.column_name(), self.rust_type())
+        let col = self.column_name();
+        let ty = self.rust_type();
+        if self.ty == ColumnType::Boolean && self.is_required() {
+            format!("#[serde(default)]\n    pub {col}: {ty},")
+        } else {
+            format!("pub {col}: {ty},")
+        }
     }
 
     /// Render an `ActiveModel` struct-literal entry from a parsed `form`, e.g.
@@ -204,6 +212,22 @@ impl Field {
     pub fn active_model_assign(&self) -> String {
         let col = self.column_name();
         format!("record.{col} = Set(form.{col});")
+    }
+
+    /// One HTML form control for this field (used by scaffold views).
+    pub fn html_form_control(&self, singular: &str) -> String {
+        let col = self.column_name();
+        match self.html_input_type() {
+            "textarea" => format!(
+                "  <p><label for=\"{col}\">{col}</label> <textarea id=\"{col}\" name=\"{col}\"></textarea></p>\n"
+            ),
+            "checkbox" => format!(
+                "  <p><label for=\"{col}\">{col}</label> <input id=\"{col}\" type=\"checkbox\" name=\"{col}\" value=\"true\"{{% if {singular} is defined and {singular}.{col} %}} checked{{% endif %}}></p>\n"
+            ),
+            input => format!(
+                "  <p><label for=\"{col}\">{col}</label> <input id=\"{col}\" type=\"{input}\" name=\"{col}\"></p>\n"
+            ),
+        }
     }
 
     /// The HTML `<input type="…">` (or `textarea`/`checkbox`) for this column,
@@ -359,9 +383,24 @@ mod tests {
         assert_eq!(f.params_struct_field(), "pub title: String,");
         assert_eq!(f.active_model_set(), "title: Set(form.title),");
 
+        let published = Field::parse("published:boolean:not_null").unwrap();
+        assert_eq!(
+            published.params_struct_field(),
+            "#[serde(default)]\n    pub published: bool,"
+        );
+
         let r = Field::parse("author:references").unwrap();
         assert_eq!(r.params_struct_field(), "pub author_id: i64,");
         assert_eq!(r.active_model_set(), "author_id: Set(form.author_id),");
+    }
+
+    #[test]
+    fn html_form_control_renders_checkbox_with_value_and_checked() {
+        let f = Field::parse("published:boolean:not_null").unwrap();
+        assert_eq!(
+            f.html_form_control("post"),
+            "  <p><label for=\"published\">published</label> <input id=\"published\" type=\"checkbox\" name=\"published\" value=\"true\"{% if post is defined and post.published %} checked{% endif %}></p>\n"
+        );
     }
 
     #[test]
