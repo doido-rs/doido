@@ -160,10 +160,11 @@ impl Context {
                 .expect("valid html response"),
             Err(error) => {
                 tracing::error!(%error, template, "view render failed");
-                Response::builder()
-                    .status(StatusCode::INTERNAL_SERVER_ERROR)
-                    .body(Body::from("Internal Server Error"))
-                    .expect("valid 500 response")
+                crate::development_errors::log_and_error_response(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    format!("template '{template}' render failed: {error}"),
+                    Some(&self.parts),
+                )
             }
         }
     }
@@ -459,11 +460,11 @@ impl<E: std::fmt::Display> IntoActionResponse for Result<Response, E> {
         match self {
             Ok(response) => response,
             Err(error) => {
-                tracing::error!(%error, "action returned an error");
-                Response::builder()
-                    .status(StatusCode::INTERNAL_SERVER_ERROR)
-                    .body(Body::from("Internal Server Error"))
-                    .expect("static 500 response is valid")
+                crate::development_errors::log_and_error_response(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    error,
+                    None,
+                )
             }
         }
     }

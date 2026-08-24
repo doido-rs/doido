@@ -73,6 +73,21 @@ async fn test_logging_middleware_preserves_inbound_request_id() {
 }
 
 #[tokio::test]
+async fn test_catch_panic_layer_catches_handler_panic() {
+    use doido_controller::axum::response::Response;
+    async fn panicking_handler() -> Response {
+        panic!("boom in handler");
+    }
+    let app = MiddlewareStack::new().apply(Router::new().route("/", get(panicking_handler)));
+    let req = Request::builder()
+        .uri("/")
+        .body(doido_controller::axum::body::Body::empty())
+        .unwrap();
+    let resp = app.oneshot(req).await.unwrap();
+    assert_eq!(resp.status(), StatusCode::INTERNAL_SERVER_ERROR);
+}
+
+#[tokio::test]
 async fn test_cookie_session_store_load_returns_none() {
     let store = CookieSessionStore::default();
     // A bare, unsigned id is not a valid signed cookie, so it does not decode.
