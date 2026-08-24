@@ -223,10 +223,7 @@ fn is_generic_error_body(status: StatusCode, body: &str) -> bool {
     }
     matches!(
         body,
-        "Internal Server Error"
-            | "CSRF token mismatch"
-            | "Forbidden host"
-            | "Not Found"
+        "Internal Server Error" | "CSRF token mismatch" | "Forbidden host" | "Not Found"
     ) || (status == StatusCode::NOT_FOUND && body.len() < 128)
 }
 
@@ -334,10 +331,7 @@ mod tests {
     #[test]
     fn wants_html_prefers_json_when_accept_says_so() {
         let mut headers = HeaderMap::new();
-        headers.insert(
-            header::ACCEPT,
-            "application/json".parse().unwrap(),
-        );
+        headers.insert(header::ACCEPT, "application/json".parse().unwrap());
         assert!(!wants_html_response(&headers, "/posts"));
     }
 

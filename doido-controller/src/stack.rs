@@ -124,7 +124,9 @@ impl MiddlewareStack {
         if !self.api_only && development_errors::is_development() {
             r = r
                 .layer(CatchPanicLayer::custom(development_panic_response))
-                .layer(from_fn(development_errors::development_error_page_middleware))
+                .layer(from_fn(
+                    development_errors::development_error_page_middleware,
+                ))
                 .layer(from_fn(crate::logging::log_requests));
         } else {
             r = r

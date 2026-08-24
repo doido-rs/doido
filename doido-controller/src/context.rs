@@ -459,13 +459,11 @@ impl<E: std::fmt::Display> IntoActionResponse for Result<Response, E> {
     fn into_action_response(self) -> Response {
         match self {
             Ok(response) => response,
-            Err(error) => {
-                crate::development_errors::log_and_error_response(
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    error,
-                    None,
-                )
-            }
+            Err(error) => crate::development_errors::log_and_error_response(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                error,
+                None,
+            ),
         }
     }
 }

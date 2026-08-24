@@ -82,15 +82,13 @@ fn development_error_page_contains_message_and_backtrace() {
 async fn action_error_shows_html_in_development() {
     let _guard = EnvGuard::set("development");
 
-    let app = MiddlewareStack::new().apply(
-        Router::new().route(
-            "/fail",
-            get(|| async {
-                Result::<Response, String>::Err("simulated db failure".to_string())
+    let app = MiddlewareStack::new().apply(Router::new().route(
+        "/fail",
+        get(|| async {
+            Result::<Response, String>::Err("simulated db failure".to_string())
                 .into_action_response()
-            }),
-        ),
-    );
+        }),
+    ));
 
     let req = Request::builder()
         .uri("/fail")
@@ -111,15 +109,13 @@ async fn action_error_shows_html_in_development() {
 async fn action_error_plain_in_production() {
     let _guard = EnvGuard::set("production");
 
-    let app = MiddlewareStack::new().apply(
-        Router::new().route(
-            "/fail",
-            get(|| async {
-                Result::<Response, String>::Err("simulated db failure".to_string())
+    let app = MiddlewareStack::new().apply(Router::new().route(
+        "/fail",
+        get(|| async {
+            Result::<Response, String>::Err("simulated db failure".to_string())
                 .into_action_response()
-            }),
-        ),
-    );
+        }),
+    ));
 
     let req = Request::builder()
         .uri("/fail")
@@ -143,10 +139,7 @@ async fn panicking_handler() -> Response {
 async fn panic_shows_html_in_development() {
     let _guard = EnvGuard::set("development");
 
-    let app = MiddlewareStack::new().apply(Router::new().route(
-        "/panic",
-        get(panicking_handler),
-    ));
+    let app = MiddlewareStack::new().apply(Router::new().route("/panic", get(panicking_handler)));
 
     let req = Request::builder()
         .uri("/panic")
@@ -171,8 +164,7 @@ async fn api_only_skips_development_page() {
         .apply(Router::new().route(
             "/fail",
             get(|| async {
-                Result::<Response, String>::Err("hidden failure".to_string())
-                .into_action_response()
+                Result::<Response, String>::Err("hidden failure".to_string()).into_action_response()
             }),
         ));
 
@@ -194,15 +186,13 @@ async fn api_only_skips_development_page() {
 async fn json_accept_skips_html_page() {
     let _guard = EnvGuard::set("development");
 
-    let app = MiddlewareStack::new().apply(
-        Router::new().route(
-            "/fail",
-            get(|| async {
-                Result::<Response, String>::Err("json client failure".to_string())
+    let app = MiddlewareStack::new().apply(Router::new().route(
+        "/fail",
+        get(|| async {
+            Result::<Response, String>::Err("json client failure".to_string())
                 .into_action_response()
-            }),
-        ),
-    );
+        }),
+    ));
 
     let req = Request::builder()
         .uri("/fail")
