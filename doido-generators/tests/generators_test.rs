@@ -523,6 +523,17 @@ fn test_scaffold_boolean_field_form_and_params() {
     assert!(form
         .content
         .contains("{% if post is defined and post.published %} checked{% endif %}"));
+    assert!(form.content.contains("name=\"_method\" value=\"patch\""));
+    assert!(form
+        .content
+        .contains("{% if post is defined and post.id %}"));
+    assert!(form.content.contains("action=\"{% if post is defined and post.id %}/posts/{{ post.id }}{% else %}/posts{% endif %}\""));
+    assert!(form
+        .content
+        .contains("{% if post is defined and post.id %}Update{% else %}Save{% endif %}"));
+    assert!(form.content.contains(
+        "value=\"{% if post is defined %}{{ post.title | default(value=\"\") }}{% endif %}\""
+    ));
 }
 
 #[test]

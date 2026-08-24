@@ -57,6 +57,43 @@ fn scaffold_html_form_and_index() {
                 form.contains("value=\"true\"") && form.contains("name=\"published\""),
                 "edit form should render checkbox with value=true"
             );
+            assert!(
+                form.contains("action=\"/articles/1\""),
+                "edit form should POST to the record URL, got: {form}"
+            );
+            assert!(
+                form.contains("name=\"_method\" value=\"patch\""),
+                "edit form should tunnel PATCH via _method"
+            );
+            assert!(
+                form.contains(">Update</button>"),
+                "edit form submit button should say Update"
+            );
+            assert!(
+                form.contains("value=\"Draft\"") || form.contains("value=\"News\""),
+                "edit form should prefill existing field values"
+            );
+
+            let update_url = format!("{}/articles/1", app.base_url);
+            let updated = http::post_form(
+                &update_url,
+                &[
+                    ("_method", "patch"),
+                    ("title", "Revised"),
+                    ("body", "updated body"),
+                    ("published", "true"),
+                ],
+            );
+            assert!(
+                updated == 200 || (300..400).contains(&updated),
+                "edit form submit should update the record, got {updated}"
+            );
+
+            let index_after = http::get_text(&format!("{}/articles", app.base_url));
+            assert!(
+                index_after.contains("Revised"),
+                "index should show updated title after edit submit"
+            );
         },
     );
 }
