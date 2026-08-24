@@ -7,6 +7,7 @@ mod cors_api;
 mod custom_generator;
 mod db_commands;
 mod db_seed;
+mod development_errors;
 mod helper;
 mod kitchen_sink;
 mod migration_add_remove;

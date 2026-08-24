@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ status }} {{ title }} — doido</title>
+  <style>
+    :root {
+      --bg: #1a1a2e;
+      --surface: #16213e;
+      --border: #0f3460;
+      --green: #22c55e;
+      --green-dim: #16a34a;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --code-bg: #0d1117;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+    header {
+      background: var(--surface);
+      border-bottom: 2px solid var(--green);
+      padding: 1.25rem 2rem;
+    }
+    header h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--green);
+    }
+    header p {
+      color: var(--muted);
+      font-size: 0.875rem;
+      margin-top: 0.25rem;
+    }
+    main { padding: 1.5rem 2rem 3rem; max-width: 960px; }
+    section { margin-bottom: 1.75rem; }
+    section h2 {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 0.5rem;
+    }
+    .message, .backtrace, .request-info {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 1rem 1.25rem;
+      font-family: ui-monospace, "Cascadia Code", "Source Code Pro", monospace;
+      font-size: 0.8125rem;
+      white-space: pre-wrap;
+      word-break: break-word;
+      overflow-x: auto;
+      max-height: 28rem;
+      overflow-y: auto;
+    }
+    .message { color: #fca5a5; border-left: 3px solid #ef4444; }
+    .backtrace { color: var(--muted); }
+    .request-info { color: var(--text); }
+    footer {
+      padding: 1rem 2rem;
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 0.8125rem;
+    }
+    footer span { color: var(--green-dim); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>{{ status }} {{ title }}</h1>
+    <p>Development error page — details below are hidden in production.</p>
+  </header>
+  <main>
+    <section>
+      <h2>Exception</h2>
+      <div class="message">{{ message }}</div>
+    </section>
+    <section>
+      <h2>Backtrace</h2>
+      <div class="backtrace">{{ backtrace }}</div>
+    </section>
+    <section>
+      <h2>Request</h2>
+      <div class="request-info">{{ request_info }}</div>
+    </section>
+  </main>
+  <footer><span>doido</span> · rails-inspired rust framework · development</footer>
+</body>
+</html>

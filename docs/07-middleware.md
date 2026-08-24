@@ -19,11 +19,32 @@ Rails analogue: **Rack middleware stack**
 
 ```
 Request
-  └─ PanicRecovery    ← catches panics, returns 500, never crashes the server
-       └─ RequestLogger ← emits a tracing span per request (method, path, status, latency)
-            └─ [opt-in layers]
-                 └─ Router / Controller
+  └─ RequestLogger       ← emits a tracing span per request (method, path, status, latency)
+       └─ [development]  DebugErrorPage ← HTML diagnostic 4xx/5xx (development + HTML only)
+            └─ PanicRecovery ← catches panics, returns 500, never crashes the server
+                 └─ [opt-in layers]
+                      └─ Router / Controller
 ```
+
+## Development error pages (Rails `DebugExceptions`)
+
+When `DOIDO_ENV=development` (the default) and the project is **not** API-only,
+HTML clients receive a framework-styled diagnostic page for unhandled 4xx/5xx
+responses — the Rails `consider_all_requests_local` / `ActionDispatch::DebugExceptions`
+equivalent. The page shows the error message, a backtrace (when available), and
+request context (method, path, query).
+
+| Condition | Behaviour |
+|-----------|-----------|
+| `DOIDO_ENV=development` + HTML `Accept` | Diagnostic HTML page |
+| `DOIDO_ENV=production` or `test` | Plain-text / empty body (unchanged) |
+| `api_only = true` | Skipped — JSON APIs keep minimal error bodies |
+| `Accept: application/json` | Skipped — JSON clients keep minimal bodies |
+
+Implementation lives in `doido-controller` (`development_errors` module). The
+template is embedded in the crate (no `doido_view` dependency) so errors render
+even when the view engine failed to boot.
+
 
 ## Opt-in Middleware
 
@@ -67,6 +88,7 @@ middleware that makes no difference to `application/json` clients**:
 | CSRF (form double-submit) | **skipped** even if `with_csrf()` is set — APIs use tokens/CORS |
 | Session / flash / static-file serving | must honor the flag as they are wired (HTML-only) |
 | Logging, panic recovery, CORS, force-SSL, host allowlist | unchanged (relevant to any content type) |
+| Development error pages (`DebugExceptions`) | **skipped** — APIs use JSON error bodies |
 
 The same `api_only` marker is what the route macros read at compile time to drop
 the `new`/`edit` form routes (see [01-router.md](01-router.md)).
@@ -130,6 +152,8 @@ routes! {
 ## TDD Surface
 
 - Test `PanicRecovery` returns 500 and logs error when action panics
+- Test development error page renders HTML with message + backtrace in `DOIDO_ENV=development`
+- Test development error page is skipped in production, test, API-only, and JSON `Accept`
 - Test `RequestLogger` emits tracing span with correct fields
 - Test each opt-in middleware in isolation (unit)
 - Test CORS preflight returns correct headers when configured

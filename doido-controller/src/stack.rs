@@ -6,6 +6,7 @@ use crate::axum::{
     Router,
 };
 use crate::config::CorsConfig;
+use crate::development_errors::{self, development_panic_response};
 use http::{header, HeaderValue, Method, StatusCode};
 use std::sync::Arc;
 use tower_http::{
@@ -117,12 +118,21 @@ impl MiddlewareStack {
         for transform in self.before {
             r = transform(r);
         }
-        // Log every request and its response (method, path, status, latency)
-        // through doido's centralized logger. Added after `CatchPanicLayer` so
-        // it sits outermost and logs panic-recovered `500`s too.
-        r = r
-            .layer(CatchPanicLayer::new())
-            .layer(from_fn(crate::logging::log_requests));
+        // Panic recovery sits closest to routes; the development error page
+        // middleware wraps it so 4xx/5xx (including panic-recovered 500s) are
+        // rewritten to HTML before logging runs.
+        if !self.api_only && development_errors::is_development() {
+            r = r
+                .layer(CatchPanicLayer::custom(development_panic_response))
+                .layer(from_fn(
+                    development_errors::development_error_page_middleware,
+                ))
+                .layer(from_fn(crate::logging::log_requests));
+        } else {
+            r = r
+                .layer(CatchPanicLayer::new())
+                .layer(from_fn(crate::logging::log_requests));
+        }
         match &self.cors_config {
             Some(config) if config.enabled => r = r.layer(build_cors(config)),
             _ if self.cors => r = r.layer(CorsLayer::permissive()),

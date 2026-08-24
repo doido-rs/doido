@@ -156,6 +156,19 @@ pub fn get_text(url: &str) -> String {
         .expect("response body")
 }
 
+/// GET returning status and body, tolerating 4xx/5xx. Optional `Accept` header
+/// for content negotiation (e.g. development error pages vs plain JSON errors).
+pub fn get_body_any(url: &str, accept: Option<&str>) -> (u16, String) {
+    let mut request = status_tolerant_agent().get(url);
+    if let Some(accept) = accept {
+        request = request.header("Accept", accept);
+    }
+    let response = request.call().expect("GET request");
+    let status = response.status().as_u16();
+    let body = response.into_body().read_to_string().unwrap_or_default();
+    (status, body)
+}
+
 /// GET with a session `Cookie` header, returning the raw status (tolerates
 /// 4xx/5xx). Used to hit a protected route as a signed-in user.
 pub fn get_status_with_cookie(url: &str, cookie: &str) -> u16 {
