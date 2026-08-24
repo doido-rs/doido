@@ -149,8 +149,8 @@ fn generate_inner(
                     descriptors.push(("GET".to_string(), base_id.clone()));
                 }
                 if is_active("update", &filter, api) {
-                    member = quote! { #member.patch(#ctrl::update).put(#ctrl::update) };
-                    descriptors.push(("PUT|PATCH".to_string(), base_id.clone()));
+                    member = quote! { #member.patch(#ctrl::update).put(#ctrl::update).post(#ctrl::update) };
+                    descriptors.push(("POST|PUT|PATCH".to_string(), base_id.clone()));
                 }
                 if is_active("destroy", &filter, api) {
                     member = quote! { #member.delete(#ctrl::destroy) };
@@ -355,6 +355,7 @@ fn generate_inner(
                         .get(#ctrl::show)
                         .patch(#ctrl::update)
                         .put(#ctrl::update)
+                        .post(#ctrl::update)
                         .delete(#ctrl::destroy))
                 });
                 if !api {

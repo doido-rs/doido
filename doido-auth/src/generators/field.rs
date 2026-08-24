@@ -179,13 +179,13 @@ impl Field {
         let col = self.column_name();
         match self.html_input_type() {
             "textarea" => format!(
-                "  <label for=\"{col}\">{col}<br><textarea id=\"{col}\" name=\"{col}\"></textarea></label>\n"
+                "  <label for=\"{col}\">{col}<br><textarea id=\"{col}\" name=\"{col}\">{{% if {singular} is defined %}}{{{{ {singular}.{col} | default(value=\"\") }}}}{{% endif %}}</textarea></label>\n"
             ),
             "checkbox" => format!(
                 "  <label for=\"{col}\">{col} <input id=\"{col}\" type=\"checkbox\" name=\"{col}\" value=\"true\"{{% if {singular} is defined and {singular}.{col} %}} checked{{% endif %}}></label>\n"
             ),
             input => format!(
-                "  <label for=\"{col}\">{col}<br><input id=\"{col}\" type=\"{input}\" name=\"{col}\"></label>\n"
+                "  <label for=\"{col}\">{col}<br><input id=\"{col}\" type=\"{input}\" name=\"{col}\" value=\"{{% if {singular} is defined %}}{{{{ {singular}.{col} | default(value=\"\") }}}}{{% endif %}}\"></label>\n"
             ),
         }
     }
