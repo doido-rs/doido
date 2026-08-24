@@ -93,7 +93,10 @@ fn render_view(
             format!("<p><strong>{col}:</strong> {{{{ {singular}.{col} }}}}</p>\n")
         })
         .collect();
-    let form_fields: String = visible_fields.iter().map(|f| form_field(f)).collect();
+    let form_fields: String = visible_fields
+        .iter()
+        .map(|f| f.html_form_control(singular))
+        .collect();
 
     template
         .replace("{table_headers}", &table_headers)
@@ -103,15 +106,6 @@ fn render_view(
         .replace("{Model}", model)
         .replace("{singular}", singular)
         .replace("{plural}", plural)
-}
-
-fn form_field(f: &Field) -> String {
-    let col = f.column_name();
-    match f.html_input_type() {
-        "textarea" => format!("  <label>{col}<br><textarea name=\"{col}\"></textarea></label>\n"),
-        "checkbox" => format!("  <label>{col} <input type=\"checkbox\" name=\"{col}\"></label>\n"),
-        input => format!("  <label>{col}<br><input type=\"{input}\" name=\"{col}\"></label>\n"),
-    }
 }
 
 fn ensure_user_reference(fields: &mut Vec<Field>) {

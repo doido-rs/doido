@@ -190,7 +190,10 @@ fn render_view(
             format!("<p><strong>{col}:</strong> {{{{ {singular}.{col} }}}}</p>\n")
         })
         .collect();
-    let form_fields: String = fields.iter().map(form_field).collect();
+    let form_fields: String = fields
+        .iter()
+        .map(|f| f.html_form_control(singular))
+        .collect();
 
     template
         .replace("{table_headers}", &table_headers)
@@ -200,20 +203,6 @@ fn render_view(
         .replace("{Model}", model)
         .replace("{singular}", singular)
         .replace("{plural}", plural)
-}
-
-/// One form control for a field, varying by HTML input type.
-fn form_field(f: &Field) -> String {
-    let col = f.column_name();
-    match f.html_input_type() {
-        "textarea" => {
-            format!("  <p><label>{col}</label> <textarea name=\"{col}\"></textarea></p>\n")
-        }
-        "checkbox" => {
-            format!("  <p><label>{col}</label> <input type=\"checkbox\" name=\"{col}\"></p>\n")
-        }
-        input => format!("  <p><label>{col}</label> <input type=\"{input}\" name=\"{col}\"></p>\n"),
-    }
 }
 
 /// Injects `use crate::controllers::<Controller>;` and a

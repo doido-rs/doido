@@ -156,7 +156,13 @@ impl Field {
     }
 
     pub fn params_struct_field(&self) -> String {
-        format!("pub {}: {},", self.column_name(), self.rust_type())
+        let col = self.column_name();
+        let ty = self.rust_type();
+        if self.ty == ColumnType::Boolean && self.is_required() {
+            format!("#[serde(default)]\n    pub {col}: {ty},")
+        } else {
+            format!("pub {col}: {ty},")
+        }
     }
 
     pub fn active_model_set(&self) -> String {
@@ -167,6 +173,21 @@ impl Field {
     pub fn active_model_assign(&self) -> String {
         let col = self.column_name();
         format!("record.{col} = Set(form.{col});")
+    }
+
+    pub fn html_form_control(&self, singular: &str) -> String {
+        let col = self.column_name();
+        match self.html_input_type() {
+            "textarea" => format!(
+                "  <label for=\"{col}\">{col}<br><textarea id=\"{col}\" name=\"{col}\"></textarea></label>\n"
+            ),
+            "checkbox" => format!(
+                "  <label for=\"{col}\">{col} <input id=\"{col}\" type=\"checkbox\" name=\"{col}\" value=\"true\"{{% if {singular} is defined and {singular}.{col} %}} checked{{% endif %}}></label>\n"
+            ),
+            input => format!(
+                "  <label for=\"{col}\">{col}<br><input id=\"{col}\" type=\"{input}\" name=\"{col}\"></label>\n"
+            ),
+        }
     }
 
     pub fn html_input_type(&self) -> &'static str {
