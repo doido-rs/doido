@@ -57,3 +57,7 @@ Set `E2E_KEEP=1` to preserve generated apps under `target/e2e/apps/` for debuggi
 
 The GitHub **Release** workflow runs `make release-e2e` before publishing to
 crates.io. PR CI keeps the fast `cargo test --workspace` gate only.
+
+For test releases that should not become `latest`, use **Release** with
+`unstable: true` (pre-release semver suffix required) and clean up with
+**Release delete** — see `docs/superpowers/specs/2026-04-18-ci-cd-publish-design.md`.

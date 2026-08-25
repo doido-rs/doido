@@ -28,7 +28,7 @@ doido/
 
 ## Workflows
 
-Two workflow files live in `.github/workflows/`.
+Workflow files live in `.github/workflows/` (`ci.yml`, `release.yml`, and `release-delete.yml` for cleanup).
 
 ### 1. `ci.yml` — Continuous Integration
 
@@ -47,11 +47,12 @@ Jobs (sequential, fail-fast):
 
 ### 2. `release.yml` — Publish & Release
 
-Trigger: `workflow_dispatch` with two inputs:
+Trigger: `workflow_dispatch` with inputs:
 
 | Input | Type | Description |
 |-------|------|-------------|
-| `version` | string | Semver string applied to all crates (e.g. `0.1.0`) |
+| `version` | string | Semver string applied to all crates (e.g. `0.1.0`; when `unstable=true`, use a suffix such as `0.0.25-test.1`) |
+| `unstable` | boolean | Test release — GitHub pre-release (not `latest`); clean up with `release-delete.yml` + `make yank` |
 | `dry_run` | boolean | If true, skips actual publish and GitHub Release creation |
 
 Jobs (sequential, fail-fast):
@@ -66,8 +67,38 @@ Jobs (sequential, fail-fast):
 4. **build** — matrix across 5 targets (see below), produces `doido` binary artifacts
 5. **release**
    - Creates a GitHub Release tagged `v<version>`
+   - When `unstable: true`, marks the release as a GitHub pre-release (not promoted to `latest`)
    - Attaches all 5 binary artifacts
    - Skipped when `dry_run: true`
+
+### 3. `release-delete.yml` — Remove unstable release
+
+Trigger: `workflow_dispatch` with inputs:
+
+| Input | Type | Description |
+|-------|------|-------------|
+| `version` | string | Semver to remove (no leading `v`, e.g. `0.0.25-test.1`) |
+| `yank_crates` | boolean | If true (default), runs `make yank VERSION=<version>` on every workspace crate |
+
+Jobs:
+
+1. **delete-github** — deletes the GitHub Release and remote tag `v<version>` (no-op if missing)
+2. **yank** — yanks the version on crates.io (skipped when `yank_crates: false`)
+
+## Unstable releases
+
+Use an unstable release to publish a test version that should not become the default install target.
+
+1. Run **Release** with `unstable: true` and a pre-release semver (e.g. `0.0.25-test.1`).
+   `scripts/bump-workspace-version.sh` rejects a bare `X.Y.Z` when `UNSTABLE=1`.
+2. The workflow still publishes to crates.io and builds binaries, but the GitHub Release is
+   marked **pre-release**, so `scripts/install.sh` (which resolves `/releases/latest`) keeps
+   pointing at the last stable release.
+3. When done testing, run **Release delete** with the same version (and `yank_crates: true`).
+   Or manually delete the GitHub Release + tag and run `make yank VERSION=0.0.25-test.1`.
+
+Note: crates.io has no hard delete — `cargo yank` (via `make yank`) is the supported way to
+pull a version from new dependency resolution.
 
 ## Binary Build Matrix
 
