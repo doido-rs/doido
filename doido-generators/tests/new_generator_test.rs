@@ -28,9 +28,10 @@ fn test_new_generates_all_expected_files() {
     // `db/migration` is a SeaORM migration project, not an empty placeholder.
     assert!(paths.contains(&"my-app/db/migration/Cargo.toml"));
     assert!(paths.contains(&"my-app/db/migration/src/lib.rs"));
-    assert!(paths.contains(&"my-app/db/migration/src/main.rs"));
-    assert!(paths.contains(&"my-app/db/seed/Cargo.toml"));
-    assert!(paths.contains(&"my-app/db/seed/src/main.rs"));
+    // No standalone migration bin; the seeder is an app module, not a crate.
+    assert!(!paths.contains(&"my-app/db/migration/src/main.rs"));
+    assert!(paths.contains(&"my-app/db/seeds.rs"));
+    assert!(!paths.contains(&"my-app/db/seed/Cargo.toml"));
     assert!(paths.contains(&"my-app/tests/integration_test.rs"));
     let main_rs = files
         .iter()
@@ -267,8 +268,8 @@ fn test_new_migration_crate_uses_selected_backend() {
     assert!(
         migration_cargo
             .content
-            .contains("features = [\"postgres\", \"cli\"]"),
-        "doido dependency must enable postgres and cli for the migration binary"
+            .contains("features = [\"postgres\"]"),
+        "doido dependency must enable the postgres backend for the migration crate"
     );
     let migration_lib = files
         .iter()
@@ -283,53 +284,49 @@ fn test_new_migration_crate_uses_selected_backend() {
 }
 
 #[test]
-fn test_new_seed_crate_uses_selected_backend() {
+fn test_new_seeds_module_replaces_the_seed_crate() {
     let files = ProjectGenerator
         .generate(&["blog", "--database=postgres"])
         .unwrap();
-    let seed_cargo = files
+    // The seeder is now an app module compiled into the app binary, not a crate.
+    let seeds = files
         .iter()
-        .find(|f| f.path == "blog/db/seed/Cargo.toml")
-        .unwrap();
+        .find(|f| f.path == "blog/db/seeds.rs")
+        .expect("db/seeds.rs must be generated");
     assert!(
-        seed_cargo.content.contains("doido ="),
-        "seed crate must depend on doido meta crate"
+        seeds
+            .content
+            .contains("pub async fn run(db: &DatabaseConnection)"),
+        "db/seeds.rs must expose `pub async fn run(db: &DatabaseConnection)`"
     );
     assert!(
-        seed_cargo.content.contains("features = [\"postgres\"]"),
-        "doido dependency must enable postgres for the seed binary"
+        !files.iter().any(|f| f.path.contains("db/seed/")),
+        "the db/seed crate must no longer be generated"
     );
+    let main_rs = files.iter().find(|f| f.path == "blog/src/main.rs").unwrap();
     assert!(
-        !seed_cargo.content.contains("\"cli\""),
-        "seed crate must not enable the migration cli feature"
-    );
-    assert!(
-        seed_cargo.content.contains("serde ="),
-        "seed crate must declare serde for generated app/models"
-    );
-    let seed_main = files
-        .iter()
-        .find(|f| f.path == "blog/db/seed/src/main.rs")
-        .unwrap();
-    assert!(
-        seed_main.content.contains("app/models/mod.rs"),
-        "seed main must wire app models"
+        main_rs.content.contains("mod seed;") && main_rs.content.contains(".seeder(seed::run)"),
+        "src/main.rs must wire and register the seeder"
     );
     let cargo = files.iter().find(|f| f.path == "blog/Cargo.toml").unwrap();
     assert!(
+        cargo.content.contains("members = [\"db/migration\"]"),
+        "workspace must list only db/migration"
+    );
+    assert!(
         cargo
             .content
-            .contains("members = [\"db/migration\", \"db/seed\"]"),
-        "workspace must include db/seed"
+            .contains("migration = { path = \"db/migration\" }"),
+        "app must depend on the local migration crate"
     );
 }
 
 #[test]
 fn test_new_migration_crate_doido_model_feature_matches_database() {
     let cases = [
-        ("sqlite", "features = [\"sqlite\", \"cli\"]"),
-        ("postgres", "features = [\"postgres\", \"cli\"]"),
-        ("mysql", "features = [\"mysql\", \"cli\"]"),
+        ("sqlite", "features = [\"sqlite\"]"),
+        ("postgres", "features = [\"postgres\"]"),
+        ("mysql", "features = [\"mysql\"]"),
     ];
     for (database, model_feature) in cases {
         let files = ProjectGenerator

@@ -112,18 +112,16 @@ fn base_app_is_valid(dir: &Path, profile: BaseProfile) -> bool {
 
     if !app.join("Cargo.toml").is_file()
         || !helpers_mod.is_file()
-        || !app.join("db/seed/Cargo.toml").is_file()
+        || !app.join("db/seeds.rs").is_file()
         || !app.join("app/models/_entities/mod.rs").is_file()
     {
         return false;
     }
 
-    let seed_cargo = fs::read_to_string(app.join("db/seed/Cargo.toml")).unwrap_or_default();
-    if !seed_cargo.contains("serde =") {
+    let main_content = fs::read_to_string(&main_rs).unwrap_or_default();
+    if !main_content.contains(".seeder(seed::run)") {
         return false;
     }
-
-    let main_content = fs::read_to_string(&main_rs).unwrap_or_default();
     if !main_content.contains("mod helpers;") || !main_content.contains("mod generators;") {
         return false;
     }
@@ -172,9 +170,9 @@ fn auth_base_is_valid(dir: &Path, _api: bool) -> bool {
     let cargo_ok = fs::read_to_string(app.join("Cargo.toml"))
         .map(|content| content.contains("\"auth\""))
         .unwrap_or(false);
-    let seed_ok = app.join("db/seed/Cargo.toml").is_file()
-        && fs::read_to_string(app.join("db/seed/Cargo.toml"))
-            .map(|content| content.contains("serde ="))
+    let seed_ok = app.join("db/seeds.rs").is_file()
+        && fs::read_to_string(app.join("src/main.rs"))
+            .map(|content| content.contains(".seeder(seed::run)"))
             .unwrap_or(false);
     // Module-aware install writes the Devise-style `modules:` list into the auth
     // config; a base predating that is stale and must be regenerated.

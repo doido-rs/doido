@@ -12,5 +12,5 @@ path = "src/lib.rs"
 async-trait = "0.1"
 tokio = { version = "1", features = ["full"] }
 # SeaORM migration helpers via the doido meta crate (`doido::model::sea_orm_migration`).
-# The `cli` feature enables `sea_orm_migration::cli::run_cli` in `src/main.rs`.
-doido = { version = "0.0.24", default-features = false, features = ["postgres", "cli"] }
+# This crate is a library: the app links its `Migrator` and runs it in-process.
+doido = { version = "0.0.24", default-features = false, features = ["postgres"] }

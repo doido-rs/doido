@@ -28,16 +28,6 @@ fn migration_cargo_toml_for(args: &[&str]) -> String {
         .expect("migration Cargo.toml")
 }
 
-fn seed_cargo_toml_for(args: &[&str]) -> String {
-    ProjectGenerator
-        .generate(args)
-        .unwrap()
-        .into_iter()
-        .find(|f| f.path.contains("db/seed/Cargo.toml"))
-        .map(|f| f.content)
-        .expect("seed Cargo.toml")
-}
-
 #[test]
 fn generated_cargo_toml_parses_as_valid_toml() {
     let content = cargo_toml_for(&["app", "--database=sqlite", "--cache=redis", "--jobs=redis"]);
@@ -133,40 +123,30 @@ fn doido_model_database_features_stay_on_app_dependency_line() {
 }
 
 #[test]
-fn doido_seed_database_features_stay_on_seed_dependency_line() {
-    let cases = [
-        ("sqlite", "features = [\"sqlite\"]"),
-        ("postgres", "features = [\"postgres\"]"),
-        ("mysql", "features = [\"mysql\"]"),
-    ];
-    for (database, feature) in cases {
-        let cargo = seed_cargo_toml_for(&["app", &format!("--database={database}")]);
-        cargo.parse::<toml::Table>().expect("valid seed Cargo.toml");
-        assert!(
-            cargo.contains("doido = {"),
-            "{database}: seed crate must declare doido meta crate"
-        );
-        assert!(
-            cargo.contains(feature),
-            "{database}: doido line must include {feature}"
-        );
-        assert!(
-            !cargo.contains("\"cli\""),
-            "{database}: seed crate must not enable cli"
-        );
-        assert!(
-            !cargo.contains("}, features ="),
-            "{database}: features must stay inside the inline table"
-        );
-    }
+fn app_depends_on_the_local_migration_crate() {
+    // The app links the `migration` crate so `doido db migrate` runs the
+    // `Migrator` in-process; the seeder lives in `db/seeds.rs`, not a crate.
+    let cargo = cargo_toml_for(&["app", "--database=sqlite"]);
+    assert!(
+        cargo.contains("migration = { path = \"db/migration\" }"),
+        "app Cargo.toml must depend on the local migration crate"
+    );
+    assert!(
+        cargo.contains("members = [\"db/migration\"]"),
+        "workspace must list only db/migration (the seed crate is gone)"
+    );
+    assert!(
+        !cargo.contains("db/seed"),
+        "the db/seed crate must no longer be referenced"
+    );
 }
 
 #[test]
 fn doido_model_database_features_stay_on_migration_dependency_line() {
     let cases = [
-        ("sqlite", "features = [\"sqlite\", \"cli\"]"),
-        ("postgres", "features = [\"postgres\", \"cli\"]"),
-        ("mysql", "features = [\"mysql\", \"cli\"]"),
+        ("sqlite", "features = [\"sqlite\"]"),
+        ("postgres", "features = [\"postgres\"]"),
+        ("mysql", "features = [\"mysql\"]"),
     ];
     for (database, feature) in cases {
         let cargo = migration_cargo_toml_for(&["app", &format!("--database={database}")]);

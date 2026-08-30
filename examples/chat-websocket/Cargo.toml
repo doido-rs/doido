@@ -8,12 +8,14 @@ edition = "2021"
 default-run = "chat-websocket"
 
 # The SeaORM migration project lives in `db/migration` and is built as part of
-# this workspace.
+# this workspace. The app depends on it so `doido db migrate` runs the `Migrator`
+# in-process from this binary (registered via `.migrator` in `src/main.rs`).
 [workspace]
-members = ["db/migration", "db/seed"]
+members = ["db/migration"]
 
 [dependencies]
 doido = { path = "/home/fabiano/projetos_doido/doido/doido", default-features = false, features = ["sqlite", "auth"] }
+migration = { path = "db/migration" }
 doido-core = { path = "/home/fabiano/projetos_doido/doido/doido-core" }
 doido-controller = { path = "/home/fabiano/projetos_doido/doido/doido-controller", features = ["sqlite"] }
 doido-model = { path = "/home/fabiano/projetos_doido/doido/doido-model", features = ["sqlite"] }

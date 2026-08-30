@@ -59,9 +59,9 @@ cargo doido db create && cargo doido db migrate
 cargo doido server
 ```
 
-`doido new` also scaffolds `db/seed/` — a workspace crate that runs with
+`doido new` also scaffolds `db/seeds.rs` — an in-binary seeder that runs with
 `cargo doido db seed` to insert fixture rows via `app/models/`. Edit
-`db/seed/src/main.rs` after generating models.
+`db/seeds.rs` after generating models.
 
 ```bash
 cargo doido generate model Post title:string body:text

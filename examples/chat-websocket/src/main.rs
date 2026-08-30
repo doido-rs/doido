@@ -22,10 +22,18 @@ mod services;
 #[path = "../app/state.rs"]
 mod state;
 
+#[path = "../db/seeds.rs"]
+mod seed;
+
 #[path = "../config/routes.rs"]
 mod routes;
 
 #[tokio::main]
 async fn main() {
-    doido::run(Some(routes::router())).await;
+    doido::Doido::new()
+        .router(routes::router())
+        .migrator::<migration::Migrator>()
+        .seeder(seed::run)
+        .run()
+        .await;
 }

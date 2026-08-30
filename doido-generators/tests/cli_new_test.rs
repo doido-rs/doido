@@ -26,12 +26,13 @@ fn test_doido_new_creates_project_files() {
         .join("my-app/app/views/layouts/application.html.tera")
         .exists());
     assert!(dir.path().join("my-app/db/schema/.gitkeep").exists());
-    // `db/migration` is a SeaORM migration project rather than an empty folder.
+    // `db/migration` is a SeaORM migration library, linked into the app binary
+    // (no standalone migration bin). The seeder is an app module, not a crate.
     assert!(dir.path().join("my-app/db/migration/Cargo.toml").exists());
     assert!(dir.path().join("my-app/db/migration/src/lib.rs").exists());
-    assert!(dir.path().join("my-app/db/migration/src/main.rs").exists());
-    assert!(dir.path().join("my-app/db/seed/Cargo.toml").exists());
-    assert!(dir.path().join("my-app/db/seed/src/main.rs").exists());
+    assert!(!dir.path().join("my-app/db/migration/src/main.rs").exists());
+    assert!(dir.path().join("my-app/db/seeds.rs").exists());
+    assert!(!dir.path().join("my-app/db/seed/Cargo.toml").exists());
 }
 
 #[test]

@@ -103,7 +103,7 @@ pub enum DbCommand {
     Reset,
     /// Load `db/schema.sql` only if the database has no tables yet (idempotent)
     Prepare,
-    /// Run the `db/seed` crate (Rust models-based seeder)
+    /// Run the app's registered seeder (`db/seeds.rs`) in-process
     Seed,
     /// Schema dump/load (`db/schema.sql`)
     Schema {
@@ -341,8 +341,14 @@ async fn run_sea_orm(command: Commands, verbose: bool, migrator: Option<Migrator
             // migrator, replacing the old `cargo run` on `db/migration`.
             if is_filesystem_migrate(command.as_ref()) {
                 let migration_dir = override_migration_dir(migration_dir);
-                run_migrate_command(command, &migration_dir, database_schema, database_url, verbose)
-                    .unwrap_or_else(handle_error);
+                run_migrate_command(
+                    command,
+                    &migration_dir,
+                    database_schema,
+                    database_url,
+                    verbose,
+                )
+                .unwrap_or_else(handle_error);
                 return;
             }
             let Some(migrator) = migrator else {
@@ -528,8 +534,33 @@ mod tests {
     #[tokio::test]
     async fn run_migrator_rejects_filesystem_subcommands() {
         let conn = crate::connect_with_url("sqlite::memory:").await.unwrap();
-        assert!(run_migrator::<EmptyMigrator>(Some(MigrateSubcommands::Init), &conn)
+        assert!(
+            run_migrator::<EmptyMigrator>(Some(MigrateSubcommands::Init), &conn)
+                .await
+                .is_err()
+        );
+    }
+
+    /// An `async fn(&DatabaseConnection) -> Result<()>` — the shape apps pass to
+    /// `Doido::seeder(..)`. Inserts through the connection so the seed is observable.
+    async fn sample_seeder(db: &DatabaseConnection) -> doido_core::Result<()> {
+        use crate::sea_orm::ConnectionTrait;
+        db.execute_unprepared("CREATE TABLE seeded (id INTEGER)")
             .await
-            .is_err());
+            .map_err(|e| doido_core::anyhow::anyhow!("{e}"))?;
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn seeder_blanket_impl_runs_in_process() {
+        use crate::sea_orm::ConnectionTrait;
+        let conn = crate::connect_with_url("sqlite::memory:").await.unwrap();
+        // Type-erased exactly as the CLI stores it, then run against the connection.
+        let seeder: SeederFn = Box::new(sample_seeder);
+        seeder.seed(&conn).await.unwrap();
+        // The seeder's DDL took effect on the shared connection.
+        conn.execute_unprepared("INSERT INTO seeded (id) VALUES (1)")
+            .await
+            .unwrap();
     }
 }

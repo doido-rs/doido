@@ -34,19 +34,20 @@ const CABLE_TEMPLATE_PREFIX: &str = "app/channels/";
 /// `mod channels;` include spliced into `src/main.rs` when `--cable` is passed.
 const CABLE_MODULE_INCLUDE: &str = "\n#[path = \"../app/channels/mod.rs\"]\nmod channels;\n";
 
-/// Initial-user seed spliced into `db/seed/src/main.rs` when `--auth` is passed.
-/// The `User` model (from `auth:install`) is reachable through the `models`
-/// module the seed already includes via `#[path]`.
+/// Initial-user seed spliced into `db/seeds.rs` when `--auth` is passed. The
+/// `User` model (from `auth:install`) is reachable through the app's `models`
+/// module as `crate::models::user`; the seed runs in-process against the `db`
+/// connection the CLI passes in.
 const AUTH_SEED_BODY: &str = r#"    // Seed an initial user so a fresh --auth app has a login out of the box.
     {
         use doido::model::password::hash_password;
         use doido::model::sea_orm::EntityTrait;
         use doido_auth::RegisterableAuthUser;
-        use models::user::{Entity, Model};
+        use crate::models::user::{Entity, Model};
 
-        if Entity::find().one(&db).await?.is_none() {
+        if Entity::find().one(db).await?.is_none() {
             let digest = hash_password("password")?;
-            Model::register(&db, "admin@example.com".into(), digest).await?;
+            Model::register(db, "admin@example.com".into(), digest).await?;
             println!("seeded initial user: admin@example.com / password");
         }
     }"#;
@@ -86,7 +87,6 @@ struct TemplateContext<'a> {
     dep_mode: DependencyMode,
     doido_dep: String,
     doido_migration_dep: String,
-    doido_seed_dep: String,
     doido_jobs_dep: String,
     doido_model_dep: String,
     cache_section: String,
@@ -158,10 +158,6 @@ fn doido_jobs_features(jobs: JobsBackend, database: &str) -> String {
 }
 
 fn doido_migration_features(database: &str) -> String {
-    format!(", default-features = false, features = [\"{database}\", \"cli\"]")
-}
-
-fn doido_seed_features(database: &str) -> String {
     format!(", default-features = false, features = [\"{database}\"]")
 }
 
@@ -382,7 +378,6 @@ fn substitute_template(template: &str, ctx: &TemplateContext<'_>) -> String {
         .replace("{doido_sqlx_feature}", ctx.sqlx_feature)
         .replace("{doido_dep}", &ctx.doido_dep)
         .replace("{doido_migration_dep}", &ctx.doido_migration_dep)
-        .replace("{doido_seed_dep}", &ctx.doido_seed_dep)
         .replace(
             "{doido_core_dep}",
             &doido_dependency(&ctx.dep_mode, "doido-core", ""),
@@ -403,7 +398,6 @@ fn substitute_template(template: &str, ctx: &TemplateContext<'_>) -> String {
         .replace("{doido_model_dep}", &ctx.doido_model_dep)
         .replace("{doido_cable_deps}", &cable_deps)
         .replace("{doido_auth_deps}", &doido_auth_deps)
-        .replace("{doido_seed_auth_deps}", &doido_auth_deps)
         .replace("{doido_auth_seed}", &auth_seed)
         .replace(
             "{doido_api_only}",
@@ -544,7 +538,6 @@ impl Generator for ProjectGenerator {
                 "doido",
                 &doido_migration_features(database),
             ),
-            doido_seed_dep: doido_dependency(&dep_mode, "doido", &doido_seed_features(database)),
             doido_jobs_dep: doido_dependency(
                 &dep_mode,
                 "doido-jobs",
@@ -693,25 +686,13 @@ edition = "2021"
     }
 
     #[test]
-    fn doido_migration_features_include_database_and_cli() {
+    fn doido_migration_features_include_database_only() {
         assert_eq!(
             doido_migration_features("sqlite"),
-            ", default-features = false, features = [\"sqlite\", \"cli\"]"
-        );
-        assert_eq!(
-            doido_migration_features("postgres"),
-            ", default-features = false, features = [\"postgres\", \"cli\"]"
-        );
-    }
-
-    #[test]
-    fn doido_seed_features_include_database_only() {
-        assert_eq!(
-            doido_seed_features("sqlite"),
             ", default-features = false, features = [\"sqlite\"]"
         );
         assert_eq!(
-            doido_seed_features("postgres"),
+            doido_migration_features("postgres"),
             ", default-features = false, features = [\"postgres\"]"
         );
     }

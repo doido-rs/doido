@@ -24,7 +24,7 @@ cd blog
 cargo doido db create
 cargo doido db migrate
 
-# Optional: insert fixture data (edit db/seed/src/main.rs first)
+# Optional: insert fixture data (edit db/seeds.rs first)
 # cargo doido db seed
 
 # Boot the HTTP server on http://0.0.0.0:3000
@@ -117,8 +117,8 @@ my-app/
 │   ├── models/
 │   └── views/
 ├── db/
-│   ├── migration/           ← SeaORM migration crate
-│   ├── seed/                ← Rust seed runner (uses app/models)
+│   ├── migration/           ← SeaORM migration crate (linked into the app binary)
+│   ├── seeds.rs             ← in-binary seeder (uses app/models)
 │   └── schema/
 └── tests/
 ```

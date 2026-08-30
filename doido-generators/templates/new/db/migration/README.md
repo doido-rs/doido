@@ -3,8 +3,11 @@
 A [SeaORM](https://www.sea-ql.org/SeaORM/) migration project for this Doido app.
 Imports use `doido::model::sea_orm_migration` — not the upstream crate directly.
 
-The migration crate depends on `doido` with the selected database feature **and**
-`cli`, which enables `doido::model::sea_orm_migration::cli::run_cli` in `src/main.rs`.
+This crate is a **library**: it exports a `Migrator`, which the app links and runs
+in-process. `doido db migrate` calls the `Migrator` from the app binary (registered
+via `.migrator::<migration::Migrator>()` in `src/main.rs`) — there is no separate
+migration binary and no `cargo run` subprocess, so migration SQL is logged like any
+other statement.
 
 ## Running migrations
 
@@ -12,14 +15,13 @@ From the application root:
 
 ```sh
 # Apply all pending migrations
-cargo run --manifest-path db/migration/Cargo.toml -- up
+doido db migrate
 
 # Roll back the last migration
-cargo run --manifest-path db/migration/Cargo.toml -- down
+doido db migrate down
 
-# Or via the Doido CLI (uses `doido::model::sea_orm_cli` under the hood)
-doido db migrate
-doido db rollback
+# Migration status
+doido db migrate status
 ```
 
 ## Adding migrations

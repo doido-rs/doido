@@ -8,9 +8,10 @@ edition = "2021"
 default-run = "{doido_name}"
 
 # The SeaORM migration project lives in `db/migration` and is built as part of
-# this workspace.
+# this workspace. The app depends on it so `doido db migrate` runs the `Migrator`
+# in-process from this binary (registered via `.migrator` in `src/main.rs`).
 [workspace]
-members = ["db/migration", "db/seed"]
+members = ["db/migration"]
 
 [dependencies]
 doido = {doido_dep}
@@ -19,6 +20,7 @@ doido-controller = {doido_controller_dep}
 doido-model = {doido_model_dep}
 doido-jobs = {doido_jobs_dep}
 doido-mailer = {doido_mailer_dep}
+migration = { path = "db/migration" }
 {doido_cable_deps}{doido_auth_deps}serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sqlx = { version = "0.8", features = ["runtime-tokio", "{doido_sqlx_feature}"] }

@@ -115,20 +115,19 @@ drop_table(manager, "users").await?;
 
 ## Seeds
 
-Toda app criada com `doido new` inclui um membro de workspace `db/seed/` — um
-binário Rust único (não são migrations versionadas) que insere dados de fixture
-usando os models SeaORM em `app/models/`. Edite `db/seed/src/main.rs` e rode:
+Toda app criada com `doido new` inclui um módulo `db/seeds.rs` — uma
+`async fn run` (não são migrations versionadas) que insere dados de fixture
+usando os models SeaORM em `app/models/`. Edite `db/seeds.rs` e rode:
 
 ```bash
 cargo doido db seed
-# ou: cargo run --manifest-path db/seed/Cargo.toml
 ```
 
-O runner lê `DATABASE_URL` do ambiente, ou cai para `config/<env>.yml`
-(`database.url`). Depois de `cargo doido generate model …`, o novo model já está
-disponível pelo módulo `models` ligado em `db/seed/src/main.rs`.
-
-Veja `db/seed/README.md` na app gerada para um exemplo completo.
+O seeder roda **no processo do binário da app** (registrado via `.seeder` em
+`src/main.rs`) usando a conexão da app — sem subprocesso `cargo run` — então seus
+`INSERT`s são logados como qualquer outra instrução. Depois de
+`cargo doido generate model …`, o novo model já está disponível como
+`crate::models::…`.
 
 ## Validações
 

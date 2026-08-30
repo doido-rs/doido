@@ -12,7 +12,7 @@ fn bootstrap_storage_migration_creates_tables() {
     let h = AppHarness::new("bootstrap_storage", BaseProfile::Default);
     h.run_with_db(
         |h| {
-            db::assert_seed_crate_scaffolded(&h.app);
+            db::assert_seeds_scaffolded(&h.app);
             db::assert_migration_source_exists(&h.app, STORAGE_MIGRATION);
             db::assert_lib_registers_migration(&h.app, STORAGE_MIGRATION);
             db::assert_table_exists(&h.app, "storage_blobs");
@@ -34,7 +34,7 @@ fn bootstrap_jobs_db_migration_creates_doido_jobs_table() {
     let h = AppHarness::new("bootstrap_jobs_db", BaseProfile::WithJobsDb);
     h.run_with_db(
         |h| {
-            db::assert_seed_crate_scaffolded(&h.app);
+            db::assert_seeds_scaffolded(&h.app);
             db::assert_migration_source_exists(&h.app, JOBS_MIGRATION);
             db::assert_lib_registers_migration(&h.app, JOBS_MIGRATION);
             db::assert_table_exists(&h.app, "doido_jobs");
