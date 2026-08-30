@@ -3,7 +3,6 @@
 use assert_cmd::Command;
 use doido_generators::generators::new::ProjectGenerator;
 use doido_generators::Generator;
-use doido_model::commands::db::seed_command;
 use predicates::prelude::*;
 use std::fs;
 use std::path::Path;
@@ -43,16 +42,6 @@ fn sqlite_app() -> TempDir {
 }
 
 #[test]
-fn seed_command_runs_the_seed_crate() {
-    let (program, args) = seed_command();
-    assert_eq!(program, "cargo");
-    assert_eq!(
-        args,
-        vec!["run", "--quiet", "--manifest-path", "db/seed/Cargo.toml"]
-    );
-}
-
-#[test]
 fn db_prepare_loads_schema_when_empty() {
     let dir = sqlite_app();
     cmd()
@@ -65,7 +54,10 @@ fn db_prepare_loads_schema_when_empty() {
 }
 
 #[test]
-fn db_seed_runs_seed_crate() {
+fn db_seed_without_registered_seeder_reports_it() {
+    // The standalone `doido` binary registers no app seeder, so `db seed` reports
+    // that rather than silently doing nothing. Real in-binary seeding is covered
+    // by the `db_seed` / `seed_initial_user` e2e scenarios.
     let dir = sqlite_app();
     cmd()
         .current_dir(dir.path())
@@ -73,7 +65,7 @@ fn db_seed_runs_seed_crate() {
         .args(["db", "seed"])
         .assert()
         .success()
-        .stdout(predicate::str::contains("seeded database via db/seed"));
+        .stdout(predicate::str::contains("no seeder registered"));
 }
 
 #[test]

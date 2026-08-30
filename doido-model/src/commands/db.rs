@@ -18,9 +18,78 @@ use crate::sea_orm_cli::{
     handle_error, run_generate_command, run_migrate_command, BannerVersion, BigIntegerType,
     Commands, DateTimeCrate, GenerateSubcommands, MigrateSubcommands,
 };
+use crate::sea_orm_migration::MigratorTrait;
+use crate::DatabaseConnection;
 use clap::Subcommand;
+use std::future::Future;
 use std::path::Path;
 use std::path::PathBuf;
+use std::pin::Pin;
+
+/// A boxed, borrow-scoped future returning a Doido [`Result`](doido_core::Result).
+/// Used to type-erase the app's registered seeder/migrator so the CLI can run
+/// them in-process without knowing their concrete types. Not `Send`: the CLI
+/// future is `block_on`'d on the calling thread (never spawned), so an app's
+/// seeder need not return a `Send` future.
+pub type BoxFut<'a> = Pin<Box<dyn Future<Output = doido_core::Result<()>> + 'a>>;
+
+/// A registered database seeder, type-erased for storage on the `Doido` builder.
+///
+/// Blanket-implemented for any `async fn(&DatabaseConnection) -> Result<()>`, so
+/// apps register a plain async fn via `Doido::seeder(..)`. A trait (rather than a
+/// boxed closure) is used because [`seed`](Seeder::seed) may legitimately return
+/// a future borrowing `&self` — a `Fn` closure can't let a borrow of a captured
+/// value escape its body.
+pub trait Seeder {
+    /// Run the seeder against `conn`.
+    fn seed<'a>(&'a self, conn: &'a DatabaseConnection) -> BoxFut<'a>;
+}
+
+impl<F> Seeder for F
+where
+    F: AsyncFn(&DatabaseConnection) -> doido_core::Result<()>,
+{
+    fn seed<'a>(&'a self, conn: &'a DatabaseConnection) -> BoxFut<'a> {
+        Box::pin((*self)(conn))
+    }
+}
+
+/// The app's registered seeder, type-erased. Registered via `Doido::seeder(..)`
+/// and run in-process by [`run`] (`doido db seed`), so its `INSERT`s log through
+/// the app's tracing subscriber.
+pub type SeederFn = Box<dyn Seeder>;
+
+/// The app's registered migrator dispatcher, produced by `Doido::migrator::<M>()`.
+/// Maps a [`MigrateSubcommands`] to the matching [`MigratorTrait`] method and runs
+/// it in-process against the app connection (so DDL logs like any other statement).
+pub type MigratorFn =
+    Box<dyn for<'a> Fn(Option<MigrateSubcommands>, &'a DatabaseConnection) -> BoxFut<'a>>;
+
+/// Runs a migrate subcommand in-process against `conn` using `M`'s
+/// [`MigratorTrait`] methods — the in-binary replacement for shelling out to
+/// `cargo run --manifest-path db/migration/…`. `None` applies all pending
+/// migrations (SeaORM CLI's default). `Init`/`Generate` are filesystem-only
+/// scaffolding and are handled by the CLI, not here.
+pub async fn run_migrator<M: MigratorTrait>(
+    command: Option<MigrateSubcommands>,
+    conn: &DatabaseConnection,
+) -> doido_core::Result<()> {
+    let result = match command {
+        None => M::up(conn, None).await,
+        Some(MigrateSubcommands::Up { num }) => M::up(conn, num).await,
+        Some(MigrateSubcommands::Down { num }) => M::down(conn, Some(num)).await,
+        Some(MigrateSubcommands::Fresh) => M::fresh(conn).await,
+        Some(MigrateSubcommands::Refresh) => M::refresh(conn).await,
+        Some(MigrateSubcommands::Reset) => M::reset(conn).await,
+        Some(MigrateSubcommands::Status) => M::status(conn).await,
+        Some(MigrateSubcommands::Init) | Some(MigrateSubcommands::Generate { .. }) => {
+            return Err(doido_core::anyhow::anyhow!(
+                "`migrate init`/`generate` scaffold files and are handled by the CLI, not run_migrator"
+            ));
+        }
+    };
+    result.map_err(|e| doido_core::anyhow::anyhow!("migrate failed: {e}"))
+}
 
 /// Subcommands of `doido db`: Doido's `create` plus the flattened SeaORM CLI.
 #[derive(Subcommand)]
@@ -66,8 +135,6 @@ pub enum SchemaCommand {
 
 /// Where Doido keeps its SeaORM migration crate.
 const DEFAULT_MIGRATION_DIR: &str = "db/migration";
-/// Where Doido keeps its Rust seed runner crate.
-const DEFAULT_SEED_DIR: &str = "db/seed";
 /// Where Doido writes generated SeaORM entities.
 const DEFAULT_ENTITY_OUTPUT_DIR: &str = "app/models/_entities";
 /// Canonical schema file (Rails `db/schema.rb` analogue).
@@ -97,14 +164,25 @@ pub fn ensure_database_url_from_config() {
 }
 
 /// Runs a `doido db <command>`.
-pub async fn run(command: DbCommand, verbose: bool) {
+///
+/// `migrator`/`seeder` are the app's registrations from the [`Doido`] builder
+/// (`.migrator::<M>()` / `.seeder(..)`). They run in-process against the app
+/// connection so migrate/seed no longer fork `cargo run`, and their SQL logs
+/// through the app's tracing subscriber. Both are `None` for the bare `doido`
+/// binary, where `migrate`/`seed` report that nothing is registered.
+pub async fn run(
+    command: DbCommand,
+    verbose: bool,
+    migrator: Option<MigratorFn>,
+    seeder: Option<SeederFn>,
+) {
     match command {
         DbCommand::Create => create().await,
         DbCommand::Reset => reset().await,
         DbCommand::Prepare => prepare().await,
-        DbCommand::Seed => seed().await,
+        DbCommand::Seed => seed(seeder).await,
         DbCommand::Schema { action } => schema(action).await,
-        DbCommand::SeaOrm(command) => run_sea_orm(command, verbose).await,
+        DbCommand::SeaOrm(command) => run_sea_orm(command, verbose, migrator).await,
     }
 }
 
@@ -155,33 +233,20 @@ async fn prepare() {
     }
 }
 
-/// Program + args to run the seed crate (`db/seed`).
-pub fn seed_command() -> (String, Vec<String>) {
-    (
-        "cargo".to_string(),
-        vec![
-            "run".to_string(),
-            "--quiet".to_string(),
-            "--manifest-path".to_string(),
-            format!("{DEFAULT_SEED_DIR}/Cargo.toml"),
-        ],
-    )
-}
-
-/// `doido db seed` — compile and run the `db/seed` crate, which inserts data
-/// using the app's SeaORM models in `app/models/`.
-async fn seed() {
-    let (program, args) = seed_command();
-    match std::process::Command::new(&program).args(&args).status() {
-        Ok(status) if status.success() => {
-            doido_core::tracing::info!("seeded database via {DEFAULT_SEED_DIR}");
-        }
-        Ok(status) => {
-            doido_core::tracing::error!(
-                "db seed failed: cargo exited with {}",
-                status.code().unwrap_or(-1)
-            );
-        }
+/// `doido db seed` — run the app's registered seeder in-process against the app
+/// connection. The seeder (`db/seeds.rs`'s `run`, registered via
+/// `Doido::seeder(..)`) inserts data using the app's SeaORM models; because it
+/// runs in-binary its `INSERT`s log through the app's tracing subscriber.
+async fn seed(seeder: Option<SeederFn>) {
+    let Some(seeder) = seeder else {
+        doido_core::tracing::error!(
+            "no seeder registered; add `.seeder(seed::run)` to `Doido::new()` in src/main.rs"
+        );
+        return;
+    };
+    let conn = connect().await;
+    match seeder.seed(&conn).await {
+        Ok(()) => doido_core::tracing::info!("seeded database"),
         Err(e) => doido_core::tracing::error!("db seed failed: {e}"),
     }
 }
@@ -252,7 +317,7 @@ fn database_url() -> String {
 }
 
 /// Dispatches a flattened SeaORM CLI command, applying Doido's directory defaults.
-async fn run_sea_orm(command: Commands, verbose: bool) {
+async fn run_sea_orm(command: Commands, verbose: bool, migrator: Option<MigratorFn>) {
     match command {
         Commands::Generate { mut command } => {
             apply_entity_output_default(&mut command);
@@ -270,21 +335,51 @@ async fn run_sea_orm(command: Commands, verbose: bool) {
             database_url,
             command,
         } => {
-            let migration_dir = override_migration_dir(migration_dir);
+            // `init`/`generate` only scaffold migration source files — no DB, no
+            // fork — so they stay on the SeaORM CLI. Every DB-executing subcommand
+            // runs in-process against the app connection via the registered
+            // migrator, replacing the old `cargo run` on `db/migration`.
+            if is_filesystem_migrate(command.as_ref()) {
+                let migration_dir = override_migration_dir(migration_dir);
+                run_migrate_command(command, &migration_dir, database_schema, database_url, verbose)
+                    .unwrap_or_else(handle_error);
+                return;
+            }
+            let Some(migrator) = migrator else {
+                doido_core::tracing::error!(
+                    "no migrator registered; add `.migrator::<migration::Migrator>()` to `Doido::new()` in src/main.rs"
+                );
+                return;
+            };
             let export = should_export_entities(command.as_ref());
-            run_migrate_command(
-                command,
-                &migration_dir,
-                database_schema,
-                database_url,
-                verbose,
-            )
-            .unwrap_or_else(handle_error);
+            let conn = match database_url {
+                Some(url) => match crate::connect_with_url(&url).await {
+                    Ok(conn) => conn,
+                    Err(e) => {
+                        doido_core::tracing::error!("failed to connect to {url}: {e}");
+                        return;
+                    }
+                },
+                None => connect().await,
+            };
+            if let Err(e) = migrator(command, &conn).await {
+                doido_core::tracing::error!("db migrate failed: {e}");
+                return;
+            }
             if export {
                 export_entities_from_database(verbose).await;
             }
         }
     }
+}
+
+/// Whether a migrate subcommand only touches the filesystem (`init`/`generate`)
+/// and so runs via the SeaORM CLI rather than in-process against the database.
+fn is_filesystem_migrate(command: Option<&MigrateSubcommands>) -> bool {
+    matches!(
+        command,
+        Some(MigrateSubcommands::Init) | Some(MigrateSubcommands::Generate { .. })
+    )
 }
 
 /// Whether a migrate subcommand changes the schema enough to warrant re-export.
@@ -398,5 +493,43 @@ mod tests {
         apply_entity_output_default(&mut command);
         let GenerateSubcommands::Entity { output_dir, .. } = command;
         assert_eq!(output_dir, DEFAULT_ENTITY_OUTPUT_DIR);
+    }
+
+    #[test]
+    fn init_and_generate_are_the_only_filesystem_migrations() {
+        assert!(is_filesystem_migrate(Some(&MigrateSubcommands::Init)));
+        assert!(!is_filesystem_migrate(None));
+        assert!(!is_filesystem_migrate(Some(&MigrateSubcommands::Up {
+            num: None
+        })));
+        assert!(!is_filesystem_migrate(Some(&MigrateSubcommands::Status)));
+    }
+
+    /// A migrator with no migrations: `up`/`status` still create and read the
+    /// tracking table, exercising the in-process dispatch + connection path.
+    struct EmptyMigrator;
+    impl MigratorTrait for EmptyMigrator {
+        fn migrations() -> Vec<Box<dyn crate::sea_orm_migration::MigrationTrait>> {
+            Vec::new()
+        }
+    }
+
+    #[tokio::test]
+    async fn run_migrator_runs_in_process_against_the_connection() {
+        let conn = crate::connect_with_url("sqlite::memory:").await.unwrap();
+        // `None` applies all pending migrations (there are none) and succeeds.
+        run_migrator::<EmptyMigrator>(None, &conn).await.unwrap();
+        // `status` reads the tracking table in-process.
+        run_migrator::<EmptyMigrator>(Some(MigrateSubcommands::Status), &conn)
+            .await
+            .unwrap();
+    }
+
+    #[tokio::test]
+    async fn run_migrator_rejects_filesystem_subcommands() {
+        let conn = crate::connect_with_url("sqlite::memory:").await.unwrap();
+        assert!(run_migrator::<EmptyMigrator>(Some(MigrateSubcommands::Init), &conn)
+            .await
+            .is_err());
     }
 }
