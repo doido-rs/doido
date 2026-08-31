@@ -164,8 +164,10 @@ async fn require_login(ctx: &mut Context) -> Result<(), Response> {
 
 #[controller]
 impl PostsController {
-    /// GET /posts — público: solo los posts publicados.
-    pub async fn index(ctx: Context) -> doido::Result<Response> {
+    /// GET /posts — público: solo los posts publicados. Pasa `signed_in` para que
+    /// la plantilla muestre a los autores con sesión un enlace de edición por post.
+    pub async fn index(mut ctx: Context) -> doido::Result<Response> {
+        let signed_in = ctx.session().get::<i64>("user_id").is_some();
         let posts = post::Entity::find()
             .filter(post::Column::Published.eq(true))
             .all(ctx.db())
@@ -175,6 +177,7 @@ impl PostsController {
             json!({
                 "posts": as_json(&posts),
                 "summary": PostsHelper::index_count(posts.len()),
+                "signed_in": signed_in,
             }),
         ))
     }
@@ -264,7 +267,9 @@ Las vistas del scaffold [extienden](@/docs/reference/views.es.md) el layout gene
 `app/views/layouts/application.html.tera`, que renderiza el contenido con
 `{% block content %}{% endblock %}`. El JSON que pasas a `ctx.render` se vuelve el contexto de la
 plantilla. Reemplaza las plantillas de index y show con un marcado con forma de blog (deja `new`,
-`edit` y `_form` como los escribió el scaffold):
+`edit` y `_form` como los escribió el scaffold). El index muestra un enlace **Editar** por post
+detrás de `{% if signed_in %}` — el flag que pasa la action `index` — así que solo los autores con
+sesión lo ven:
 
 ```html
 {# app/views/posts/index.html.tera #}
@@ -275,6 +280,7 @@ plantilla. Reemplaza las plantillas de index y show con un marcado con forma de 
 {% for post in posts %}
   <article>
     <h2><a href="/posts/{{ post.id }}">{{ post.title }}</a></h2>
+    {% if signed_in %}<a href="/posts/{{ post.id }}/edit">Editar</a>{% endif %}
   </article>
 {% endfor %}
 {% endblock %}

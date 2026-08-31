@@ -162,8 +162,10 @@ async fn require_login(ctx: &mut Context) -> Result<(), Response> {
 
 #[controller]
 impl PostsController {
-    /// GET /posts — public: only published posts.
-    pub async fn index(ctx: Context) -> doido::Result<Response> {
+    /// GET /posts — public: only published posts. Passes `signed_in` so the
+    /// template can show signed-in authors an edit link per post.
+    pub async fn index(mut ctx: Context) -> doido::Result<Response> {
+        let signed_in = ctx.session().get::<i64>("user_id").is_some();
         let posts = post::Entity::find()
             .filter(post::Column::Published.eq(true))
             .all(ctx.db())
@@ -173,6 +175,7 @@ impl PostsController {
             json!({
                 "posts": as_json(&posts),
                 "summary": PostsHelper::index_count(posts.len()),
+                "signed_in": signed_in,
             }),
         ))
     }
@@ -260,7 +263,9 @@ halts the request. `PostsHelper` is the helper the scaffold generated alongside 
 The scaffold's views [extend](@/docs/reference/views.md) the generated
 `app/views/layouts/application.html.tera`, which yields with `{% block content %}{% endblock %}`.
 The JSON you pass to `ctx.render` becomes the template context. Replace the index and show
-templates with blog-shaped markup (leave `new`, `edit`, and `_form` as the scaffold wrote them):
+templates with blog-shaped markup (leave `new`, `edit`, and `_form` as the scaffold wrote them).
+The index gates a per-post **Edit** link behind `{% if signed_in %}` — the flag the `index` action
+passes — so only signed-in authors see it:
 
 ```html
 {# app/views/posts/index.html.tera #}
@@ -271,6 +276,7 @@ templates with blog-shaped markup (leave `new`, `edit`, and `_form` as the scaff
 {% for post in posts %}
   <article>
     <h2><a href="/posts/{{ post.id }}">{{ post.title }}</a></h2>
+    {% if signed_in %}<a href="/posts/{{ post.id }}/edit">Edit</a>{% endif %}
   </article>
 {% endfor %}
 {% endblock %}

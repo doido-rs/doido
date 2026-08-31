@@ -103,8 +103,10 @@ async fn require_login(ctx: &mut Context) -> Result<(), Response> {
 
 #[controller]
 impl PostsController {
-    /// GET /posts — public: only published posts.
-    pub async fn index(ctx: Context) -> doido::Result<Response> {
+    /// GET /posts — public: only published posts. Passes `signed_in` so the
+    /// template can show signed-in authors an edit link per post.
+    pub async fn index(mut ctx: Context) -> doido::Result<Response> {
+        let signed_in = ctx.session().get::<i64>("user_id").is_some();
         let posts = post::Entity::find()
             .filter(post::Column::Published.eq(true))
             .all(ctx.db())
@@ -114,6 +116,7 @@ impl PostsController {
             json!({
                 "posts": as_json(&posts),
                 "summary": PostsHelper::index_count(posts.len()),
+                "signed_in": signed_in,
             }),
         ))
     }
@@ -241,6 +244,7 @@ const INDEX_VIEW: &str = r#"{% extends "layouts/application.html.tera" %}
 {% for post in posts %}
   <article>
     <h2><a href="/posts/{{ post.id }}">{{ post.title }}</a></h2>
+    {% if signed_in %}<a href="/posts/{{ post.id }}/edit">Edit</a>{% endif %}
   </article>
 {% endfor %}
 {% endblock %}
@@ -441,10 +445,22 @@ fn blog_tutorial_scaffold_controller_and_serve() {
             );
 
             // The published post now shows up on the public homepage and its page.
+            // Anonymous readers don't get the per-post edit link.
             let index = http::get_text(&format!("{base}/"));
             assert!(
                 index.contains("My First Post"),
                 "homepage should list the post"
+            );
+            assert!(
+                !index.contains("/posts/1/edit"),
+                "anonymous homepage should not show the edit link"
+            );
+
+            // A signed-in author gets an edit link on each post in the list.
+            let index_authed = http::get_text_with_cookie(&format!("{base}/"), &cookie);
+            assert!(
+                index_authed.contains("/posts/1/edit"),
+                "signed-in homepage should show the edit link"
             );
 
             let show = http::get_text(&format!("{base}/posts/1"));
