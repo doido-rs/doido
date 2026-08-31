@@ -105,6 +105,24 @@ impl Validate for Model {
 We keep `Relation` empty and query comments with an explicit filter below, which sidesteps the
 `i32` primary key / `i64` foreign key mismatch a naïve `has_many` would hit.
 
+### Add the Comment model
+
+A comment belongs to a post and carries the reader's name and message. No login is required to
+comment, so we just store a free-text name. A comment has no CRUD screens of its own, so a plain
+`model` generator is enough:
+
+```bash
+cargo doido generate model Comment \
+  post:references \
+  author_name:string:not_null \
+  body:text:not_null
+cargo doido db migrate
+```
+
+The generated `app/models/comment.rs` (an `i64` `post_id`, `author_name`, `body`, and an empty
+`Relation`) needs no changes — the post controller's `show` action below loads a post's comments
+with an explicit `comment::Column::PostId` filter.
+
 ### Customize the controller
 
 The scaffold's controller exposes all seven REST actions. Rewrite
@@ -313,24 +331,6 @@ Render it from the generated layout, just inside `<body>`, so it wraps every pag
 
 Now the blog index, each post page, and the generated sign-in / sign-up screens all carry the
 same navigation.
-
-## The Comment model
-
-A comment belongs to a post and carries the reader's name and message. No login is required to
-comment, so we just store a free-text name. A comment has no CRUD screens of its own, so a plain
-`model` generator is enough:
-
-```bash
-cargo doido generate model Comment \
-  post:references \
-  author_name:string:not_null \
-  body:text:not_null
-cargo doido db migrate
-```
-
-The generated `app/models/comment.rs` (an `i64` `post_id`, `author_name`, `body`, and an empty
-`Relation`) needs no changes — `show` above already loads a post's comments with an explicit
-`comment::Column::PostId` filter.
 
 ## The comments controller
 

@@ -107,6 +107,24 @@ Mantenemos `Relation` vacío y consultamos los comentarios con un filtro explíc
 que evita el desajuste entre la clave primaria `i32` y la foránea `i64` que un `has_many` ingenuo
 sufriría.
 
+### Añadir el modelo Comment
+
+Un comentario pertenece a un post y lleva el nombre y el mensaje del lector. No se requiere login
+para comentar, así que solo guardamos un nombre libre. Un comentario no tiene pantallas de CRUD
+propias, así que un generador `model` simple basta:
+
+```bash
+cargo doido generate model Comment \
+  post:references \
+  author_name:string:not_null \
+  body:text:not_null
+cargo doido db migrate
+```
+
+El `app/models/comment.rs` generado (un `post_id` `i64`, `author_name`, `body` y un `Relation`
+vacío) no necesita cambios — la action `show` del controlador de posts (abajo) carga los
+comentarios de un post con un filtro explícito por `comment::Column::PostId`.
+
 ### Personalizar el controlador
 
 El controlador del scaffold expone las siete actions REST. Reescribe
@@ -283,24 +301,6 @@ plantilla. Reemplaza las plantillas de index y show con un marcado con forma de 
 </section>
 {% endblock %}
 ```
-
-## El modelo Comment
-
-Un comentario pertenece a un post y lleva el nombre y el mensaje del lector. No se requiere login
-para comentar, así que solo guardamos un nombre libre. Un comentario no tiene pantallas de CRUD
-propias, así que un generador `model` simple basta:
-
-```bash
-cargo doido generate model Comment \
-  post:references \
-  author_name:string:not_null \
-  body:text:not_null
-cargo doido db migrate
-```
-
-El `app/models/comment.rs` generado (un `post_id` `i64`, `author_name`, `body` y un `Relation`
-vacío) no necesita cambios — el `show` de arriba ya carga los comentarios de un post con un filtro
-explícito por `comment::Column::PostId`.
 
 ## El controlador de comentarios
 
