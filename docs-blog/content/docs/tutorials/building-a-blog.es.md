@@ -164,14 +164,16 @@ async fn require_login(ctx: &mut Context) -> Result<(), Response> {
 
 #[controller]
 impl PostsController {
-    /// GET /posts — público: solo los posts publicados. Pasa `signed_in` para que
-    /// la plantilla muestre a los autores con sesión un enlace de edición por post.
+    /// GET /posts — posts publicados para todos; un autor con sesión también ve
+    /// sus borradores sin publicar. Pasa `signed_in` para que la plantilla muestre
+    /// un enlace de edición (y una marca de borrador) por post.
     pub async fn index(mut ctx: Context) -> doido::Result<Response> {
         let signed_in = ctx.session().get::<i64>("user_id").is_some();
-        let posts = post::Entity::find()
-            .filter(post::Column::Published.eq(true))
-            .all(ctx.db())
-            .await?;
+        let mut query = post::Entity::find();
+        if !signed_in {
+            query = query.filter(post::Column::Published.eq(true));
+        }
+        let posts = query.all(ctx.db()).await?;
         Ok(ctx.render(
             "posts/index",
             json!({
@@ -259,7 +261,8 @@ fn parse_id(ctx: &Context) -> i32 {
 
 El `#[before_action(require_login)]` ejecuta el guard antes de la action; devolver
 `Err(response)` interrumpe la petición. `PostsHelper` es el helper que el scaffold generó junto al
-controlador.
+controlador. Fíjate en que `index` solo filtra por `published` cuando nadie tiene sesión — un autor
+con sesión también ve sus borradores sin publicar, mientras que el público ve solo los publicados.
 
 ### Personalizar las vistas
 
@@ -267,9 +270,10 @@ Las vistas del scaffold [extienden](@/docs/reference/views.es.md) el layout gene
 `app/views/layouts/application.html.tera`, que renderiza el contenido con
 `{% block content %}{% endblock %}`. El JSON que pasas a `ctx.render` se vuelve el contexto de la
 plantilla. Reemplaza las plantillas de index y show con un marcado con forma de blog (deja `new`,
-`edit` y `_form` como los escribió el scaffold). El index muestra un enlace **Editar** por post
-detrás de `{% if signed_in %}` — el flag que pasa la action `index` — así que solo los autores con
-sesión lo ven:
+`edit` y `_form` como los escribió el scaffold). El index marca cada post sin publicar con
+`(borrador)` y muestra un enlace **Editar** por post detrás de `{% if signed_in %}` — el flag que
+pasa la action `index` — así que solo los autores con sesión ven el enlace (y, gracias a la consulta
+de la action, los borradores en sí):
 
 ```html
 {# app/views/posts/index.html.tera #}
@@ -280,6 +284,7 @@ sesión lo ven:
 {% for post in posts %}
   <article>
     <h2><a href="/posts/{{ post.id }}">{{ post.title }}</a></h2>
+    {% if not post.published %}<em>(borrador)</em>{% endif %}
     {% if signed_in %}<a href="/posts/{{ post.id }}/edit">Editar</a>{% endif %}
   </article>
 {% endfor %}

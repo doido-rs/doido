@@ -163,14 +163,16 @@ async fn require_login(ctx: &mut Context) -> Result<(), Response> {
 
 #[controller]
 impl PostsController {
-    /// GET /posts — público: só os posts publicados. Passa `signed_in` para que o
-    /// template mostre aos autores logados um link de edição por post.
+    /// GET /posts — posts publicados para todos; um autor logado também vê seus
+    /// rascunhos não publicados. Passa `signed_in` para que o template mostre um
+    /// link de edição (e uma marca de rascunho) por post.
     pub async fn index(mut ctx: Context) -> doido::Result<Response> {
         let signed_in = ctx.session().get::<i64>("user_id").is_some();
-        let posts = post::Entity::find()
-            .filter(post::Column::Published.eq(true))
-            .all(ctx.db())
-            .await?;
+        let mut query = post::Entity::find();
+        if !signed_in {
+            query = query.filter(post::Column::Published.eq(true));
+        }
+        let posts = query.all(ctx.db()).await?;
         Ok(ctx.render(
             "posts/index",
             json!({
@@ -258,6 +260,8 @@ fn parse_id(ctx: &Context) -> i32 {
 
 O `#[before_action(require_login)]` roda o guard antes da action; retornar `Err(response)`
 interrompe a requisição. `PostsHelper` é o helper que o scaffold gerou junto com o controller.
+Repare que o `index` só filtra por `published` quando ninguém está logado — um autor logado também
+vê seus rascunhos não publicados, enquanto o público vê apenas os publicados.
 
 ### Customizar as views
 
@@ -265,8 +269,10 @@ As views do scaffold [estendem](@/docs/reference/views.pt.md) o layout gerado
 `app/views/layouts/application.html.tera`, que renderiza o conteúdo com
 `{% block content %}{% endblock %}`. O JSON que você passa para `ctx.render` vira o contexto do
 template. Substitua os templates de index e show por uma marcação com cara de blog (deixe `new`,
-`edit` e `_form` como o scaffold os escreveu). O index mostra um link **Editar** por post atrás de
-`{% if signed_in %}` — a flag que a action `index` passa — então só autores logados o veem:
+`edit` e `_form` como o scaffold os escreveu). O index marca cada post não publicado com
+`(rascunho)` e mostra um link **Editar** por post atrás de `{% if signed_in %}` — a flag que a
+action `index` passa — então só autores logados veem o link (e, graças à consulta da action, os
+próprios rascunhos):
 
 ```html
 {# app/views/posts/index.html.tera #}
@@ -277,6 +283,7 @@ template. Substitua os templates de index e show por uma marcação com cara de 
 {% for post in posts %}
   <article>
     <h2><a href="/posts/{{ post.id }}">{{ post.title }}</a></h2>
+    {% if not post.published %}<em>(rascunho)</em>{% endif %}
     {% if signed_in %}<a href="/posts/{{ post.id }}/edit">Editar</a>{% endif %}
   </article>
 {% endfor %}

@@ -162,14 +162,16 @@ async fn require_login(ctx: &mut Context) -> Result<(), Response> {
 
 #[controller]
 impl PostsController {
-    /// GET /posts — public: only published posts. Passes `signed_in` so the
-    /// template can show signed-in authors an edit link per post.
+    /// GET /posts — published posts for everyone; a signed-in author also sees
+    /// their unpublished drafts. Passes `signed_in` so the template can show an
+    /// edit link (and a draft marker) per post.
     pub async fn index(mut ctx: Context) -> doido::Result<Response> {
         let signed_in = ctx.session().get::<i64>("user_id").is_some();
-        let posts = post::Entity::find()
-            .filter(post::Column::Published.eq(true))
-            .all(ctx.db())
-            .await?;
+        let mut query = post::Entity::find();
+        if !signed_in {
+            query = query.filter(post::Column::Published.eq(true));
+        }
+        let posts = query.all(ctx.db()).await?;
         Ok(ctx.render(
             "posts/index",
             json!({
@@ -257,6 +259,8 @@ fn parse_id(ctx: &Context) -> i32 {
 
 `#[before_action(require_login)]` runs the guard before the action; returning `Err(response)`
 halts the request. `PostsHelper` is the helper the scaffold generated alongside the controller.
+Note how `index` only filters by `published` when nobody is signed in — a signed-in author sees
+their unpublished drafts too, while the public sees only published posts.
 
 ### Customize the views
 
@@ -264,8 +268,9 @@ The scaffold's views [extend](@/docs/reference/views.md) the generated
 `app/views/layouts/application.html.tera`, which yields with `{% block content %}{% endblock %}`.
 The JSON you pass to `ctx.render` becomes the template context. Replace the index and show
 templates with blog-shaped markup (leave `new`, `edit`, and `_form` as the scaffold wrote them).
-The index gates a per-post **Edit** link behind `{% if signed_in %}` — the flag the `index` action
-passes — so only signed-in authors see it:
+The index tags any unpublished post with `(draft)` and gates a per-post **Edit** link behind
+`{% if signed_in %}` — the flag the `index` action passes — so only signed-in authors see the link
+(and, thanks to the action's query, the drafts themselves):
 
 ```html
 {# app/views/posts/index.html.tera #}
@@ -276,6 +281,7 @@ passes — so only signed-in authors see it:
 {% for post in posts %}
   <article>
     <h2><a href="/posts/{{ post.id }}">{{ post.title }}</a></h2>
+    {% if not post.published %}<em>(draft)</em>{% endif %}
     {% if signed_in %}<a href="/posts/{{ post.id }}/edit">Edit</a>{% endif %}
   </article>
 {% endfor %}
@@ -306,7 +312,7 @@ passes — so only signed-in authors see it:
 
 ### Add a navigation partial
 
-Every page needs the same handful of links — browse posts, start a new one, sign in or up.
+Every page needs the same handful of links — browse posts, start a new one, sign in, up, or out.
 Rather than repeat them in each template, pull them into a **partial** and render it from the
 layout so every page picks it up. Partials live under `app/views/`, are named with a leading
 underscore, and are included by their path:
@@ -318,8 +324,13 @@ underscore, and are included by their path:
   <a href="/posts/new">New post</a>
   <a href="/users/sign_in">Sign in</a>
   <a href="/users/sign_up">Sign up</a>
+  <a href="/users/sign_out"
+     onclick="event.preventDefault(); fetch('/users/sign_out', { method: 'DELETE' }).then(function () { location.href = '/'; })">Sign out</a>
 </nav>
 ```
+
+Sign-out is a `DELETE /users/sign_out` route — like the scaffold's generated Delete button — so the
+link issues it with a small `fetch` and then returns home; a plain `<a>` would only send a GET.
 
 Render it from the generated layout, just inside `<body>`, so it wraps every page's content:
 

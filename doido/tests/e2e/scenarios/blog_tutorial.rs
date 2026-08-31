@@ -103,14 +103,16 @@ async fn require_login(ctx: &mut Context) -> Result<(), Response> {
 
 #[controller]
 impl PostsController {
-    /// GET /posts — public: only published posts. Passes `signed_in` so the
-    /// template can show signed-in authors an edit link per post.
+    /// GET /posts — published posts for everyone; a signed-in author also sees
+    /// their unpublished drafts. Passes `signed_in` so the template can show an
+    /// edit link (and a draft marker) per post.
     pub async fn index(mut ctx: Context) -> doido::Result<Response> {
         let signed_in = ctx.session().get::<i64>("user_id").is_some();
-        let posts = post::Entity::find()
-            .filter(post::Column::Published.eq(true))
-            .all(ctx.db())
-            .await?;
+        let mut query = post::Entity::find();
+        if !signed_in {
+            query = query.filter(post::Column::Published.eq(true));
+        }
+        let posts = query.all(ctx.db()).await?;
         Ok(ctx.render(
             "posts/index",
             json!({
@@ -244,6 +246,7 @@ const INDEX_VIEW: &str = r#"{% extends "layouts/application.html.tera" %}
 {% for post in posts %}
   <article>
     <h2><a href="/posts/{{ post.id }}">{{ post.title }}</a></h2>
+    {% if not post.published %}<em>(draft)</em>{% endif %}
     {% if signed_in %}<a href="/posts/{{ post.id }}/edit">Edit</a>{% endif %}
   </article>
 {% endfor %}
@@ -275,6 +278,8 @@ const NAV_PARTIAL: &str = r#"<nav>
   <a href="/posts/new">New post</a>
   <a href="/users/sign_in">Sign in</a>
   <a href="/users/sign_up">Sign up</a>
+  <a href="/users/sign_out"
+     onclick="event.preventDefault(); fetch('/users/sign_out', { method: 'DELETE' }).then(function () { location.href = '/'; })">Sign out</a>
 </nav>
 "#;
 
@@ -392,10 +397,13 @@ fn blog_tutorial_scaffold_controller_and_serve() {
                 empty.contains("Blog"),
                 "homepage should render the blog heading"
             );
-            // The shared nav partial (rendered via the layout) links to every entry point.
+            // The shared nav partial (rendered via the layout) links to every entry
+            // point, including the sign-out link.
             assert!(
-                empty.contains("href=\"/posts/new\"") && empty.contains("href=\"/users/sign_in\""),
-                "nav partial should render its links on every page"
+                empty.contains("href=\"/posts/new\"")
+                    && empty.contains("href=\"/users/sign_in\"")
+                    && empty.contains("href=\"/users/sign_out\""),
+                "nav partial should render its links (incl. sign-out) on every page"
             );
 
             // Register + sign in the author, capturing the session cookie.
@@ -444,20 +452,43 @@ fn blog_tutorial_scaffold_controller_and_serve() {
                 created.status
             );
 
-            // The published post now shows up on the public homepage and its page.
-            // Anonymous readers don't get the per-post edit link.
+            // The author also saves an unpublished draft (no `published` field).
+            let draft = http::post_form_with_cookie(
+                &format!("{base}/posts"),
+                &[
+                    ("title", "A Secret Draft"),
+                    ("body", "Not ready for readers yet — still writing."),
+                ],
+                &cookie,
+            );
+            assert!(
+                (300..400).contains(&draft.status),
+                "draft create should redirect, got {}",
+                draft.status
+            );
+
+            // The public homepage lists the published post but hides the draft,
+            // and anonymous readers don't get the per-post edit link.
             let index = http::get_text(&format!("{base}/"));
             assert!(
                 index.contains("My First Post"),
-                "homepage should list the post"
+                "homepage should list the published post"
+            );
+            assert!(
+                !index.contains("A Secret Draft"),
+                "anonymous homepage should hide unpublished drafts"
             );
             assert!(
                 !index.contains("/posts/1/edit"),
                 "anonymous homepage should not show the edit link"
             );
 
-            // A signed-in author gets an edit link on each post in the list.
+            // A signed-in author also sees their draft (tagged) and an edit link.
             let index_authed = http::get_text_with_cookie(&format!("{base}/"), &cookie);
+            assert!(
+                index_authed.contains("A Secret Draft") && index_authed.contains("(draft)"),
+                "signed-in homepage should show unpublished drafts, tagged"
+            );
             assert!(
                 index_authed.contains("/posts/1/edit"),
                 "signed-in homepage should show the edit link"
