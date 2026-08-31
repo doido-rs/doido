@@ -390,13 +390,22 @@ a DSL completa.
 
 ## Rodar
 
+Como a app foi gerada com `--auth`, seu crate `db/seed` semeia um usuário inicial sempre que a
+tabela `users` estiver vazia. Semeie-o e então suba o servidor:
+
 ```bash
+cargo doido db seed    # cria o primeiro usuário: admin@example.com / password
 cargo doido server
 ```
 
+O `cargo doido db seed` roda `db/seed/src/main.rs`, que insere `admin@example.com` (senha
+`password`) para que um projeto novo tenha um login já de cara — edite esse arquivo para trocar as
+credenciais ou adicionar mais dados de exemplo.
+
 Agora percorra o fluxo inteiro:
 
-1. Visite `/users/sign_up` e registre a conta do autor.
+1. Faça login em `/users/sign_in` como `admin@example.com` / `password` (ou registre sua própria
+   conta em `/users/sign_up`).
 2. Vá para `/posts/new`, escreva um post e publique.
 3. Abra `/` — o post publicado aparece. Clique até `/posts/{id}`.
 4. Deixe um comentário; ele aparece sob o post.

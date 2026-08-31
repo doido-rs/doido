@@ -421,13 +421,22 @@ DSL.
 
 ## Run it
 
+Because the app was generated with `--auth`, its `db/seed` crate seeds an initial user whenever the
+`users` table is empty. Seed it, then boot the server:
+
 ```bash
+cargo doido db seed    # creates the first user: admin@example.com / password
 cargo doido server
 ```
 
+`cargo doido db seed` runs `db/seed/src/main.rs`, which inserts `admin@example.com` (password
+`password`) so a fresh project has a login out of the box — edit that file to change the
+credentials or add more fixture data.
+
 Now walk the whole flow:
 
-1. Visit `/users/sign_up` and register the author account.
+1. Sign in at `/users/sign_in` as `admin@example.com` / `password` (or register your own account at
+   `/users/sign_up`).
 2. Go to `/posts/new`, write a post, and publish it.
 3. Open `/` — the published post appears. Click through to `/posts/{id}`.
 4. Leave a comment; it shows up under the post.
