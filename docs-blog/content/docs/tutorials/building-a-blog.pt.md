@@ -106,6 +106,24 @@ Mantemos `Relation` vazio e consultamos os comentários com um filtro explícito
 evita o descasamento entre a chave primária `i32` e a estrangeira `i64` que um `has_many` ingênuo
 enfrentaria.
 
+### Adicionar o model Comment
+
+Um comentário pertence a um post e carrega o nome e a mensagem do leitor. Não é preciso login
+para comentar, então guardamos um nome livre. Um comentário não tem telas de CRUD próprias, então
+um gerador `model` simples basta:
+
+```bash
+cargo doido generate model Comment \
+  post:references \
+  author_name:string:not_null \
+  body:text:not_null
+cargo doido db migrate
+```
+
+O `app/models/comment.rs` gerado (um `post_id` `i64`, `author_name`, `body` e um `Relation`
+vazio) não precisa de mudanças — a action `show` do controller de posts (abaixo) carrega os
+comentários de um post com um filtro explícito por `comment::Column::PostId`.
+
 ### Customizar o controller
 
 O controller do scaffold expõe as sete actions REST. Reescreva
@@ -145,17 +163,22 @@ async fn require_login(ctx: &mut Context) -> Result<(), Response> {
 
 #[controller]
 impl PostsController {
-    /// GET /posts — público: só os posts publicados.
-    pub async fn index(ctx: Context) -> doido::Result<Response> {
-        let posts = post::Entity::find()
-            .filter(post::Column::Published.eq(true))
-            .all(ctx.db())
-            .await?;
+    /// GET /posts — posts publicados para todos; um autor logado também vê seus
+    /// rascunhos não publicados. Passa `signed_in` para que o template mostre um
+    /// link de edição (e uma marca de rascunho) por post.
+    pub async fn index(mut ctx: Context) -> doido::Result<Response> {
+        let signed_in = ctx.session().get::<i64>("user_id").is_some();
+        let mut query = post::Entity::find();
+        if !signed_in {
+            query = query.filter(post::Column::Published.eq(true));
+        }
+        let posts = query.all(ctx.db()).await?;
         Ok(ctx.render(
             "posts/index",
             json!({
                 "posts": as_json(&posts),
                 "summary": PostsHelper::index_count(posts.len()),
+                "signed_in": signed_in,
             }),
         ))
     }
@@ -237,6 +260,8 @@ fn parse_id(ctx: &Context) -> i32 {
 
 O `#[before_action(require_login)]` roda o guard antes da action; retornar `Err(response)`
 interrompe a requisição. `PostsHelper` é o helper que o scaffold gerou junto com o controller.
+Repare que o `index` só filtra por `published` quando ninguém está logado — um autor logado também
+vê seus rascunhos não publicados, enquanto o público vê apenas os publicados.
 
 ### Customizar as views
 
@@ -244,7 +269,10 @@ As views do scaffold [estendem](@/docs/reference/views.pt.md) o layout gerado
 `app/views/layouts/application.html.tera`, que renderiza o conteúdo com
 `{% block content %}{% endblock %}`. O JSON que você passa para `ctx.render` vira o contexto do
 template. Substitua os templates de index e show por uma marcação com cara de blog (deixe `new`,
-`edit` e `_form` como o scaffold os escreveu):
+`edit` e `_form` como o scaffold os escreveu). O index marca cada post não publicado com
+`(rascunho)` e mostra um link **Editar** por post atrás de `{% if signed_in %}` — a flag que a
+action `index` passa — então só autores logados veem o link (e, graças à consulta da action, os
+próprios rascunhos):
 
 ```html
 {# app/views/posts/index.html.tera #}
@@ -255,6 +283,8 @@ template. Substitua os templates de index e show por uma marcação com cara de 
 {% for post in posts %}
   <article>
     <h2><a href="/posts/{{ post.id }}">{{ post.title }}</a></h2>
+    {% if not post.published %}<em>(rascunho)</em>{% endif %}
+    {% if signed_in %}<a href="/posts/{{ post.id }}/edit">Editar</a>{% endif %}
   </article>
 {% endfor %}
 {% endblock %}
@@ -281,24 +311,6 @@ template. Substitua os templates de index e show por uma marcação com cara de 
 </section>
 {% endblock %}
 ```
-
-## O model Comment
-
-Um comentário pertence a um post e carrega o nome e a mensagem do leitor. Não é preciso login
-para comentar, então guardamos um nome livre. Um comentário não tem telas de CRUD próprias, então
-um gerador `model` simples basta:
-
-```bash
-cargo doido generate model Comment \
-  post:references \
-  author_name:string:not_null \
-  body:text:not_null
-cargo doido db migrate
-```
-
-O `app/models/comment.rs` gerado (um `post_id` `i64`, `author_name`, `body` e um `Relation`
-vazio) não precisa de mudanças — o `show` acima já carrega os comentários de um post com um filtro
-explícito por `comment::Column::PostId`.
 
 ## O controller de comentários
 
@@ -390,13 +402,22 @@ a DSL completa.
 
 ## Rodar
 
+Como a app foi gerada com `--auth`, seu crate `db/seed` semeia um usuário inicial sempre que a
+tabela `users` estiver vazia. Semeie-o e então suba o servidor:
+
 ```bash
+cargo doido db seed    # cria o primeiro usuário: admin@example.com / password
 cargo doido server
 ```
 
+O `cargo doido db seed` roda `db/seed/src/main.rs`, que insere `admin@example.com` (senha
+`password`) para que um projeto novo tenha um login já de cara — edite esse arquivo para trocar as
+credenciais ou adicionar mais dados de exemplo.
+
 Agora percorra o fluxo inteiro:
 
-1. Visite `/users/sign_up` e registre a conta do autor.
+1. Faça login em `/users/sign_in` como `admin@example.com` / `password` (ou registre sua própria
+   conta em `/users/sign_up`).
 2. Vá para `/posts/new`, escreva um post e publique.
 3. Abra `/` — o post publicado aparece. Clique até `/posts/{id}`.
 4. Deixe um comentário; ele aparece sob o post.

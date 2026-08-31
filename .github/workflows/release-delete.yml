@@ -1,0 +1,58 @@
+name: Release delete
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Exact semver to remove (no leading v, e.g. 0.0.25-test.1)"
+        required: true
+        type: string
+      yank_crates:
+        description: "Yank the version on crates.io via make yank"
+        required: true
+        type: boolean
+        default: true
+
+jobs:
+  delete-github:
+    name: Delete GitHub release and tag
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Delete GitHub release
+        env:
+          VERSION: ${{ inputs.version }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tag="v${VERSION}"
+          if gh release view "${tag}" >/dev/null 2>&1; then
+            gh release delete "${tag}" --yes
+            echo "==> deleted release ${tag}"
+          else
+            echo "==> release ${tag} not found; skipping"
+          fi
+      - name: Delete git tag
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          tag="v${VERSION}"
+          if git ls-remote --exit-code --tags origin "refs/tags/${tag}" >/dev/null 2>&1; then
+            git push --delete origin "refs/tags/${tag}"
+            echo "==> deleted tag ${tag} on origin"
+          else
+            echo "==> tag ${tag} not found on origin; skipping"
+          fi
+
+  yank:
+    name: Yank on crates.io
+    needs: delete-github
+    runs-on: ubuntu-latest
+    if: ${{ inputs.yank_crates }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.95.0
+      - run: make yank VERSION=${{ inputs.version }}
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}

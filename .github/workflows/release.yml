@@ -4,9 +4,14 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Exact semver to publish (required; no leading v, e.g. 0.1.0)"
+        description: "Exact semver to publish (required; no leading v, e.g. 0.1.0; when unstable=true use a suffix, e.g. 0.0.25-test.1)"
         required: true
         type: string
+      unstable:
+        description: "Unstable / test release — GitHub pre-release (not latest); clean up with release-delete workflow + make yank"
+        required: true
+        type: boolean
+        default: false
       dry_run:
         description: "Dry run — skip publish and GitHub Release creation"
         required: true
@@ -42,6 +47,7 @@ jobs:
         id: bump
         env:
           VERSION: ${{ inputs.version }}
+          UNSTABLE: ${{ inputs.unstable }}
         run: ./scripts/bump-workspace-version.sh
       - name: Pack versioned Cargo manifests
         run: ./scripts/pack-cargo-manifests.sh cargo-manifests.tar.gz
@@ -143,6 +149,7 @@ jobs:
       - name: Tag the released commit
         env:
           VERSION: ${{ needs.version.outputs.version }}
+          UNSTABLE: ${{ inputs.unstable }}
         run: |
           tag="v${VERSION}"
           # Idempotent: a re-run of an already-tagged release must not fail or
@@ -153,7 +160,12 @@ jobs:
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git tag -a "${tag}" -m "Release ${tag}"
+          if [ "${UNSTABLE}" = "true" ]; then
+            tag_msg="Release ${tag} (unstable)"
+          else
+            tag_msg="Release ${tag}"
+          fi
+          git tag -a "${tag}" -m "${tag_msg}"
           git push origin "refs/tags/${tag}"
           echo "==> tagged $(git rev-parse HEAD) as ${tag}"
       - name: Download all artifacts
@@ -169,33 +181,52 @@ jobs:
             cp "$f" "release-assets/$(basename "$f")"
           done
           ls -la release-assets
+      - name: Write release notes
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+          UNSTABLE: ${{ inputs.unstable }}
+        run: |
+          write_install_notes() {
+            {
+              echo "## Install"
+              echo
+              echo "**Linux / macOS**"
+              echo
+              echo '```bash'
+              echo "curl -fsSL https://github.com/doido-rs/doido/releases/download/v${VERSION}/install.sh | bash"
+              echo '```'
+              echo
+              echo "Pin a version:"
+              echo
+              echo '```bash'
+              echo "curl -fsSL https://github.com/doido-rs/doido/releases/download/v${VERSION}/install.sh | DOIDO_VERSION=${VERSION} bash"
+              echo '```'
+              echo
+              echo "**Windows (PowerShell)**"
+              echo
+              echo '```powershell'
+              echo "irm https://github.com/doido-rs/doido/releases/download/v${VERSION}/install.ps1 | iex"
+              echo '```'
+              echo
+              echo "Binaries are also attached as \`doido-<target>\` for manual install."
+            } >> release-notes.md
+          }
+
+          : > release-notes.md
+          if [ "${UNSTABLE}" = "true" ]; then
+            {
+              echo "**Unstable / test release** — not promoted to \`latest\`. Delete this release and run \`make yank VERSION=${VERSION}\` when done."
+              echo
+            } >> release-notes.md
+          fi
+          write_install_notes
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ needs.version.outputs.version }}
           name: v${{ needs.version.outputs.version }}
-          body: |
-            ## Install
-
-            **Linux / macOS**
-
-            ```bash
-            curl -fsSL https://github.com/doido-rs/doido/releases/download/v${{ needs.version.outputs.version }}/install.sh | bash
-            ```
-
-            Pin a version:
-
-            ```bash
-            curl -fsSL https://github.com/doido-rs/doido/releases/download/v${{ needs.version.outputs.version }}/install.sh | DOIDO_VERSION=${{ needs.version.outputs.version }} bash
-            ```
-
-            **Windows (PowerShell)**
-
-            ```powershell
-            irm https://github.com/doido-rs/doido/releases/download/v${{ needs.version.outputs.version }}/install.ps1 | iex
-            ```
-
-            Binaries are also attached as `doido-<target>` for manual install.
+          prerelease: ${{ inputs.unstable }}
+          body_path: release-notes.md
           files: release-assets/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

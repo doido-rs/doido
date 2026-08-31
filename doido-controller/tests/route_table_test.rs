@@ -46,7 +46,7 @@ fn routes_macro_registers_full_table() {
     assert!(has("POST", "/posts"));
     assert!(has("GET", "/posts/new"));
     assert!(has("GET", "/posts/{id}"));
-    assert!(has("PUT|PATCH", "/posts/{id}"));
+    assert!(has("POST|PUT|PATCH", "/posts/{id}"));
     assert!(has("DELETE", "/posts/{id}"));
     assert!(has("GET", "/posts/{id}/edit"));
 

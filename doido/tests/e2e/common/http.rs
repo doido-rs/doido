@@ -156,6 +156,18 @@ pub fn get_text(url: &str) -> String {
         .expect("response body")
 }
 
+/// GET returning the body as text while sending a session `Cookie` header — the
+/// signed-in counterpart of `get_text` (e.g. to see author-only links).
+pub fn get_text_with_cookie(url: &str, cookie: &str) -> String {
+    ureq::get(url)
+        .header("Cookie", cookie)
+        .call()
+        .expect("GET request")
+        .into_body()
+        .read_to_string()
+        .expect("response body")
+}
+
 /// GET returning status and body, tolerating 4xx/5xx. Optional `Accept` header
 /// for content negotiation (e.g. development error pages vs plain JSON errors).
 pub fn get_body_any(url: &str, accept: Option<&str>) -> (u16, String) {

@@ -105,6 +105,24 @@ impl Validate for Model {
 We keep `Relation` empty and query comments with an explicit filter below, which sidesteps the
 `i32` primary key / `i64` foreign key mismatch a naïve `has_many` would hit.
 
+### Add the Comment model
+
+A comment belongs to a post and carries the reader's name and message. No login is required to
+comment, so we just store a free-text name. A comment has no CRUD screens of its own, so a plain
+`model` generator is enough:
+
+```bash
+cargo doido generate model Comment \
+  post:references \
+  author_name:string:not_null \
+  body:text:not_null
+cargo doido db migrate
+```
+
+The generated `app/models/comment.rs` (an `i64` `post_id`, `author_name`, `body`, and an empty
+`Relation`) needs no changes — the post controller's `show` action below loads a post's comments
+with an explicit `comment::Column::PostId` filter.
+
 ### Customize the controller
 
 The scaffold's controller exposes all seven REST actions. Rewrite
@@ -144,17 +162,22 @@ async fn require_login(ctx: &mut Context) -> Result<(), Response> {
 
 #[controller]
 impl PostsController {
-    /// GET /posts — public: only published posts.
-    pub async fn index(ctx: Context) -> doido::Result<Response> {
-        let posts = post::Entity::find()
-            .filter(post::Column::Published.eq(true))
-            .all(ctx.db())
-            .await?;
+    /// GET /posts — published posts for everyone; a signed-in author also sees
+    /// their unpublished drafts. Passes `signed_in` so the template can show an
+    /// edit link (and a draft marker) per post.
+    pub async fn index(mut ctx: Context) -> doido::Result<Response> {
+        let signed_in = ctx.session().get::<i64>("user_id").is_some();
+        let mut query = post::Entity::find();
+        if !signed_in {
+            query = query.filter(post::Column::Published.eq(true));
+        }
+        let posts = query.all(ctx.db()).await?;
         Ok(ctx.render(
             "posts/index",
             json!({
                 "posts": as_json(&posts),
                 "summary": PostsHelper::index_count(posts.len()),
+                "signed_in": signed_in,
             }),
         ))
     }
@@ -236,13 +259,18 @@ fn parse_id(ctx: &Context) -> i32 {
 
 `#[before_action(require_login)]` runs the guard before the action; returning `Err(response)`
 halts the request. `PostsHelper` is the helper the scaffold generated alongside the controller.
+Note how `index` only filters by `published` when nobody is signed in — a signed-in author sees
+their unpublished drafts too, while the public sees only published posts.
 
 ### Customize the views
 
 The scaffold's views [extend](@/docs/reference/views.md) the generated
 `app/views/layouts/application.html.tera`, which yields with `{% block content %}{% endblock %}`.
 The JSON you pass to `ctx.render` becomes the template context. Replace the index and show
-templates with blog-shaped markup (leave `new`, `edit`, and `_form` as the scaffold wrote them):
+templates with blog-shaped markup (leave `new`, `edit`, and `_form` as the scaffold wrote them).
+The index tags any unpublished post with `(draft)` and gates a per-post **Edit** link behind
+`{% if signed_in %}` — the flag the `index` action passes — so only signed-in authors see the link
+(and, thanks to the action's query, the drafts themselves):
 
 ```html
 {# app/views/posts/index.html.tera #}
@@ -253,6 +281,8 @@ templates with blog-shaped markup (leave `new`, `edit`, and `_form` as the scaff
 {% for post in posts %}
   <article>
     <h2><a href="/posts/{{ post.id }}">{{ post.title }}</a></h2>
+    {% if not post.published %}<em>(draft)</em>{% endif %}
+    {% if signed_in %}<a href="/posts/{{ post.id }}/edit">Edit</a>{% endif %}
   </article>
 {% endfor %}
 {% endblock %}
@@ -282,7 +312,7 @@ templates with blog-shaped markup (leave `new`, `edit`, and `_form` as the scaff
 
 ### Add a navigation partial
 
-Every page needs the same handful of links — browse posts, start a new one, sign in or up.
+Every page needs the same handful of links — browse posts, start a new one, sign in, up, or out.
 Rather than repeat them in each template, pull them into a **partial** and render it from the
 layout so every page picks it up. Partials live under `app/views/`, are named with a leading
 underscore, and are included by their path:
@@ -294,8 +324,13 @@ underscore, and are included by their path:
   <a href="/posts/new">New post</a>
   <a href="/users/sign_in">Sign in</a>
   <a href="/users/sign_up">Sign up</a>
+  <a href="/users/sign_out"
+     onclick="event.preventDefault(); fetch('/users/sign_out', { method: 'DELETE' }).then(function () { location.href = '/'; })">Sign out</a>
 </nav>
 ```
+
+Sign-out is a `DELETE /users/sign_out` route — like the scaffold's generated Delete button — so the
+link issues it with a small `fetch` and then returns home; a plain `<a>` would only send a GET.
 
 Render it from the generated layout, just inside `<body>`, so it wraps every page's content:
 
@@ -313,24 +348,6 @@ Render it from the generated layout, just inside `<body>`, so it wraps every pag
 
 Now the blog index, each post page, and the generated sign-in / sign-up screens all carry the
 same navigation.
-
-## The Comment model
-
-A comment belongs to a post and carries the reader's name and message. No login is required to
-comment, so we just store a free-text name. A comment has no CRUD screens of its own, so a plain
-`model` generator is enough:
-
-```bash
-cargo doido generate model Comment \
-  post:references \
-  author_name:string:not_null \
-  body:text:not_null
-cargo doido db migrate
-```
-
-The generated `app/models/comment.rs` (an `i64` `post_id`, `author_name`, `body`, and an empty
-`Relation`) needs no changes — `show` above already loads a post's comments with an explicit
-`comment::Column::PostId` filter.
 
 ## The comments controller
 
@@ -421,13 +438,22 @@ DSL.
 
 ## Run it
 
+Because the app was generated with `--auth`, its `db/seed` crate seeds an initial user whenever the
+`users` table is empty. Seed it, then boot the server:
+
 ```bash
+cargo doido db seed    # creates the first user: admin@example.com / password
 cargo doido server
 ```
 
+`cargo doido db seed` runs `db/seed/src/main.rs`, which inserts `admin@example.com` (password
+`password`) so a fresh project has a login out of the box — edit that file to change the
+credentials or add more fixture data.
+
 Now walk the whole flow:
 
-1. Visit `/users/sign_up` and register the author account.
+1. Sign in at `/users/sign_in` as `admin@example.com` / `password` (or register your own account at
+   `/users/sign_up`).
 2. Go to `/posts/new`, write a post, and publish it.
 3. Open `/` — the published post appears. Click through to `/posts/{id}`.
 4. Leave a comment; it shows up under the post.
