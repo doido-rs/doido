@@ -19,6 +19,25 @@ pub fn create_database(bin: &Path, app: &Path) {
     run_app(bin, app, &["db", "create"]);
 }
 
+pub fn schema_diagram(bin: &Path, app: &Path) {
+    run_app(bin, app, &["db", "schema", "diagram"]);
+}
+
+pub fn schema_diagram_file(app: &Path) -> std::path::PathBuf {
+    app.join("db/schema.html")
+}
+
+pub fn parse_schema_design_json(html: &str) -> serde_json::Value {
+    let marker = r#"<script type="application/json" id="doido-schema-design">"#;
+    let start = html
+        .find(marker)
+        .unwrap_or_else(|| panic!("embedded schema json marker not found"))
+        + marker.len();
+    let rest = &html[start..];
+    let end = rest.find("</script>").expect("closing script tag");
+    serde_json::from_str(&rest[..end]).expect("parse embedded schema json")
+}
+
 pub fn schema_dump(bin: &Path, app: &Path) {
     run_app(bin, app, &["db", "schema", "dump"]);
 }

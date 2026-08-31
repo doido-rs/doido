@@ -23,6 +23,8 @@ pub mod normalization;
 pub mod password;
 pub mod pool;
 pub mod schema;
+#[cfg(feature = "cli")]
+pub mod schema_design;
 pub mod scope;
 pub mod seeds;
 pub mod serialization;
@@ -34,6 +36,9 @@ pub mod validation;
 pub use config::{Config, DatabaseConfig, LoggerConfig, YamlConfig};
 pub use create::create_database;
 pub use pool::{connect, connect_with_url};
+
+#[cfg(feature = "cli")]
+pub use schema_design::{export_html, introspect_from_url, resolve_ignore_tables, SchemaDesign};
 
 // Rails-style migration helpers: create_table, alter_table, add_column, …
 pub use migration::{
