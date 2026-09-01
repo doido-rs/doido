@@ -35,7 +35,7 @@ min-lines-percent = 80.0
 [workspace.metadata.coverage-gate.crates]
 doido-auth = 69.0
 doido-controller = 72.0
-doido-generators = 64.0
+doido-generators = 71.0
 
 # Dev/test build profile tuning. Full DWARF (`debug = 2`, cargo's dev default) is
 # a major driver of link-time RAM and target/ disk usage — costly on this 7 GiB

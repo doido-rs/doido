@@ -136,10 +136,16 @@ coverage_ignore_regex() {
 	# not exercised in the sqlite coverage run. Without these exclusions,
 	# llvm-cov can attribute 0% lines from binaries built earlier by `doido`.
 	doido-model) echo 'doido-model/src/commands/|doido-model/src/schema_design/introspect/(postgres|mysql)\.rs' ;;
-	# CLI boot/REPL/server dispatchers: exercised by the release e2e (#[ignore]),
-	# not by in-process unit tests. The data-oriented commands (db/credentials/
-	# jobs/worker/generate/destroy) stay in the gate and are unit-tested.
-	doido-generators) echo 'doido-generators/src/(commands/(server|console|dbconsole|runner)|banner|cli|main)\.rs' ;;
+	# `cargo llvm-cov -p doido-generators` pulls in its path-dependencies'
+	# instrumented CLI sources (doido-core credentials, doido-model db, doido-jobs
+	# jobs/worker, the doido binary's cli/banner/main), which show up as false 0%
+	# and drag the crate total down. Those files are covered (or excluded) in
+	# their *own* crate gates. llvm-cov matches this regex against the leaked
+	# files' crate-relative display path (e.g. `commands/credentials.rs`), so
+	# ignore them by that form; also drop the crate's own REPL runner
+	# (`doido runner script.rs`), which is release-e2e-only. The kept
+	# `commands/*` (generate/destroy/new/mod) are real generators commands.
+	doido-generators) echo 'commands/(credentials|db|dbconsole|jobs|worker|server|console|runner)\.rs|(^|/)(cli|banner|main)\.rs' ;;
 	# commands/server.rs boots axum; commands/console.rs is an interactive REPL.
 	doido-controller) echo 'doido-controller/src/commands/(server|console)\.rs' ;;
 	esac
