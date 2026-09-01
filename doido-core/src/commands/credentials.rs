@@ -169,6 +169,13 @@ fn show(config_dir: &Path) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::Mutex;
+
+    /// Serialises tests that read/write the process-global `DOIDO_MASTER_KEY`
+    /// env var (and the current dir); without this they race under the parallel
+    /// test runner — e.g. one test's `DOIDO_MASTER_KEY` leaks into another's
+    /// `read_master_key`, which checks the env before the key file.
+    static ENV_LOCK: Mutex<()> = Mutex::new(());
 
     fn temp_dir() -> PathBuf {
         let dir =
@@ -199,6 +206,81 @@ mod tests {
         let dir = temp_dir();
         let plain = read_credentials(&dir, b"k").unwrap();
         assert!(plain.contains("Encrypted credentials"));
+        fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn ensure_master_key_writes_and_gitignores() {
+        let _env = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        let dir = temp_dir();
+        let project = dir.join("proj");
+        fs::create_dir_all(&project).unwrap();
+        fs::write(project.join(".gitignore"), "existing\n").unwrap();
+        let original = std::env::current_dir().unwrap();
+        let original_key = std::env::var("DOIDO_MASTER_KEY").ok();
+        std::env::remove_var("DOIDO_MASTER_KEY");
+        std::env::set_current_dir(&project).unwrap();
+        let key = ensure_master_key(Path::new("config")).unwrap();
+        assert!(!key.is_empty());
+        assert!(master_key_path(Path::new("config")).is_file());
+        let gitignore = fs::read_to_string(".gitignore").unwrap();
+        assert!(gitignore.contains("config/master.key"));
+        std::env::set_current_dir(original).unwrap();
+        if let Some(v) = original_key {
+            std::env::set_var("DOIDO_MASTER_KEY", v);
+        }
+        fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn read_master_key_from_env() {
+        let _env = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        let dir = temp_dir();
+        let original = std::env::var("DOIDO_MASTER_KEY").ok();
+        std::env::set_var("DOIDO_MASTER_KEY", "env-master-key");
+        assert_eq!(
+            read_master_key(Path::new("config")).unwrap(),
+            b"env-master-key"
+        );
+        if let Some(v) = original {
+            std::env::set_var("DOIDO_MASTER_KEY", v);
+        } else {
+            std::env::remove_var("DOIDO_MASTER_KEY");
+        }
+        fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn show_prints_decrypted_credentials() {
+        let _env = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        let original_key = std::env::var("DOIDO_MASTER_KEY").ok();
+        // `show` → `require_master_key` checks the env before the key file; unset
+        // it so the on-disk `config/master.key` we just wrote is used.
+        std::env::remove_var("DOIDO_MASTER_KEY");
+        let dir = temp_dir();
+        let config = dir.join("config");
+        fs::create_dir_all(&config).unwrap();
+        fs::write(config.join(MASTER_KEY_NAME), "show-key").unwrap();
+        write_credentials(&config, b"show-key", "api_token: secret\n").unwrap();
+        show(&config).unwrap();
+        if let Some(v) = original_key {
+            std::env::set_var("DOIDO_MASTER_KEY", v);
+        }
+        fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn require_master_key_errors_when_missing() {
+        let _env = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        let dir = temp_dir();
+        let config = dir.join("config");
+        fs::create_dir_all(&config).unwrap();
+        let original_key = std::env::var("DOIDO_MASTER_KEY").ok();
+        std::env::remove_var("DOIDO_MASTER_KEY");
+        assert!(require_master_key(&config).is_err());
+        if let Some(v) = original_key {
+            std::env::set_var("DOIDO_MASTER_KEY", v);
+        }
         fs::remove_dir_all(&dir).ok();
     }
 }

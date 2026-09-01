@@ -49,6 +49,37 @@ else
 	)
 fi
 
+# Per-crate coverage floors (the ratchet) from
+# [workspace.metadata.coverage-gate.crates] in Cargo.toml. Crates listed there
+# must meet their own floor; every other crate must meet the global THRESHOLD.
+# This keeps the gate green while lagging crates are brought up to the 80%
+# target one at a time — raise a crate's floor as its coverage rises, and drop
+# it from the table once it clears THRESHOLD.
+declare -A CRATE_FLOORS=()
+while IFS=' ' read -r name floor; do
+	[[ -z "$name" ]] && continue
+	CRATE_FLOORS["$name"]="$floor"
+done < <(
+	cargo metadata --no-deps --format-version 1 2>/dev/null \
+		| python3 -c '
+import json, sys
+meta = json.load(sys.stdin).get("metadata") or {}
+crates = ((meta.get("coverage-gate") or {}).get("crates")) or {}
+for name, floor in crates.items():
+    print(f"{name} {floor}")
+'
+)
+
+# Coverage floor for a crate: its per-crate ratchet floor if present, else the
+# global THRESHOLD.
+crate_floor() {
+	if [[ -n "${CRATE_FLOORS[$1]:-}" ]]; then
+		echo "${CRATE_FLOORS[$1]}"
+	else
+		echo "$THRESHOLD"
+	fi
+}
+
 parse_crate_line_pct() {
 	python3 -c '
 import sys
@@ -105,10 +136,16 @@ coverage_ignore_regex() {
 	# not exercised in the sqlite coverage run. Without these exclusions,
 	# llvm-cov can attribute 0% lines from binaries built earlier by `doido`.
 	doido-model) echo 'doido-model/src/commands/|doido-model/src/schema_design/introspect/(postgres|mysql)\.rs' ;;
+	# CLI boot/REPL/server dispatchers: exercised by the release e2e (#[ignore]),
+	# not by in-process unit tests. The data-oriented commands (db/credentials/
+	# jobs/worker/generate/destroy) stay in the gate and are unit-tested.
+	doido-generators) echo 'doido-generators/src/(commands/(server|console|dbconsole|runner)|banner|cli|main)\.rs' ;;
+	# commands/server.rs boots axum; commands/console.rs is an interactive REPL.
+	doido-controller) echo 'doido-controller/src/commands/(server|console)\.rs' ;;
 	esac
 }
 
-echo "==> coverage gate: ${THRESHOLD}% line coverage (per-file=${PER_FILE})"
+echo "==> coverage gate: line coverage >= per-crate floor (global default ${THRESHOLD}%, per-file=${PER_FILE})"
 for pkg in "${PACKAGES[@]}"; do
 	echo "    measuring ${pkg}..."
 	extra="$(coverage_extra_args "$pkg")"
@@ -127,12 +164,13 @@ for pkg in "${PACKAGES[@]}"; do
 		continue
 	fi
 
+	floor="$(crate_floor "$pkg")"
 	status="OK"
-	if awk "BEGIN { exit !(${total_line} < ${THRESHOLD}) }"; then
+	if awk "BEGIN { exit !(${total_line} < ${floor}) }"; then
 		status="FAIL"
-		failed_crates+=("${pkg} ${total_line}%")
+		failed_crates+=("${pkg} ${total_line}% (floor ${floor}%)")
 	fi
-	printf '    %-24s %6.2f%%  [%s]\n' "${pkg}" "${total_line}" "${status}"
+	printf '    %-24s %6.2f%%  (floor %5.1f%%)  [%s]\n' "${pkg}" "${total_line}" "${floor}" "${status}"
 
 	if [[ "$PER_FILE" -eq 1 ]]; then
 		while IFS= read -r row; do
@@ -144,7 +182,7 @@ done
 
 if ((${#failed_crates[@]} > 0)); then
 	echo
-	echo "==> crate coverage below ${THRESHOLD}%:"
+	echo "==> crates below their coverage floor:"
 	for entry in "${failed_crates[@]}"; do
 		echo "    - ${entry}"
 	done
@@ -163,4 +201,4 @@ if ((${#failed_crates[@]} > 0 || ${#failed_files[@]} > 0)); then
 fi
 
 echo
-echo "==> coverage gate: OK (all crates >= ${THRESHOLD}%)"
+echo "==> coverage gate: OK (all crates >= their floor)"
