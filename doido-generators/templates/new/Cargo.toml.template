@@ -11,6 +11,10 @@ default-run = "{doido_name}"
 # `doido db migrate` runs the `Migrator` in-process (registered via `.migrator`
 # in `src/main.rs`).
 
+# Standalone workspace root so the app can live inside another checkout
+# (e.g. `target/e2e/apps/`) without joining that parent workspace.
+[workspace]
+
 [dependencies]
 doido = {doido_dep}
 doido-core = {doido_core_dep}

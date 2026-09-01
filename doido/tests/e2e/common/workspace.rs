@@ -110,7 +110,14 @@ fn base_app_is_valid(dir: &Path, profile: BaseProfile) -> bool {
     let hello = app.join("app/controllers/hello_controller.rs");
     let helpers_mod = app.join("app/helpers/mod.rs");
 
+    let cargo_ok = fs::read_to_string(app.join("Cargo.toml"))
+        .map(|content| {
+            content.contains("[workspace]") && content.matches("async-trait").count() <= 1
+        })
+        .unwrap_or(false);
+
     if !app.join("Cargo.toml").is_file()
+        || !cargo_ok
         || !helpers_mod.is_file()
         || !app.join("db/seeds.rs").is_file()
         || !app.join("app/models/_entities/mod.rs").is_file()
@@ -168,7 +175,11 @@ fn auth_base_is_valid(dir: &Path, _api: bool) -> bool {
         })
         .unwrap_or(false);
     let cargo_ok = fs::read_to_string(app.join("Cargo.toml"))
-        .map(|content| content.contains("\"auth\""))
+        .map(|content| {
+            content.contains("[workspace]")
+                && content.contains("\"auth\"")
+                && content.matches("async-trait").count() <= 1
+        })
         .unwrap_or(false);
     let seed_ok = app.join("db/seeds.rs").is_file()
         && fs::read_to_string(app.join("src/main.rs"))

@@ -132,8 +132,12 @@ fn app_compiles_migrations_in_binary_without_separate_crate() {
         "app Cargo.toml must not depend on a separate migration crate"
     );
     assert!(
-        !cargo.contains("[workspace]"),
-        "generated app must not declare a workspace for db/migration"
+        cargo.contains("[workspace]"),
+        "generated app must be a standalone workspace root"
+    );
+    assert!(
+        !cargo.contains("members ="),
+        "generated app must not declare workspace members for db/migration"
     );
     assert!(
         cargo.contains("async-trait = \"0.1\""),

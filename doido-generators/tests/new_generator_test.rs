@@ -306,8 +306,12 @@ fn test_new_seeds_module_replaces_the_seed_crate() {
     );
     let cargo = files.iter().find(|f| f.path == "blog/Cargo.toml").unwrap();
     assert!(
-        !cargo.content.contains("[workspace]"),
-        "generated app must not declare a workspace for db/migration"
+        cargo.content.contains("[workspace]"),
+        "generated app must be a standalone workspace root"
+    );
+    assert!(
+        !cargo.content.contains("members ="),
+        "generated app must not declare workspace members for db/migration"
     );
     assert!(
         !cargo.content.contains("migration = { path"),

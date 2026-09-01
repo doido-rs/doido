@@ -59,7 +59,7 @@ const CABLE_README_SECTION: &str = r#"
 
 This app was generated with `--cable`, so it includes:
 
-- the `doido-cable` (and `async-trait`) dependencies in `Cargo.toml`;
+- the `doido-cable` dependency in `Cargo.toml`;
 - an example channel at `app/channels/chat_channel.rs`, registered in
   `app/channels/mod.rs` and wired into the crate via `mod channels;` in
   `src/main.rs`.
@@ -338,7 +338,7 @@ fn substitute_template(template: &str, ctx: &TemplateContext<'_>) -> String {
     let (cable_deps, cable_module, cable_readme) = if ctx.cable {
         (
             format!(
-                "doido-cable = {}\nasync-trait = \"0.1\"\n",
+                "doido-cable = {}\n",
                 doido_dependency(&ctx.dep_mode, "doido-cable", "")
             ),
             CABLE_MODULE_INCLUDE.to_string(),
