@@ -32,12 +32,12 @@ impl Generator for MigrationGenerator {
 
         // The module/file name is the migration id registered in lib.rs.
 
-        // Register the migration in db/migration/src/lib.rs, preserving any
+        // Register the migration in db/migration/mod.rs, preserving any
         // migrations already registered there.
-        let lib_path = format!("{MIGRATION_SRC_DIR}/lib.rs");
+        let mod_path = format!("{MIGRATION_SRC_DIR}/mod.rs");
         let existing =
-            std::fs::read_to_string(&lib_path).unwrap_or_else(|_| MIGRATION_LIB_BASE.to_string());
-        let lib = register_migration(&existing, &migration_module);
+            std::fs::read_to_string(&mod_path).unwrap_or_else(|_| MIGRATION_LIB_BASE.to_string());
+        let mod_rs = register_migration(&existing, &migration_module);
 
         let test = crate::templates::get("migration/migration_test.rs.template")
             .replace("{snake}", &snake);
@@ -48,8 +48,8 @@ impl Generator for MigrationGenerator {
                 content: migration,
             },
             GeneratedFile {
-                path: lib_path,
-                content: lib,
+                path: mod_path,
+                content: mod_rs,
             },
             GeneratedFile {
                 path: format!("tests/{snake}_migration_test.rs"),

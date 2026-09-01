@@ -4,6 +4,9 @@ mod controllers;
 #[path = "../app/models/mod.rs"]
 mod models;
 
+#[path = "../db/migration/mod.rs"]
+mod migration;
+
 #[path = "../db/seeds.rs"]
 mod seed;
 
@@ -29,8 +32,8 @@ async fn main() {
     // The `jobs`/`mailers` modules above are compiled as part of this crate, so
     // generated jobs/mailers are type-checked even before they are wired up.
     //
-    // `.migrator`/`.seeder` register the app's migrations (`db/migration`) and
-    // seeder (`db/seeds.rs`) so `doido db migrate`/`doido db seed` run in-process
+    // `.migrator`/`.seeder` register the app's migration module (`db/migration/mod.rs`)
+    // and seeder (`db/seeds.rs`) so `doido db migrate`/`doido db seed` run in-process
     // from this binary — no `cargo run` subprocess — and their SQL is logged.
     //
     // `doido generate generator <Name>` scaffolds an app generator under

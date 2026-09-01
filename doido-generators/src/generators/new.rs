@@ -2,7 +2,7 @@
 //! Placeholders: `{doido_name}`, `{doido_db_url}`, `{doido_sqlx_feature}`,
 //! `{doido_path}` (absolute workspace root when the running binary lives inside a
 //! local checkout), and the per-crate dependency specs `{doido_dep}` /
-//! `{doido_controller_dep}` / `{doido_model_dep}` / `{doido_migration_dep}` which render as a local `path`
+//! `{doido_controller_dep}` / `{doido_model_dep}` which render as a local `path`
 //! dep when the binary runs from a development checkout or a crates.io `version`
 //! dep matching this binary's release otherwise (see [`DependencyMode`]).
 //!
@@ -86,7 +86,6 @@ struct TemplateContext<'a> {
     api: bool,
     dep_mode: DependencyMode,
     doido_dep: String,
-    doido_migration_dep: String,
     doido_jobs_dep: String,
     doido_model_dep: String,
     cache_section: String,
@@ -155,10 +154,6 @@ fn doido_jobs_features(jobs: JobsBackend, database: &str) -> String {
         JobsBackend::Redis => ", features = [\"jobs-redis\"]".to_string(),
         JobsBackend::Memory => String::new(),
     }
-}
-
-fn doido_migration_features(database: &str) -> String {
-    format!(", default-features = false, features = [\"{database}\"]")
 }
 
 fn doido_model_features(database: &str) -> String {
@@ -377,7 +372,6 @@ fn substitute_template(template: &str, ctx: &TemplateContext<'_>) -> String {
         .replace("{doido_db_url}", &ctx.db_url)
         .replace("{doido_sqlx_feature}", ctx.sqlx_feature)
         .replace("{doido_dep}", &ctx.doido_dep)
-        .replace("{doido_migration_dep}", &ctx.doido_migration_dep)
         .replace(
             "{doido_core_dep}",
             &doido_dependency(&ctx.dep_mode, "doido-core", ""),
@@ -533,11 +527,6 @@ impl Generator for ProjectGenerator {
             auth,
             api,
             doido_dep: doido_dependency(&dep_mode, "doido", &doido_features(cache, database, auth)),
-            doido_migration_dep: doido_dependency(
-                &dep_mode,
-                "doido",
-                &doido_migration_features(database),
-            ),
             doido_jobs_dep: doido_dependency(
                 &dep_mode,
                 "doido-jobs",
@@ -562,16 +551,16 @@ impl Generator for ProjectGenerator {
         let mut files = Vec::new();
         collect_from_dir(&APP_TEMPLATE_DIR, &ctx, name, &mut files)?;
 
-        if let Some(lib) = files
+        if let Some(mod_rs) = files
             .iter_mut()
-            .find(|f| f.path.ends_with("db/migration/src/lib.rs"))
+            .find(|f| f.path.ends_with("db/migration/mod.rs"))
         {
             let (updated, migrations) =
-                apply_bootstrap_migrations(&lib.content, jobs == JobsBackend::Db);
-            lib.content = updated;
+                apply_bootstrap_migrations(&mod_rs.content, jobs == JobsBackend::Db);
+            mod_rs.content = updated;
             for (module, content) in migrations {
                 files.push(GeneratedFile {
-                    path: format!("{name}/db/migration/src/{module}.rs"),
+                    path: format!("{name}/db/migration/{module}.rs"),
                     content,
                 });
             }
@@ -683,18 +672,6 @@ edition = "2021"
         assert!(line.contains("cache-redis"));
         assert!(line.contains("sqlite"));
         assert_cargo_toml_parses(&minimal_cargo_with_doido_line(&line));
-    }
-
-    #[test]
-    fn doido_migration_features_include_database_only() {
-        assert_eq!(
-            doido_migration_features("sqlite"),
-            ", default-features = false, features = [\"sqlite\"]"
-        );
-        assert_eq!(
-            doido_migration_features("postgres"),
-            ", default-features = false, features = [\"postgres\"]"
-        );
     }
 
     #[test]

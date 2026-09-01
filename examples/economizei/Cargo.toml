@@ -5,15 +5,12 @@ version = "0.1.0"
 edition = "2021"
 default-run = "economizei"
 
-# The SeaORM migration project lives in `db/migration` and is built as part of
-# this workspace. The app depends on it so `doido db migrate` runs the `Migrator`
-# in-process from this binary (registered via `.migrator` in `src/main.rs`).
-[workspace]
-members = ["db/migration"]
+# Migrations live in `db/migration/mod.rs` and are compiled into this binary.
+# `doido db migrate` runs the `Migrator` in-process (registered via `.migrator`
+# in `src/main.rs`).
 
 [dependencies]
 doido = { version = "0.0.24", default-features = false, features = ["postgres"] }
-migration = { path = "db/migration" }
 doido-core = { version = "0.0.24" }
 doido-controller = { version = "0.0.24", features = ["postgres"] }
 doido-model = { version = "0.0.24", features = ["postgres"] }
@@ -22,6 +19,7 @@ doido-mailer = { version = "0.0.24" }
 doido-auth = { version = "0.0.24" }
 doido-auth-macros = "0.0.24"
 doido-view = { version = "0.0.24" }
+async-trait = "0.1"
 tower-http = { version = "0.7", features = ["fs"] }
 chrono = { version = "0.4", features = ["clock"] }
 serde = { version = "1", features = ["derive"] }

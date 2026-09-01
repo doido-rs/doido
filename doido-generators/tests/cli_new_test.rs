@@ -26,11 +26,9 @@ fn test_doido_new_creates_project_files() {
         .join("my-app/app/views/layouts/application.html.tera")
         .exists());
     assert!(dir.path().join("my-app/db/schema/.gitkeep").exists());
-    // `db/migration` is a SeaORM migration library, linked into the app binary
-    // (no standalone migration bin). The seeder is an app module, not a crate.
-    assert!(dir.path().join("my-app/db/migration/Cargo.toml").exists());
-    assert!(dir.path().join("my-app/db/migration/src/lib.rs").exists());
-    assert!(!dir.path().join("my-app/db/migration/src/main.rs").exists());
+    // Migrations compile into the app binary as `db/migration/mod.rs` + `m*.rs`.
+    assert!(dir.path().join("my-app/db/migration/mod.rs").exists());
+    assert!(!dir.path().join("my-app/db/migration/Cargo.toml").exists());
     assert!(dir.path().join("my-app/db/seeds.rs").exists());
     assert!(!dir.path().join("my-app/db/seed/Cargo.toml").exists());
 }
@@ -162,12 +160,12 @@ fn test_doido_generate_model_writes_model_migration_and_lib() {
     let content = fs::read_to_string(&model_path).unwrap();
     assert!(content.contains("pub use super::_entities::users::*;"));
 
-    // Migration registered in the migration crate lib.rs.
-    let lib = fs::read_to_string(dir.path().join("db/migration/src/lib.rs")).unwrap();
-    assert!(lib.contains("_create_users_table::Migration)"));
+    // Migration registered in db/migration/mod.rs.
+    let mod_rs = fs::read_to_string(dir.path().join("db/migration/mod.rs")).unwrap();
+    assert!(mod_rs.contains("_create_users_table::Migration)"));
 
-    // The migration file itself exists in db/migration/src/.
-    let migration_exists = fs::read_dir(dir.path().join("db/migration/src"))
+    // The migration file itself exists in db/migration/.
+    let migration_exists = fs::read_dir(dir.path().join("db/migration"))
         .unwrap()
         .filter_map(|e| e.ok())
         .any(|e| {

@@ -3,19 +3,16 @@ name = "chat-websocket"
 description = "Starter Doido web application: Axum server, routed hello endpoint, templating scaffolding."
 version = "0.1.0"
 edition = "2021"
-# Default binary when running `cargo run` from the app root (workspace also has
-# `db/migration`). Equivalent to `cargo run --bin chat-websocket` / `cargo doido`.
+# Default binary when running `cargo run` from the app root.
+# Equivalent to `cargo run --bin chat-websocket` / `cargo doido`.
 default-run = "chat-websocket"
 
-# The SeaORM migration project lives in `db/migration` and is built as part of
-# this workspace. The app depends on it so `doido db migrate` runs the `Migrator`
-# in-process from this binary (registered via `.migrator` in `src/main.rs`).
-[workspace]
-members = ["db/migration"]
+# Migrations live in `db/migration/mod.rs` and are compiled into this binary.
+# `doido db migrate` runs the `Migrator` in-process (registered via `.migrator`
+# in `src/main.rs`).
 
 [dependencies]
 doido = { path = "/home/fabiano/projetos_doido/doido/doido", default-features = false, features = ["sqlite", "auth"] }
-migration = { path = "db/migration" }
 doido-core = { path = "/home/fabiano/projetos_doido/doido/doido-core" }
 doido-controller = { path = "/home/fabiano/projetos_doido/doido/doido-controller", features = ["sqlite"] }
 doido-model = { path = "/home/fabiano/projetos_doido/doido/doido-model", features = ["sqlite"] }

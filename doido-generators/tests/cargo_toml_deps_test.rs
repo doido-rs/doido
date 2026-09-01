@@ -18,14 +18,14 @@ fn cargo_toml_for(args: &[&str]) -> String {
         .expect("app Cargo.toml")
 }
 
-fn migration_cargo_toml_for(args: &[&str]) -> String {
+fn migration_mod_for(args: &[&str]) -> String {
     ProjectGenerator
         .generate(args)
         .unwrap()
         .into_iter()
-        .find(|f| f.path.contains("db/migration/Cargo.toml"))
+        .find(|f| f.path.ends_with("db/migration/mod.rs"))
         .map(|f| f.content)
-        .expect("migration Cargo.toml")
+        .expect("db/migration/mod.rs")
 }
 
 #[test]
@@ -123,17 +123,21 @@ fn doido_model_database_features_stay_on_app_dependency_line() {
 }
 
 #[test]
-fn app_depends_on_the_local_migration_crate() {
-    // The app links the `migration` crate so `doido db migrate` runs the
-    // `Migrator` in-process; the seeder lives in `db/seeds.rs`, not a crate.
+fn app_compiles_migrations_in_binary_without_separate_crate() {
+    // Migrations live in `db/migration/mod.rs` and run in-process; the seeder
+    // lives in `db/seeds.rs`, not a crate.
     let cargo = cargo_toml_for(&["app", "--database=sqlite"]);
     assert!(
-        cargo.contains("migration = { path = \"db/migration\" }"),
-        "app Cargo.toml must depend on the local migration crate"
+        !cargo.contains("migration = { path"),
+        "app Cargo.toml must not depend on a separate migration crate"
     );
     assert!(
-        cargo.contains("members = [\"db/migration\"]"),
-        "workspace must list only db/migration (the seed crate is gone)"
+        !cargo.contains("[workspace]"),
+        "generated app must not declare a workspace for db/migration"
+    );
+    assert!(
+        cargo.contains("async-trait = \"0.1\""),
+        "app Cargo.toml must declare async-trait for MigratorTrait"
     );
     assert!(
         !cargo.contains("db/seed"),
@@ -142,28 +146,17 @@ fn app_depends_on_the_local_migration_crate() {
 }
 
 #[test]
-fn doido_model_database_features_stay_on_migration_dependency_line() {
+fn migration_mod_imports_sea_orm_via_doido_for_each_database() {
     let cases = [
-        ("sqlite", "features = [\"sqlite\"]"),
-        ("postgres", "features = [\"postgres\"]"),
-        ("mysql", "features = [\"mysql\"]"),
+        ("sqlite", "doido::model::sea_orm_migration"),
+        ("postgres", "doido::model::sea_orm_migration"),
+        ("mysql", "doido::model::sea_orm_migration"),
     ];
-    for (database, feature) in cases {
-        let cargo = migration_cargo_toml_for(&["app", &format!("--database={database}")]);
-        cargo
-            .parse::<toml::Table>()
-            .expect("valid migration Cargo.toml");
+    for (database, import) in cases {
+        let mod_rs = migration_mod_for(&["app", &format!("--database={database}")]);
         assert!(
-            cargo.contains("doido = {"),
-            "{database}: migration crate must declare doido meta crate"
-        );
-        assert!(
-            cargo.contains(feature),
-            "{database}: doido line must include {feature}"
-        );
-        assert!(
-            !cargo.contains("}, features ="),
-            "{database}: features must stay inside the inline table"
+            mod_rs.contains(import),
+            "{database}: migration mod.rs must import via doido::model"
         );
     }
 }

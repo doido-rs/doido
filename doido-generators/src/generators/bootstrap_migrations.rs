@@ -115,7 +115,7 @@ fn render_bootstrap_migration(m: &BootstrapMigration) -> String {
     render_migration_file(m.module, m.imports, m.up_body, m.down_body)
 }
 
-/// Returns `(updated lib.rs, migration module name, migration source)` when the
+/// Returns `(updated mod.rs, migration module name, migration source)` when the
 /// module is not already registered.
 fn register_if_absent(lib: &str, m: &BootstrapMigration) -> (String, Option<(String, String)>) {
     if lib.contains(m.module) {
@@ -126,7 +126,7 @@ fn register_if_absent(lib: &str, m: &BootstrapMigration) -> (String, Option<(Str
     (lib, Some((m.module.to_string(), content)))
 }
 
-/// Registers bootstrap migrations into `lib.rs` and returns any new migration
+/// Registers bootstrap migrations into `mod.rs` and returns any new migration
 /// source files to emit. Storage is always included; the jobs table is added only
 /// when `jobs_db` is true.
 pub fn apply_bootstrap_migrations(lib: &str, jobs_db: bool) -> (String, Vec<(String, String)>) {
@@ -146,7 +146,7 @@ pub fn apply_bootstrap_migrations(lib: &str, jobs_db: bool) -> (String, Vec<(Str
     (lib, files)
 }
 
-/// True when `lib.rs` already references the storage bootstrap migration.
+/// True when `mod.rs` already references the storage bootstrap migration.
 pub fn storage_migration_installed(lib: &str) -> bool {
     lib.contains(STORAGE_MIGRATION_MODULE) || lib.contains("create_storage_tables")
 }

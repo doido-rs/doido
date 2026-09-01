@@ -70,20 +70,20 @@ fn test_model_generator_produces_model_migration_and_updates_lib() {
         .content
         .contains("impl ActiveModelBehavior for ActiveModel {}"));
 
-    // Migration file in db/migration/src/.
+    // Migration file in db/migration/.
     assert!(paths
         .iter()
-        .any(|p| p.starts_with("db/migration/src/m") && p.ends_with("_create_users_table.rs")));
+        .any(|p| p.starts_with("db/migration/m") && p.ends_with("_create_users_table.rs")));
 
-    // Migration crate lib.rs is updated to register the new migration.
-    let lib = files
+    // db/migration/mod.rs is updated to register the new migration.
+    let mod_rs = files
         .iter()
-        .find(|f| f.path == "db/migration/src/lib.rs")
+        .find(|f| f.path == "db/migration/mod.rs")
         .unwrap();
-    assert!(lib.content.contains("mod m"));
-    assert!(lib.content.contains("_create_users_table;"));
-    assert!(lib.content.contains("Box::new(m"));
-    assert!(lib.content.contains("_create_users_table::Migration),"));
+    assert!(mod_rs.content.contains("mod m"));
+    assert!(mod_rs.content.contains("_create_users_table;"));
+    assert!(mod_rs.content.contains("Box::new(m"));
+    assert!(mod_rs.content.contains("_create_users_table::Migration),"));
 
     let migration = files
         .iter()
@@ -91,7 +91,7 @@ fn test_model_generator_produces_model_migration_and_updates_lib() {
         .unwrap();
     let module = migration
         .path
-        .strip_prefix("db/migration/src/")
+        .strip_prefix("db/migration/")
         .unwrap()
         .strip_suffix(".rs")
         .unwrap();
@@ -247,7 +247,7 @@ fn test_migration_generator_create_pattern_uses_doido_model() {
     // Written into the migration crate (not the old `db/migrations/` dir).
     let mig = files
         .iter()
-        .find(|f| f.path.starts_with("db/migration/src/") && f.path.ends_with("_create_users.rs"))
+        .find(|f| f.path.starts_with("db/migration/") && f.path.ends_with("_create_users.rs"))
         .unwrap();
     // Uses the doido-model builders, not raw sea-orm.
     assert!(mig
@@ -262,19 +262,19 @@ fn test_migration_generator_create_pattern_uses_doido_model() {
     assert!(!mig.content.contains("ColumnDef"));
     let module = mig
         .path
-        .strip_prefix("db/migration/src/")
+        .strip_prefix("db/migration/")
         .unwrap()
         .strip_suffix(".rs")
         .unwrap();
     assert!(mig.content.contains("impl MigrationName for Migration"));
     assert!(!mig.content.contains("DeriveMigrationName"));
     assert!(mig.content.contains(&format!("\"{module}\"")));
-    // Registered in the Migrator's lib.rs, and a test stub is scaffolded.
-    let lib = files
+    // Registered in the Migrator's mod.rs, and a test stub is scaffolded.
+    let mod_rs = files
         .iter()
-        .find(|f| f.path == "db/migration/src/lib.rs")
+        .find(|f| f.path == "db/migration/mod.rs")
         .unwrap();
-    assert!(lib.content.contains("_create_users::Migration)"));
+    assert!(mod_rs.content.contains("_create_users::Migration)"));
     assert!(files
         .iter()
         .any(|f| f.path == "tests/create_users_migration_test.rs"));

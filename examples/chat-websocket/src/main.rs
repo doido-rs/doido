@@ -22,6 +22,9 @@ mod services;
 #[path = "../app/state.rs"]
 mod state;
 
+#[path = "../db/migration/mod.rs"]
+mod migration;
+
 #[path = "../db/seeds.rs"]
 mod seed;
 

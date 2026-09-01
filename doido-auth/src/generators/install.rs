@@ -210,10 +210,10 @@ impl AuthGenerator for AuthInstallGenerator {
             DOWN_BODY,
         );
 
-        let lib_path = format!("{MIGRATION_SRC_DIR}/lib.rs");
+        let mod_path = format!("{MIGRATION_SRC_DIR}/mod.rs");
         let existing =
-            std::fs::read_to_string(&lib_path).unwrap_or_else(|_| MIGRATION_LIB_BASE.to_string());
-        let lib = register_migration(&existing, &migration_module);
+            std::fs::read_to_string(&mod_path).unwrap_or_else(|_| MIGRATION_LIB_BASE.to_string());
+        let mod_rs = register_migration(&existing, &migration_module);
 
         let models_mod = register_model_module(&read_models_mod(), "user");
         let entities_mod_path = "app/models/_entities/mod.rs";
@@ -242,8 +242,8 @@ impl AuthGenerator for AuthInstallGenerator {
                 content: migration,
             },
             GeneratedFile {
-                path: lib_path,
-                content: lib,
+                path: mod_path,
+                content: mod_rs,
             },
             GeneratedFile {
                 path: "app/models/_entities/users.rs".to_string(),

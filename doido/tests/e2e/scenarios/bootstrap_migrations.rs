@@ -12,9 +12,10 @@ fn bootstrap_storage_migration_creates_tables() {
     let h = AppHarness::new("bootstrap_storage", BaseProfile::Default);
     h.run_with_db(
         |h| {
+            db::assert_migrator_scaffolded(&h.app);
             db::assert_seeds_scaffolded(&h.app);
             db::assert_migration_source_exists(&h.app, STORAGE_MIGRATION);
-            db::assert_lib_registers_migration(&h.app, STORAGE_MIGRATION);
+            db::assert_mod_registers_migration(&h.app, STORAGE_MIGRATION);
             db::assert_table_exists(&h.app, "storage_blobs");
             db::assert_table_exists(&h.app, "storage_attachments");
             db::assert_table_exists(&h.app, "storage_variant_records");
@@ -34,9 +35,10 @@ fn bootstrap_jobs_db_migration_creates_doido_jobs_table() {
     let h = AppHarness::new("bootstrap_jobs_db", BaseProfile::WithJobsDb);
     h.run_with_db(
         |h| {
+            db::assert_migrator_scaffolded(&h.app);
             db::assert_seeds_scaffolded(&h.app);
             db::assert_migration_source_exists(&h.app, JOBS_MIGRATION);
-            db::assert_lib_registers_migration(&h.app, JOBS_MIGRATION);
+            db::assert_mod_registers_migration(&h.app, JOBS_MIGRATION);
             db::assert_table_exists(&h.app, "doido_jobs");
             // Storage bootstrap is independent of the jobs backend.
             db::assert_table_exists(&h.app, "storage_blobs");
@@ -51,11 +53,12 @@ fn bootstrap_jobs_memory_omits_doido_jobs_table() {
     let h = AppHarness::new("bootstrap_jobs_memory", BaseProfile::Default);
     h.run_with_db(
         |h| {
+            db::assert_migrator_scaffolded(&h.app);
             db::assert_migration_source_absent(&h.app, JOBS_MIGRATION);
-            let lib = std::fs::read_to_string(h.app.join("db/migration/src/lib.rs")).unwrap();
+            let mod_rs = std::fs::read_to_string(h.app.join("db/migration/mod.rs")).unwrap();
             assert!(
-                !lib.contains(JOBS_MIGRATION),
-                "lib.rs must not register jobs migration for memory backend"
+                !mod_rs.contains(JOBS_MIGRATION),
+                "mod.rs must not register jobs migration for memory backend"
             );
             db::assert_table_absent(&h.app, "doido_jobs");
             // Storage bootstrap is still applied.

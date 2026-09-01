@@ -16,6 +16,9 @@ mod mailers;
 #[path = "../app/boot.rs"]
 mod boot;
 
+#[path = "../db/migration/mod.rs"]
+mod migration;
+
 #[path = "../db/seeds.rs"]
 mod seed;
 

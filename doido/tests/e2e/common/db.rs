@@ -154,8 +154,34 @@ pub fn assert_seeds_scaffolded(app: &Path) {
     );
 }
 
+pub fn assert_migrator_scaffolded(app: &Path) {
+    let mod_rs = app.join("db/migration/mod.rs");
+    assert!(
+        mod_rs.is_file(),
+        "expected migration module at {}",
+        mod_rs.display()
+    );
+
+    let mod_content = std::fs::read_to_string(&mod_rs).expect("read db/migration/mod.rs");
+    assert!(
+        mod_content.contains("pub struct Migrator"),
+        "db/migration/mod.rs must export `Migrator`"
+    );
+
+    let main_content = std::fs::read_to_string(app.join("src/main.rs")).expect("read src/main.rs");
+    assert!(
+        main_content.contains("mod migration;")
+            && main_content.contains(".migrator::<migration::Migrator>()"),
+        "src/main.rs must wire and register the migrator"
+    );
+    assert!(
+        !app.join("db/migration/Cargo.toml").is_file(),
+        "the standalone db/migration crate must be gone"
+    );
+}
+
 pub fn assert_migration_source_exists(app: &Path, module: &str) {
-    let path = app.join("db/migration/src").join(format!("{module}.rs"));
+    let path = app.join("db/migration").join(format!("{module}.rs"));
     assert!(
         path.is_file(),
         "expected migration source at {}",
@@ -164,7 +190,7 @@ pub fn assert_migration_source_exists(app: &Path, module: &str) {
 }
 
 pub fn assert_migration_source_absent(app: &Path, module: &str) {
-    let path = app.join("db/migration/src").join(format!("{module}.rs"));
+    let path = app.join("db/migration").join(format!("{module}.rs"));
     assert!(
         !path.is_file(),
         "unexpected migration source at {}",
@@ -172,13 +198,18 @@ pub fn assert_migration_source_absent(app: &Path, module: &str) {
     );
 }
 
-pub fn assert_lib_registers_migration(app: &Path, module: &str) {
-    let lib = std::fs::read_to_string(app.join("db/migration/src/lib.rs"))
-        .expect("read db/migration/src/lib.rs");
+pub fn assert_mod_registers_migration(app: &Path, module: &str) {
+    let mod_rs =
+        std::fs::read_to_string(app.join("db/migration/mod.rs")).expect("read db/migration/mod.rs");
     assert!(
-        lib.contains(module),
-        "lib.rs should register migration module `{module}`"
+        mod_rs.contains(module),
+        "mod.rs should register migration module `{module}`"
     );
+}
+
+/// Backward-compatible alias for older scenarios.
+pub fn assert_lib_registers_migration(app: &Path, module: &str) {
+    assert_mod_registers_migration(app, module);
 }
 
 pub fn assert_column_exists(app: &Path, table: &str, column: &str) {
