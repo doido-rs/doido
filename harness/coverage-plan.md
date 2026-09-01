@@ -3,6 +3,39 @@
 Baseline medido em **2026-07-29** com `cargo llvm-cov --workspace` (backends
 in-memory apenas; redis/postgres/memcache não exercitados).
 
+## Atualização 2026-09-01 — gate ratcheting ativado
+
+O gate por-crate foi **conectado ao código** e os três crates atrasados receberam
+testes de alavancagem. `scripts/coverage-check.sh` agora lê os pisos de
+`[workspace.metadata.coverage-gate.crates]` (antes usava um 80% fixo e ignorava
+os pisos declarados, deixando `make verify` vermelho) e exclui do gate o código
+boot/REPL/servidor coberto pelo e2e de release.
+
+| Crate | Antes | Agora | Piso (ratchet) |
+|-------|------:|------:|---------------:|
+| `doido-auth` | 66.6% | **69.2%** | 69 |
+| `doido-controller` | 70.6% | **72.2%** | 72 |
+| `doido-generators` | 61.3%* | **71.6%** | 71 |
+
+\* O total de `doido-generators` estava artificialmente baixo: `cargo llvm-cov -p
+doido-generators` inclui as fontes CLI instrumentadas das dependências
+(doido-core `credentials`, doido-model `db`, doido-jobs `jobs`/`worker`, o binário
+`doido` `cli`/`banner`/`main`) como 0% falso. `--ignore-filename-regex` casa essas
+fontes pelo caminho **relativo ao crate** (`commands/credentials.rs`), não pelo
+caminho completo — então elas são ignoradas por essa forma (e cobertas nos gates
+dos próprios crates).
+
+Testes adicionados (somente `tests/` + `#[cfg(test)]`): controller (context/stack/
+cookies), auth (config/OAuth/JWT/2FA, registrations via `auth_routes!`, testing
+helpers, Field, scaffold, migration_support), generators (feature combos de
+`new`, `new_options`, Field). Corrigida uma corrida de `DOIDO_MASTER_KEY` nos
+testes de `doido-core` credentials.
+
+**Ratchet:** conforme cada crate sobe, aumentar seu piso em `Cargo.toml`; remover
+da tabela quando cruzar 80%. Restam para chegar a 80% (rodadas seguintes):
+generators `new.rs`/`model.rs`/`generate.rs`/`templates.rs`, auth
+`scaffold.rs`/`route_injector.rs`/`install.rs`, controller `context.rs`/`stack.rs`.
+
 ## Decisões (2026-07-29)
 
 | Decisão | Escolha |

@@ -42,10 +42,7 @@ async fn from_request_constructor_reads_form_body() {
     let ctx_parts = Request::builder()
         .method("POST")
         .uri("/")
-        .header(
-            header::CONTENT_TYPE,
-            "application/x-www-form-urlencoded",
-        )
+        .header(header::CONTENT_TYPE, "application/x-www-form-urlencoded")
         .body(())
         .unwrap()
         .into_parts()
@@ -63,8 +60,10 @@ async fn from_request_constructor_reads_form_body() {
 fn negotiated_format_honours_accept_header() {
     let html = Context::from_request_parts({
         let mut p = parts("/posts");
-        p.headers
-            .insert(header::ACCEPT, header::HeaderValue::from_static("text/html"));
+        p.headers.insert(
+            header::ACCEPT,
+            header::HeaderValue::from_static("text/html"),
+        );
         p
     });
     assert_eq!(html.negotiated_format(), Format::Html);

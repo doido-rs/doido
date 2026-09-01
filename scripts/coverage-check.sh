@@ -117,7 +117,10 @@ failed_files=()
 # Extra flags for crates whose backends are feature-gated.
 coverage_extra_args() {
 	case "$1" in
-	doido-jobs) echo "--features jobs-db,jobs-redis" ;;
+	# `cli` compiles the jobs CLI dispatchers (commands/jobs.rs, worker.rs) and
+	# lets their `required-features = ["cli", ...]` integration tests run — without
+	# it those tests are skipped and the crate falls below its floor.
+	doido-jobs) echo "--features jobs-db,jobs-redis,cli" ;;
 	# schema_design and its tests require `cli`; without it, llvm-cov can
 	# still attribute 0% lines from binaries built earlier by `doido`.
 	doido-model) echo "--features cli" ;;

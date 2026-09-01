@@ -43,7 +43,10 @@ fn every_type_renders_migration_alter_and_model() {
 #[test]
 fn sample_form_values_cover_scalar_types_and_skip_binary() {
     // Binary can't be a urlencoded scalar → no pair.
-    assert!(Field::parse("blob:binary").unwrap().sample_form_pair().is_none());
+    assert!(Field::parse("blob:binary")
+        .unwrap()
+        .sample_form_pair()
+        .is_none());
     assert!(Field::parse("blob:binary")
         .unwrap()
         .sample_form_value()

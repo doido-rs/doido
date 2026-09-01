@@ -8,7 +8,10 @@ use doido_generators::new_options::{
 #[test]
 fn database_parse_and_as_str() {
     assert_eq!(parse_database("sqlite").unwrap(), DatabaseBackend::Sqlite);
-    assert_eq!(parse_database("postgres").unwrap(), DatabaseBackend::Postgres);
+    assert_eq!(
+        parse_database("postgres").unwrap(),
+        DatabaseBackend::Postgres
+    );
     assert_eq!(
         parse_database("postgresql").unwrap(),
         DatabaseBackend::Postgres

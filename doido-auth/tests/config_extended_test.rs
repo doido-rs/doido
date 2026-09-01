@@ -111,10 +111,9 @@ fn parses_jwt_full_fields_and_defaults() {
 
 #[test]
 fn parses_two_factor_section() {
-    let config = AuthConfig::from_yaml(
-        "auth:\n  two_factor:\n    enabled: true\n    issuer: MyApp\n",
-    )
-    .unwrap();
+    let config =
+        AuthConfig::from_yaml("auth:\n  two_factor:\n    enabled: true\n    issuer: MyApp\n")
+            .unwrap();
     assert!(config.two_factor.enabled);
     assert_eq!(config.two_factor.issuer.as_deref(), Some("MyApp"));
 }

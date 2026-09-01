@@ -71,14 +71,8 @@ async fn cors_all_invalid_entries_advertise_nothing() {
         .body(body())
         .unwrap();
     let resp = app.oneshot(req).await.unwrap();
-    assert!(resp
-        .headers()
-        .get("access-control-allow-origin")
-        .is_none());
-    assert!(resp
-        .headers()
-        .get("access-control-allow-methods")
-        .is_none());
+    assert!(resp.headers().get("access-control-allow-origin").is_none());
+    assert!(resp.headers().get("access-control-allow-methods").is_none());
 }
 
 #[tokio::test]
