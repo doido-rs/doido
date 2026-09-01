@@ -91,12 +91,6 @@ pub fn rewrite_generated_imports(entities_dir: &Path) -> Result<()> {
 }
 
 fn rewrite_entity_file_imports(content: &str) -> String {
-    if content.contains("use doido::model::sea_orm as sea_orm")
-        && !content.contains("use doido::model::sea_orm;\n")
-    {
-        return content.to_string();
-    }
-
     let mut prelude_found = false;
     let mut extra_imports: Vec<String> = Vec::new();
     let mut other_lines: Vec<String> = Vec::new();
@@ -139,7 +133,7 @@ fn rewrite_entity_file_imports(content: &str) -> String {
         }
     }
 
-    let mut imports = vec!["use doido::model::sea_orm as sea_orm;".to_string()];
+    let mut imports = vec!["use doido::model::sea_orm;".to_string()];
     if prelude_found || content.contains("#[sea_orm") {
         imports.push("use doido::model::sea_orm::entity::prelude::*;".to_string());
     }
