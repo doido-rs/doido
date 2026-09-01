@@ -1,8 +1,8 @@
 //! Initial-user seed: an app generated with `doido new --auth` ships a
-//! `db/seed` that inserts an admin user (admin@example.com / password). This
+//! `db/seeds.rs` that inserts an admin user (admin@example.com / password). This
 //! scenario proves the seeded user is a *real, usable* account:
 //!
-//! - the seed compiles `app/models/user.rs` and inserts the row (idempotently),
+//! - the seeder runs in-process and inserts the row (idempotently),
 //! - a brand-new user can still register (sign-up),
 //! - the seeded credentials sign in (access) and a wrong password is rejected
 //!   (credential verification),

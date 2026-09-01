@@ -7,12 +7,18 @@
 
 use crate::generators::field::Field;
 
-/// Directory holding the SeaORM migration crate's sources.
-pub const MIGRATION_SRC_DIR: &str = "db/migration/src";
+/// Directory holding the app's migration module sources.
+pub const MIGRATION_DIR: &str = "db/migration";
 
-/// Fallback migration `lib.rs` used when the app doesn't have one on disk yet;
+/// Fallback migration `mod.rs` used when the app doesn't have one on disk yet;
 /// kept in sync with the generated-app template so injection markers line up.
-pub const MIGRATION_LIB_BASE: &str = include_str!("../../templates/new/db/migration/src/lib.rs");
+pub const MIGRATION_MOD_BASE: &str = include_str!("../../templates/new/db/migration/mod.rs");
+
+/// Backward-compatible alias for callers still using the old name.
+pub const MIGRATION_SRC_DIR: &str = MIGRATION_DIR;
+
+/// Backward-compatible alias for callers still using the old name.
+pub const MIGRATION_LIB_BASE: &str = MIGRATION_MOD_BASE;
 
 /// Renders a full migration file from the imports line and the `up`/`down`
 /// bodies (each already indented as an `async fn` body ending in a newline).
@@ -91,10 +97,10 @@ pub fn drop_table_down(table_name: &str) -> String {
 }
 
 /// Inserts a `mod <module>;` declaration and a `Box::new(<module>::Migration)`
-/// registration into the migration crate's `lib.rs`, just above the generator
-/// markers. Indentation of the list entry mirrors the marker line.
-pub fn register_migration(lib: &str, module: &str) -> String {
-    let mut lines: Vec<String> = lib.lines().map(String::from).collect();
+/// registration into `db/migration/mod.rs`, just above the generator markers.
+/// Indentation of the list entry mirrors the marker line.
+pub fn register_migration(mod_rs: &str, module: &str) -> String {
+    let mut lines: Vec<String> = mod_rs.lines().map(String::from).collect();
 
     if let Some(i) = lines
         .iter()

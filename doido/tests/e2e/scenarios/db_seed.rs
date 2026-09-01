@@ -1,4 +1,5 @@
-//! `doido db seed` inserts fixture rows via the `db/seed` crate and serves them over HTTP.
+//! `doido db seed` inserts fixture rows in-process (via `db/seeds.rs`) and serves
+//! them over HTTP.
 
 use crate::common::db;
 use crate::common::http;
@@ -6,40 +7,24 @@ use crate::common::server;
 use crate::common::{AppHarness, BaseProfile};
 use std::time::Duration;
 
-const ARTICLE_SEED_MAIN: &str = r#"//! Database seeds — run with `doido db seed`.
+/// A `db/seeds.rs` module: runs in-process from the app binary against the `db`
+/// connection the CLI passes in, using the app's own `crate::models`.
+const ARTICLE_SEEDS: &str = r#"//! Database seeds — run with `doido db seed`.
 
-#[path = "../../../app/models/mod.rs"]
-mod models;
+use doido::model::sea_orm::{ActiveModelTrait, DatabaseConnection, EntityTrait, Set};
 
-use doido::model::sea_orm::{ActiveModelTrait, EntityTrait, Set};
-use doido::model::{config::YamlConfig, connect_with_url};
-
-async fn run_seed() -> doido::Result<()> {
-    let url = std::env::var("DATABASE_URL")
-        .or_else(|_| YamlConfig::load().map(|c| c.database.url))
-        .map_err(|e| doido::core::anyhow::anyhow!("{e}"))?;
-    let db = connect_with_url(&url).await?;
-
-    use models::article::{ActiveModel, Entity};
-    if Entity::find().one(&db).await?.is_none() {
+pub async fn run(db: &DatabaseConnection) -> doido::Result<()> {
+    use crate::models::article::{ActiveModel, Entity};
+    if Entity::find().one(db).await?.is_none() {
         ActiveModel {
             title: Set("Seeded headline".into()),
             body: Set(Some("from db/seed".into())),
             ..Default::default()
         }
-        .insert(&db)
+        .insert(db)
         .await?;
     }
     Ok(())
-}
-
-#[tokio::main]
-async fn main() {
-    if let Err(e) = run_seed().await {
-        eprintln!("seed failed: {e}");
-        std::process::exit(1);
-    }
-    println!("seed complete");
 }
 "#;
 
@@ -54,7 +39,7 @@ fn db_seed_inserts_models_and_serves_index() {
         "title:string:not_null",
         "body:text",
     ]);
-    std::fs::write(h.app.join("db/seed/src/main.rs"), ARTICLE_SEED_MAIN).unwrap();
+    std::fs::write(h.app.join("db/seeds.rs"), ARTICLE_SEEDS).unwrap();
 
     h.configure_server();
     h.build();

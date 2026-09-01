@@ -111,7 +111,7 @@ let posts = Entity::find()
 - Migration crates depend on **`doido-model`** only (with the database feature); use
   `doido_model::sea_orm_migration::prelude::*` — not a direct `sea-orm-migration` dep
 - `doido db` embeds the SeaORM CLI via `doido_model::sea_orm_cli` (feature `cli`)
-- Migration files live in `db/migration/` by convention
+- Migration module lives in `db/migration/mod.rs` with one `m*.rs` file per migration
 - After every schema-changing `doido db migrate`, entities are re-exported to
   `app/models/_entities/` and missing extension stubs are created under `app/models/`
   (see `doido_model::entities`)

@@ -4,7 +4,7 @@ use doido_auth::config::AuthConfig;
 use doido_auth::testing::init_test_auth;
 use doido_auth::{confirmable, AuthModule};
 use doido_mailer::TestDeliverer;
-use doido_model::sea_orm::{ConnectionTrait, DbBackend, Statement, Value};
+use doido_model::sea_orm::{ConnectionTrait, DbBackend, Statement};
 use doido_model::testing::TestDb;
 use std::sync::Arc;
 

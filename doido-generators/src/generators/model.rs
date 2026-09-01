@@ -53,12 +53,12 @@ impl Generator for ModelGenerator {
             .replace("{up_body}", &create_table_up(&table_name, &fields))
             .replace("{table_name}", &table_name);
 
-        // Register the migration in db/migration/src/lib.rs, preserving any
+        // Register the migration in db/migration/mod.rs, preserving any
         // migrations already registered there.
-        let lib_path = format!("{MIGRATION_SRC_DIR}/lib.rs");
+        let mod_path = format!("{MIGRATION_SRC_DIR}/mod.rs");
         let existing =
-            std::fs::read_to_string(&lib_path).unwrap_or_else(|_| MIGRATION_LIB_BASE.to_string());
-        let lib = register_migration(&existing, &migration_module);
+            std::fs::read_to_string(&mod_path).unwrap_or_else(|_| MIGRATION_LIB_BASE.to_string());
+        let mod_rs = register_migration(&existing, &migration_module);
 
         // Register the model's module in app/models/mod.rs, preserving existing
         // registrations.
@@ -94,8 +94,8 @@ impl Generator for ModelGenerator {
                 content: migration,
             },
             GeneratedFile {
-                path: lib_path,
-                content: lib,
+                path: mod_path,
+                content: mod_rs,
             },
             GeneratedFile {
                 path: MODELS_MOD_PATH.to_string(),

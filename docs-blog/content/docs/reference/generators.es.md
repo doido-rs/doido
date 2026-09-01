@@ -57,9 +57,9 @@ cargo doido db create && cargo doido db migrate
 cargo doido server
 ```
 
-`doido new` también genera `db/seed/` — un crate de workspace que se ejecuta con
+`doido new` también genera `db/seeds.rs` — un seeder en el binario que se ejecuta con
 `cargo doido db seed` para insertar fixtures vía `app/models/`. Edita
-`db/seed/src/main.rs` después de generar modelos.
+`db/seeds.rs` después de generar modelos.
 
 ```bash
 cargo doido generate model Post title:string body:text

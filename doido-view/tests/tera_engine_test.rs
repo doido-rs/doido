@@ -1,7 +1,13 @@
+//! Tera engine integration tests. Framework template registration mutates process-global
+//! state; serialise those tests so parallel runs don't race the registry.
+
 use doido_view::engine::TemplateEngine;
 use doido_view::tera_engine::TeraEngine;
 use std::fs;
+use std::sync::Mutex;
 use tempfile::TempDir;
+
+static FRAMEWORK_TEMPLATE_LOCK: Mutex<()> = Mutex::new(());
 
 fn write_tpl(dir: &TempDir, rel: &str, content: &str) {
     let path = dir.path().join(rel);
@@ -84,6 +90,7 @@ fn render_named_resolves_exact_template_path() {
 
 #[test]
 fn framework_template_renders_without_app_file() {
+    let _lock = FRAMEWORK_TEMPLATE_LOCK.lock().unwrap();
     // Registered globally; unique standalone name avoids interfering with other
     // tests that share this process's framework-template registry.
     doido_view::register_framework_template(
@@ -100,6 +107,7 @@ fn framework_template_renders_without_app_file() {
 
 #[test]
 fn app_template_overrides_framework_template() {
+    let _lock = FRAMEWORK_TEMPLATE_LOCK.lock().unwrap();
     doido_view::register_framework_template("fwtest/overridable.html.tera", "framework-version");
     let dir = TempDir::new().unwrap();
     write_tpl(&dir, "fwtest/overridable.html.tera", "app-version");
@@ -115,6 +123,7 @@ fn app_template_overrides_framework_template() {
 
 #[test]
 fn framework_view_inheritance_resolves_in_single_load() {
+    let _lock = FRAMEWORK_TEMPLATE_LOCK.lock().unwrap();
     // A framework view that `extends` another template must resolve inheritance
     // in the single-pass load. Register the parent as a framework template too so
     // this test never poisons the process-shared registry for other tests (the
@@ -138,6 +147,7 @@ fn framework_view_inheritance_resolves_in_single_load() {
 
 #[test]
 fn app_layout_satisfies_framework_view_inheritance() {
+    let _lock = FRAMEWORK_TEMPLATE_LOCK.lock().unwrap();
     // The production case: a framework view extends a layout the *app* provides.
     // Registered globally with the app layout present here; the layout name is
     // unique so it doesn't collide with other tests.

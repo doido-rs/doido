@@ -383,7 +383,7 @@ fn blog_tutorial_scaffold_controller_and_serve() {
             db::assert_column_exists(&h.app, "posts", "published");
             db::assert_column_exists(&h.app, "comments", "post_id");
 
-            // `--auth` apps ship a db/seed that creates an initial admin user.
+            // `--auth` apps ship a `db/seeds.rs` that creates an initial admin user.
             // Runs before the HTTP sign-up below, while `users` is still empty.
             h.seed_database();
             db::assert_row_exists(&h.app, "users", "email", "admin@example.com");

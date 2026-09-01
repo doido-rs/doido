@@ -677,6 +677,7 @@ dependencies = [
  "doido-jobs",
  "doido-mailer",
  "doido-model",
+ "migration",
  "serde",
  "serde_json",
  "sqlx 0.8.6",
@@ -1103,6 +1104,7 @@ dependencies = [
 name = "doido"
 version = "0.0.9"
 dependencies = [
+ "clap",
  "doido-auth",
  "doido-cable",
  "doido-cache",
@@ -1114,6 +1116,7 @@ dependencies = [
  "doido-model",
  "doido-storage",
  "doido-view",
+ "figlet-rs",
  "tokio",
 ]
 
@@ -1244,12 +1247,14 @@ dependencies = [
  "anyhow",
  "async-trait",
  "chrono",
+ "clap",
  "regex",
  "serde",
  "serde_norway",
  "sha2 0.10.9",
  "thiserror",
  "tracing",
+ "tracing-error",
  "tracing-subscriber",
 ]
 
@@ -1260,13 +1265,8 @@ dependencies = [
  "chrono",
  "clap",
  "doido-auth",
- "doido-cache",
- "doido-controller",
  "doido-core",
- "doido-jobs",
  "doido-model",
- "doido-view",
- "figlet-rs",
  "include_dir",
  "tokio",
  "toml",
@@ -1278,6 +1278,7 @@ version = "0.0.9"
 dependencies = [
  "async-trait",
  "chrono",
+ "clap",
  "doido-core",
  "doido-jobs-macros",
  "doido-model",
@@ -1333,6 +1334,7 @@ name = "doido-model"
 version = "0.0.9"
 dependencies = [
  "bcrypt",
+ "clap",
  "doido-core",
  "sea-orm",
  "sea-orm-cli",
@@ -3281,17 +3283,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1c107b6f4780854c8b126e228ea8869f4d7b71260f962fefb57b996b8959ba6b"
 
 [[package]]
-name = "seed"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "doido",
- "doido-auth",
- "serde",
- "tokio",
-]
-
-[[package]]
 name = "semver"
 version = "1.0.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4353,6 +4344,16 @@ checksum = "db97caf9d906fbde555dd62fa95ddba9eecfd14cb388e4f491a66d74cd5fb79a"
 dependencies = [
  "once_cell",
  "valuable",
+]
+
+[[package]]
+name = "tracing-error"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8b1581020d7a273442f5b45074a6a57d5757ad0a47dac0e9f0bd57b81936f3db"
+dependencies = [
+ "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]

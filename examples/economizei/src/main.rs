@@ -16,11 +16,22 @@ mod mailers;
 #[path = "../app/boot.rs"]
 mod boot;
 
+#[path = "../db/migration/mod.rs"]
+mod migration;
+
+#[path = "../db/seeds.rs"]
+mod seed;
+
 #[path = "../config/routes.rs"]
 mod routes;
 
 #[tokio::main]
 async fn main() {
     boot::schedule_startup_jobs_if_server();
-    doido::run(Some(routes::router())).await;
+    doido::Doido::new()
+        .router(routes::router())
+        .migrator::<migration::Migrator>()
+        .seeder(seed::run)
+        .run()
+        .await;
 }

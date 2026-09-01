@@ -2,10 +2,14 @@ use crate::banner;
 use clap::{Parser, Subcommand};
 use doido_controller::axum;
 use doido_core::commands::credentials::CredentialsCommand;
+use doido_core::Result;
 use doido_generators::commands as generator_commands;
 use doido_generators::new_options::{CacheBackend, DatabaseBackend, JobsBackend, NewOptions};
 use doido_jobs::commands::jobs::JobsCommand;
-use doido_model::commands::db::DbCommand;
+use doido_model::commands::db::{run_migrator, BoxFut, DbCommand, MigratorFn, SeederFn};
+use doido_model::sea_orm::DatabaseConnection;
+use doido_model::sea_orm_cli::MigrateSubcommands;
+use doido_model::sea_orm_migration::MigratorTrait;
 
 #[derive(Parser)]
 #[command(name = "doido", version = env!("CARGO_PKG_VERSION"), about = "Doido framework CLI")]
@@ -98,7 +102,7 @@ enum Commands {
 /// To also install app-owned code generators into `doido generate`, use the
 /// [`Doido`] builder instead.
 pub async fn run(routes: Option<axum::Router>) {
-    run_inner(routes, Vec::new()).await;
+    run_inner(routes, Vec::new(), None, None).await;
 }
 
 /// Builder for the Doido CLI. Lets an application install custom code
@@ -121,14 +125,18 @@ pub async fn run(routes: Option<axum::Router>) {
 pub struct Doido {
     router: Option<axum::Router>,
     generators: Vec<Box<dyn doido_generators::Generator>>,
+    migrator: Option<MigratorFn>,
+    seeder: Option<SeederFn>,
 }
 
 impl Doido {
-    /// Start a CLI builder with no router and no custom generators.
+    /// Start a CLI builder with no router, generators, migrator, or seeder.
     pub fn new() -> Self {
         Self {
             router: None,
             generators: Vec::new(),
+            migrator: None,
+            seeder: None,
         }
     }
 
@@ -150,9 +158,41 @@ impl Doido {
         self
     }
 
-    /// Run the CLI: like [`run`], plus any generators installed on this builder.
+    /// Register the app's SeaORM migrator (`migration::Migrator`) so `doido db
+    /// migrate` runs in-process against the app connection — no `cargo run` on
+    /// `db/migration` — and its DDL logs through the app's tracing subscriber.
+    pub fn migrator<M>(mut self) -> Self
+    where
+        M: MigratorTrait + 'static,
+    {
+        // The `for<'a>` bound on `coerce` drives inference so the closure is
+        // treated as higher-ranked over the connection's lifetime (a bare
+        // `-> BoxFut<'_>` annotation would instead bind a single lifetime).
+        fn coerce<G>(g: G) -> MigratorFn
+        where
+            G: for<'a> Fn(Option<MigrateSubcommands>, &'a DatabaseConnection) -> BoxFut<'a>
+                + 'static,
+        {
+            Box::new(g)
+        }
+        self.migrator = Some(coerce(|cmd, conn| Box::pin(run_migrator::<M>(cmd, conn))));
+        self
+    }
+
+    /// Register the app's seeder (`db/seeds.rs`'s `run`) so `doido db seed` runs
+    /// it in-process against the app connection, logging its `INSERT`s.
+    pub fn seeder<F>(mut self, seeder: F) -> Self
+    where
+        F: AsyncFn(&DatabaseConnection) -> Result<()> + 'static,
+    {
+        self.seeder = Some(Box::new(seeder));
+        self
+    }
+
+    /// Run the CLI: like [`run`], plus any generators, migrator, and seeder
+    /// installed on this builder.
     pub async fn run(self) {
-        run_inner(self.router, self.generators).await;
+        run_inner(self.router, self.generators, self.migrator, self.seeder).await;
     }
 }
 
@@ -165,6 +205,8 @@ impl Default for Doido {
 async fn run_inner(
     routes: Option<axum::Router>,
     generators: Vec<Box<dyn doido_generators::Generator>>,
+    migrator: Option<MigratorFn>,
+    seeder: Option<SeederFn>,
 ) {
     let mode = std::env::args()
         .skip(1)
@@ -196,7 +238,9 @@ async fn run_inner(
         }
         Commands::Console => doido_controller::commands::console::run(),
         Commands::Worker { once } => doido_jobs::commands::worker::run(once).await,
-        Commands::Db { verbose, command } => doido_model::commands::db::run(command, verbose).await,
+        Commands::Db { verbose, command } => {
+            doido_model::commands::db::run(command, verbose, migrator, seeder).await
+        }
         Commands::Jobs { action } => doido_jobs::commands::jobs::run(action).await,
         Commands::Credentials { action } => doido_core::commands::credentials::run(action),
         Commands::Generate { args } => generator_commands::generate::run_with(&args, generators),

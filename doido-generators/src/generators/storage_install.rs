@@ -2,7 +2,7 @@
 //!
 //! Emits a migration creating the `storage_blobs`, `storage_attachments` and
 //! `storage_variant_records` tables (via the `doido_model::migration` builders),
-//! registers it in `db/migration/src/lib.rs`, and appends a `storage:` section to
+//! registers it in `db/migration/mod.rs`, and appends a `storage:` section to
 //! `config/development.yml` and `config/test.yml` when those files exist.
 
 use crate::generator::{GeneratedFile, Generator};
@@ -36,21 +36,21 @@ impl Generator for StorageInstallGenerator {
     }
 
     fn generate(&self, _args: &[&str]) -> Result<Vec<GeneratedFile>> {
-        let lib_path = format!("{MIGRATION_SRC_DIR}/lib.rs");
+        let mod_path = format!("{MIGRATION_SRC_DIR}/mod.rs");
         let existing =
-            std::fs::read_to_string(&lib_path).unwrap_or_else(|_| MIGRATION_LIB_BASE.to_string());
+            std::fs::read_to_string(&mod_path).unwrap_or_else(|_| MIGRATION_LIB_BASE.to_string());
 
         let mut files = Vec::new();
         if storage_migration_installed(&existing) {
             files.push(GeneratedFile {
-                path: lib_path,
+                path: mod_path,
                 content: existing,
             });
         } else {
-            let (lib, migrations) = apply_bootstrap_migrations(&existing, false);
+            let (mod_rs, migrations) = apply_bootstrap_migrations(&existing, false);
             files.push(GeneratedFile {
-                path: lib_path,
-                content: lib,
+                path: mod_path,
+                content: mod_rs,
             });
             for (module, content) in migrations {
                 files.push(GeneratedFile {
@@ -80,7 +80,7 @@ mod tests {
     #[test]
     fn emits_migration_and_registers_it() {
         let files = StorageInstallGenerator.generate(&[]).unwrap();
-        // A migration file plus the updated lib.rs (config files depend on cwd).
+        // A migration file plus the updated mod.rs (config files depend on cwd).
         let migration = files
             .iter()
             .find(|f| f.path.contains(STORAGE_MIGRATION_MODULE) && f.path.ends_with(".rs"))
@@ -94,16 +94,16 @@ mod tests {
         assert!(!migration.content.contains("DeriveMigrationName"));
         let module = migration
             .path
-            .strip_prefix("db/migration/src/")
+            .strip_prefix("db/migration/")
             .unwrap()
             .strip_suffix(".rs")
             .unwrap();
         assert!(migration.content.contains(&format!("\"{module}\"")));
 
-        let lib = files
+        let mod_rs = files
             .iter()
-            .find(|f| f.path.ends_with("lib.rs"))
-            .expect("lib.rs emitted");
-        assert!(lib.content.contains(STORAGE_MIGRATION_MODULE));
+            .find(|f| f.path.ends_with("mod.rs"))
+            .expect("mod.rs emitted");
+        assert!(mod_rs.content.contains(STORAGE_MIGRATION_MODULE));
     }
 }

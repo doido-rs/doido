@@ -25,12 +25,11 @@ fn test_new_generates_all_expected_files() {
     assert!(paths.contains(&"my-app/app/models/_entities/mod.rs"));
     assert!(paths.contains(&"my-app/app/views/layouts/application.html.tera"));
     assert!(paths.contains(&"my-app/db/schema/.gitkeep"));
-    // `db/migration` is a SeaORM migration project, not an empty placeholder.
-    assert!(paths.contains(&"my-app/db/migration/Cargo.toml"));
-    assert!(paths.contains(&"my-app/db/migration/src/lib.rs"));
-    assert!(paths.contains(&"my-app/db/migration/src/main.rs"));
-    assert!(paths.contains(&"my-app/db/seed/Cargo.toml"));
-    assert!(paths.contains(&"my-app/db/seed/src/main.rs"));
+    // Migrations compile into the app binary as `db/migration/mod.rs` + `m*.rs`.
+    assert!(paths.contains(&"my-app/db/migration/mod.rs"));
+    assert!(!paths.contains(&"my-app/db/migration/Cargo.toml"));
+    assert!(paths.contains(&"my-app/db/seeds.rs"));
+    assert!(!paths.contains(&"my-app/db/seed/Cargo.toml"));
     assert!(paths.contains(&"my-app/tests/integration_test.rs"));
     let main_rs = files
         .iter()
@@ -248,104 +247,111 @@ fn test_new_app_cargo_toml_doido_model_feature_matches_database() {
 }
 
 #[test]
-fn test_new_migration_crate_uses_selected_backend() {
+fn test_new_migration_module_uses_selected_backend() {
     let files = ProjectGenerator
         .generate(&["blog", "--database=postgres"])
         .unwrap();
-    let migration_cargo = files
+    let migration_mod = files
         .iter()
-        .find(|f| f.path == "blog/db/migration/Cargo.toml")
+        .find(|f| f.path == "blog/db/migration/mod.rs")
         .unwrap();
     assert!(
-        !migration_cargo.content.contains("sea-orm-migration"),
-        "migration crate must not depend on sea-orm-migration directly"
-    );
-    assert!(
-        migration_cargo.content.contains("doido ="),
-        "migration crate must depend on doido meta crate"
-    );
-    assert!(
-        migration_cargo
-            .content
-            .contains("features = [\"postgres\", \"cli\"]"),
-        "doido dependency must enable postgres and cli for the migration binary"
-    );
-    let migration_lib = files
-        .iter()
-        .find(|f| f.path == "blog/db/migration/src/lib.rs")
-        .unwrap();
-    assert!(
-        migration_lib
+        migration_mod
             .content
             .contains("doido::model::sea_orm_migration"),
-        "migration lib must import sea_orm_migration via doido::model"
-    );
-}
-
-#[test]
-fn test_new_seed_crate_uses_selected_backend() {
-    let files = ProjectGenerator
-        .generate(&["blog", "--database=postgres"])
-        .unwrap();
-    let seed_cargo = files
-        .iter()
-        .find(|f| f.path == "blog/db/seed/Cargo.toml")
-        .unwrap();
-    assert!(
-        seed_cargo.content.contains("doido ="),
-        "seed crate must depend on doido meta crate"
-    );
-    assert!(
-        seed_cargo.content.contains("features = [\"postgres\"]"),
-        "doido dependency must enable postgres for the seed binary"
-    );
-    assert!(
-        !seed_cargo.content.contains("\"cli\""),
-        "seed crate must not enable the migration cli feature"
-    );
-    assert!(
-        seed_cargo.content.contains("serde ="),
-        "seed crate must declare serde for generated app/models"
-    );
-    let seed_main = files
-        .iter()
-        .find(|f| f.path == "blog/db/seed/src/main.rs")
-        .unwrap();
-    assert!(
-        seed_main.content.contains("app/models/mod.rs"),
-        "seed main must wire app models"
+        "migration mod.rs must import sea_orm_migration via doido::model"
     );
     let cargo = files.iter().find(|f| f.path == "blog/Cargo.toml").unwrap();
     assert!(
-        cargo
-            .content
-            .contains("members = [\"db/migration\", \"db/seed\"]"),
-        "workspace must include db/seed"
+        cargo.content.contains("features = [\"postgres\"]"),
+        "app doido dependency must enable the postgres backend"
+    );
+    assert!(
+        !cargo.content.contains("migration = { path"),
+        "app must not depend on a separate migration crate"
     );
 }
 
 #[test]
-fn test_new_migration_crate_doido_model_feature_matches_database() {
+fn test_new_seeds_module_replaces_the_seed_crate() {
+    let files = ProjectGenerator
+        .generate(&["blog", "--database=postgres"])
+        .unwrap();
+    // The seeder is now an app module compiled into the app binary, not a crate.
+    let seeds = files
+        .iter()
+        .find(|f| f.path == "blog/db/seeds.rs")
+        .expect("db/seeds.rs must be generated");
+    assert!(
+        seeds
+            .content
+            .contains("pub async fn run(db: &DatabaseConnection)"),
+        "db/seeds.rs must expose `pub async fn run(db: &DatabaseConnection)`"
+    );
+    assert!(
+        !files.iter().any(|f| f.path.contains("db/seed/")),
+        "the db/seed crate must no longer be generated"
+    );
+    let main_rs = files.iter().find(|f| f.path == "blog/src/main.rs").unwrap();
+    assert!(
+        main_rs.content.contains("mod seed;") && main_rs.content.contains(".seeder(seed::run)"),
+        "src/main.rs must wire and register the seeder"
+    );
+    assert!(
+        main_rs.content.contains("mod migration;")
+            && main_rs
+                .content
+                .contains(".migrator::<migration::Migrator>()"),
+        "src/main.rs must wire and register the migrator"
+    );
+    let cargo = files.iter().find(|f| f.path == "blog/Cargo.toml").unwrap();
+    assert!(
+        cargo.content.contains("[workspace]"),
+        "generated app must be a standalone workspace root"
+    );
+    assert!(
+        !cargo.content.contains("members ="),
+        "generated app must not declare workspace members for db/migration"
+    );
+    assert!(
+        !cargo.content.contains("migration = { path"),
+        "app must not depend on a separate migration crate"
+    );
+    assert!(
+        cargo.content.contains("async-trait = \"0.1\""),
+        "app Cargo.toml must declare async-trait for MigratorTrait"
+    );
+}
+
+#[test]
+fn test_new_migration_module_compiles_with_app_doido_features() {
     let cases = [
-        ("sqlite", "features = [\"sqlite\", \"cli\"]"),
-        ("postgres", "features = [\"postgres\", \"cli\"]"),
-        ("mysql", "features = [\"mysql\", \"cli\"]"),
+        ("sqlite", "features = [\"sqlite\""),
+        ("postgres", "features = [\"postgres\""),
+        ("mysql", "features = [\"mysql\""),
     ];
-    for (database, model_feature) in cases {
+    for (database, feature) in cases {
         let files = ProjectGenerator
             .generate(&["app", &format!("--database={database}")])
             .unwrap();
-        let migration_cargo = files
+        let migration_mod = files
             .iter()
-            .find(|f| f.path == "app/db/migration/Cargo.toml")
-            .unwrap_or_else(|| panic!("missing migration Cargo.toml for {database}"));
+            .find(|f| f.path == "app/db/migration/mod.rs")
+            .unwrap_or_else(|| panic!("missing db/migration/mod.rs for {database}"));
         assert!(
-            migration_cargo.content.contains(model_feature),
-            "{database}: doido meta crate must declare {model_feature}"
+            migration_mod
+                .content
+                .contains("doido::model::sea_orm_migration"),
+            "{database}: migration mod.rs must import via doido::model"
+        );
+        let cargo = files.iter().find(|f| f.path == "app/Cargo.toml").unwrap();
+        assert!(
+            cargo.content.contains(feature),
+            "{database}: app doido line must include {feature}"
         );
         assert!(
-            !migration_cargo.content.contains("sea-orm-migration"),
-            "{database}: migration crate must not declare sea-orm-migration directly"
+            !cargo.content.contains("sea-orm-migration"),
+            "{database}: app must not declare sea-orm-migration directly"
         );
     }
 }
@@ -499,16 +505,16 @@ fn test_new_includes_storage_bootstrap_migration() {
     let files = ProjectGenerator
         .generate(&["my-app", "--database=sqlite"])
         .unwrap();
-    let lib = files
+    let mod_rs = files
         .iter()
-        .find(|f| f.path == "my-app/db/migration/src/lib.rs")
+        .find(|f| f.path == "my-app/db/migration/mod.rs")
         .unwrap();
-    assert!(lib
+    assert!(mod_rs
         .content
         .contains("m20260101000000_create_storage_tables"));
     let migration = files
         .iter()
-        .find(|f| f.path == "my-app/db/migration/src/m20260101000000_create_storage_tables.rs")
+        .find(|f| f.path == "my-app/db/migration/m20260101000000_create_storage_tables.rs")
         .expect("storage migration file");
     assert!(migration.content.contains("storage_blobs"));
     let dev = files
@@ -524,16 +530,16 @@ fn test_new_jobs_db_includes_doido_jobs_migration() {
     let files = ProjectGenerator
         .generate(&["my-app", "--database=sqlite", "--jobs=db"])
         .unwrap();
-    let lib = files
+    let mod_rs = files
         .iter()
-        .find(|f| f.path == "my-app/db/migration/src/lib.rs")
+        .find(|f| f.path == "my-app/db/migration/mod.rs")
         .unwrap();
-    assert!(lib
+    assert!(mod_rs
         .content
         .contains("m20260101000001_create_doido_jobs_table"));
     let migration = files
         .iter()
-        .find(|f| f.path == "my-app/db/migration/src/m20260101000001_create_doido_jobs_table.rs")
+        .find(|f| f.path == "my-app/db/migration/m20260101000001_create_doido_jobs_table.rs")
         .expect("jobs migration file");
     assert!(migration.content.contains("doido_jobs"));
     assert!(migration.content.contains("run_at BIGINT NOT NULL"));
@@ -546,11 +552,11 @@ fn test_new_jobs_memory_omits_doido_jobs_migration() {
     let files = ProjectGenerator
         .generate(&["my-app", "--database=sqlite", "--jobs=memory"])
         .unwrap();
-    let lib = files
+    let mod_rs = files
         .iter()
-        .find(|f| f.path == "my-app/db/migration/src/lib.rs")
+        .find(|f| f.path == "my-app/db/migration/mod.rs")
         .unwrap();
-    assert!(!lib.content.contains("create_doido_jobs_table"));
+    assert!(!mod_rs.content.contains("create_doido_jobs_table"));
     assert!(
         !files
             .iter()

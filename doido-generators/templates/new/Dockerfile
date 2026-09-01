@@ -6,13 +6,10 @@ WORKDIR /app
 
 # Cache dependency compilation when Cargo.toml / Cargo.lock are unchanged.
 COPY Cargo.toml Cargo.lock* ./
-COPY db/migration/Cargo.toml db/migration/Cargo.toml
-RUN mkdir -p src db/migration/src \
+RUN mkdir -p src \
     && echo "fn main() {}" > src/main.rs \
-    && echo "fn main() {}" > db/migration/src/main.rs \
-    && echo "pub fn lib() {}" > db/migration/src/lib.rs \
     && cargo build --release \
-    && rm -rf src db/migration/src
+    && rm -rf src
 
 COPY . .
 RUN cargo build --release

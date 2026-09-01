@@ -46,6 +46,8 @@ fn routes_macro_registers_full_table() {
     assert!(has("POST", "/posts"));
     assert!(has("GET", "/posts/new"));
     assert!(has("GET", "/posts/{id}"));
+    // The member update route accepts POST too, so HTML edit forms can submit a
+    // method override (see codegen `resources!` member router).
     assert!(has("POST|PUT|PATCH", "/posts/{id}"));
     assert!(has("DELETE", "/posts/{id}"));
     assert!(has("GET", "/posts/{id}/edit"));

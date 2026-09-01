@@ -91,12 +91,6 @@ pub fn rewrite_generated_imports(entities_dir: &Path) -> Result<()> {
 }
 
 fn rewrite_entity_file_imports(content: &str) -> String {
-    if content.contains("use doido::model::sea_orm as sea_orm")
-        && !content.contains("use doido::model::sea_orm;\n")
-    {
-        return content.to_string();
-    }
-
     let mut prelude_found = false;
     let mut extra_imports: Vec<String> = Vec::new();
     let mut other_lines: Vec<String> = Vec::new();
@@ -139,7 +133,7 @@ fn rewrite_entity_file_imports(content: &str) -> String {
         }
     }
 
-    let mut imports = vec!["use doido::model::sea_orm as sea_orm;".to_string()];
+    let mut imports = vec!["use doido::model::sea_orm;".to_string()];
     if prelude_found || content.contains("#[sea_orm") {
         imports.push("use doido::model::sea_orm::entity::prelude::*;".to_string());
     }
@@ -330,12 +324,22 @@ pub fn ensure_model_extension_stubs(entities_dir: &Path, models_dir: &Path) -> R
 }
 
 const ACTIVE_MODEL_BEHAVIOR_IMPL: &str = "impl ActiveModelBehavior for ActiveModel {}";
+const ACTIVE_MODEL_BEHAVIOR_MARKER: &str = "impl ActiveModelBehavior for ActiveModel";
+
+/// Returns true when a model extension already defines `ActiveModelBehavior`
+/// for the re-exported `ActiveModel` (empty stub or a full custom impl).
+fn extension_has_active_model_behavior(content: &str) -> bool {
+    content
+        .split(ACTIVE_MODEL_BEHAVIOR_MARKER)
+        .nth(1)
+        .is_some_and(|rest| rest.trim_start().starts_with('{'))
+}
 
 /// Returns true when a model extension re-exports an entity and provides
 /// `ActiveModelBehavior` for its `ActiveModel`.
 pub fn model_extension_covers_entity(content: &str, entity_module: &str) -> bool {
     content.contains(&format!("pub use super::_entities::{entity_module}::*"))
-        && content.contains(ACTIVE_MODEL_BEHAVIOR_IMPL)
+        && extension_has_active_model_behavior(content)
 }
 
 /// Inserts the default `ActiveModelBehavior` impl into model extensions that
@@ -353,7 +357,7 @@ pub fn ensure_active_model_behavior_in_extensions(models_dir: &Path) -> Result<(
         if !content.contains("pub use super::_entities::") {
             continue;
         }
-        if content.contains(ACTIVE_MODEL_BEHAVIOR_IMPL) {
+        if extension_has_active_model_behavior(&content) {
             continue;
         }
         let updated = inject_active_model_behavior(&content);

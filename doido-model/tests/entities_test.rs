@@ -62,13 +62,13 @@ fn rewrite_generated_imports_replaces_sea_orm_paths() {
     .unwrap();
     rewrite_generated_imports(dir.path()).unwrap();
     let content = fs::read_to_string(dir.path().join("posts.rs")).unwrap();
-    assert!(content.contains("use doido::model::sea_orm as sea_orm;"));
+    assert!(content.contains("use doido::model::sea_orm;"));
     assert!(content.contains("use doido::model::sea_orm::entity::prelude::*;"));
     assert!(content.contains("use doido::model::sea_orm::Set;"));
 }
 
 #[test]
-fn rewrite_generated_imports_adds_alias_for_sea_orm_attributes() {
+fn rewrite_generated_imports_adds_sea_orm_import_for_attributes() {
     let dir = tempdir().unwrap();
     fs::write(
         dir.path().join("storage_blobs.rs"),
@@ -77,7 +77,7 @@ fn rewrite_generated_imports_adds_alias_for_sea_orm_attributes() {
     .unwrap();
     rewrite_generated_imports(dir.path()).unwrap();
     let content = fs::read_to_string(dir.path().join("storage_blobs.rs")).unwrap();
-    assert!(content.contains("use doido::model::sea_orm as sea_orm;"));
+    assert!(content.contains("use doido::model::sea_orm;"));
     assert!(content.contains("use doido::model::sea_orm::entity::prelude::*;"));
     assert!(content.contains("#![allow(dead_code, unused_imports)]"));
 }
@@ -100,16 +100,9 @@ fn rewrite_generated_imports_is_idempotent_for_doido_imports() {
         content
             .find("#![allow(dead_code, unused_imports)]")
             .unwrap()
-            < content
-                .find("use doido::model::sea_orm as sea_orm")
-                .unwrap()
+            < content.find("use doido::model::sea_orm;").unwrap()
     );
-    assert_eq!(
-        content
-            .matches("use doido::model::sea_orm as sea_orm")
-            .count(),
-        1
-    );
+    assert_eq!(content.matches("use doido::model::sea_orm;").count(), 1);
 }
 
 #[test]
@@ -207,6 +200,44 @@ fn model_extension_covers_entity_when_reexport_and_impl_present() {
         "pub use super::_entities::users::*;\n",
         "users"
     ));
+}
+
+#[test]
+fn model_extension_covers_entity_when_full_impl_present() {
+    let content = "pub use super::_entities::addresses::*;\n\
+                   #[async_trait::async_trait]\n\
+                   impl ActiveModelBehavior for ActiveModel {\n\
+                       async fn before_save<C>(self, _db: &C, _insert: bool) -> Result<Self, DbErr> {\n\
+                           Ok(self)\n\
+                       }\n\
+                   }\n";
+    assert!(model_extension_covers_entity(content, "addresses"));
+}
+
+#[test]
+fn ensure_active_model_behavior_skips_when_full_impl_present() {
+    let dir = tempdir().unwrap();
+    let models = dir.path().join("models");
+    fs::create_dir_all(&models).unwrap();
+    let original = "pub use super::_entities::addresses::*;\n\
+                    #[async_trait::async_trait]\n\
+                    impl ActiveModelBehavior for ActiveModel {\n\
+                        async fn before_save<C>(self, _db: &C, _insert: bool) -> Result<Self, DbErr> {\n\
+                            Ok(self)\n\
+                        }\n\
+                    }\n";
+    fs::write(models.join("address.rs"), original).unwrap();
+
+    ensure_active_model_behavior_in_extensions(&models).unwrap();
+
+    let content = fs::read_to_string(models.join("address.rs")).unwrap();
+    assert_eq!(content, original);
+    assert_eq!(
+        content
+            .matches("impl ActiveModelBehavior for ActiveModel")
+            .count(),
+        1
+    );
 }
 
 #[test]

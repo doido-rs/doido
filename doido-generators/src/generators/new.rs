@@ -2,7 +2,7 @@
 //! Placeholders: `{doido_name}`, `{doido_db_url}`, `{doido_sqlx_feature}`,
 //! `{doido_path}` (absolute workspace root when the running binary lives inside a
 //! local checkout), and the per-crate dependency specs `{doido_dep}` /
-//! `{doido_controller_dep}` / `{doido_model_dep}` / `{doido_migration_dep}` which render as a local `path`
+//! `{doido_controller_dep}` / `{doido_model_dep}` which render as a local `path`
 //! dep when the binary runs from a development checkout or a crates.io `version`
 //! dep matching this binary's release otherwise (see [`DependencyMode`]).
 //!
@@ -34,19 +34,20 @@ const CABLE_TEMPLATE_PREFIX: &str = "app/channels/";
 /// `mod channels;` include spliced into `src/main.rs` when `--cable` is passed.
 const CABLE_MODULE_INCLUDE: &str = "\n#[path = \"../app/channels/mod.rs\"]\nmod channels;\n";
 
-/// Initial-user seed spliced into `db/seed/src/main.rs` when `--auth` is passed.
-/// The `User` model (from `auth:install`) is reachable through the `models`
-/// module the seed already includes via `#[path]`.
+/// Initial-user seed spliced into `db/seeds.rs` when `--auth` is passed. The
+/// `User` model (from `auth:install`) is reachable through the app's `models`
+/// module as `crate::models::user`; the seed runs in-process against the `db`
+/// connection the CLI passes in.
 const AUTH_SEED_BODY: &str = r#"    // Seed an initial user so a fresh --auth app has a login out of the box.
     {
         use doido::model::password::hash_password;
         use doido::model::sea_orm::EntityTrait;
         use doido_auth::RegisterableAuthUser;
-        use models::user::{Entity, Model};
+        use crate::models::user::{Entity, Model};
 
-        if Entity::find().one(&db).await?.is_none() {
+        if Entity::find().one(db).await?.is_none() {
             let digest = hash_password("password")?;
-            Model::register(&db, "admin@example.com".into(), digest).await?;
+            Model::register(db, "admin@example.com".into(), digest).await?;
             println!("seeded initial user: admin@example.com / password");
         }
     }"#;
@@ -58,7 +59,7 @@ const CABLE_README_SECTION: &str = r#"
 
 This app was generated with `--cable`, so it includes:
 
-- the `doido-cable` (and `async-trait`) dependencies in `Cargo.toml`;
+- the `doido-cable` dependency in `Cargo.toml`;
 - an example channel at `app/channels/chat_channel.rs`, registered in
   `app/channels/mod.rs` and wired into the crate via `mod channels;` in
   `src/main.rs`.
@@ -85,8 +86,6 @@ struct TemplateContext<'a> {
     api: bool,
     dep_mode: DependencyMode,
     doido_dep: String,
-    doido_migration_dep: String,
-    doido_seed_dep: String,
     doido_jobs_dep: String,
     doido_model_dep: String,
     cache_section: String,
@@ -155,14 +154,6 @@ fn doido_jobs_features(jobs: JobsBackend, database: &str) -> String {
         JobsBackend::Redis => ", features = [\"jobs-redis\"]".to_string(),
         JobsBackend::Memory => String::new(),
     }
-}
-
-fn doido_migration_features(database: &str) -> String {
-    format!(", default-features = false, features = [\"{database}\", \"cli\"]")
-}
-
-fn doido_seed_features(database: &str) -> String {
-    format!(", default-features = false, features = [\"{database}\"]")
 }
 
 fn doido_model_features(database: &str) -> String {
@@ -347,7 +338,7 @@ fn substitute_template(template: &str, ctx: &TemplateContext<'_>) -> String {
     let (cable_deps, cable_module, cable_readme) = if ctx.cable {
         (
             format!(
-                "doido-cable = {}\nasync-trait = \"0.1\"\n",
+                "doido-cable = {}\n",
                 doido_dependency(&ctx.dep_mode, "doido-cable", "")
             ),
             CABLE_MODULE_INCLUDE.to_string(),
@@ -381,8 +372,6 @@ fn substitute_template(template: &str, ctx: &TemplateContext<'_>) -> String {
         .replace("{doido_db_url}", &ctx.db_url)
         .replace("{doido_sqlx_feature}", ctx.sqlx_feature)
         .replace("{doido_dep}", &ctx.doido_dep)
-        .replace("{doido_migration_dep}", &ctx.doido_migration_dep)
-        .replace("{doido_seed_dep}", &ctx.doido_seed_dep)
         .replace(
             "{doido_core_dep}",
             &doido_dependency(&ctx.dep_mode, "doido-core", ""),
@@ -403,7 +392,6 @@ fn substitute_template(template: &str, ctx: &TemplateContext<'_>) -> String {
         .replace("{doido_model_dep}", &ctx.doido_model_dep)
         .replace("{doido_cable_deps}", &cable_deps)
         .replace("{doido_auth_deps}", &doido_auth_deps)
-        .replace("{doido_seed_auth_deps}", &doido_auth_deps)
         .replace("{doido_auth_seed}", &auth_seed)
         .replace(
             "{doido_api_only}",
@@ -539,12 +527,6 @@ impl Generator for ProjectGenerator {
             auth,
             api,
             doido_dep: doido_dependency(&dep_mode, "doido", &doido_features(cache, database, auth)),
-            doido_migration_dep: doido_dependency(
-                &dep_mode,
-                "doido",
-                &doido_migration_features(database),
-            ),
-            doido_seed_dep: doido_dependency(&dep_mode, "doido", &doido_seed_features(database)),
             doido_jobs_dep: doido_dependency(
                 &dep_mode,
                 "doido-jobs",
@@ -569,16 +551,16 @@ impl Generator for ProjectGenerator {
         let mut files = Vec::new();
         collect_from_dir(&APP_TEMPLATE_DIR, &ctx, name, &mut files)?;
 
-        if let Some(lib) = files
+        if let Some(mod_rs) = files
             .iter_mut()
-            .find(|f| f.path.ends_with("db/migration/src/lib.rs"))
+            .find(|f| f.path.ends_with("db/migration/mod.rs"))
         {
             let (updated, migrations) =
-                apply_bootstrap_migrations(&lib.content, jobs == JobsBackend::Db);
-            lib.content = updated;
+                apply_bootstrap_migrations(&mod_rs.content, jobs == JobsBackend::Db);
+            mod_rs.content = updated;
             for (module, content) in migrations {
                 files.push(GeneratedFile {
-                    path: format!("{name}/db/migration/src/{module}.rs"),
+                    path: format!("{name}/db/migration/{module}.rs"),
                     content,
                 });
             }
@@ -690,30 +672,6 @@ edition = "2021"
         assert!(line.contains("cache-redis"));
         assert!(line.contains("sqlite"));
         assert_cargo_toml_parses(&minimal_cargo_with_doido_line(&line));
-    }
-
-    #[test]
-    fn doido_migration_features_include_database_and_cli() {
-        assert_eq!(
-            doido_migration_features("sqlite"),
-            ", default-features = false, features = [\"sqlite\", \"cli\"]"
-        );
-        assert_eq!(
-            doido_migration_features("postgres"),
-            ", default-features = false, features = [\"postgres\", \"cli\"]"
-        );
-    }
-
-    #[test]
-    fn doido_seed_features_include_database_only() {
-        assert_eq!(
-            doido_seed_features("sqlite"),
-            ", default-features = false, features = [\"sqlite\"]"
-        );
-        assert_eq!(
-            doido_seed_features("postgres"),
-            ", default-features = false, features = [\"postgres\"]"
-        );
     }
 
     #[test]

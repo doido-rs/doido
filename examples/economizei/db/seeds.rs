@@ -1,12 +1,12 @@
-//! Database seeds — run with `doido db seed` or
-//! `cargo run --manifest-path db/seed/Cargo.toml`.
+//! Database seeds — run with `doido db seed`.
 //!
 //! Default user:
 //!   email:    admin@economizei.local
 //!   password: password
+//!
+//! Runs in-process from the app binary, so its SQL is logged.
 
-use doido::model::sea_orm::ConnectionTrait;
-use doido::model::{config::YamlConfig, connect_with_url};
+use doido::model::sea_orm::{ConnectionTrait, DatabaseConnection};
 
 const SEED_SQL: &str = r#"
 INSERT INTO users (email, password_digest, created_at, updated_at)
@@ -53,24 +53,10 @@ WHERE c.code = 'BR'
   AND NOT EXISTS (SELECT 1 FROM banks WHERE code = '336');
 "#;
 
-async fn run_seed() -> doido::Result<()> {
-    let url = std::env::var("DATABASE_URL")
-        .or_else(|_| YamlConfig::load().map(|c| c.database.url))
-        .map_err(|e| doido::core::anyhow::anyhow!("{e}"))?;
-    let db = connect_with_url(&url).await?;
-
+pub async fn run(db: &DatabaseConnection) -> doido::Result<()> {
     for statement in SEED_SQL.split(';').map(str::trim).filter(|s| !s.is_empty()) {
         db.execute_unprepared(statement).await?;
     }
 
     Ok(())
-}
-
-#[tokio::main]
-async fn main() {
-    if let Err(e) = run_seed().await {
-        eprintln!("seed failed: {e}");
-        std::process::exit(1);
-    }
-    println!("seed complete");
 }
