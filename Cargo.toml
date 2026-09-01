@@ -33,7 +33,7 @@ min-lines-percent = 80.0
 # Phased per-crate floors until generator/auth/controller modules reach 80%
 # (see harness/coverage-plan.md). `scripts/coverage-check.sh` enforces these.
 [workspace.metadata.coverage-gate.crates]
-doido-auth = 66.0
+doido-auth = 69.0
 doido-controller = 72.0
 doido-generators = 64.0
 
