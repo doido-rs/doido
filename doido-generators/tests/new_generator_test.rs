@@ -8,6 +8,7 @@ fn test_new_generates_all_expected_files() {
         .unwrap();
     let paths: Vec<&str> = files.iter().map(|f| f.path.as_str()).collect();
     assert!(paths.contains(&"my-app/Cargo.toml"));
+    assert!(paths.contains(&"my-app/Cargo.lock"));
     assert!(paths.contains(&"my-app/src/main.rs"));
     assert!(paths.contains(&"my-app/config/application.toml"));
     assert!(paths.contains(&"my-app/config/routes.rs"));
@@ -54,6 +55,32 @@ fn test_new_mise_toml_pins_the_rust_toolchain() {
     let mise = files.iter().find(|f| f.path == "my-app/mise.toml").unwrap();
     assert!(mise.content.contains("[tools]"));
     assert!(mise.content.contains("rust ="));
+}
+
+#[test]
+fn test_new_cargo_toml_has_dev_profile_tuning() {
+    let files = ProjectGenerator
+        .generate(&["my-app", "--database=sqlite"])
+        .unwrap();
+    let cargo = files
+        .iter()
+        .find(|f| f.path == "my-app/Cargo.toml")
+        .unwrap();
+    assert!(cargo.content.contains("[profile.dev]"));
+    assert!(cargo.content.contains("debug = \"line-tables-only\""));
+}
+
+#[test]
+fn test_new_generates_cargo_lock() {
+    let files = ProjectGenerator
+        .generate(&["my-app", "--database=sqlite"])
+        .unwrap();
+    let lock = files
+        .iter()
+        .find(|f| f.path == "my-app/Cargo.lock")
+        .expect("Cargo.lock generated");
+    assert!(lock.content.contains("[[package]]"));
+    assert!(lock.content.contains("name = \"my-app\""));
 }
 
 #[test]
