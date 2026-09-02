@@ -377,6 +377,7 @@ fn test_new_env_yml_files_carry_per_env_database_url() {
     // Production keeps the same shape but never ships a real password.
     let prod = find("blog/config/production.yml");
     assert!(prod.contains("postgres://postgres:CHANGE_ME@localhost:5432/blog_production"));
+    assert!(prod.contains("sql: false"));
     assert!(!prod.contains(":postgres@"));
 }
 

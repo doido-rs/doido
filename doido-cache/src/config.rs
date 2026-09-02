@@ -34,6 +34,7 @@ pub enum CacheBackend {
 ///   type: redis                       # memory | redis | memcache
 ///   endpoint: redis://127.0.0.1:6379  # backend address (redis/memcache)
 ///   namespace: myapp                  # optional key prefix
+///   compress: true                    # gzip large values (redis/memory)
 /// ```
 #[derive(Debug, Clone, Default, Deserialize)]
 pub struct CacheConfig {
@@ -47,6 +48,9 @@ pub struct CacheConfig {
     /// Optional key prefix applied to every key (via [`NamespacedStore`]).
     #[serde(default)]
     pub namespace: Option<String>,
+    /// Gzip-compress serialized values before storing (see [`crate::codec`]).
+    #[serde(default)]
+    pub compress: bool,
 }
 
 impl CacheConfig {
@@ -55,7 +59,7 @@ impl CacheConfig {
     /// this is async and can fail.
     pub async fn build(&self) -> Result<Arc<dyn CacheStore>> {
         let base: Arc<dyn CacheStore> = match self.backend {
-            CacheBackend::Memory => Arc::new(MemoryStore::new()),
+            CacheBackend::Memory => Arc::new(MemoryStore::with_compress(self.compress)),
             CacheBackend::Redis => self.build_redis().await?,
             CacheBackend::Memcache => self.build_memcache().await?,
         };
@@ -101,7 +105,7 @@ impl CacheConfig {
             .clone()
             .unwrap_or_else(|| "redis://127.0.0.1:6379".to_string());
         Ok(Arc::new(
-            crate::redis_store::RedisStore::connect(&endpoint).await?,
+            crate::redis_store::RedisStore::connect_with_options(&endpoint, self.compress).await?,
         ))
     }
 

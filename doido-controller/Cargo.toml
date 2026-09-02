@@ -13,8 +13,8 @@ doido-view.workspace = true
 doido-cache.workspace = true
 async-trait.workspace = true
 axum = { workspace = true, features = ["ws"] }
-tokio = { workspace = true, features = ["full"] }
-tower = { workspace = true, features = ["full"] }
+tokio = { workspace = true, features = ["rt-multi-thread", "macros", "net", "fs"] }
+tower = { workspace = true, features = ["util"] }
 tower-http.workspace = true
 tracing.workspace = true
 serde.workspace = true
@@ -38,6 +38,12 @@ mysql = ["doido-model/mysql"]
 
 [dev-dependencies]
 http-body-util.workspace = true
-tokio.workspace = true
+tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
 tempfile.workspace = true
+tower = { workspace = true, features = ["util"] }
+criterion = { version = "0.5", features = ["html_reports", "async_tokio"] }
 doido-model = { workspace = true, features = ["sqlite"] }
+
+[[bench]]
+name = "hot_paths"
+harness = false

@@ -1,10 +1,10 @@
 use crate::engine::TemplateEngine;
 use doido_core::{anyhow::Context as _, Result};
 use std::path::{Path, PathBuf};
-use std::sync::RwLock;
+use std::sync::{Arc, RwLock};
 
 pub struct TeraEngine {
-    tera: RwLock<tera::Tera>,
+    tera: Arc<RwLock<tera::Tera>>,
     templates_dir: String,
 }
 
@@ -13,9 +13,47 @@ impl TeraEngine {
         let tera = load(templates_dir)
             .with_context(|| format!("failed to load templates from {templates_dir}"))?;
         Ok(Self {
-            tera: RwLock::new(tera),
+            tera: Arc::new(RwLock::new(tera)),
             templates_dir: templates_dir.to_string(),
         })
+    }
+
+    fn render_locked(
+        tera: &Arc<RwLock<tera::Tera>>,
+        template_name: &str,
+        ctx: &tera::Context,
+    ) -> Result<String> {
+        tera.read()
+            .unwrap()
+            .render(template_name, ctx)
+            .map_err(|e| doido_core::anyhow::anyhow!("template '{template_name}' render failed: {e}"))
+    }
+
+    /// CPU-bound Tera render. When called from a multi-threaded Tokio runtime,
+    /// offloads to the blocking pool so async worker threads stay responsive.
+    fn render_offloaded(
+        tera: Arc<RwLock<tera::Tera>>,
+        template_name: String,
+        ctx: tera::Context,
+    ) -> Result<String> {
+        match tokio::runtime::Handle::try_current() {
+            Ok(handle)
+                if handle.runtime_flavor() == tokio::runtime::RuntimeFlavor::MultiThread =>
+            {
+                let (tx, rx) = std::sync::mpsc::sync_channel(1);
+                let tera_worker = Arc::clone(&tera);
+                handle.spawn_blocking(move || {
+                    let _ = tx.send(Self::render_locked(
+                        &tera_worker,
+                        &template_name,
+                        &ctx,
+                    ));
+                });
+                rx.recv()
+                    .map_err(|_| doido_core::anyhow::anyhow!("template render channel closed"))?
+            }
+            _ => Self::render_locked(&tera, &template_name, &ctx),
+        }
     }
 }
 
@@ -24,21 +62,13 @@ impl TemplateEngine for TeraEngine {
         let template_name = format!("{}.html.tera", template);
         let ctx = tera::Context::from_serialize(context)
             .map_err(|e| doido_core::anyhow::anyhow!("invalid template context: {e}"))?;
-        self.tera
-            .read()
-            .unwrap()
-            .render(&template_name, &ctx)
-            .map_err(|e| doido_core::anyhow::anyhow!("template '{}' render failed: {e}", template))
+        Self::render_offloaded(Arc::clone(&self.tera), template_name, ctx)
     }
 
     fn render_named(&self, name: &str, context: &serde_json::Value) -> Result<String> {
         let ctx = tera::Context::from_serialize(context)
             .map_err(|e| doido_core::anyhow::anyhow!("invalid template context: {e}"))?;
-        self.tera
-            .read()
-            .unwrap()
-            .render(name, &ctx)
-            .map_err(|e| doido_core::anyhow::anyhow!("template '{}' render failed: {e}", name))
+        Self::render_offloaded(Arc::clone(&self.tera), name.to_string(), ctx)
     }
 
     fn reload(&self) -> Result<()> {

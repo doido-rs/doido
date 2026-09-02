@@ -26,7 +26,13 @@ doido-mailer = {doido_mailer_dep}
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sqlx = { version = "0.8", features = ["runtime-tokio", "{doido_sqlx_feature}"] }
-tokio = { version = "1", features = ["full"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+
+# Release profile tuned for production deploys (Dockerfile runs `cargo build --release`).
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = true
 
 [dev-dependencies]
 # Used by generated scaffold controller request tests (Router::oneshot).
