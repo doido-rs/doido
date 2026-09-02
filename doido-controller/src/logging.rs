@@ -9,17 +9,27 @@
 //! together; it is taken from an inbound `x-request-id` header when present (so
 //! an upstream proxy's id is preserved) or generated otherwise, and echoed back
 //! on the response so clients can correlate too. The `request` line carries the
-//! method, path, query and request headers; the `response` line carries the
-//! status, latency and response headers.
+//! method, path, query and (only in `verbose` log format) request headers; the
+//! `response` line carries the status, latency and response headers.
 
 use crate::axum::{extract::Request, middleware::Next, response::Response};
+use doido_core::logger::LogFormat;
 use doido_core::tracing::Instrument;
 use http::{HeaderMap, HeaderName, HeaderValue};
+use std::sync::OnceLock;
 use std::time::Instant;
 use uuid::Uuid;
 
 /// Header carrying the request correlation id, in/out.
 const REQUEST_ID_HEADER: &str = "x-request-id";
+
+/// Whether request/response header maps are formatted into log fields. Only
+/// `logger.format: verbose` enables this — compact and json_response formats
+/// skip header serialization to avoid per-request allocations.
+fn include_headers_in_logs() -> bool {
+    static VERBOSE: OnceLock<bool> = OnceLock::new();
+    *VERBOSE.get_or_init(|| crate::config::load().logger().format == LogFormat::Verbose)
+}
 
 /// Logs an incoming request and its response through the doido logger.
 ///
@@ -33,7 +43,8 @@ pub async fn log_requests(request: Request, next: Next) -> Response {
     let method = request.method().clone();
     let path = request.uri().path().to_owned();
     let query = request.uri().query().map(str::to_owned);
-    let request_headers = format_headers(request.headers());
+    let log_headers = include_headers_in_logs();
+    let request_headers = log_headers.then(|| format_headers(request.headers()));
 
     // Span carrying the request identity; nested events inherit it.
     let span = doido_core::tracing::info_span!(
@@ -42,16 +53,28 @@ pub async fn log_requests(request: Request, next: Next) -> Response {
         method = %method,
         path = %path,
     );
-    doido_core::tracing::info!(
-        target: doido_core::logger::REQUEST_TARGET,
-        parent: &span,
-        request_id = %request_id,
-        method = %method,
-        path = %path,
-        query = query.as_deref().unwrap_or(""),
-        headers = %request_headers,
-        "request"
-    );
+    if log_headers {
+        doido_core::tracing::info!(
+            target: doido_core::logger::REQUEST_TARGET,
+            parent: &span,
+            request_id = %request_id,
+            method = %method,
+            path = %path,
+            query = query.as_deref().unwrap_or(""),
+            headers = request_headers.as_deref().unwrap_or(""),
+            "request"
+        );
+    } else {
+        doido_core::tracing::info!(
+            target: doido_core::logger::REQUEST_TARGET,
+            parent: &span,
+            request_id = %request_id,
+            method = %method,
+            path = %path,
+            query = query.as_deref().unwrap_or(""),
+            "request"
+        );
+    }
 
     let start = Instant::now();
     // `instrument` enters the span for the whole handler, across `.await`s.
@@ -67,20 +90,32 @@ pub async fn log_requests(request: Request, next: Next) -> Response {
     }
 
     let status = response.status().as_u16();
-    let response_headers = format_headers(response.headers());
+    let response_headers = log_headers.then(|| format_headers(response.headers()));
     {
         // Emit the response event inside the span; no `.await` follows.
         let _guard = span.enter();
-        doido_core::tracing::info!(
-            target: doido_core::logger::RESPONSE_TARGET,
-            request_id = %request_id,
-            method = %method,
-            path = %path,
-            status = status,
-            latency_ms = latency_ms,
-            headers = %response_headers,
-            "response"
-        );
+        if log_headers {
+            doido_core::tracing::info!(
+                target: doido_core::logger::RESPONSE_TARGET,
+                request_id = %request_id,
+                method = %method,
+                path = %path,
+                status = status,
+                latency_ms = latency_ms,
+                headers = response_headers.as_deref().unwrap_or(""),
+                "response"
+            );
+        } else {
+            doido_core::tracing::info!(
+                target: doido_core::logger::RESPONSE_TARGET,
+                request_id = %request_id,
+                method = %method,
+                path = %path,
+                status = status,
+                latency_ms = latency_ms,
+                "response"
+            );
+        }
     }
 
     response
@@ -122,4 +157,22 @@ fn is_sensitive(name: &str) -> bool {
         name,
         "authorization" | "proxy-authorization" | "cookie" | "set-cookie"
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn sensitive_headers_are_redacted() {
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            http::header::AUTHORIZATION,
+            HeaderValue::from_static("Bearer secret"),
+        );
+        headers.insert(http::header::HOST, HeaderValue::from_static("example.com"));
+        let formatted = format_headers(&headers);
+        assert!(formatted.contains("authorization: [redacted]"));
+        assert!(formatted.contains("host: example.com"));
+    }
 }

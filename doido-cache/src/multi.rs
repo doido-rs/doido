@@ -7,10 +7,11 @@ use std::collections::BTreeMap;
 
 /// Read several keys at once; only present keys appear in the result.
 pub async fn read_multi(store: &dyn CacheStore, keys: &[&str]) -> Result<BTreeMap<String, Value>> {
+    let values = store.read_many(keys).await?;
     let mut out = BTreeMap::new();
-    for &key in keys {
-        if let Some(value) = store.get(key).await? {
-            out.insert(key.to_string(), value);
+    for (key, value) in keys.iter().zip(values) {
+        if let Some(value) = value {
+            out.insert((*key).to_string(), value);
         }
     }
     Ok(out)
@@ -35,9 +36,10 @@ pub async fn fetch_multi(
     ttl_secs: Option<u64>,
     render: impl Fn(&str) -> Value,
 ) -> Result<BTreeMap<String, Value>> {
+    let values = store.read_many(keys).await?;
     let mut out = BTreeMap::new();
-    for &key in keys {
-        let value = match store.get(key).await? {
+    for (key, cached) in keys.iter().zip(values) {
+        let value = match cached {
             Some(value) => value,
             None => {
                 let computed = render(key);
@@ -45,7 +47,7 @@ pub async fn fetch_multi(
                 computed
             }
         };
-        out.insert(key.to_string(), value);
+        out.insert((*key).to_string(), value);
     }
     Ok(out)
 }

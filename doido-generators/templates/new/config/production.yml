@@ -4,10 +4,17 @@ server:
 database:
   # `DATABASE_URL` at deploy time (via get_env); default is a CHANGE_ME placeholder.
   url: '{{ get_env(name="DATABASE_URL", default="{doido_db_url_production}") }}'
+  # Optional pool tuning (sea-orm/sqlx defaults to ~10 connections when unset):
+  # pool: 25
+  # connect_timeout: 5
 logger:
   # Quieter logging in production. Override at deploy time with RUST_LOG.
   level: info
   # Structured access logs: one JSON line per response (status, latency_ms,
   # request_id). Override at deploy time with RUST_LOG if you need more.
   format: json_response
+  # Disable per-query SQL logging in production (major overhead at scale).
+  sql: false
+# Multi-instance deployments need shared cache and durable jobs — regenerate or
+# adjust with: doido new --cache=redis --jobs=redis (or --jobs=db).
 {doido_cache_section}{doido_jobs_section}{doido_storage_section}

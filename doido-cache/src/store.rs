@@ -11,6 +11,15 @@ pub trait CacheStore: Send + Sync {
     async fn increment(&self, key: &str, by: i64) -> Result<i64>;
     async fn decrement(&self, key: &str, by: i64) -> Result<i64>;
     async fn clear(&self) -> Result<()>;
+
+    /// Read several keys in one round-trip when the backend supports it.
+    async fn read_many(&self, keys: &[&str]) -> Result<Vec<Option<Value>>> {
+        let mut out = Vec::with_capacity(keys.len());
+        for key in keys {
+            out.push(self.get(key).await?);
+        }
+        Ok(out)
+    }
 }
 
 /// Lets a type-erased `Arc<dyn CacheStore>` be used wherever a `CacheStore` is
@@ -38,5 +47,8 @@ impl CacheStore for Arc<dyn CacheStore> {
     }
     async fn clear(&self) -> Result<()> {
         (**self).clear().await
+    }
+    async fn read_many(&self, keys: &[&str]) -> Result<Vec<Option<Value>>> {
+        (**self).read_many(keys).await
     }
 }
