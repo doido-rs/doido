@@ -567,8 +567,56 @@ impl Generator for ProjectGenerator {
         }
 
         files.sort_by(|a, b| a.path.cmp(&b.path));
+        append_cargo_lock(name, &mut files)?;
         Ok(files)
     }
+}
+
+/// Writes the generated app tree to a temp dir and runs `cargo generate-lockfile`
+/// so new apps ship a reproducible lockfile (Docker layer cache, CI, deploys).
+fn append_cargo_lock(app_name: &str, files: &mut Vec<GeneratedFile>) -> Result<()> {
+    let stamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_nanos())
+        .unwrap_or(0);
+    let scratch = std::env::temp_dir().join(format!("doido-new-{app_name}-{stamp}"));
+    let app_root = scratch.join(app_name);
+    let prefix = format!("{app_name}/");
+
+    for file in files.iter() {
+        let Some(rel) = file.path.strip_prefix(&prefix) else {
+            continue;
+        };
+        let dest = app_root.join(rel);
+        if let Some(parent) = dest.parent() {
+            std::fs::create_dir_all(parent)?;
+        }
+        std::fs::write(&dest, &file.content)?;
+    }
+
+    let output = std::process::Command::new("cargo")
+        .arg("generate-lockfile")
+        .current_dir(&app_root)
+        .output()
+        .map_err(|e| anyhow::anyhow!("failed to spawn cargo generate-lockfile: {e}"))?;
+
+    if !output.status.success() {
+        let _ = std::fs::remove_dir_all(&scratch);
+        return Err(anyhow::anyhow!(
+            "cargo generate-lockfile failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        ));
+    }
+
+    let lock = std::fs::read_to_string(app_root.join("Cargo.lock"))
+        .map_err(|e| anyhow::anyhow!("Cargo.lock missing after generate-lockfile: {e}"))?;
+    let _ = std::fs::remove_dir_all(&scratch);
+
+    files.push(GeneratedFile {
+        path: format!("{app_name}/Cargo.lock"),
+        content: lock,
+    });
+    Ok(())
 }
 
 #[cfg(test)]

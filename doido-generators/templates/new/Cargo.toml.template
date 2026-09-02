@@ -15,6 +15,9 @@ default-run = "{doido_name}"
 # (e.g. `target/e2e/apps/`) without joining that parent workspace.
 [workspace]
 
+[profile.dev]
+debug = "line-tables-only"
+
 [dependencies]
 doido = {doido_dep}
 doido-core = {doido_core_dep}
