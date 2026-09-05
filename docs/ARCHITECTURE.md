@@ -94,8 +94,9 @@ generated app's `src/main.rs` calls `doido_generators::run(Some(routes))`.
 3. **DB pool** — `doido_model::pool::init()` → `&'static DatabaseConnection`.
 4. **View engine** — `doido_view::init("app/views")`.
 5. **Storage** — `doido_storage::init_storage()` builds the configured
-   `Storage` facade; controllers read it via `ctx.storage()`; apps mount
-   `serving::routes()` for blob/direct-upload endpoints.
+   `Storage` facade from `config/<env>.yml` (with `STORAGE__*` env overrides);
+   controllers read it via `ctx.storage()`; serving routes are merged automatically
+   at HTTP boot via `doido_storage::serving::merge_routes()` when initialisation succeeds.
 6. **Cache** — `doido_cache::global::init()` → `Arc<dyn CacheStore>`.
 7. **Auth** (when installed) — `doido_auth::init(db, &config.auth)` registers strategies
    and OAuth providers; `doido_auth::layer()` wraps the router.

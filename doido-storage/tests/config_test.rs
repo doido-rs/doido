@@ -142,3 +142,65 @@ fn load_without_config_file_is_usable() {
     let cfg = doido_storage::config::load();
     assert!(cfg.drivers.is_empty() || cfg.driver.is_some() || cfg.drivers.contains_key("local"));
 }
+
+#[test]
+fn apply_env_overrides_driver_prefix_and_expires() {
+    let yaml = r#"
+storage:
+  driver: local
+  drivers:
+    local: { type: disk, root: storage }
+    test:  { type: memory }
+"#;
+    let mut cfg = YamlConfig::from_yaml(yaml).unwrap().storage;
+    std::env::set_var("STORAGE__DRIVER", "test");
+    std::env::set_var("STORAGE__PREFIX", "/files");
+    std::env::set_var("STORAGE__EXPIRES_IN", "900");
+    cfg.apply_env_overrides();
+    assert_eq!(cfg.driver.as_deref(), Some("test"));
+    assert_eq!(cfg.resolved_prefix(), "/files");
+    assert_eq!(cfg.resolved_expires_in().as_secs(), 900);
+    std::env::remove_var("STORAGE__DRIVER");
+    std::env::remove_var("STORAGE__PREFIX");
+    std::env::remove_var("STORAGE__EXPIRES_IN");
+}
+
+#[test]
+fn parses_prefix_and_expires_from_yaml() {
+    let yaml = r#"
+storage:
+  driver: local
+  prefix: /uploads
+  expires_in: 120
+  drivers:
+    local: { type: memory }
+"#;
+    let cfg = YamlConfig::from_yaml(yaml).unwrap().storage;
+    assert_eq!(cfg.resolved_prefix(), "/uploads");
+    assert_eq!(cfg.resolved_expires_in().as_secs(), 120);
+}
+
+#[tokio::test]
+async fn into_storage_propagates_prefix_and_expiry() {
+    use doido_storage::{Signer, StorageConfig};
+    let conn = doido_model::sea_orm::Database::connect("sqlite::memory:")
+        .await
+        .unwrap();
+    let mut cfg = StorageConfig::default();
+    cfg.driver = Some("local".to_string());
+    cfg.drivers.insert(
+        "local".to_string(),
+        doido_storage::ServiceConfig {
+            backend: ServiceBackend::Memory,
+            ..Default::default()
+        },
+    );
+    cfg.prefix = Some("/custom".to_string());
+    cfg.expires_in = Some(42);
+    let storage = cfg
+        .into_storage(conn, Signer::new(b"secret".to_vec()))
+        .await
+        .unwrap();
+    assert_eq!(storage.prefix(), "/custom");
+    assert_eq!(storage.expires_in().as_secs(), 42);
+}

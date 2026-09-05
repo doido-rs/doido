@@ -2,8 +2,8 @@
 //! (an external file-service integration) implementing `doido_storage::Service`.
 //!
 //! Emits `app/storage/<snake>_service.rs` with a `<Pascal>Service` skeleton plus a
-//! `register()` that wires it into the storage adapter registry, so the app can
-//! select it from `config/<env>.yml` with `type: <snake>`.
+//! `register()` that wires it into the storage adapter registry, and updates
+//! `app/storage/mod.rs` with a `register_all()` boot hook.
 
 use crate::generator::{GeneratedFile, Generator};
 use crate::generators::{to_pascal, to_snake};
@@ -11,14 +11,16 @@ use doido_core::Result;
 
 pub struct StorageAdapterGenerator;
 
-fn render(name: &str) -> String {
+const STORAGE_MOD_PATH: &str = "app/storage/mod.rs";
+
+fn render_service(name: &str) -> String {
     let snake = to_snake(name);
     let pascal = to_pascal(name);
     format!(
         r#"//! Custom storage adapter `{pascal}Service` — integrate an external file service.
 //!
-//! Wire it up: declare this module in your app, call `{snake}_service::register()`
-//! once at boot, then select it in `config/<env>.yml`:
+//! Registered via [`super::register_all`] at boot (see `app/storage/mod.rs`).
+//! Select it in `config/<env>.yml`:
 //!
 //! ```yaml
 //! storage:
@@ -47,7 +49,7 @@ impl {pascal}Service {{
     }}
 }}
 
-/// Register this adapter under `type: {snake}`. Call once at boot.
+/// Register this adapter under `type: {snake}`. Called from [`super::register_all`].
 pub fn register() {{
     register_adapter("{snake}", |name: &str, cfg: &ServiceConfig| {{
         Ok(Arc::new({pascal}Service::connect(name, cfg)?) as Arc<dyn Service>)
@@ -87,6 +89,48 @@ impl Service for {pascal}Service {{
     )
 }
 
+fn render_storage_mod(modules: &[String]) -> String {
+    let mut out = String::from(
+        "//! Custom storage adapters. Call [`register_all`] from `src/main.rs` before\n\
+         //! `Doido::new().run()` so adapters are registered before storage boots.\n\n",
+    );
+    for snake in modules {
+        out.push_str(&format!("pub mod {snake}_service;\n"));
+    }
+    out.push_str("\n/// Register every custom storage adapter. Call once at boot.\npub fn register_all() {\n");
+    for snake in modules {
+        out.push_str(&format!("    {snake}_service::register();\n"));
+    }
+    out.push_str("}\n");
+    out
+}
+
+fn merge_storage_mod(existing: &str, snake: &str) -> String {
+    let module_line = format!("pub mod {snake}_service;");
+    let register_line = format!("    {snake}_service::register();");
+
+    if existing.contains(&module_line) && existing.contains(&register_line) {
+        return existing.to_string();
+    }
+
+    let mut modules: Vec<String> = existing
+        .lines()
+        .filter_map(|line| {
+            let line = line.trim();
+            line.strip_prefix("pub mod ")
+                .and_then(|rest| rest.strip_suffix("_service;"))
+                .map(str::to_string)
+        })
+        .collect();
+
+    if !modules.iter().any(|m| m == snake) {
+        modules.push(snake.to_string());
+    }
+    modules.sort();
+    modules.dedup();
+    render_storage_mod(&modules)
+}
+
 impl Generator for StorageAdapterGenerator {
     fn name(&self) -> &str {
         "storage:adapter"
@@ -97,10 +141,22 @@ impl Generator for StorageAdapterGenerator {
             doido_core::anyhow::anyhow!("storage:adapter generator requires a name argument")
         })?;
         let snake = to_snake(name);
-        Ok(vec![GeneratedFile {
-            path: format!("app/storage/{snake}_service.rs"),
-            content: render(name),
-        }])
+
+        let mod_content = match std::fs::read_to_string(STORAGE_MOD_PATH) {
+            Ok(existing) => merge_storage_mod(&existing, &snake),
+            Err(_) => render_storage_mod(std::slice::from_ref(&snake)),
+        };
+
+        Ok(vec![
+            GeneratedFile {
+                path: format!("app/storage/{snake}_service.rs"),
+                content: render_service(name),
+            },
+            GeneratedFile {
+                path: STORAGE_MOD_PATH.to_string(),
+                content: mod_content,
+            },
+        ])
     }
 }
 
@@ -109,19 +165,31 @@ mod tests {
     use super::*;
 
     #[test]
-    fn emits_service_skeleton_and_register() {
+    fn emits_service_skeleton_mod_and_register() {
         let files = StorageAdapterGenerator.generate(&["Dropbox"]).unwrap();
-        assert_eq!(files.len(), 1);
+        assert_eq!(files.len(), 2);
         assert_eq!(files[0].path, "app/storage/dropbox_service.rs");
+        assert_eq!(files[1].path, "app/storage/mod.rs");
         let content = &files[0].content;
         assert!(content.contains("pub struct DropboxService"));
         assert!(content.contains("impl Service for DropboxService"));
         assert!(content.contains("register_adapter(\"dropbox\""));
         assert!(content.contains("pub fn register()"));
+        let mod_rs = &files[1].content;
+        assert!(mod_rs.contains("pub mod dropbox_service;"));
+        assert!(mod_rs.contains("dropbox_service::register();"));
+        assert!(mod_rs.contains("pub fn register_all()"));
     }
 
     #[test]
     fn requires_a_name() {
         assert!(StorageAdapterGenerator.generate(&[]).is_err());
+    }
+
+    #[test]
+    fn merge_storage_mod_is_idempotent() {
+        let first = render_storage_mod(&["dropbox".to_string()]);
+        let second = merge_storage_mod(&first, "dropbox");
+        assert_eq!(first, second);
     }
 }

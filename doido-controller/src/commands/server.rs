@@ -25,6 +25,8 @@ pub async fn run(routes: Option<axum::Router>, env: Option<String>, port: Option
                 doido_core::tracing::warn!("failed to initialize cache: {e}");
             }
 
+            let router = doido_storage::serving::merge_routes(router);
+
             if let Err(e) = crate::start_server_with(router, None, port).await {
                 doido_core::tracing::error!("server error: {e}");
             }

@@ -36,6 +36,7 @@ pub mod schema;
 pub mod service;
 pub mod serving;
 pub mod signing;
+pub mod testing;
 
 #[cfg(feature = "storage-image")]
 pub mod analyzer;
@@ -47,7 +48,7 @@ pub use client::Storage;
 pub use config::{ServiceBackend, ServiceConfig, StorageConfig};
 pub use error::StorageError;
 pub use global::init as init_storage;
-pub use global::{set_storage, storage, try_storage};
+pub use global::{init_from_config, init_with, set_storage, storage, try_storage};
 pub use providers::disk::DiskService;
 pub use providers::memory::MemoryService;
 pub use registry::{register_adapter, registered_adapters, ServiceFactory};

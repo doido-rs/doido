@@ -40,6 +40,15 @@ pub fn routes(storage: Storage) -> Router {
         .with_state(storage)
 }
 
+/// Merge blob-serving routes into `router` when a global [`Storage`] facade is
+/// installed (after [`crate::init_storage`] at boot). No-op otherwise.
+pub fn merge_routes(router: Router) -> Router {
+    match crate::try_storage() {
+        Some(storage) => router.merge(routes(storage)),
+        None => router,
+    }
+}
+
 async fn resolve_blob(storage: &Storage, signed_id: &str) -> Option<Blob> {
     let key = storage.verify_signed_id(signed_id).ok()?;
     storage.find_blob(&key).await.ok().flatten()

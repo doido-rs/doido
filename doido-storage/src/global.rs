@@ -5,6 +5,7 @@
 //! via [`storage`].
 
 use crate::client::Storage;
+use crate::config;
 use doido_core::Result;
 use std::sync::OnceLock;
 
@@ -15,12 +16,32 @@ static STORAGE: OnceLock<Storage> = OnceLock::new();
 /// facade is returned and the freshly built one discarded. Call once at boot after
 /// the database pool is ready.
 pub async fn init() -> Result<Storage> {
+    init_from_config(config::load()).await
+}
+
+/// Builds and installs a storage facade from an explicit config.
+pub async fn init_from_config(cfg: config::StorageConfig) -> Result<Storage> {
     if let Some(existing) = STORAGE.get() {
         return Ok(existing.clone());
     }
-    let storage = Storage::from_config(doido_model::pool::pool().clone()).await?;
+    let storage = cfg
+        .into_storage(
+            doido_model::pool::pool().clone(),
+            crate::signing::Signer::from_env(),
+        )
+        .await?;
     let _ = STORAGE.set(storage);
     Ok(STORAGE.get().expect("storage was just set").clone())
+}
+
+/// Installs an already-built facade as the global default (e.g. in tests).
+/// Idempotent: returns the existing facade if one is already installed.
+pub async fn init_with(storage: Storage) -> Result<Storage> {
+    if let Some(existing) = STORAGE.get() {
+        return Ok(existing.clone());
+    }
+    let _ = STORAGE.set(storage.clone());
+    Ok(storage)
 }
 
 /// Installs an already-built facade as the global default (e.g. in tests).

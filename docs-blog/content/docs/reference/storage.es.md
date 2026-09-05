@@ -31,6 +31,8 @@ nube. Elige el driver activo en la config `storage`; registra los personalizados
 # config/production.yml
 storage:
   driver: amazon
+  prefix: /files          # opcional, predeterminado /doido/storage
+  expires_in: 3600        # TTL opcional de URLs firmadas (segundos)
   drivers:
     local:  { type: disk, root: storage }
     test:   { type: memory }
@@ -40,13 +42,40 @@ storage:
     google: { type: gcs, bucket: my-bucket }
 ```
 
-Adapter personalizado:
+Overrides por variable de entorno:
+
+| Variable | Efecto |
+|----------|--------|
+| `STORAGE__DRIVER` | Nombre del driver activo |
+| `STORAGE__PREFIX` | Prefijo de rutas de serving |
+| `STORAGE__EXPIRES_IN` | TTL de URLs firmadas (segundos) |
+| `DOIDO_SECRET_KEY_BASE` | Secreto HMAC (obligatorio en producción) |
+| `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | Credenciales S3/R2 |
+| `AZURE_STORAGE_ACCESS_KEY` | Credenciales Azure Blob |
+| `GOOGLE_APPLICATION_CREDENTIALS` | ADC de GCS |
+
+Adapter personalizado (scaffold con `cargo doido generate storage:adapter Dropbox`):
 
 ```rust
 use doido::storage::register_adapter;
 
 register_adapter("dropbox", my_dropbox_factory);
 ```
+
+Llama `storage::register_all()` desde `app/storage/mod.rs` en `src/main.rs` **antes** de
+`Doido::new().run()` para registrar adapters personalizados antes del boot de storage.
+
+## Boot & controllers
+
+En el arranque del servidor, `doido_storage::init_storage()` construye la fachada desde la
+config e instala el singleton global. Los controllers acceden vía `ctx.storage()`:
+
+```rust
+let blob = ctx.storage().attach_upload("User", "1", "avatar", "me.png", bytes).await?;
+```
+
+Las rutas de serving (`/doido/storage/...` por defecto) se **montan automáticamente**
+cuando storage inicializa — sin merge manual en `config/routes.rs` en apps estándar.
 
 ## La fachada Storage
 
@@ -134,16 +163,17 @@ purge_later(job_queue.as_ref(), &blob.key).await?;
 
 ## Pruebas
 
-`MemoryService` mantiene los bytes en proceso, así que los round-trips de
-subida/attach/descarga son rápidos y aislados.
+Los helpers `doido_storage::testing` instalan una fachada en memoria para pruebas de integración:
 
 ```rust
-use doido::storage::{DiskService, Service};
+use doido::storage::testing::{install, memory_storage};
 
-let service = DiskService::new("local", std::env::temp_dir());
-service.upload("k", b"bytes".to_vec(), Some("text/plain")).await?;
-assert_eq!(service.download("k").await?, b"bytes");
+let storage = memory_storage(conn);
+install(storage).unwrap();
+// ctx.storage() ahora delega a la fachada instalada
 ```
+
+`MemoryService` mantiene bytes en proceso para pruebas unitarias rápidas:
 
 ## Especificación vs. implementación
 

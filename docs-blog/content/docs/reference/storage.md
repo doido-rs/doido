@@ -31,6 +31,8 @@ the active driver in the `storage` config; register custom ones with `register_a
 # config/production.yml
 storage:
   driver: amazon
+  prefix: /files          # optional, default /doido/storage
+  expires_in: 3600        # optional signed-URL TTL in seconds
   drivers:
     local:  { type: disk, root: storage }
     test:   { type: memory }
@@ -40,13 +42,40 @@ storage:
     google: { type: gcs, bucket: my-bucket }
 ```
 
-Custom adapter:
+Environment overrides (same spirit as other Doido config):
+
+| Variable | Effect |
+|----------|--------|
+| `STORAGE__DRIVER` | Active driver name |
+| `STORAGE__PREFIX` | Serving route prefix |
+| `STORAGE__EXPIRES_IN` | Signed-URL TTL (seconds) |
+| `DOIDO_SECRET_KEY_BASE` | HMAC signing secret (required in production) |
+| `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | S3/R2 credentials |
+| `AZURE_STORAGE_ACCESS_KEY` | Azure Blob credentials |
+| `GOOGLE_APPLICATION_CREDENTIALS` | GCS ADC |
+
+Custom adapter (scaffold with `cargo doido generate storage:adapter Dropbox`):
 
 ```rust
 use doido::storage::register_adapter;
 
 register_adapter("dropbox", my_dropbox_factory);
 ```
+
+Call `storage::register_all()` from `app/storage/mod.rs` in `src/main.rs` **before**
+`Doido::new().run()` so custom adapters register before storage boots.
+
+## Boot & controllers
+
+At server boot, `doido_storage::init_storage()` builds the facade from config and
+installs the global singleton. Controllers access it via `ctx.storage()`:
+
+```rust
+let blob = ctx.storage().attach_upload("User", "1", "avatar", "me.png", bytes).await?;
+```
+
+Blob-serving routes (`/doido/storage/...` by default) are **mounted automatically**
+when storage initialises — no manual merge in `config/routes.rs` for standard apps.
 
 ## The Storage facade
 
@@ -134,16 +163,17 @@ purge_later(job_queue.as_ref(), &blob.key).await?;
 
 ## Testing
 
-`MemoryService` keeps bytes in-process, so upload/attach/download round-trips are fast and
-isolated.
+`doido_storage::testing` helpers install an in-memory facade for integration tests:
 
 ```rust
-use doido::storage::{DiskService, Service};
+use doido::storage::testing::{install, memory_storage};
 
-let service = DiskService::new("local", std::env::temp_dir());
-service.upload("k", b"bytes".to_vec(), Some("text/plain")).await?;
-assert_eq!(service.download("k").await?, b"bytes");
+let storage = memory_storage(conn);
+install(storage).unwrap();
+// ctx.storage() now delegates to the installed facade
 ```
+
+`MemoryService` keeps bytes in-process for fast unit tests:
 
 ## Spec vs. implementation
 

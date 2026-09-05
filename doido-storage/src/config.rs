@@ -29,6 +29,13 @@ use doido_core::Result;
 use serde::{Deserialize, Deserializer};
 use std::collections::HashMap;
 use std::sync::Arc;
+use std::time::Duration;
+
+/// Default route prefix for [`crate::serving::routes`].
+pub const DEFAULT_PREFIX: &str = "/doido/storage";
+
+/// Default signed-URL TTL in seconds.
+pub const DEFAULT_EXPIRES_IN_SECS: u64 = 300;
 
 /// Which storage backend a named service uses.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -205,9 +212,46 @@ pub struct StorageConfig {
     /// The named drivers.
     #[serde(default, alias = "services")]
     pub drivers: HashMap<String, ServiceConfig>,
+    /// Route prefix for blob serving (default [`DEFAULT_PREFIX`]).
+    #[serde(default)]
+    pub prefix: Option<String>,
+    /// Signed-URL TTL in seconds (default [`DEFAULT_EXPIRES_IN_SECS`]).
+    #[serde(default, alias = "expires_in_secs")]
+    pub expires_in: Option<u64>,
 }
 
 impl StorageConfig {
+    /// Apply `STORAGE__*` environment overrides onto this config.
+    pub fn apply_env_overrides(&mut self) {
+        if let Ok(driver) = std::env::var("STORAGE__DRIVER") {
+            let driver = driver.trim();
+            if !driver.is_empty() {
+                self.driver = Some(driver.to_string());
+            }
+        }
+        if let Ok(prefix) = std::env::var("STORAGE__PREFIX") {
+            let prefix = prefix.trim();
+            if !prefix.is_empty() {
+                self.prefix = Some(prefix.to_string());
+            }
+        }
+        if let Ok(expires) = std::env::var("STORAGE__EXPIRES_IN") {
+            if let Ok(secs) = expires.trim().parse::<u64>() {
+                self.expires_in = Some(secs);
+            }
+        }
+    }
+
+    /// Resolved serving route prefix.
+    pub fn resolved_prefix(&self) -> &str {
+        self.prefix.as_deref().unwrap_or(DEFAULT_PREFIX)
+    }
+
+    /// Resolved signed-URL TTL.
+    pub fn resolved_expires_in(&self) -> Duration {
+        Duration::from_secs(self.expires_in.unwrap_or(DEFAULT_EXPIRES_IN_SECS))
+    }
+
     /// Build the selected driver. With no configuration at all, defaults to a
     /// disk driver named `local` rooted at `storage`.
     pub async fn build(&self) -> Result<Arc<dyn Service>> {
@@ -245,11 +289,17 @@ impl YamlConfig {
         Self::load_env(doido_core::Environment::get_env())
     }
 
-    /// Load `config/<env>.yml` for a specific environment.
+    /// Load `config/<env>.yml` for a specific environment, applying `STORAGE__*`
+    /// env overrides. Missing files yield the default config (disk driver).
     pub fn load_env(env: doido_core::Environment) -> std::io::Result<Self> {
         let path = format!("config/{}.yml", env.as_str());
-        let contents = std::fs::read_to_string(&path)?;
-        Self::from_yaml(&contents)
+        let mut cfg = match std::fs::read_to_string(&path) {
+            Ok(contents) => Self::from_yaml(&contents)?,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Self::default(),
+            Err(e) => return Err(e),
+        };
+        cfg.storage.apply_env_overrides();
+        Ok(cfg)
     }
 
     /// Parse a [`YamlConfig`] from a YAML string.
@@ -260,7 +310,15 @@ impl YamlConfig {
 }
 
 /// Load the current environment's [`StorageConfig`], falling back to the default
-/// (disk) when the file is missing or has no `storage` section.
+/// (disk) when the file is missing or has no `storage` section. Applies
+/// `STORAGE__*` env overrides.
 pub fn load() -> StorageConfig {
-    YamlConfig::load().map(|c| c.storage).unwrap_or_default()
+    match YamlConfig::load() {
+        Ok(c) => c.storage,
+        Err(_) => {
+            let mut cfg = StorageConfig::default();
+            cfg.apply_env_overrides();
+            cfg
+        }
+    }
 }

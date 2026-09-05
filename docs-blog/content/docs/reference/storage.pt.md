@@ -29,6 +29,8 @@ Escolha o driver ativo na config `storage`; registre os customizados com `regist
 # config/production.yml
 storage:
   driver: amazon
+  prefix: /files          # opcional, padrão /doido/storage
+  expires_in: 3600        # TTL opcional das URLs assinadas (segundos)
   drivers:
     local:  { type: disk, root: storage }
     test:   { type: memory }
@@ -38,13 +40,40 @@ storage:
     google: { type: gcs, bucket: my-bucket }
 ```
 
-Adapter customizado:
+Overrides por variável de ambiente:
+
+| Variável | Efeito |
+|----------|--------|
+| `STORAGE__DRIVER` | Nome do driver ativo |
+| `STORAGE__PREFIX` | Prefixo das rotas de serving |
+| `STORAGE__EXPIRES_IN` | TTL das URLs assinadas (segundos) |
+| `DOIDO_SECRET_KEY_BASE` | Segredo HMAC (obrigatório em produção) |
+| `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | Credenciais S3/R2 |
+| `AZURE_STORAGE_ACCESS_KEY` | Credenciais Azure Blob |
+| `GOOGLE_APPLICATION_CREDENTIALS` | ADC do GCS |
+
+Adapter customizado (scaffold com `cargo doido generate storage:adapter Dropbox`):
 
 ```rust
 use doido::storage::register_adapter;
 
 register_adapter("dropbox", my_dropbox_factory);
 ```
+
+Chame `storage::register_all()` de `app/storage/mod.rs` em `src/main.rs` **antes** de
+`Doido::new().run()` para registrar adapters customizados antes do boot do storage.
+
+## Boot & controllers
+
+No boot do servidor, `doido_storage::init_storage()` constrói a fachada a partir da
+config e instala o singleton global. Controllers acessam via `ctx.storage()`:
+
+```rust
+let blob = ctx.storage().attach_upload("User", "1", "avatar", "me.png", bytes).await?;
+```
+
+Rotas de serving (`/doido/storage/...` por padrão) são **montadas automaticamente**
+quando o storage inicializa — sem merge manual em `config/routes.rs` em apps padrão.
 
 ## A fachada Storage
 
@@ -132,16 +161,17 @@ purge_later(job_queue.as_ref(), &blob.key).await?;
 
 ## Testes
 
-`MemoryService` mantém os bytes em processo, então os round-trips de upload/attach/download
-são rápidos e isolados.
+Helpers `doido_storage::testing` instalam uma fachada em memória para testes de integração:
 
 ```rust
-use doido::storage::{DiskService, Service};
+use doido::storage::testing::{install, memory_storage};
 
-let service = DiskService::new("local", std::env::temp_dir());
-service.upload("k", b"bytes".to_vec(), Some("text/plain")).await?;
-assert_eq!(service.download("k").await?, b"bytes");
+let storage = memory_storage(conn);
+install(storage).unwrap();
+// ctx.storage() agora delega para a fachada instalada
 ```
+
+`MemoryService` mantém bytes em processo para testes unitários rápidos:
 
 ## Especificação vs. implementação
 
