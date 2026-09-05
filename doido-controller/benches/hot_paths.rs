@@ -6,12 +6,8 @@ use tower::ServiceExt;
 
 fn route_dispatch(c: &mut Criterion) {
     let rt = tokio::runtime::Runtime::new().unwrap();
-    let app = MiddlewareStack::new().apply(
-        Router::new().route(
-            "/hello",
-            get(|| async { (StatusCode::OK, "ok") }),
-        ),
-    );
+    let app = MiddlewareStack::new()
+        .apply(Router::new().route("/hello", get(|| async { (StatusCode::OK, "ok") })));
 
     c.bench_function("middleware_stack_oneshot", |b| {
         b.to_async(&rt).iter(|| async {

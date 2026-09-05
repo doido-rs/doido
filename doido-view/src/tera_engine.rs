@@ -26,7 +26,9 @@ impl TeraEngine {
         tera.read()
             .unwrap()
             .render(template_name, ctx)
-            .map_err(|e| doido_core::anyhow::anyhow!("template '{template_name}' render failed: {e}"))
+            .map_err(|e| {
+                doido_core::anyhow::anyhow!("template '{template_name}' render failed: {e}")
+            })
     }
 
     /// CPU-bound Tera render. When called from a multi-threaded Tokio runtime,
@@ -37,17 +39,11 @@ impl TeraEngine {
         ctx: tera::Context,
     ) -> Result<String> {
         match tokio::runtime::Handle::try_current() {
-            Ok(handle)
-                if handle.runtime_flavor() == tokio::runtime::RuntimeFlavor::MultiThread =>
-            {
+            Ok(handle) if handle.runtime_flavor() == tokio::runtime::RuntimeFlavor::MultiThread => {
                 let (tx, rx) = std::sync::mpsc::sync_channel(1);
                 let tera_worker = Arc::clone(&tera);
                 handle.spawn_blocking(move || {
-                    let _ = tx.send(Self::render_locked(
-                        &tera_worker,
-                        &template_name,
-                        &ctx,
-                    ));
+                    let _ = tx.send(Self::render_locked(&tera_worker, &template_name, &ctx));
                 });
                 rx.recv()
                     .map_err(|_| doido_core::anyhow::anyhow!("template render channel closed"))?

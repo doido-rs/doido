@@ -1,5 +1,5 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use doido_view::{TeraEngine, TemplateEngine};
+use doido_view::{TemplateEngine, TeraEngine};
 use serde_json::json;
 use std::fs;
 

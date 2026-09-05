@@ -57,7 +57,8 @@ pub fn unpack(raw: &str) -> Result<Value> {
             .map_err(|e| doido_core::anyhow::anyhow!("cache base64 decode failed: {e}"))?;
         decode(&bytes, true)
     } else {
-        serde_json::from_str(raw).map_err(|e| doido_core::anyhow::anyhow!("cache decode failed: {e}"))
+        serde_json::from_str(raw)
+            .map_err(|e| doido_core::anyhow::anyhow!("cache decode failed: {e}"))
     }
 }
 
