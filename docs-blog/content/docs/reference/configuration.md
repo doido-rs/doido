@@ -107,7 +107,7 @@ for the exact keys:
 ```yaml
 cache:   { type: memory }                 # → Cache guide
 jobs:    { backend: memory, queues: [default] }  # → Jobs guide
-storage: { service: local }               # → Storage guide
+storage: { driver: local }               # → Storage guide
 database: { url: sqlite://db/development.db }     # → Models guide
 ```
 

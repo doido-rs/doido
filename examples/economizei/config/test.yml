@@ -14,8 +14,8 @@ cache:
 jobs:
   type: memory
 storage:
-  service: test
-  services:
+  driver: test
+  drivers:
     test:
       type: memory
 auth:

@@ -93,15 +93,14 @@ generated app's `src/main.rs` calls `doido_generators::run(Some(routes))`.
 2. **Config** — load per-env YAML (`doido_controller::YamlConfig` for the current `Environment`), apply `SECTION__KEY` overrides, run initializers.
 3. **DB pool** — `doido_model::pool::init()` → `&'static DatabaseConnection`.
 4. **View engine** — `doido_view::init("app/views")`.
-5. **Cache** — `doido_cache::global::init()` → `Arc<dyn CacheStore>`.
-6. **Storage** — `doido_storage::Storage::from_config(db)` builds the configured
-   `Arc<dyn Service>` + signer; `serving::routes()` mounts blob/direct-upload endpoints.
-7. **Storage** — `doido_storage::Storage::from_config(db)` builds the configured
-   `Arc<dyn Service>` + signer; `serving::routes()` mounts blob/direct-upload endpoints.
-8. **Auth** (when installed) — `doido_auth::init(db, &config.auth)` registers strategies
+5. **Storage** — `doido_storage::init_storage()` builds the configured
+   `Storage` facade; controllers read it via `ctx.storage()`; apps mount
+   `serving::routes()` for blob/direct-upload endpoints.
+6. **Cache** — `doido_cache::global::init()` → `Arc<dyn CacheStore>`.
+7. **Auth** (when installed) — `doido_auth::init(db, &config.auth)` registers strategies
    and OAuth providers; `doido_auth::layer()` wraps the router.
-9. **Jobs worker** (separate process) — `doido worker` drives the `WorkerEngine`.
-10. **HTTP server** — `doido-controller` mounts the `routes!` table on axum and listens.
+8. **Jobs worker** (separate process) — `doido worker` drives the `WorkerEngine`.
+9. **HTTP server** — `doido-controller` mounts the `routes!` table on axum and listens.
 
 > There is **no committed `examples/blog` app**. The end-to-end definition-of-done is the
 > `make example` target (US-104): it scaffolds an ephemeral `blog` (`--api`) under

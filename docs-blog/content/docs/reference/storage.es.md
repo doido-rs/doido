@@ -19,19 +19,19 @@ base de datos y un signer.
 use doido::storage::{Storage, DiskService, MemoryService, Signer, Blob, Disposition};
 ```
 
-## Services
+## Drivers
 
 `Service` es el trait conectable de backend. `DiskService` (sistema de archivos local) es el
 por defecto; `MemoryService` es para pruebas; `S3Service` (feature `storage-s3`, también
 Cloudflare R2), `AzureBlobService` (`storage-azure`) y `GcsService` (`storage-gcs`) cubren la
-nube. Elige el service activo en la config `storage`; registra los personalizados con
+nube. Elige el driver activo en la config `storage`; registra los personalizados con
 `register_adapter`.
 
 ```yaml
 # config/production.yml
 storage:
-  service: amazon
-  services:
+  driver: amazon
+  drivers:
     local:  { type: disk, root: storage }
     test:   { type: memory }
     amazon: { type: s3, bucket: my-bucket, region: us-east-1 }

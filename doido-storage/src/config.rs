@@ -4,8 +4,8 @@
 //!
 //! ```yaml
 //! storage:
-//!   service: local                 # the active service for this environment
-//!   services:
+//!   driver: local                  # the active driver for this environment
+//!   drivers:
 //!     local:  { type: disk, root: storage }
 //!     test:   { type: memory }
 //!     amazon: { type: s3, bucket: my-bucket, region: us-east-1 }
@@ -16,7 +16,7 @@
 //!     azure:  { type: azure, container: my-container, account: my-account }
 //! ```
 //!
-//! [`StorageConfig::build`] turns the selected service into a live
+//! [`StorageConfig::build`] turns the selected driver into a live
 //! `Arc<dyn Service>`. `disk` and `memory` are always available; the `s3`/`r2`
 //! and `azure` backends are behind the `storage-s3` / `storage-azure` cargo
 //! features and produce a clear error when selected without their feature.
@@ -195,39 +195,39 @@ impl ServiceConfig {
     }
 }
 
-/// The `storage` config section: named services plus the selected one.
+/// The `storage` config section: named drivers plus the selected one.
 #[derive(Debug, Clone, Default, Deserialize)]
 pub struct StorageConfig {
-    /// Name of the active service. Defaults to the first entry (or a disk service
-    /// rooted at `storage` when no services are configured).
-    #[serde(default)]
-    pub service: Option<String>,
-    /// The named services.
-    #[serde(default)]
-    pub services: HashMap<String, ServiceConfig>,
+    /// Name of the active driver. Defaults to the first entry (or a disk driver
+    /// rooted at `storage` when no drivers are configured).
+    #[serde(default, alias = "service")]
+    pub driver: Option<String>,
+    /// The named drivers.
+    #[serde(default, alias = "services")]
+    pub drivers: HashMap<String, ServiceConfig>,
 }
 
 impl StorageConfig {
-    /// Build the selected service. With no configuration at all, defaults to a
-    /// disk service named `local` rooted at `storage`.
+    /// Build the selected driver. With no configuration at all, defaults to a
+    /// disk driver named `local` rooted at `storage`.
     pub async fn build(&self) -> Result<Arc<dyn Service>> {
-        if self.services.is_empty() {
+        if self.drivers.is_empty() {
             return Ok(Arc::new(DiskService::new("local", "storage")));
         }
         let name = self
-            .service
+            .driver
             .clone()
-            .or_else(|| self.services.keys().next().cloned())
-            .ok_or_else(|| StorageError::Config("no storage service selected".to_string()))?;
+            .or_else(|| self.drivers.keys().next().cloned())
+            .ok_or_else(|| StorageError::Config("no storage driver selected".to_string()))?;
         self.build_named(&name).await
     }
 
-    /// Build a specific named service.
+    /// Build a specific named driver.
     pub async fn build_named(&self, name: &str) -> Result<Arc<dyn Service>> {
         let cfg = self
-            .services
+            .drivers
             .get(name)
-            .ok_or_else(|| StorageError::Config(format!("unknown storage service {name:?}")))?;
+            .ok_or_else(|| StorageError::Config(format!("unknown storage driver {name:?}")))?;
         cfg.build(name).await
     }
 }

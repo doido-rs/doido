@@ -93,6 +93,11 @@ impl Context {
         doido_model::pool::pool()
     }
 
+    /// The application's storage facade (global singleton installed at boot).
+    pub fn storage(&self) -> doido_storage::Storage {
+        doido_storage::storage()
+    }
+
     /// A matched path parameter by name, e.g. `ctx.param("id")` for `/posts/{id}`.
     pub fn param(&self, name: &str) -> Option<&str> {
         self.path_params

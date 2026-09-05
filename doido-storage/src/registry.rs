@@ -28,8 +28,8 @@
 //!
 //! ```yaml
 //! storage:
-//!   service: files
-//!   services:
+//!   driver: files
+//!   drivers:
 //!     files: { type: dropbox, token: "...", root: "/app" }
 //! ```
 

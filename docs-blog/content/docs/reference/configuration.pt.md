@@ -108,7 +108,7 @@ correspondente para as chaves exatas:
 ```yaml
 cache:   { type: memory }                 # → guia de Cache
 jobs:    { backend: memory, queues: [default] }  # → guia de Jobs
-storage: { service: local }               # → guia de Storage
+storage: { driver: local }               # → guia de Storage
 database: { url: sqlite://db/development.db }     # → guia de Models
 ```
 

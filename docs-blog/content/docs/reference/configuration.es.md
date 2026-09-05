@@ -108,7 +108,7 @@ correspondiente para las claves exactas:
 ```yaml
 cache:   { type: memory }                 # → guía de Cache
 jobs:    { backend: memory, queues: [default] }  # → guía de Jobs
-storage: { service: local }               # → guía de Storage
+storage: { driver: local }               # → guía de Storage
 database: { url: sqlite://db/development.db }     # → guía de Modelos
 ```
 

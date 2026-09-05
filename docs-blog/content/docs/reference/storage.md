@@ -20,18 +20,18 @@ facade bundles a service, a database connection, and a signer.
 use doido::storage::{Storage, DiskService, MemoryService, Signer, Blob, Disposition};
 ```
 
-## Services
+## Drivers
 
 `Service` is the pluggable backend trait. `DiskService` (local filesystem) is the default;
 `MemoryService` is for tests; `S3Service` (feature `storage-s3`, also Cloudflare R2),
 `AzureBlobService` (`storage-azure`), and `GcsService` (`storage-gcs`) cover the cloud. Pick
-the active service in the `storage` config; register custom ones with `register_adapter`.
+the active driver in the `storage` config; register custom ones with `register_adapter`.
 
 ```yaml
 # config/production.yml
 storage:
-  service: amazon
-  services:
+  driver: amazon
+  drivers:
     local:  { type: disk, root: storage }
     test:   { type: memory }
     amazon: { type: s3, bucket: my-bucket, region: us-east-1 }

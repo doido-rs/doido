@@ -31,14 +31,14 @@ Rails-like operations; axum routes serve blobs and accept direct uploads.
 | `jobs` | `purge_later` / `analyze_later` (feature `storage-jobs`, uses `doido-jobs`) |
 | `client` | `Storage` facade (also the axum state) |
 
-## Services (config)
+## Drivers (config)
 
 Configured in the `storage` section of `config/<env>.yml`:
 
 ```yaml
 storage:
-  service: local                 # active service this environment
-  services:
+  driver: local                  # active driver this environment
+  drivers:
     local:  { type: disk, root: storage }
     test:   { type: memory }
     amazon: { type: s3, bucket: my-bucket, region: us-east-1 }
@@ -56,7 +56,7 @@ not be committed. `disk` and `memory` are always available; `s3`/`r2` need
 `storage-s3`, `azure` needs `storage-azure`, `gcs` needs `storage-gcs`. Selecting a
 backend whose feature is off yields a clear error.
 
-## Custom services (external integrations)
+## Custom drivers (external integrations)
 
 Any external file service is a first-class backend: implement the `Service` trait,
 register a factory under a `type` string at boot, then select it from config.
@@ -73,8 +73,8 @@ register_adapter("dropbox", |name: &str, cfg: &ServiceConfig| {
 
 ```yaml
 storage:
-  service: files
-  services:
+  driver: files
+  drivers:
     files: { type: dropbox, token: "...", root: "/app" }
 ```
 

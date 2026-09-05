@@ -22,8 +22,8 @@ fn render(name: &str) -> String {
 //!
 //! ```yaml
 //! storage:
-//!   service: files
-//!   services:
+//!   driver: files
+//!   drivers:
 //!     files: {{ type: {snake}, token: "...", root: "/app" }}
 //! ```
 #![allow(dead_code)]

@@ -18,18 +18,18 @@ assinadas. A fachada `Storage` reúne um service, uma conexão de banco e um sig
 use doido::storage::{Storage, DiskService, MemoryService, Signer, Blob, Disposition};
 ```
 
-## Services
+## Drivers
 
 `Service` é o trait plugável de backend. `DiskService` (sistema de arquivos local) é o
 padrão; `MemoryService` é para testes; `S3Service` (feature `storage-s3`, também Cloudflare
 R2), `AzureBlobService` (`storage-azure`) e `GcsService` (`storage-gcs`) cobrem a nuvem.
-Escolha o service ativo na config `storage`; registre os customizados com `register_adapter`.
+Escolha o driver ativo na config `storage`; registre os customizados com `register_adapter`.
 
 ```yaml
 # config/production.yml
 storage:
-  service: amazon
-  services:
+  driver: amazon
+  drivers:
     local:  { type: disk, root: storage }
     test:   { type: memory }
     amazon: { type: s3, bucket: my-bucket, region: us-east-1 }

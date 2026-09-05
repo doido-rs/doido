@@ -18,8 +18,8 @@ jobs:
   queues: [default]
   concurrency: 5
 storage:
-  service: local
-  services:
+  driver: local
+  drivers:
     local:
       type: disk
       root: storage
