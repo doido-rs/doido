@@ -30,15 +30,16 @@ fn catalog() -> &'static RwLock<Catalog> {
     CATALOG.get_or_init(|| RwLock::new(Catalog::default()))
 }
 
-/// Normalizes assorted locale spellings to the catalog keys (`en`, `pt_BR`).
-/// Accepts e.g. `pt`, `pt-BR`, `pt_br`, `PT_BR` → `pt_BR`; anything else → `en`.
+/// Normalizes assorted locale spellings to catalog keys (`en`, `pt`, `pt_BR`).
+/// `pt` → `pt`; `pt-BR`, `pt_br` → `pt_BR`; `en` → `en`; anything else → `en`.
 #[must_use]
 pub fn normalize_locale(raw: &str) -> &'static str {
     let lower = raw.trim().to_ascii_lowercase().replace('-', "_");
-    if lower == "pt_br" || lower == "pt" {
-        "pt_BR"
-    } else {
-        "en"
+    match lower.as_str() {
+        "pt_br" => "pt_BR",
+        "pt" => "pt",
+        "en" => "en",
+        _ => "en",
     }
 }
 

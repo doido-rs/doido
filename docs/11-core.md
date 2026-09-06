@@ -194,10 +194,10 @@ override framework keys.
 
 | Pattern | Example | Notes |
 |---------|---------|-------|
-| `{locale}.yml` | `en.yml`, `pt_BR.yml` | Root may wrap keys under the locale (`en:`) |
+| `{locale}.yml` | `en.yml`, `pt.yml`, `pt_BR.yml` | Root may wrap keys under the locale (`en:`) |
 | `{scope}.{locale}.yml` | `auth.en.yml`, `models.users.pt_BR.yml` | Scope prefixes flat keys |
 
-Supported catalog locales: `en` (fallback) and `pt_BR`. Stable keys use dotted paths
+Supported catalog locales: `en` (fallback), `pt`, and `pt_BR`. Stable keys use dotted paths
 (e.g. `auth.invalid_credentials`).
 
 ```rust
@@ -219,7 +219,7 @@ let greeting = t_with("greeting", &[("name", "Ada")]);
 
 | Function | Purpose |
 |----------|---------|
-| `normalize_locale(raw)` | Map `pt`, `pt-BR`, `pt_br` → `pt_BR`; else `en` |
+| `normalize_locale(raw)` | Map `pt` → `pt`; `pt-BR`, `pt_br` → `pt_BR`; else `en` |
 | `locale_from_env()` | Read `DOIDO_LOCALE` when set |
 | `resolve_locale(preferred)` | `preferred` → `DOIDO_LOCALE` → `en` |
 | `translate(key, locale)` | Translate a key for a locale (fallback to `en`) |

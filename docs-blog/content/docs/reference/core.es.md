@@ -194,10 +194,10 @@ del app sobrescriben claves del framework.
 
 | Patrón | Ejemplo | Notas |
 |--------|---------|-------|
-| `{locale}.yml` | `en.yml`, `pt_BR.yml` | La raíz puede envolver claves bajo el locale (`en:`) |
+| `{locale}.yml` | `en.yml`, `pt.yml`, `pt_BR.yml` | La raíz puede envolver claves bajo el locale (`en:`) |
 | `{scope}.{locale}.yml` | `auth.en.yml`, `models.users.pt_BR.yml` | El scope prefija claves flat |
 
-Locales soportados: `en` (fallback) y `pt_BR`. Claves estables usan rutas con punto
+Locales soportados: `en` (fallback), `pt` y `pt_BR`. Claves estables usan rutas con punto
 (p. ej. `auth.invalid_credentials`).
 
 ```rust

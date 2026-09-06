@@ -192,10 +192,10 @@ override framework keys.
 
 | Pattern | Example | Notes |
 |---------|---------|-------|
-| `{locale}.yml` | `en.yml`, `pt_BR.yml` | Root may wrap keys under the locale (`en:`) |
+| `{locale}.yml` | `en.yml`, `pt.yml`, `pt_BR.yml` | Root may wrap keys under the locale (`en:`) |
 | `{scope}.{locale}.yml` | `auth.en.yml`, `models.users.pt_BR.yml` | Scope prefixes flat keys |
 
-Supported catalog locales: `en` (fallback) and `pt_BR`. Stable keys use dotted paths
+Supported catalog locales: `en` (fallback), `pt`, and `pt_BR`. Stable keys use dotted paths
 (e.g. `auth.invalid_credentials`).
 
 ```rust

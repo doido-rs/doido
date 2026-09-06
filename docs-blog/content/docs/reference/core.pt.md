@@ -193,10 +193,10 @@ do app sobrescrevem chaves do framework.
 
 | Padrão | Exemplo | Notas |
 |--------|---------|-------|
-| `{locale}.yml` | `en.yml`, `pt_BR.yml` | Raiz pode envolver chaves no locale (`en:`) |
+| `{locale}.yml` | `en.yml`, `pt.yml`, `pt_BR.yml` | Raiz pode envolver chaves no locale (`en:`) |
 | `{scope}.{locale}.yml` | `auth.en.yml`, `models.users.pt_BR.yml` | Escopo prefixa chaves flat |
 
-Locales suportados: `en` (fallback) e `pt_BR`. Chaves estáveis usam caminhos com ponto
+Locales suportados: `en` (fallback), `pt` e `pt_BR`. Chaves estáveis usam caminhos com ponto
 (ex. `auth.invalid_credentials`).
 
 ```rust
