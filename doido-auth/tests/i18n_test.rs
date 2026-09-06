@@ -59,3 +59,15 @@ fn translate_for_respects_doido_locale_after_register() {
     );
     std::env::remove_var(LOCALE_ENV_VAR);
 }
+
+#[test]
+fn translate_for_errors_when_locale_not_loaded() {
+    let _guard = test_guard();
+    reset_for_test();
+    register_locales().unwrap();
+
+    std::env::set_var(LOCALE_ENV_VAR, "fr");
+    let message = translate_for("auth.invalid_credentials", None);
+    assert!(message.contains("locale not available"));
+    std::env::remove_var(LOCALE_ENV_VAR);
+}

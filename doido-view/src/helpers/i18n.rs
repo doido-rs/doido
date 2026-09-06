@@ -30,7 +30,7 @@ pub struct I18n {
 impl I18n {
     pub fn new(locale: &str) -> Self {
         Self {
-            locale: locale.to_string(),
+            locale: doido_core::i18n::normalize_locale(locale),
             translations: BTreeMap::new(),
         }
     }

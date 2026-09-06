@@ -197,16 +197,17 @@ del app sobrescriben claves del framework.
 | `{locale}.yml` | `en.yml`, `pt.yml`, `pt_BR.yml` | La raíz puede envolver claves bajo el locale (`en:`) |
 | `{scope}.{locale}.yml` | `auth.en.yml`, `models.users.pt_BR.yml` | El scope prefija claves flat |
 
-Locales soportados: `en` (fallback), `pt` y `pt_BR`. Claves estables usan rutas con punto
+Los locales se descubren a partir de los archivos cargados (`available_locales()`). Claves estables usan rutas con punto
 (p. ej. `auth.invalid_credentials`).
 
 ```rust
-use doido::core::i18n::{init, translate_for, DEFAULT_LOCALE};
+use doido::core::i18n::{init, translate_for, resolve_locale, DEFAULT_LOCALE};
 use std::path::Path;
 
-init(Path::new("config/locales"))?; // arranque del servidor
+init(Path::new("config/locales"))?; // arranque del servidor; carga + valida locale
 let msg = translate_for("auth.invalid_credentials", None);
 // DOIDO_LOCALE=pt_BR → "Credenciais inválidas."
+let locale = resolve_locale(None)?; // error si el locale no está cargado
 ```
 
 Los helpers de vista delegan al mismo catálogo:
@@ -222,6 +223,8 @@ DOIDO_LOCALE=pt_BR cargo doido server
 ```
 
 Prioridad: locale `preferred` explícito (futuro por request) → `DOIDO_LOCALE` → `en`.
+El locale resuelto debe existir en el catálogo cargado; de lo contrario, el framework devuelve
+`locale not available: … (available: …)`.
 
 Los crates del framework embarcan archivos scoped en `locales/` y los registran en el boot
 (`doido_auth::register_locales()`). Los apps pueden sobrescribir vía `config/locales/auth.en.yml`.

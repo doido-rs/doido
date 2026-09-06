@@ -195,16 +195,17 @@ override framework keys.
 | `{locale}.yml` | `en.yml`, `pt.yml`, `pt_BR.yml` | Root may wrap keys under the locale (`en:`) |
 | `{scope}.{locale}.yml` | `auth.en.yml`, `models.users.pt_BR.yml` | Scope prefixes flat keys |
 
-Supported catalog locales: `en` (fallback), `pt`, and `pt_BR`. Stable keys use dotted paths
+Locales are discovered from loaded files (`available_locales()`). Stable keys use dotted paths
 (e.g. `auth.invalid_credentials`).
 
 ```rust
-use doido::core::i18n::{init, translate_for, DEFAULT_LOCALE};
+use doido::core::i18n::{init, translate_for, resolve_locale, DEFAULT_LOCALE};
 use std::path::Path;
 
-init(Path::new("config/locales"))?; // server boot; loads app locales
+init(Path::new("config/locales"))?; // server boot; loads + validates locale
 let msg = translate_for("auth.invalid_credentials", None);
 // DOIDO_LOCALE=pt_BR → "Credenciais inválidas."
+let locale = resolve_locale(None)?; // errors if locale not loaded
 ```
 
 View helpers delegate to the same catalog:
@@ -220,6 +221,8 @@ DOIDO_LOCALE=pt_BR cargo doido server
 ```
 
 Priority: explicit `preferred` locale (future per-request) → `DOIDO_LOCALE` → `en`.
+The resolved locale must exist in the loaded catalog; otherwise the framework returns
+`locale not available: … (available: …)`.
 
 Framework crates ship scoped locale files under their own `locales/` directory and
 register them at boot (`doido_auth::register_locales()`). Apps can override any key
