@@ -183,6 +183,33 @@ query, request headers) and a `response` line (status, latency, response
 headers). Sensitive headers are redacted, and the id is echoed back on the
 `x-request-id` response header.
 
+## Localization (backend)
+
+Framework and backend-originated messages (auth errors, JSON flash strings) use
+**`rust-i18n`** in `doido-core`, separate from view i18n in `doido-view`
+(`config/locales/*.yml` at runtime for Tera templates).
+
+Supported catalog locales: `en` (fallback) and `pt_BR`. Stable keys use dotted
+paths (e.g. `auth.invalid_credentials`).
+
+```rust
+use doido_core::i18n::{init_from_env, translate_for, resolve_locale, DEFAULT_LOCALE};
+
+init_from_env(); // boot — reads DOIDO_LOCALE
+let msg = translate_for("auth.invalid_credentials", None);
+```
+
+| Function | Purpose |
+|----------|---------|
+| `normalize_locale(raw)` | Map `pt`, `pt-BR`, `pt_br` → `pt_BR`; else `en` |
+| `locale_from_env()` | Read `DOIDO_LOCALE` when set |
+| `resolve_locale(preferred)` | `preferred` → `DOIDO_LOCALE` → `en` |
+| `translate(key, locale)` | Translate a key for a locale |
+| `translate_for(key, preferred)` | Convenience wrapper over `resolve_locale` |
+| `init_from_env()` | Set global rust-i18n locale from env |
+
+Process default: `DOIDO_LOCALE=pt_BR`. Called automatically at HTTP boot.
+
 ## Known Requirements
 
 - `doido-core` is a **leaf dependency** — depends on nothing else in the workspace
@@ -204,3 +231,4 @@ headers). Sensitive headers are redacted, and the id is echoed back on the
 - Test `foreign_key` output matches expected convention
 - Test `Result<T>` propagates `?` from a `thiserror` crate error into `anyhow::Error`
 - Test tracing helpers emit events with correct structured fields
+- Test `i18n`: locale normalization, `DOIDO_LOCALE`, `translate_for`, `init_from_env`

@@ -71,7 +71,14 @@ menos que se habiliten.
 
 ## Overrides por variable de entorno
 
-Cualquier ajuste se puede sobrescribir con una variable de entorno llamada `SECTION__KEY`
+Variables de entorno del framework:
+
+| Variable | Propósito |
+|----------|-----------|
+| `DOIDO_ENV` | Selecciona `config/<env>.yml` (`development`, `test`, `production`) |
+| `DOIDO_LOCALE` | Locale por defecto del backend (`en`, `pt`, `pt-BR`, `pt_BR` → catálogo `pt_BR`) |
+
+Cualquier ajuste YAML también se puede sobrescribir con `SECTION__KEY`
 (doble guion bajo): `SERVER__PORT=4000` establece `server.port`. Los valores se convierten
 a bool o número cuando parsean, si no se mantienen como cadenas — y se crea una nueva
 sección si aún no existe.

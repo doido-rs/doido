@@ -72,7 +72,14 @@ enabled.
 
 ## Environment-variable overrides
 
-Any setting can be overridden with an env var named `SECTION__KEY` (double underscore):
+Framework-level environment variables:
+
+| Variable | Purpose |
+|----------|---------|
+| `DOIDO_ENV` | Selects `config/<env>.yml` (`development`, `test`, `production`) |
+| `DOIDO_LOCALE` | Process-default backend locale (`en`, `pt`, `pt-BR`, `pt_BR` → catalog `pt_BR`) |
+
+Any YAML setting can also be overridden with `SECTION__KEY` (double underscore):
 `SERVER__PORT=4000` sets `server.port`. Values are coerced to bool or number when they
 parse, otherwise kept as strings — and a new section is created if it doesn't exist yet.
 

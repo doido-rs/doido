@@ -58,6 +58,39 @@ pub enum AuthError {
     Internal(String),
 }
 
+impl AuthError {
+    /// Stable i18n key for user-facing variants, when one exists.
+    pub fn message_key(&self) -> Option<&'static str> {
+        match self {
+            Self::InvalidCredentials => Some("auth.invalid_credentials"),
+            Self::EmailTaken => Some("auth.email_taken"),
+            Self::NotConfirmed => Some("auth.email_not_confirmed"),
+            Self::AccountLocked => Some("auth.account_locked"),
+            Self::Unauthorized => Some("auth.unauthorized"),
+            Self::InvalidToken => Some("auth.invalid_token"),
+            Self::Validation(_)
+            | Self::Jwt(_)
+            | Self::OAuth(_)
+            | Self::Config(_)
+            | Self::UnknownStrategy(_)
+            | Self::Internal(_) => None,
+            #[cfg(feature = "auth-2fa")]
+            Self::TwoFactor(_) => None,
+        }
+    }
+
+    /// Localized user-facing message using [`doido_core::i18n`].
+    pub fn localized(&self, preferred: Option<&str>) -> String {
+        if let Self::Validation(msg) = self {
+            return msg.clone();
+        }
+        if let Some(key) = self.message_key() {
+            return doido_core::i18n::translate_for(key, preferred);
+        }
+        self.to_string()
+    }
+}
+
 impl From<jsonwebtoken::errors::Error> for AuthError {
     fn from(e: jsonwebtoken::errors::Error) -> Self {
         AuthError::Jwt(e.to_string())

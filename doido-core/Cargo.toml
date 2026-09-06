@@ -19,6 +19,7 @@ serde_norway.workspace = true
 regex = "1"
 aes-gcm = "0.10"
 sha2 = "0.10"
+rust-i18n = "4"
 
 [dev-dependencies]
 tracing-test = "0.2"

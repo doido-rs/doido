@@ -27,7 +27,7 @@ impl RegistrationsController {
         if form.password != form.password_confirmation {
             return Ok(ctx.render(
                 "auth/sign_up",
-                serde_json::json!({ "error": "Password confirmation does not match" }),
+                serde_json::json!({ "error": doido::core::i18n::translate_for("auth.password_confirmation_mismatch", None) }),
             ));
         }
         if Entity::find()
@@ -38,7 +38,7 @@ impl RegistrationsController {
         {
             return Ok(ctx.render(
                 "auth/sign_up",
-                serde_json::json!({ "error": "Email has already been taken" }),
+                serde_json::json!({ "error": doido::core::i18n::translate_for("auth.email_taken", None) }),
             ));
         }
         let now = chrono::Utc::now();

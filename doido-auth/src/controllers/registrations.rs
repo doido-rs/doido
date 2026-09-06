@@ -1,6 +1,7 @@
 //! Default registrations controller (`sign_up`).
 
 use crate::handlers::{register_user, sign_in};
+use crate::messages::{json_error, t};
 use crate::user::{AuthUser, RegisterableAuthUser};
 use doido_auth_macros::auth_controller;
 use doido_core::Result;
@@ -41,7 +42,7 @@ where
 
         if let Some(ref confirm) = form.password_confirmation {
             if form.password != *confirm {
-                return registration_error(ctx, json, "Password confirmation does not match");
+                return registration_error(ctx, json, &t("auth.password_confirmation_mismatch"));
             }
         }
 
@@ -55,7 +56,7 @@ where
             {
                 Ok(user) => user,
                 Err(crate::error::AuthError::EmailTaken) => {
-                    return registration_error(ctx, json, "Email has already been taken");
+                    return registration_error(ctx, json, &t("auth.email_taken"));
                 }
                 // `validatable`: surface validation failures as 422, not 500.
                 Err(crate::error::AuthError::Validation(msg)) => {
@@ -77,7 +78,7 @@ where
             } else {
                 Ok(ctx.render(
                     "auth/sign_in",
-                    serde_json::json!({ "notice": "Please confirm your email to finish signing up." }),
+                    serde_json::json!({ "notice": t("auth.confirmation_sent") }),
                 ))
             };
         }
@@ -97,7 +98,7 @@ fn registration_error(
     message: &str,
 ) -> Result<doido_controller::Response> {
     if json {
-        Ok(ctx.status(422))
+        Ok(json_error(422, message))
     } else {
         Ok(ctx.render("auth/sign_up", serde_json::json!({ "error": message })))
     }

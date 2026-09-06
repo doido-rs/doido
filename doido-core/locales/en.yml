@@ -1,0 +1,12 @@
+_version: 1
+auth:
+  invalid_credentials: "Invalid credentials."
+  email_taken: "Email has already been taken."
+  password_confirmation_mismatch: "Password confirmation does not match."
+  email_not_confirmed: "Email not confirmed."
+  account_locked: "Account locked."
+  unauthorized: "Unauthorized."
+  invalid_token: "Invalid token."
+  reset_link_invalid: "Reset link is invalid or has expired."
+  confirmation_sent: "Please confirm your email to finish signing up."
+  reset_email_sent: "If your email exists, reset instructions were sent."

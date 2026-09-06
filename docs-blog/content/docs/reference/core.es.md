@@ -183,6 +183,28 @@ let since = days_ago(7);       // DateTime<Utc> de hace siete días
 let start = beginning_of_day(chrono::Utc::now());
 ```
 
+## Localización (backend)
+
+Los mensajes originados en el backend (errores de auth, flash JSON/HTML de controllers
+built-in) usan **`doido_core::i18n`** con catálogos en compile-time en
+`doido-core/locales/` (`en`, `pt_BR`). Las plantillas siguen usando
+[`doido_view::helpers::i18n::I18n`](@/docs/reference/views.es.md) con
+`config/locales/*.yml` en runtime.
+
+```rust
+use doido::core::i18n::{init_from_env, translate_for, DEFAULT_LOCALE};
+
+init_from_env(); // arranque del servidor; lee DOIDO_LOCALE
+let msg = translate_for("auth.invalid_credentials", None);
+// DOIDO_LOCALE=pt_BR → "Credenciais inválidas."
+```
+
+```bash
+DOIDO_LOCALE=pt_BR cargo doido server
+```
+
+Prioridad: locale `preferred` explícito (futuro por request) → `DOIDO_LOCALE` → `en`.
+
 ## Instrumentación y notificaciones
 
 `trace` provee helpers finos y consistentes de eventos estructurados usados por todo el

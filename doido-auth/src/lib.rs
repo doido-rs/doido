@@ -11,6 +11,7 @@ pub mod identity;
 pub mod jwt;
 pub mod layer;
 pub mod lockable;
+pub mod messages;
 pub mod oauth;
 pub mod recoverable;
 pub mod registry;

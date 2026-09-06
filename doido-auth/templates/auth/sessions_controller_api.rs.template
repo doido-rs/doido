@@ -23,7 +23,10 @@ impl SessionsController {
                 return Ok(ctx.json(user));
             }
         }
-        Ok(ctx.status(401))
+        Ok(doido_auth::messages::json_error(
+            401,
+            doido::core::i18n::translate_for("auth.invalid_credentials", None),
+        ))
     }
 
     /// DELETE /users/sign_out

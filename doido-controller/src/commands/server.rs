@@ -8,6 +8,8 @@ pub async fn run(routes: Option<axum::Router>, env: Option<String>, port: Option
                 std::env::set_var("DOIDO_ENV", env);
             }
 
+            doido_core::i18n::init_from_env();
+
             if let Err(e) = doido_model::pool::init().await {
                 doido_core::tracing::error!("failed to connect to the database: {e}");
                 return;

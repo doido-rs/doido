@@ -1,0 +1,12 @@
+_version: 1
+auth:
+  invalid_credentials: "Credenciais inválidas."
+  email_taken: "E-mail já está em uso."
+  password_confirmation_mismatch: "A confirmação de senha não confere."
+  email_not_confirmed: "E-mail não confirmado."
+  account_locked: "Conta bloqueada."
+  unauthorized: "Não autorizado."
+  invalid_token: "Token inválido."
+  reset_link_invalid: "Link de redefinição inválido ou expirado."
+  confirmation_sent: "Confirme seu e-mail para concluir o cadastro."
+  reset_email_sent: "Se o e-mail existir, enviamos instruções de redefinição."
