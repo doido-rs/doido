@@ -2,7 +2,7 @@
 use crate::services::chat::{
     create_and_broadcast, participant_of, MessagePayload, TYPE_TEXT,
 };
-use doido::storage::Storage;
+use doido::storage::storage;
 use doido_cable::{channel, streams, Channel, ChannelContext};
 use serde_json::Value;
 
@@ -117,7 +117,7 @@ impl Channel for ConversationChannel {
             "conversation: persisting and broadcasting text message"
         );
 
-        let storage = Storage::from_config(db.clone()).await?;
+        let storage = storage();
         let payload: MessagePayload = create_and_broadcast(
             &db,
             &storage,

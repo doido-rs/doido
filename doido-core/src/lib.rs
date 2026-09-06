@@ -4,6 +4,7 @@ pub mod core_ext;
 pub mod crypto;
 pub mod environment;
 pub mod error;
+pub mod i18n;
 pub mod inflector;
 pub mod logger;
 pub mod notifications;
@@ -20,6 +21,11 @@ pub use ::tracing;
 
 pub use environment::Environment;
 pub use error::{AnyhowContext, Result};
+pub use i18n::{
+    available_locales, init, init_from_env, load_locale_dir, locale_available, locale_from_env,
+    normalize_locale, parse_locale_filename, register_entry, register_yaml, resolve_locale, t_with,
+    translate, translate_for, DEFAULT_LOCALE, LOCALE_ENV_VAR,
+};
 pub use inflector::{init_inflections, load_inflections, InflectionConfig, Inflections, Inflector};
 pub use logger::init as init_logger;
 pub use logger::{LogFormat, LoggerConfig};

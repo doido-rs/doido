@@ -15,7 +15,7 @@ async fn custom_adapter_selected_via_config_and_reads_options() {
     });
     assert!(registered_adapters().contains(&"dropbox_like".to_string()));
 
-    let yaml = "storage:\n  service: files\n  services:\n    files: { type: dropbox_like, token: secret-123 }\n";
+    let yaml = "storage:\n  driver: files\n  drivers:\n    files: { type: dropbox_like, token: secret-123 }\n";
     let cfg = YamlConfig::from_yaml(yaml).unwrap().storage;
     let svc = cfg.build().await.unwrap();
 
@@ -28,7 +28,7 @@ async fn custom_adapter_selected_via_config_and_reads_options() {
 
 #[tokio::test]
 async fn unregistered_kind_errors_clearly() {
-    let yaml = "storage:\n  service: x\n  services:\n    x: { type: totally_unknown_xyz }\n";
+    let yaml = "storage:\n  driver: x\n  drivers:\n    x: { type: totally_unknown_xyz }\n";
     let cfg = YamlConfig::from_yaml(yaml).unwrap().storage;
     let err = match cfg.build().await {
         Ok(_) => panic!("expected an error for an unregistered adapter"),

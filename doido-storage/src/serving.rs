@@ -14,12 +14,12 @@ use crate::blob::{self, Blob};
 use crate::client::{Storage, PURPOSE_DISK_UPLOAD};
 use crate::content_type;
 use crate::signing::Disposition;
-use doido_controller::axum::body::Bytes;
-use doido_controller::axum::extract::{Path, State};
-use doido_controller::axum::http::{header, StatusCode};
-use doido_controller::axum::response::{IntoResponse, Redirect, Response};
-use doido_controller::axum::routing::{get, post, put};
-use doido_controller::axum::{Json, Router};
+use axum::body::Bytes;
+use axum::extract::{Path, State};
+use axum::http::{header, StatusCode};
+use axum::response::{IntoResponse, Redirect, Response};
+use axum::routing::{get, post, put};
+use axum::{Json, Router};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -38,6 +38,15 @@ pub fn routes(storage: Storage) -> Router {
         .route(&format!("{p}/disk/{{token}}"), put(disk_upload_handler))
         .route(&format!("{p}/direct_uploads"), post(direct_uploads_handler))
         .with_state(storage)
+}
+
+/// Merge blob-serving routes into `router` when a global [`Storage`] facade is
+/// installed (after [`crate::init_storage`] at boot). No-op otherwise.
+pub fn merge_routes(router: Router) -> Router {
+    match crate::try_storage() {
+        Some(storage) => router.merge(routes(storage)),
+        None => router,
+    }
 }
 
 async fn resolve_blob(storage: &Storage, signed_id: &str) -> Option<Blob> {

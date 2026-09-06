@@ -79,6 +79,13 @@ cargo doido db migrate
 sign-up, password, and OAuth routes into `config/routes.rs`. It does **not**
 modify `Cargo.toml` — the dependency must already be present.
 
+## Localized messages
+
+Built-in auth controllers translate user-facing errors via
+[`doido_core::i18n`](@/docs/reference/core.md) (`auth.invalid_credentials`,
+`auth.email_taken`, …). Set the process locale with `DOIDO_LOCALE=pt_BR` or call
+`AuthError::localized(None)` in custom code.
+
 ## The `AuthUser` trait
 
 Your User SeaORM model implements `AuthUser` — the generic contract for the

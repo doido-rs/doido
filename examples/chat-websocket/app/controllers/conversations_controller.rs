@@ -7,7 +7,6 @@ use crate::services::chat::{
 };
 use doido::controller::{controller, Context, Response};
 use doido::model::sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
-use doido::storage::Storage;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -166,7 +165,7 @@ impl ConversationsController {
 
         mark_conversation_read(ctx.db(), id, user.id).await?;
 
-        let storage = Storage::from_config(ctx.db().clone()).await?;
+        let storage = ctx.storage();
         let records = list_messages(ctx.db(), id).await?;
         let mut payloads: Vec<MessagePayload> = Vec::new();
         for record in records {

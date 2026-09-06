@@ -5,7 +5,6 @@ use crate::services::chat::{
 };
 use doido::controller::{controller, Context, Response};
 use doido::model::sea_orm::EntityTrait;
-use doido::storage::Storage;
 use serde::Deserialize;
 
 pub struct MessagesController;
@@ -66,7 +65,7 @@ impl MessagesController {
                 (None, None, None, form.attachment_signed_id)
             };
 
-        let storage = Storage::from_config(ctx.db().clone()).await?;
+        let storage = ctx.storage();
         let payload: MessagePayload = create_and_broadcast(
             ctx.db(),
             &storage,

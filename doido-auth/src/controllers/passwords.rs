@@ -1,5 +1,6 @@
 //! Default passwords controller (`recoverable` reset request + update).
 
+use crate::messages::{json_error, t};
 use crate::recoverable;
 use doido_auth_macros::auth_controller;
 use doido_core::Result;
@@ -57,7 +58,7 @@ where
         } else {
             Ok(ctx.render(
                 "auth/password_new",
-                serde_json::json!({ "notice": "If your email exists, reset instructions were sent." }),
+                serde_json::json!({ "notice": t("auth.reset_email_sent") }),
             ))
         }
     }
@@ -86,7 +87,7 @@ where
 
         if let Some(ref confirm) = form.password_confirmation {
             if &form.password != confirm {
-                return password_error(ctx, json, "Password confirmation does not match");
+                return password_error(ctx, json, &t("auth.password_confirmation_mismatch"));
             }
         }
 
@@ -94,7 +95,7 @@ where
             recoverable::reset_password(ctx.db(), &form.reset_password_token, &form.password)
                 .await?;
         if !reset {
-            return password_error(ctx, json, "Reset link is invalid or has expired");
+            return password_error(ctx, json, &t("auth.reset_link_invalid"));
         }
 
         if json {
@@ -111,7 +112,7 @@ fn password_error(
     message: &str,
 ) -> Result<doido_controller::Response> {
     if json {
-        Ok(ctx.status(422))
+        Ok(json_error(422, message))
     } else {
         Ok(ctx.render(
             "auth/password_edit",

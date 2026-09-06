@@ -30,7 +30,7 @@ impl SessionsController {
         }
         Ok(ctx.render(
             "auth/sign_in",
-            serde_json::json!({ "error": "Invalid email or password" }),
+            serde_json::json!({ "error": doido::core::i18n::translate_for("auth.invalid_credentials", None) }),
         ))
     }
 

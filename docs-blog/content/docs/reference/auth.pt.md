@@ -77,6 +77,13 @@ O `auth:install` gera a migration e model de User, controllers de auth, views HT
 sign-up, senha e OAuth em `config/routes.rs`. **Não** altera o `Cargo.toml` — a
 dependência precisa já estar presente.
 
+## Mensagens localizadas
+
+Os controllers built-in de auth traduzem erros visíveis ao usuário via
+[`doido_core::i18n`](@/docs/reference/core.pt.md) (`auth.invalid_credentials`,
+`auth.email_taken`, …). Defina o locale do processo com `DOIDO_LOCALE=pt_BR` ou use
+`AuthError::localized(None)` em código customizado.
+
 ## A trait `AuthUser`
 
 Seu model User SeaORM implementa `AuthUser` — o contrato genérico do sujeito

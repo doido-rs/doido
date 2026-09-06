@@ -183,6 +183,62 @@ query, request headers) and a `response` line (status, latency, response
 headers). Sensitive headers are redacted, and the id is echoed back on the
 `x-request-id` response header.
 
+## Localization
+
+Backend and view strings share a **runtime catalog** in `doido-core`. At HTTP boot the
+server registers embedded framework locales (e.g. `doido-auth/locales/auth.{en,pt_BR}.yml`
+when auth is installed), then loads every file in `config/locales/*.yml`. App files
+override framework keys.
+
+**File naming** (Rails-style):
+
+| Pattern | Example | Notes |
+|---------|---------|-------|
+| `{locale}.yml` | `en.yml`, `pt.yml`, `pt_BR.yml` | Root may wrap keys under the locale (`en:`) |
+| `{scope}.{locale}.yml` | `auth.en.yml`, `models.users.pt_BR.yml` | Scope prefixes flat keys |
+
+Locales are discovered from loaded files (`available_locales()`). Stable keys use dotted paths
+(e.g. `auth.invalid_credentials`).
+
+```rust
+use doido_core::i18n::{init, translate_for, resolve_locale, available_locales, DEFAULT_LOCALE};
+use std::path::Path;
+
+init(Path::new("config/locales"))?; // boot — loads locales + validates DOIDO_LOCALE
+let msg = translate_for("auth.invalid_credentials", None);
+let locale = resolve_locale(None)?; // errors if locale not in catalog
+```
+
+View helpers delegate to the same catalog:
+
+```rust
+use doido_view::helpers::i18n::{t, t_with};
+
+let title = t("app.title");
+let greeting = t_with("greeting", &[("name", "Ada")]);
+```
+
+| Function | Purpose |
+|----------|---------|
+| `normalize_locale(raw)` | Canonical form (`pt-BR` → `pt_BR`, `fr-FR` → `fr_FR`); no remap to `en` |
+| `available_locales()` | Locales loaded in the catalog |
+| `locale_available(locale)` | Whether a normalized locale exists in the catalog |
+| `locale_from_env()` | Read `DOIDO_LOCALE` when set |
+| `resolve_locale(preferred)` | `preferred` → `DOIDO_LOCALE` → `en`; errors if not loaded |
+| `translate(key, locale)` | Translate when locale exists; key fallback to `en` if loaded |
+| `translate_for(key, preferred)` | Convenience wrapper; locale errors become error strings |
+| `register_yaml(locale, yaml, scope)` | Merge embedded/framework YAML |
+| `load_locale_dir(path)` | Load all `*.yml` / `*.yaml` in a directory |
+| `init(locales_dir)` | Load app locales and validate active locale |
+
+Process default: `DOIDO_LOCALE=pt_BR` when that locale file is loaded. Boot fails validation
+(logs a warning) when the active locale is not in the catalog. Unknown locales return
+`locale not available: … (available: …)` instead of silently using `en`.
+
+Framework crates ship scoped locale files under their own `locales/` directory and
+register them at boot (`doido_auth::register_locales()`). Apps can override any key
+via `config/locales/auth.en.yml`.
+
 ## Known Requirements
 
 - `doido-core` is a **leaf dependency** — depends on nothing else in the workspace
@@ -204,3 +260,4 @@ headers). Sensitive headers are redacted, and the id is echoed back on the
 - Test `foreign_key` output matches expected convention
 - Test `Result<T>` propagates `?` from a `thiserror` crate error into `anyhow::Error`
 - Test tracing helpers emit events with correct structured fields
+- Test `i18n`: locale normalization, `DOIDO_LOCALE`, `translate_for`, `init_from_env`

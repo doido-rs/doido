@@ -1,6 +1,7 @@
 //! Default sessions controller (`sign_in` / `sign_out`).
 
 use crate::handlers::{authenticate, sign_in, sign_out};
+use crate::messages::{json_error, t};
 use crate::user::AuthUser;
 use doido_auth_macros::auth_controller;
 use doido_core::Result;
@@ -68,10 +69,10 @@ where
                     Ok(ctx.redirect_to("/"))
                 }
             }
-            Err(_) if json => Ok(ctx.status(401)),
+            Err(_) if json => Ok(json_error(401, t("auth.invalid_credentials"))),
             Err(_) => Ok(ctx.render(
                 "auth/sign_in",
-                serde_json::json!({ "error": "Invalid email or password" }),
+                serde_json::json!({ "error": t("auth.invalid_credentials") }),
             )),
         }
     }

@@ -154,7 +154,7 @@ pub fn storage_migration_installed(lib: &str) -> bool {
 /// The `storage:` config block for `config/<env>.yml`.
 pub fn storage_config_section(active: &str) -> String {
     format!(
-        "storage:\n  service: {active}\n  services:\n    local:\n      type: disk\n      root: storage\n    test:\n      type: memory\n"
+        "storage:\n  driver: {active}\n  drivers:\n    local:\n      type: disk\n      root: storage\n    test:\n      type: memory\n"
     )
 }
 

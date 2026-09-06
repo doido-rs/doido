@@ -77,6 +77,13 @@ cargo doido db migrate
 sign-up, contraseña y OAuth en `config/routes.rs`. **No** modifica `Cargo.toml` — la
 dependencia debe estar ya presente.
 
+## Mensajes localizados
+
+Los controllers built-in de auth traducen errores visibles al usuario vía
+[`doido_core::i18n`](@/docs/reference/core.es.md) (`auth.invalid_credentials`,
+`auth.email_taken`, …). Define el locale del proceso con `DOIDO_LOCALE=pt_BR` o usa
+`AuthError::localized(None)` en código personalizado.
+
 ## La trait `AuthUser`
 
 Tu modelo User SeaORM implementa `AuthUser` — el contrato genérico del sujeto

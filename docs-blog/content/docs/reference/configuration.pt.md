@@ -71,10 +71,16 @@ menos que habilitados.
 
 ## Overrides por variável de ambiente
 
-Qualquer configuração pode ser sobrescrita por uma variável de ambiente chamada
-`SECTION__KEY` (duplo underscore): `SERVER__PORT=4000` define `server.port`. Os valores
+Variáveis de ambiente do framework:
+
+| Variável | Propósito |
+|----------|-----------|
+| `DOIDO_ENV` | Seleciona `config/<env>.yml` (`development`, `test`, `production`) |
+| `DOIDO_LOCALE` | Locale padrão do backend (`en`, `pt`, `pt-BR`, `pt_BR` → catálogo `pt_BR`) |
+
+Qualquer configuração YAML também pode ser sobrescrita por `SECTION__KEY` (duplo underscore):
 são convertidos para bool ou número quando fazem parse, senão são mantidos como string —
-e uma nova seção é criada se ainda não existir.
+e uma nova seção é criada se ainda não existir. Ex.: `SERVER__PORT=4000` define `server.port`.
 
 ```bash
 # Override no boot — ideal para segredos e valores por deploy:
@@ -108,7 +114,7 @@ correspondente para as chaves exatas:
 ```yaml
 cache:   { type: memory }                 # → guia de Cache
 jobs:    { backend: memory, queues: [default] }  # → guia de Jobs
-storage: { service: local }               # → guia de Storage
+storage: { driver: local }               # → guia de Storage
 database: { url: sqlite://db/development.db }     # → guia de Models
 ```
 

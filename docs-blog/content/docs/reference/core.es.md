@@ -183,6 +183,52 @@ let since = days_ago(7);       // DateTime<Utc> de hace siete días
 let start = beginning_of_day(chrono::Utc::now());
 ```
 
+## Localización
+
+Backend y vistas comparten un **catálogo runtime** en `doido-core`. En el arranque HTTP el
+servidor registra locales embebidos de crates del framework (p. ej. `doido-auth/locales/auth.{en,pt_BR}.yml`
+cuando auth está instalado) y carga todos los archivos en `config/locales/*.yml`. Los archivos
+del app sobrescriben claves del framework.
+
+**Nombres de archivo** (estilo Rails):
+
+| Patrón | Ejemplo | Notas |
+|--------|---------|-------|
+| `{locale}.yml` | `en.yml`, `pt.yml`, `pt_BR.yml` | La raíz puede envolver claves bajo el locale (`en:`) |
+| `{scope}.{locale}.yml` | `auth.en.yml`, `models.users.pt_BR.yml` | El scope prefija claves flat |
+
+Los locales se descubren a partir de los archivos cargados (`available_locales()`). Claves estables usan rutas con punto
+(p. ej. `auth.invalid_credentials`).
+
+```rust
+use doido::core::i18n::{init, translate_for, resolve_locale, DEFAULT_LOCALE};
+use std::path::Path;
+
+init(Path::new("config/locales"))?; // arranque del servidor; carga + valida locale
+let msg = translate_for("auth.invalid_credentials", None);
+// DOIDO_LOCALE=pt_BR → "Credenciais inválidas."
+let locale = resolve_locale(None)?; // error si el locale no está cargado
+```
+
+Los helpers de vista delegan al mismo catálogo:
+
+```rust
+use doido_view::helpers::i18n::{t, t_with};
+
+let title = t("app.title");
+```
+
+```bash
+DOIDO_LOCALE=pt_BR cargo doido server
+```
+
+Prioridad: locale `preferred` explícito (futuro por request) → `DOIDO_LOCALE` → `en`.
+El locale resuelto debe existir en el catálogo cargado; de lo contrario, el framework devuelve
+`locale not available: … (available: …)`.
+
+Los crates del framework embarcan archivos scoped en `locales/` y los registran en el boot
+(`doido_auth::register_locales()`). Los apps pueden sobrescribir vía `config/locales/auth.en.yml`.
+
 ## Instrumentación y notificaciones
 
 `trace` provee helpers finos y consistentes de eventos estructurados usados por todo el

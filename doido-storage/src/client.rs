@@ -9,7 +9,7 @@
 
 use crate::attachments;
 use crate::blob::{self, Blob};
-use crate::config;
+use crate::config::{self, StorageConfig};
 use crate::service::{Service, UrlOptions};
 use crate::signing::{Disposition, Signer};
 use doido_core::Result;
@@ -48,8 +48,16 @@ impl Storage {
     /// Build from the `storage` config section (current environment) plus a signer
     /// read from `DOIDO_SECRET_KEY_BASE`.
     pub async fn from_config(conn: DatabaseConnection) -> Result<Self> {
-        let service = config::load().build().await?;
-        Ok(Self::new(conn, service, Signer::from_env()))
+        Self::from_storage_config(conn, &config::load(), Signer::from_env()).await
+    }
+
+    /// Build from an explicit [`StorageConfig`] and signer.
+    pub async fn from_storage_config(
+        conn: DatabaseConnection,
+        cfg: &StorageConfig,
+        signer: Signer,
+    ) -> Result<Self> {
+        cfg.into_storage(conn, signer).await
     }
 
     /// Override the URL route prefix (default `/doido/storage`).
@@ -83,7 +91,7 @@ impl Storage {
         &self.signer
     }
 
-    pub(crate) fn expires_in(&self) -> Duration {
+    pub fn expires_in(&self) -> Duration {
         self.expires_in
     }
 
@@ -240,4 +248,14 @@ impl Storage {
 /// Percent-ish-safe filename for a URL path segment (drops slashes).
 fn encode_filename(filename: &str) -> String {
     filename.replace(['/', '\\'], "_")
+}
+
+impl StorageConfig {
+    /// Build a [`Storage`] facade from this config (service + prefix + expiry).
+    pub async fn into_storage(&self, conn: DatabaseConnection, signer: Signer) -> Result<Storage> {
+        let service = self.build().await?;
+        Ok(Storage::new(conn, service, signer)
+            .with_prefix(self.resolved_prefix())
+            .with_expiry(self.resolved_expires_in()))
+    }
 }

@@ -6,7 +6,6 @@ use crate::models::user::Model as User;
 use crate::state;
 use doido::cable::{self, Cable};
 use doido::controller::axum;
-use doido::storage::{self, Storage};
 use std::sync::Arc;
 use tower_http::services::ServeDir;
 
@@ -53,13 +52,7 @@ async fn full_router() -> axum::Router {
 
     let ws = doido::cable::cable!(pubsub, [ConversationChannel]);
 
-    let storage = Storage::from_config(doido::model::pool::pool().clone())
-        .await
-        .expect("storage config");
-    let storage_routes = storage::serving::routes(storage);
-
     http.merge(ws)
-        .merge(storage_routes)
         .nest_service("/assets", ServeDir::new("public/assets"))
 }
 

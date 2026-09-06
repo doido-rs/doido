@@ -182,6 +182,52 @@ let since = days_ago(7);       // DateTime<Utc> de sete dias atrás
 let start = beginning_of_day(chrono::Utc::now());
 ```
 
+## Localização
+
+Backend e views compartilham um **catálogo runtime** em `doido-core`. No boot HTTP o
+servidor registra locales embarcados de crates do framework (ex. `doido-auth/locales/auth.{en,pt_BR}.yml`
+quando auth está instalado) e carrega todos os arquivos em `config/locales/*.yml`. Arquivos
+do app sobrescrevem chaves do framework.
+
+**Nomes de arquivo** (estilo Rails):
+
+| Padrão | Exemplo | Notas |
+|--------|---------|-------|
+| `{locale}.yml` | `en.yml`, `pt.yml`, `pt_BR.yml` | Raiz pode envolver chaves no locale (`en:`) |
+| `{scope}.{locale}.yml` | `auth.en.yml`, `models.users.pt_BR.yml` | Escopo prefixa chaves flat |
+
+Locales são descobertos a partir dos arquivos carregados (`available_locales()`). Chaves estáveis usam caminhos com ponto
+(ex. `auth.invalid_credentials`).
+
+```rust
+use doido::core::i18n::{init, translate_for, resolve_locale, DEFAULT_LOCALE};
+use std::path::Path;
+
+init(Path::new("config/locales"))?; // boot do servidor; carrega + valida locale
+let msg = translate_for("auth.invalid_credentials", None);
+// DOIDO_LOCALE=pt_BR → "Credenciais inválidas."
+let locale = resolve_locale(None)?; // erro se locale não estiver carregado
+```
+
+Helpers de view delegam ao mesmo catálogo:
+
+```rust
+use doido_view::helpers::i18n::{t, t_with};
+
+let title = t("app.title");
+```
+
+```bash
+DOIDO_LOCALE=pt_BR cargo doido server
+```
+
+Prioridade: locale `preferred` explícito (futuro por request) → `DOIDO_LOCALE` → `en`.
+O locale resolvido deve existir no catálogo carregado; caso contrário, o framework retorna
+`locale not available: … (available: …)`.
+
+Crates do framework embarcam arquivos scoped em `locales/` e registram no boot
+(`doido_auth::register_locales()`). Apps podem sobrescrever via `config/locales/auth.en.yml`.
+
 ## Instrumentação e notificações
 
 `trace` fornece helpers finos e consistentes de eventos estruturados usados por todo o

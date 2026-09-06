@@ -522,7 +522,7 @@ fn test_new_includes_storage_bootstrap_migration() {
         .find(|f| f.path == "my-app/config/development.yml")
         .unwrap();
     assert!(dev.content.contains("storage:"));
-    assert!(dev.content.contains("service: local"));
+    assert!(dev.content.contains("driver: local"));
 }
 
 #[test]

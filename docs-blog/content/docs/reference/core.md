@@ -181,6 +181,53 @@ let since = days_ago(7);       // DateTime<Utc> seven days ago
 let start = beginning_of_day(chrono::Utc::now());
 ```
 
+## Localization
+
+Backend and view strings share a **runtime catalog** in `doido-core`. At HTTP boot the
+server registers embedded framework locales (e.g. `doido-auth/locales/auth.{en,pt_BR}.yml`
+when auth is installed), then loads every file in `config/locales/*.yml`. App files
+override framework keys.
+
+**File naming** (Rails-style):
+
+| Pattern | Example | Notes |
+|---------|---------|-------|
+| `{locale}.yml` | `en.yml`, `pt.yml`, `pt_BR.yml` | Root may wrap keys under the locale (`en:`) |
+| `{scope}.{locale}.yml` | `auth.en.yml`, `models.users.pt_BR.yml` | Scope prefixes flat keys |
+
+Locales are discovered from loaded files (`available_locales()`). Stable keys use dotted paths
+(e.g. `auth.invalid_credentials`).
+
+```rust
+use doido::core::i18n::{init, translate_for, resolve_locale, DEFAULT_LOCALE};
+use std::path::Path;
+
+init(Path::new("config/locales"))?; // server boot; loads + validates locale
+let msg = translate_for("auth.invalid_credentials", None);
+// DOIDO_LOCALE=pt_BR → "Credenciais inválidas."
+let locale = resolve_locale(None)?; // errors if locale not loaded
+```
+
+View helpers delegate to the same catalog:
+
+```rust
+use doido_view::helpers::i18n::{t, t_with};
+
+let title = t("app.title");
+```
+
+```bash
+DOIDO_LOCALE=pt_BR cargo doido server
+```
+
+Priority: explicit `preferred` locale (future per-request) → `DOIDO_LOCALE` → `en`.
+The resolved locale must exist in the loaded catalog; otherwise the framework returns
+`locale not available: … (available: …)`.
+
+Framework crates ship scoped locale files under their own `locales/` directory and
+register them at boot (`doido_auth::register_locales()`). Apps can override any key
+via `config/locales/auth.en.yml`.
+
 ## Instrumentation & notifications
 
 `trace` provides thin, consistent structured-event helpers used across the framework
