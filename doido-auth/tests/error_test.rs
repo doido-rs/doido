@@ -23,6 +23,10 @@ fn auth_error_display_messages() {
 
 #[test]
 fn auth_error_localized_respects_doido_locale() {
+    let _guard = doido_core::i18n::test_guard();
+    doido_core::i18n::reset_for_test();
+    doido_auth::register_locales().unwrap();
+
     std::env::set_var("DOIDO_LOCALE", "pt_BR");
     doido_core::i18n::init_from_env();
     assert_eq!(

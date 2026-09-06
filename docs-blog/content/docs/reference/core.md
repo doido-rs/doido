@@ -181,20 +181,38 @@ let since = days_ago(7);       // DateTime<Utc> seven days ago
 let start = beginning_of_day(chrono::Utc::now());
 ```
 
-## Localization (backend)
+## Localization
 
-Backend messages (auth errors, JSON/HTML flash strings from built-in controllers)
-use **`doido_core::i18n`** with compile-time catalogs in `doido-core/locales/`
-(`en`, `pt_BR`). View templates continue to use
-[`doido_view::helpers::i18n::I18n`](@/docs/reference/views.md) with
-`config/locales/*.yml` at runtime.
+Backend and view strings share a **runtime catalog** in `doido-core`. At HTTP boot the
+server registers embedded framework locales (e.g. `doido-auth/locales/auth.{en,pt_BR}.yml`
+when auth is installed), then loads every file in `config/locales/*.yml`. App files
+override framework keys.
+
+**File naming** (Rails-style):
+
+| Pattern | Example | Notes |
+|---------|---------|-------|
+| `{locale}.yml` | `en.yml`, `pt_BR.yml` | Root may wrap keys under the locale (`en:`) |
+| `{scope}.{locale}.yml` | `auth.en.yml`, `models.users.pt_BR.yml` | Scope prefixes flat keys |
+
+Supported catalog locales: `en` (fallback) and `pt_BR`. Stable keys use dotted paths
+(e.g. `auth.invalid_credentials`).
 
 ```rust
-use doido::core::i18n::{init_from_env, translate_for, DEFAULT_LOCALE};
+use doido::core::i18n::{init, translate_for, DEFAULT_LOCALE};
+use std::path::Path;
 
-init_from_env(); // called at server boot; reads DOIDO_LOCALE
+init(Path::new("config/locales"))?; // server boot; loads app locales
 let msg = translate_for("auth.invalid_credentials", None);
 // DOIDO_LOCALE=pt_BR → "Credenciais inválidas."
+```
+
+View helpers delegate to the same catalog:
+
+```rust
+use doido_view::helpers::i18n::{t, t_with};
+
+let title = t("app.title");
 ```
 
 ```bash
@@ -202,6 +220,10 @@ DOIDO_LOCALE=pt_BR cargo doido server
 ```
 
 Priority: explicit `preferred` locale (future per-request) → `DOIDO_LOCALE` → `en`.
+
+Framework crates ship scoped locale files under their own `locales/` directory and
+register them at boot (`doido_auth::register_locales()`). Apps can override any key
+via `config/locales/auth.en.yml`.
 
 ## Instrumentation & notifications
 

@@ -183,20 +183,38 @@ let since = days_ago(7);       // DateTime<Utc> de hace siete días
 let start = beginning_of_day(chrono::Utc::now());
 ```
 
-## Localización (backend)
+## Localización
 
-Los mensajes originados en el backend (errores de auth, flash JSON/HTML de controllers
-built-in) usan **`doido_core::i18n`** con catálogos en compile-time en
-`doido-core/locales/` (`en`, `pt_BR`). Las plantillas siguen usando
-[`doido_view::helpers::i18n::I18n`](@/docs/reference/views.es.md) con
-`config/locales/*.yml` en runtime.
+Backend y vistas comparten un **catálogo runtime** en `doido-core`. En el arranque HTTP el
+servidor registra locales embebidos de crates del framework (p. ej. `doido-auth/locales/auth.{en,pt_BR}.yml`
+cuando auth está instalado) y carga todos los archivos en `config/locales/*.yml`. Los archivos
+del app sobrescriben claves del framework.
+
+**Nombres de archivo** (estilo Rails):
+
+| Patrón | Ejemplo | Notas |
+|--------|---------|-------|
+| `{locale}.yml` | `en.yml`, `pt_BR.yml` | La raíz puede envolver claves bajo el locale (`en:`) |
+| `{scope}.{locale}.yml` | `auth.en.yml`, `models.users.pt_BR.yml` | El scope prefija claves flat |
+
+Locales soportados: `en` (fallback) y `pt_BR`. Claves estables usan rutas con punto
+(p. ej. `auth.invalid_credentials`).
 
 ```rust
-use doido::core::i18n::{init_from_env, translate_for, DEFAULT_LOCALE};
+use doido::core::i18n::{init, translate_for, DEFAULT_LOCALE};
+use std::path::Path;
 
-init_from_env(); // arranque del servidor; lee DOIDO_LOCALE
+init(Path::new("config/locales"))?; // arranque del servidor
 let msg = translate_for("auth.invalid_credentials", None);
 // DOIDO_LOCALE=pt_BR → "Credenciais inválidas."
+```
+
+Los helpers de vista delegan al mismo catálogo:
+
+```rust
+use doido_view::helpers::i18n::{t, t_with};
+
+let title = t("app.title");
 ```
 
 ```bash
@@ -204,6 +222,9 @@ DOIDO_LOCALE=pt_BR cargo doido server
 ```
 
 Prioridad: locale `preferred` explícito (futuro por request) → `DOIDO_LOCALE` → `en`.
+
+Los crates del framework embarcan archivos scoped en `locales/` y los registran en el boot
+(`doido_auth::register_locales()`). Los apps pueden sobrescribir vía `config/locales/auth.en.yml`.
 
 ## Instrumentación y notificaciones
 

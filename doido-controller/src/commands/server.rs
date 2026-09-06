@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use crate::axum;
 
 /// Boots the HTTP server with the application's `routes`.
@@ -8,7 +10,9 @@ pub async fn run(routes: Option<axum::Router>, env: Option<String>, port: Option
                 std::env::set_var("DOIDO_ENV", env);
             }
 
-            doido_core::i18n::init_from_env();
+            if let Err(e) = doido_core::i18n::init(Path::new("config/locales")) {
+                doido_core::tracing::warn!("failed to initialize i18n: {e}");
+            }
 
             if let Err(e) = doido_model::pool::init().await {
                 doido_core::tracing::error!("failed to connect to the database: {e}");

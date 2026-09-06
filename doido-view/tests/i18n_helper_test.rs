@@ -1,7 +1,10 @@
+use doido_core::i18n::{reset_for_test, test_guard};
 use doido_view::helpers::i18n::I18n;
 
 #[test]
 fn t_looks_up_and_reports_missing() {
+    let _guard = test_guard();
+    reset_for_test();
     let mut i = I18n::new("en");
     i.add("greeting", "Hi").add("hello", "Hello, %{name}!");
 
@@ -12,6 +15,8 @@ fn t_looks_up_and_reports_missing() {
 
 #[test]
 fn t_with_interpolates_variables() {
+    let _guard = test_guard();
+    reset_for_test();
     let mut i = I18n::new("en");
     i.add("hello", "Hello, %{name} from %{city}!");
     assert_eq!(

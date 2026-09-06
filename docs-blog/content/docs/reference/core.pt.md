@@ -182,20 +182,38 @@ let since = days_ago(7);       // DateTime<Utc> de sete dias atrás
 let start = beginning_of_day(chrono::Utc::now());
 ```
 
-## Localização (backend)
+## Localização
 
-Mensagens originadas no backend (erros de auth, flash JSON/HTML dos controllers
-built-in) usam **`doido_core::i18n`** com catálogos em compile-time em
-`doido-core/locales/` (`en`, `pt_BR`). Templates continuam usando
-[`doido_view::helpers::i18n::I18n`](@/docs/reference/views.pt.md) com
-`config/locales/*.yml` em runtime.
+Backend e views compartilham um **catálogo runtime** em `doido-core`. No boot HTTP o
+servidor registra locales embarcados de crates do framework (ex. `doido-auth/locales/auth.{en,pt_BR}.yml`
+quando auth está instalado) e carrega todos os arquivos em `config/locales/*.yml`. Arquivos
+do app sobrescrevem chaves do framework.
+
+**Nomes de arquivo** (estilo Rails):
+
+| Padrão | Exemplo | Notas |
+|--------|---------|-------|
+| `{locale}.yml` | `en.yml`, `pt_BR.yml` | Raiz pode envolver chaves no locale (`en:`) |
+| `{scope}.{locale}.yml` | `auth.en.yml`, `models.users.pt_BR.yml` | Escopo prefixa chaves flat |
+
+Locales suportados: `en` (fallback) e `pt_BR`. Chaves estáveis usam caminhos com ponto
+(ex. `auth.invalid_credentials`).
 
 ```rust
-use doido::core::i18n::{init_from_env, translate_for, DEFAULT_LOCALE};
+use doido::core::i18n::{init, translate_for, DEFAULT_LOCALE};
+use std::path::Path;
 
-init_from_env(); // boot do servidor; lê DOIDO_LOCALE
+init(Path::new("config/locales"))?; // boot do servidor
 let msg = translate_for("auth.invalid_credentials", None);
 // DOIDO_LOCALE=pt_BR → "Credenciais inválidas."
+```
+
+Helpers de view delegam ao mesmo catálogo:
+
+```rust
+use doido_view::helpers::i18n::{t, t_with};
+
+let title = t("app.title");
 ```
 
 ```bash
@@ -203,6 +221,9 @@ DOIDO_LOCALE=pt_BR cargo doido server
 ```
 
 Prioridade: locale `preferred` explícito (futuro por request) → `DOIDO_LOCALE` → `en`.
+
+Crates do framework embarcam arquivos scoped em `locales/` e registram no boot
+(`doido_auth::register_locales()`). Apps podem sobrescrever via `config/locales/auth.en.yml`.
 
 ## Instrumentação e notificações
 

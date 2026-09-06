@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use doido_controller::axum;
 
 /// Boots the HTTP server with the application's `routes`, including optional auth
@@ -9,7 +11,16 @@ pub async fn run(routes: Option<axum::Router>, env: Option<String>, port: Option
                 std::env::set_var("DOIDO_ENV", env);
             }
 
-            doido_core::i18n::init_from_env();
+            #[cfg(feature = "auth")]
+            if doido_generators::commands::generate::project_has_doido_auth() {
+                if let Err(e) = doido_auth::register_locales() {
+                    doido_core::tracing::warn!("failed to register auth locales: {e}");
+                }
+            }
+
+            if let Err(e) = doido_core::i18n::init(Path::new("config/locales")) {
+                doido_core::tracing::warn!("failed to initialize i18n: {e}");
+            }
 
             if let Err(e) = doido_model::pool::init().await {
                 doido_core::tracing::error!("failed to connect to the database: {e}");

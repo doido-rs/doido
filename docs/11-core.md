@@ -183,20 +183,38 @@ query, request headers) and a `response` line (status, latency, response
 headers). Sensitive headers are redacted, and the id is echoed back on the
 `x-request-id` response header.
 
-## Localization (backend)
+## Localization
 
-Framework and backend-originated messages (auth errors, JSON flash strings) use
-**`rust-i18n`** in `doido-core`, separate from view i18n in `doido-view`
-(`config/locales/*.yml` at runtime for Tera templates).
+Backend and view strings share a **runtime catalog** in `doido-core`. At HTTP boot the
+server registers embedded framework locales (e.g. `doido-auth/locales/auth.{en,pt_BR}.yml`
+when auth is installed), then loads every file in `config/locales/*.yml`. App files
+override framework keys.
 
-Supported catalog locales: `en` (fallback) and `pt_BR`. Stable keys use dotted
-paths (e.g. `auth.invalid_credentials`).
+**File naming** (Rails-style):
+
+| Pattern | Example | Notes |
+|---------|---------|-------|
+| `{locale}.yml` | `en.yml`, `pt_BR.yml` | Root may wrap keys under the locale (`en:`) |
+| `{scope}.{locale}.yml` | `auth.en.yml`, `models.users.pt_BR.yml` | Scope prefixes flat keys |
+
+Supported catalog locales: `en` (fallback) and `pt_BR`. Stable keys use dotted paths
+(e.g. `auth.invalid_credentials`).
 
 ```rust
-use doido_core::i18n::{init_from_env, translate_for, resolve_locale, DEFAULT_LOCALE};
+use doido_core::i18n::{init, translate_for, resolve_locale, DEFAULT_LOCALE};
+use std::path::Path;
 
-init_from_env(); // boot — reads DOIDO_LOCALE
+init(Path::new("config/locales"))?; // boot — loads app locales + DOIDO_LOCALE
 let msg = translate_for("auth.invalid_credentials", None);
+```
+
+View helpers delegate to the same catalog:
+
+```rust
+use doido_view::helpers::i18n::{t, t_with};
+
+let title = t("app.title");
+let greeting = t_with("greeting", &[("name", "Ada")]);
 ```
 
 | Function | Purpose |
@@ -204,11 +222,17 @@ let msg = translate_for("auth.invalid_credentials", None);
 | `normalize_locale(raw)` | Map `pt`, `pt-BR`, `pt_br` → `pt_BR`; else `en` |
 | `locale_from_env()` | Read `DOIDO_LOCALE` when set |
 | `resolve_locale(preferred)` | `preferred` → `DOIDO_LOCALE` → `en` |
-| `translate(key, locale)` | Translate a key for a locale |
+| `translate(key, locale)` | Translate a key for a locale (fallback to `en`) |
 | `translate_for(key, preferred)` | Convenience wrapper over `resolve_locale` |
-| `init_from_env()` | Set global rust-i18n locale from env |
+| `register_yaml(locale, yaml, scope)` | Merge embedded/framework YAML |
+| `load_locale_dir(path)` | Load all `*.yml` / `*.yaml` in a directory |
+| `init(locales_dir)` | Load app locales from disk at boot |
 
 Process default: `DOIDO_LOCALE=pt_BR`. Called automatically at HTTP boot.
+
+Framework crates ship scoped locale files under their own `locales/` directory and
+register them at boot (`doido_auth::register_locales()`). Apps can override any key
+via `config/locales/auth.en.yml`.
 
 ## Known Requirements
 

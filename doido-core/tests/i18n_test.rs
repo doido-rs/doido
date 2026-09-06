@@ -1,6 +1,7 @@
 use doido_core::i18n::{
-    init_from_env, locale_from_env, normalize_locale, resolve_locale, translate, translate_for,
-    DEFAULT_LOCALE, LOCALE_ENV_VAR,
+    init_from_env, locale_from_env, normalize_locale, parse_locale_filename, register_entry,
+    reset_for_test, resolve_locale, test_guard, translate, translate_for, DEFAULT_LOCALE,
+    LOCALE_ENV_VAR,
 };
 
 #[test]
@@ -14,45 +15,58 @@ fn normalize_handles_common_spellings() {
 }
 
 #[test]
-fn translates_known_key_per_locale() {
+fn parse_locale_filename_supports_scoped_and_plain_names() {
+    assert_eq!(parse_locale_filename("en.yml"), Some((None, "en")));
+    assert_eq!(parse_locale_filename("pt_BR.yml"), Some((None, "pt_BR")));
+    assert_eq!(parse_locale_filename("pt-BR.yml"), Some((None, "pt_BR")));
     assert_eq!(
-        translate("auth.invalid_credentials", "en"),
-        "Invalid credentials."
+        parse_locale_filename("auth.en.yml"),
+        Some((Some("auth".to_string()), "en"))
     );
     assert_eq!(
-        translate("auth.invalid_credentials", "pt_BR"),
-        "Credenciais inválidas."
+        parse_locale_filename("models.users.pt_BR.yml"),
+        Some((Some("models.users".to_string()), "pt_BR"))
+    );
+    assert_eq!(parse_locale_filename("readme.md"), None);
+}
+
+#[test]
+fn translates_registered_key_with_fallback() {
+    let _guard = test_guard();
+    reset_for_test();
+    register_entry("en", "greeting", "Hello").unwrap();
+    register_entry("pt_BR", "greeting", "Olá").unwrap();
+
+    assert_eq!(translate("greeting", "en"), "Hello");
+    assert_eq!(translate("greeting", "pt_BR"), "Olá");
+    assert_eq!(translate("missing", "en"), "translation missing: missing");
+    assert_eq!(
+        translate("missing", "pt_BR"),
+        "translation missing: missing"
     );
 }
 
 #[test]
 fn locale_resolution_and_env() {
+    let _guard = test_guard();
+    reset_for_test();
+    register_entry("en", "greeting", "Hello").unwrap();
+    register_entry("pt_BR", "greeting", "Olá").unwrap();
+
     std::env::remove_var(LOCALE_ENV_VAR);
     init_from_env();
 
-    assert_eq!(
-        translate_for("auth.invalid_credentials", Some("fr")),
-        "Invalid credentials."
-    );
-    assert_eq!(
-        translate_for("auth.invalid_credentials", None),
-        "Invalid credentials."
-    );
+    assert_eq!(translate_for("greeting", Some("fr")), "Hello");
+    assert_eq!(translate_for("greeting", None), "Hello");
     assert_eq!(resolve_locale(None), DEFAULT_LOCALE);
 
     std::env::set_var(LOCALE_ENV_VAR, "pt_BR");
     assert_eq!(locale_from_env(), Some("pt_BR"));
-    assert_eq!(
-        translate_for("auth.invalid_credentials", None),
-        "Credenciais inválidas."
-    );
+    assert_eq!(translate_for("greeting", None), "Olá");
     assert_eq!(resolve_locale(None), "pt_BR");
 
     init_from_env();
-    assert_eq!(
-        translate_for("auth.invalid_credentials", None),
-        "Credenciais inválidas."
-    );
+    assert_eq!(translate_for("greeting", None), "Olá");
 
     std::env::remove_var(LOCALE_ENV_VAR);
     init_from_env();

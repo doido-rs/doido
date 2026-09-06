@@ -1,7 +1,10 @@
+use doido_core::i18n::{reset_for_test, test_guard};
 use doido_view::helpers::i18n::I18n;
 
 #[test]
 fn load_yaml_flattens_nested_keys() {
+    let _guard = test_guard();
+    reset_for_test();
     let yaml = "en:\n  hello: \"Hi\"\n  user:\n    greeting: \"Welcome\"\n    count: 3\n";
     let mut i = I18n::new("en");
     i.load_yaml(yaml).unwrap();
