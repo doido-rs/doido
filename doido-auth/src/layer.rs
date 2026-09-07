@@ -48,6 +48,31 @@ pub async fn current_user<U: crate::user::AuthUser>(
         .ok_or(AuthError::Unauthorized)
 }
 
+/// The signed-in user's id, resolved from the request without a database hit.
+///
+/// Prefers the auth-layer [`AuthIdentity`] (JWT/API strategies, or when the auth
+/// middleware is applied), falling back to the encrypted session cookie (the
+/// default cookie strategy). Returns `None` for anonymous requests.
+pub fn current_user_id<U: crate::user::AuthUser>(
+    ctx: &mut doido_controller::Context,
+) -> Option<U::Id> {
+    if let Some(identity) = current_identity(ctx.request_parts()) {
+        if let Ok(id) = serde_json::from_value::<U::Id>(identity.user_id) {
+            return Some(id);
+        }
+    }
+    ctx.session().get::<U::Id>(crate::session::USER_ID_KEY)
+}
+
+/// Load the signed-in user model, or `None` when anonymous / not found. Resolves
+/// the id via [`current_user_id`] (identity or session), then hits the database.
+pub async fn load_current_user<U: crate::user::AuthUser>(
+    ctx: &mut doido_controller::Context,
+) -> Option<U> {
+    let id = current_user_id::<U>(ctx)?;
+    U::find_by_id(&global().db, id).await.ok().flatten()
+}
+
 /// Stage the authenticated user for views (Rails `current_user` helper analogue).
 ///
 /// Assigns the full serialized user under `current_user` and a `signed_in`
@@ -63,13 +88,12 @@ pub async fn assign_current_user<U>(ctx: &mut doido_controller::Context)
 where
     U: crate::user::AuthUser + serde::Serialize,
 {
-    let loaded = current_user::<U>(ctx.request_parts()).await;
-    match loaded {
-        Ok(user) => {
+    match load_current_user::<U>(ctx).await {
+        Some(user) => {
             ctx.assign("current_user", &user);
             ctx.assign("signed_in", true);
         }
-        Err(_) => {
+        None => {
             ctx.assign("signed_in", false);
         }
     }
