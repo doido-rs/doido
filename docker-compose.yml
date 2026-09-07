@@ -53,7 +53,7 @@ services:
       retries: 15
 
   fake-gcs:
-    image: fsouza/fake-gcs-server
+    image: fsouza/fake-gcs-server:1.52.3
     ports: ["4443:4443"]
     command: ["-scheme", "http", "-port", "4443", "-backend", "memory"]
     healthcheck:
