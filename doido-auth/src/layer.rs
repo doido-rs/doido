@@ -47,3 +47,30 @@ pub async fn current_user<U: crate::user::AuthUser>(
         .map_err(|e| AuthError::Internal(e.to_string()))?
         .ok_or(AuthError::Unauthorized)
 }
+
+/// Stage the authenticated user for views (Rails `current_user` helper analogue).
+///
+/// Assigns the full serialized user under `current_user` and a `signed_in`
+/// boolean onto the controller [`Context`](doido_controller::Context), so every
+/// template rendered on this request can use e.g.
+/// `{% if signed_in %}{{ current_user.email }}{% endif %}`. When no user is
+/// authenticated it only sets `signed_in = false`. Designed to be wired as a
+/// `#[before_action]` — generated controllers do this automatically.
+///
+/// The user model must derive `Serialize`; the generated user entity skips
+/// `password_digest` so the hash never reaches the template context.
+pub async fn assign_current_user<U>(ctx: &mut doido_controller::Context)
+where
+    U: crate::user::AuthUser + serde::Serialize,
+{
+    let loaded = current_user::<U>(ctx.request_parts()).await;
+    match loaded {
+        Ok(user) => {
+            ctx.assign("current_user", &user);
+            ctx.assign("signed_in", true);
+        }
+        Err(_) => {
+            ctx.assign("signed_in", false);
+        }
+    }
+}
