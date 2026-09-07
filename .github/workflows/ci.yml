@@ -69,10 +69,6 @@ jobs:
           --health-interval 2s
           --health-retries 15
           --health-timeout 3s
-      fake-gcs:
-        image: fsouza/fake-gcs-server
-        ports:
-          - 4443:4443
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@1.95.0
@@ -85,11 +81,13 @@ jobs:
           REDIS_URL: redis://127.0.0.1:6379/
           DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/doido_test
       - run: |
+          docker run -d --name fake-gcs \
+            -p 4443:4443 \
+            fsouza/fake-gcs-server:1.52.3 \
+            -scheme http -port 4443 -backend memory
           chmod +x scripts/storage-emulators/wait-ready.sh
+          chmod +x scripts/storage-emulators/gcs-init.sh
           ./scripts/storage-emulators/wait-ready.sh
-          curl -sf -X POST "http://127.0.0.1:4443/storage/v1/b?project=doido-test" \
-            -H "Content-Type: application/json" \
-            -d '{"name":"doido-test"}' || true
           curl -sf -X PUT "http://127.0.0.1:4566/doido-test" || true
       - run: make test-storage-backends
       - run: make coverage-check
