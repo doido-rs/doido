@@ -2,7 +2,7 @@ use crate::models::{singular}::{ActiveModel, Column, Entity};
 use crate::models::user::Model as User;
 use doido::model::sea_orm::{entity::prelude::*, Set};
 use doido::controller::{controller, Context, Response};
-use doido_auth::{current_identity, current_user};
+use doido_auth::current_user_id;
 use serde::Deserialize;
 
 /// Strong params for creating/updating a {Model}.
@@ -17,7 +17,7 @@ impl {Controller} {
     #[before_action(require_user)]
     /// GET /{plural}
     pub async fn index(ctx: Context) -> doido::Result<Response> {
-        let user = signed_in_user(&ctx).await?;
+        let user = signed_in_user(ctx).await?;
         let {plural} = Entity::find()
             .filter(Column::UserId.eq(user.id))
             .all(ctx.db())
@@ -28,7 +28,7 @@ impl {Controller} {
     #[before_action(require_user)]
     /// GET /{plural}/{id}
     pub async fn show(ctx: Context) -> doido::Result<Response> {
-        let user = signed_in_user(&ctx).await?;
+        let user = signed_in_user(ctx).await?;
         let id = parse_id(&ctx);
         match Entity::find_by_id(id)
             .filter(Column::UserId.eq(user.id))
@@ -43,7 +43,7 @@ impl {Controller} {
     #[before_action(require_user)]
     /// POST /{plural}
     pub async fn create(mut ctx: Context) -> doido::Result<Response> {
-        let user = signed_in_user(&ctx).await?;
+        let user = signed_in_user(ctx).await?;
         let form: {Model}Form = ctx.body_json().await?;
         let record = ActiveModel {
             user_id: Set(user.id),
@@ -56,7 +56,7 @@ impl {Controller} {
     #[before_action(require_user)]
     /// PATCH/PUT /{plural}/{id}
     pub async fn update(mut ctx: Context) -> doido::Result<Response> {
-        let user = signed_in_user(&ctx).await?;
+        let user = signed_in_user(ctx).await?;
         let id = parse_id(&ctx);
         let form: {Model}Form = ctx.body_json().await?;
         match Entity::find_by_id(id)
@@ -76,7 +76,7 @@ impl {Controller} {
     #[before_action(require_user)]
     /// DELETE /{plural}/{id}
     pub async fn destroy(ctx: Context) -> doido::Result<Response> {
-        let user = signed_in_user(&ctx).await?;
+        let user = signed_in_user(ctx).await?;
         let id = parse_id(&ctx);
         Entity::delete_many()
             .filter(Column::UserId.eq(user.id))
@@ -92,10 +92,10 @@ fn parse_id(ctx: &Context) -> i32 {
     ctx.param("id").and_then(|v| v.parse().ok()).unwrap_or_default()
 }
 
-/// `before_action`: reject anonymous requests with `401`. Checks the request
-/// identity only (no database hit).
+/// `before_action`: reject anonymous requests with `401`. Resolves the signed-in
+/// id from the identity or the session cookie (no database hit).
 async fn require_user(ctx: &mut Context) -> Result<(), Response> {
-    if current_identity(ctx.request_parts()).is_some() {
+    if current_user_id::<User>(ctx).is_some() {
         Ok(())
     } else {
         Err(ctx.status(401))
@@ -103,8 +103,11 @@ async fn require_user(ctx: &mut Context) -> Result<(), Response> {
 }
 
 /// The signed-in user model, loaded from the request identity. `require_user`
-/// runs first, so reaching an action implies an authenticated request.
-async fn signed_in_user(ctx: &Context) -> doido::Result<User> {
-    let user = current_user::<User>(ctx.request_parts()).await?;
-    Ok(user)
+/// runs first, so reaching an action implies an authenticated request. Takes
+/// `&mut Context` (not `&Context`) so the returned future stays `Send` — axum's
+/// `Handler` bound requires it, and `Context` is `Send` but not `Sync`.
+async fn signed_in_user(ctx: &mut Context) -> doido::Result<User> {
+    doido_auth::load_current_user::<User>(ctx)
+        .await
+        .ok_or_else(|| doido::core::anyhow::anyhow!("not signed in"))
 }
