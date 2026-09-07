@@ -21,18 +21,18 @@ fn current_user_is_available_in_scaffolded_views() {
         "title:string:not_null",
     ]);
 
-    // Customize the generated index view to show the exposed user. Rendering the
-    // whole `current_user` via `json_encode` also proves the password digest is
-    // not serialized into the template context. The snippet goes *inside* the
-    // content block — `{% extends %}` must stay the first tag. Mirrors what an app
-    // author writes.
+    // Customize the generated index view to show the exposed user. Dumping every
+    // key of `current_user` (a filter-free `{% for %}`) also proves the password
+    // digest is not serialized into the template context. The snippet goes *inside*
+    // the content block — `{% extends %}` must stay the first tag. Mirrors what an
+    // app author writes.
     let index_view = h.app.join("app/views/notes/index.html.tera");
     let original = fs::read_to_string(&index_view).expect("generated notes index view");
     fs::write(
         &index_view,
         original.replace(
             "{% block content %}",
-            "{% block content %}\n{% if signed_in %}<pre id=\"who\">{{ current_user | json_encode() }}</pre>{% endif %}",
+            "{% block content %}\n{% if signed_in %}<pre id=\"who\">{% for k, v in current_user %}{{ k }}={{ v }};{% endfor %}</pre>{% endif %}",
         ),
     )
     .unwrap();
