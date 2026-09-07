@@ -71,7 +71,7 @@ pub use config::{
     UserStoreType, YamlConfig,
 };
 pub use controllers::extractors::{AuthToken, CurrentUser, MaybeUser, RequireAuth};
-pub use controllers::layer::{auth_layer, current_identity, current_user};
+pub use controllers::layer::{assign_current_user, auth_layer, current_identity, current_user};
 pub use controllers::messages;
 pub use controllers::state::{global, init, set_state, try_global, AuthState};
 pub use controllers::{AuthOauth, AuthPasswords, AuthRegistrations, AuthSessions};
