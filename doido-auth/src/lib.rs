@@ -36,7 +36,10 @@ pub mod oauth {
 }
 /// Back-compat re-exports — prefer [`controllers::layer`].
 pub mod layer {
-    pub use crate::controllers::layer::{auth_layer, current_identity, current_user};
+    pub use crate::controllers::layer::{
+        assign_current_user, auth_layer, current_identity, current_user, current_user_id,
+        load_current_user,
+    };
 }
 /// Back-compat re-exports — prefer [`controllers::extractors`].
 pub mod extractors {
@@ -71,7 +74,10 @@ pub use config::{
     UserStoreType, YamlConfig,
 };
 pub use controllers::extractors::{AuthToken, CurrentUser, MaybeUser, RequireAuth};
-pub use controllers::layer::{assign_current_user, auth_layer, current_identity, current_user};
+pub use controllers::layer::{
+    assign_current_user, auth_layer, current_identity, current_user, current_user_id,
+    load_current_user,
+};
 pub use controllers::messages;
 pub use controllers::state::{global, init, set_state, try_global, AuthState};
 pub use controllers::{AuthOauth, AuthPasswords, AuthRegistrations, AuthSessions};
