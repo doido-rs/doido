@@ -139,9 +139,32 @@ pub mod gcs {
     }
 
     pub async fn ensure_bucket(endpoint: &str, bucket: &str) {
-        let url = format!("{endpoint}/storage/v1/b?project=doido-test");
+        let client = reqwest::Client::new();
+        let create_url = format!("{endpoint}/storage/v1/b?project=doido-test");
+        let get_url = format!("{endpoint}/storage/v1/b/{bucket}");
         let body = serde_json::json!({ "name": bucket });
-        let _ = reqwest::Client::new().post(&url).json(&body).send().await;
+
+        for _ in 0..60 {
+            if client
+                .get(&get_url)
+                .send()
+                .await
+                .is_ok_and(|r| r.status().is_success())
+            {
+                return;
+            }
+            if client
+                .post(&create_url)
+                .json(&body)
+                .send()
+                .await
+                .is_ok_and(|r| r.status().is_success() || r.status().as_u16() == 409)
+            {
+                return;
+            }
+            tokio::time::sleep(Duration::from_millis(500)).await;
+        }
+        panic!("GCS bucket {bucket} not ready at {endpoint}");
     }
 
     pub async fn service() -> Option<GcsService> {
