@@ -6,10 +6,12 @@ Rails analogue: **Action Controller**
 > `skip_before_action`, `only/except`), typed params + strong params (`permit`/`require`),
 > `respond_to`/format negotiation, `render`/`redirect_to`/`json`/`status`, cookies, and
 > **controller helpers** (`#[helper]`, `app/helpers/`) are implemented (see also spec 07 for
-> the middleware stack). **Open:** `ctx.session` is **not**
-> exposed on `Context` (sessions live only in the middleware `SessionStore`), and flash
-> messages are not surfaced. `.layout()`/`.no_layout()` live on `ViewResponse` (spec 04),
-> not on `Context`. See [ARCHITECTURE.md](ARCHITECTURE.md).
+> the middleware stack). `ctx.session()`/`ctx.flash()` are exposed on `Context`.
+> **Sharing data with views:** `ctx.assign(key, value)` stages variables merged into every
+> `render`, and the request `flash` is auto-injected under the reserved `flash` key
+> (see spec 04); `doido_auth::assign_current_user::<User>` exposes `current_user`/`signed_in`.
+> `.layout()`/`.no_layout()` live on `ViewResponse` (spec 04), not on `Context`.
+> See [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Decisions (resolved in interview)
 
