@@ -23,4 +23,5 @@ mod schema_diagram;
 mod seed_initial_user;
 mod smoke_generators;
 mod storage_install;
+mod storage_s3_upload;
 mod type_mapping;
