@@ -11,6 +11,9 @@ pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i64,
     pub email: String,
+    // Never serialize the password hash — the model is exposed to views as
+    // `current_user`, and the digest must not reach the template context.
+    #[serde(skip_serializing)]
     #[sea_orm(column_name = "password_digest")]
     pub password_digest: String,
 {module_fields}    pub created_at: DateTimeUtc,
