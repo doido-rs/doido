@@ -1919,6 +1919,7 @@ dependencies = [
  "hmac 0.13.0",
  "imagesize",
  "md-5",
+ "reqwest 0.12.28",
  "serde",
  "serde_json",
  "serde_norway",
@@ -2754,6 +2755,7 @@ dependencies = [
  "tokio",
  "tokio-rustls",
  "tower-service",
+ "webpki-roots",
 ]
 
 [[package]]
@@ -4163,6 +4165,7 @@ dependencies = [
  "http-body 1.1.0",
  "http-body-util",
  "hyper",
+ "hyper-rustls",
  "hyper-tls",
  "hyper-util",
  "js-sys",
@@ -4170,6 +4173,8 @@ dependencies = [
  "native-tls",
  "percent-encoding",
  "pin-project-lite",
+ "quinn",
+ "rustls",
  "rustls-pki-types",
  "serde",
  "serde_json",
@@ -4177,6 +4182,7 @@ dependencies = [
  "sync_wrapper",
  "tokio",
  "tokio-native-tls",
+ "tokio-rustls",
  "tokio-util",
  "tower",
  "tower-http 0.6.11",
@@ -4186,6 +4192,7 @@ dependencies = [
  "wasm-bindgen-futures",
  "wasm-streams 0.4.2",
  "web-sys",
+ "webpki-roots",
 ]
 
 [[package]]
