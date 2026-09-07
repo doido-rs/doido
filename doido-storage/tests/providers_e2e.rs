@@ -43,7 +43,7 @@ async fn gcs_fake_server_upload_download_roundtrip() {
     let Some(svc) = common::gcs::service().await else {
         return;
     };
-    let key = unique_key("gcs/");
+    let key = unique_key("gcs-");
     service_roundtrip(&svc, &key, b"hello fake gcs").await;
 }
 

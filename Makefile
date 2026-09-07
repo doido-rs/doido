@@ -210,7 +210,7 @@ test-backends: ## Run feature-gated backend tests (needs `make services-up`)
 
 test-storage-backends: ## Run storage provider e2e (needs `make services-up`)
 	./scripts/storage-emulators/wait-ready.sh
-	cargo test -p doido-storage --features storage-e2e --test providers_e2e -- --nocapture
+	cargo test -p doido-storage --features storage-e2e --test providers_e2e -- --nocapture --test-threads=1
 
 # ---------------------------------------------------------------------------
 # Documentation + blog site (docs-blog/ — a Zola static site).

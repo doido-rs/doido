@@ -19,3 +19,6 @@ wait_tcp() {
 wait_tcp 127.0.0.1 4566 "Floci (S3)"
 wait_tcp 127.0.0.1 10000 "Azurite (blob)"
 wait_tcp 127.0.0.1 4443 "fake-gcs-server"
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+"${SCRIPT_DIR}/gcs-init.sh"
