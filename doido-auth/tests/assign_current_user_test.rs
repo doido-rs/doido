@@ -33,9 +33,14 @@ async fn assigns_current_user_when_authenticated() {
     let mut ctx = ctx_with_identity(Some(AuthIdentity::new(user.id)));
     assign_current_user::<TestUser>(&mut ctx).await;
 
-    assert_eq!(ctx.assigns().get("signed_in"), Some(&serde_json::json!(true)));
     assert_eq!(
-        ctx.assigns().get("current_user").and_then(|u| u.get("email")),
+        ctx.assigns().get("signed_in"),
+        Some(&serde_json::json!(true))
+    );
+    assert_eq!(
+        ctx.assigns()
+            .get("current_user")
+            .and_then(|u| u.get("email")),
         Some(&serde_json::json!("view@example.com"))
     );
 }
@@ -50,6 +55,9 @@ async fn marks_anonymous_when_no_identity() {
     let mut ctx = ctx_with_identity(None);
     assign_current_user::<TestUser>(&mut ctx).await;
 
-    assert_eq!(ctx.assigns().get("signed_in"), Some(&serde_json::json!(false)));
+    assert_eq!(
+        ctx.assigns().get("signed_in"),
+        Some(&serde_json::json!(false))
+    );
     assert!(ctx.assigns().get("current_user").is_none());
 }

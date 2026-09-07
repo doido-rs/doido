@@ -14,12 +14,7 @@ fn current_user_is_available_in_scaffolded_views() {
 
     // Auth-aware resource: the generated controller carries
     // `#[before_action(load_current_user)]` on its rendering actions.
-    h.generate(&[
-        "generate",
-        "auth:scaffold",
-        "Note",
-        "title:string:not_null",
-    ]);
+    h.generate(&["generate", "auth:scaffold", "Note", "title:string:not_null"]);
 
     // Customize the generated index view to show the exposed user. Dumping every
     // key of `current_user` (a filter-free `{% for %}`) also proves the password
