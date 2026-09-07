@@ -4,6 +4,7 @@ mod auth_install;
 mod blog_tutorial;
 mod bootstrap_migrations;
 mod cors_api;
+mod current_user_in_view;
 mod custom_generator;
 mod db_commands;
 mod db_seed;
