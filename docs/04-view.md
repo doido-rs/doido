@@ -73,6 +73,37 @@ ctx.render("posts/index", data).layout("admin")
 ctx.render("posts/index", data).no_layout()
 ```
 
+### Sharing data with views (assigns, flash, current_user)
+
+Beyond the per-render `data`, the controller can share values that appear in
+**every** template it renders on a request:
+
+- **Assigns** — `ctx.assign(key, value)` stages a serializable value (Rails
+  instance-variable / `assigns` analogue). It is merged into every subsequent
+  `render`, so a `#[before_action]` can expose something once and all actions'
+  views see it. On a key conflict the per-render `data` wins over an assign.
+- **Flash** — the request `flash` is auto-injected under the reserved `flash`
+  key, so templates (typically the layout) can render `{{ flash.notice }}` /
+  `{{ flash.alert }}` without the action passing it. `flash` is loaded eagerly,
+  so it is available even when the action never touches `ctx.flash()`.
+- **current_user** — with `doido-auth`, a `#[before_action(load_current_user)]`
+  calls `doido_auth::assign_current_user::<User>(ctx)`, which assigns the
+  serialized user under `current_user` and a `signed_in` boolean. The auth-aware
+  scaffold (`auth:scaffold`) generates this wiring automatically:
+
+  ```html
+  {% if signed_in %}Hello, {{ current_user.email }}{% endif %}
+  ```
+
+  The generated user entity marks `password_digest` `#[serde(skip_serializing)]`,
+  so the hash never reaches the template context. The full session bag is **not**
+  auto-exposed to views (to avoid leaking secrets); surface any session-derived
+  value explicitly with `ctx.assign(...)`.
+
+Assigns and flash merge into object `data` (the normal template shape); a
+non-object `data` is passed through unchanged. Layouts and partials receive the
+same merged context.
+
 ## Config
 
 ```toml
