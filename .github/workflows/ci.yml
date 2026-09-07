@@ -54,6 +54,25 @@ jobs:
           POSTGRES_DB: doido_test
         ports:
           - 5432:5432
+      localstack:
+        image: floci/floci:latest-compat
+        env:
+          AWS_DEFAULT_REGION: us-east-1
+        ports:
+          - 4566:4566
+      azurite:
+        image: mcr.microsoft.com/azure-storage/azurite
+        ports:
+          - 10000:10000
+        options: >-
+          --health-cmd "nc -z 127.0.0.1 10000"
+          --health-interval 2s
+          --health-retries 15
+          --health-timeout 3s
+      fake-gcs:
+        image: fsouza/fake-gcs-server
+        ports:
+          - 4443:4443
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@1.95.0
@@ -65,6 +84,14 @@ jobs:
         env:
           REDIS_URL: redis://127.0.0.1:6379/
           DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/doido_test
+      - run: |
+          chmod +x scripts/storage-emulators/wait-ready.sh
+          ./scripts/storage-emulators/wait-ready.sh
+          curl -sf -X POST "http://127.0.0.1:4443/storage/v1/b?project=doido-test" \
+            -H "Content-Type: application/json" \
+            -d '{"name":"doido-test"}' || true
+          curl -sf -X PUT "http://127.0.0.1:4566/doido-test" || true
+      - run: make test-storage-backends
       - run: make coverage-check
 
   release-e2e:
@@ -72,12 +99,26 @@ jobs:
     needs: coverage
     runs-on: ubuntu-latest
     timeout-minutes: 120
+    services:
+      localstack:
+        image: floci/floci:latest-compat
+        env:
+          AWS_DEFAULT_REGION: us-east-1
+        ports:
+          - 4566:4566
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@1.95.0
       - uses: Swatinem/rust-cache@v2
         with:
           key: e2e-cargo
+      - run: |
+          chmod +x scripts/storage-emulators/wait-ready.sh
+          for i in $(seq 1 60); do
+            curl -sf http://127.0.0.1:4566/_localstack/health && break
+            sleep 2
+          done
+          curl -sf -X PUT "http://127.0.0.1:4566/doido-test" || true
       - run: make release-e2e
         env:
           CARGO_TARGET_DIR: target/e2e-cargo

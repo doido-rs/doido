@@ -102,7 +102,7 @@ pub struct ServiceConfig {
     /// S3/R2: region (R2 uses `auto`).
     #[serde(default)]
     pub region: Option<String>,
-    /// S3/R2: custom endpoint (required for R2 and S3-compatible stores).
+    /// S3/R2/Azure/GCS: custom endpoint (R2, LocalStack, Azurite, fake-gcs-server).
     #[serde(default)]
     pub endpoint: Option<String>,
     /// S3/R2: access key id (else read from the environment).
