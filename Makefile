@@ -51,7 +51,7 @@ CRATE_VERSION := $(shell sed -nE 's/^version[[:space:]]*=[[:space:]]*"([^"]+)".*
 PUBLISH_CRATES := $(shell grep -vE '^\s*(#|$$)' scripts/publish-crates.txt | tr '\n' ' ')
 
 .PHONY: help publish publish-dry-run verify-publish-crates clean-package check supply-chain yank unyank \
-        fmt test verify example install-check verify-published-generator services-up services-down test-backends \
+        fmt test verify example install-check verify-published-generator services-up services-down test-backends test-storage-backends \
         coverage coverage-check \
         blog blog-build blog-install
 
@@ -195,9 +195,10 @@ verify: check test coverage-check install-check ## Lint + tests + coverage + ins
 	@echo "==> verify: OK"
 
 # ---------------------------------------------------------------------------
-# Backend services for feature-gated tests (postgres / redis / memcache).
+# Backend services for feature-gated tests (postgres / redis / memcache /
+# localstack / azurite / fake-gcs).
 # ---------------------------------------------------------------------------
-services-up: ## Start dev backends (postgres, redis, memcache) via docker compose
+services-up: ## Start dev backends (postgres, redis, memcache, Floci/azurite/fake-gcs) via docker compose
 	docker compose up -d
 
 services-down: ## Stop and remove dev backends
@@ -206,6 +207,10 @@ services-down: ## Stop and remove dev backends
 test-backends: ## Run feature-gated backend tests (needs `make services-up`)
 	REDIS_URL=$${REDIS_URL:-redis://127.0.0.1:6379/} cargo test -p doido-jobs --features jobs-db,jobs-redis
 	cargo test -p doido-cache --features cache-redis,cache-memcache
+
+test-storage-backends: ## Run storage provider e2e (needs `make services-up`)
+	./scripts/storage-emulators/wait-ready.sh
+	cargo test -p doido-storage --features storage-e2e --test providers_e2e -- --nocapture --test-threads=1
 
 # ---------------------------------------------------------------------------
 # Documentation + blog site (docs-blog/ — a Zola static site).
