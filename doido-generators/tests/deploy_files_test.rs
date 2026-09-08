@@ -8,6 +8,7 @@ fn new_app_includes_deploy_and_devcontainer_files() {
     let paths: Vec<&str> = files.iter().map(|f| f.path.as_str()).collect();
 
     assert!(paths.iter().any(|p| p.ends_with("Dockerfile")), "{paths:?}");
+    assert!(paths.iter().any(|p| p.ends_with("Cargo.lock")), "{paths:?}");
     assert!(paths.iter().any(|p| p.ends_with("Dockerfile.dev")));
     assert!(paths.iter().any(|p| p.ends_with("docker-compose.yml")));
     assert!(paths.iter().any(|p| p.ends_with(".dockerignore")));

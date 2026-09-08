@@ -10,6 +10,7 @@ fn defaults_to_memory_backend() {
     assert_eq!(config.backend, CacheBackend::Memory);
     assert!(config.endpoint.is_none());
     assert!(config.namespace.is_none());
+    assert!(!config.compress);
 }
 
 #[test]
@@ -56,6 +57,7 @@ async fn builds_namespaced_memory_store() {
         backend: CacheBackend::Memory,
         endpoint: None,
         namespace: Some("ns".to_string()),
+        compress: false,
     };
     let store = config.build().await.unwrap();
     store.set("user:1", json!(1), None).await.unwrap();
@@ -72,6 +74,7 @@ async fn redis_without_feature_errors_clearly() {
         backend: CacheBackend::Redis,
         endpoint: Some("redis://127.0.0.1:6379".to_string()),
         namespace: None,
+        compress: false,
     };
     let err = match config.build().await {
         Ok(_) => panic!("expected redis build to fail without the cache-redis feature"),
@@ -87,6 +90,7 @@ async fn memcache_without_feature_errors_clearly() {
         backend: CacheBackend::Memcache,
         endpoint: Some("memcache://127.0.0.1:11211".to_string()),
         namespace: None,
+        compress: false,
     };
     let err = match config.build().await {
         Ok(_) => panic!("expected memcache build to fail without the cache-memcache feature"),

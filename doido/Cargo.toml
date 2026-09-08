@@ -37,10 +37,10 @@ doido-auth = { workspace = true, optional = true }
 doido-generators = { workspace = true, default-features = true }
 clap.workspace = true
 figlet-rs.workspace = true
-tokio = { workspace = true, features = ["full"] }
+tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
 
 [features]
-default = ["sqlite", "auth"]
+default = ["sqlite"]
 sqlite = [
     "doido-model/sqlite",
     "doido-controller/sqlite",
