@@ -2,6 +2,20 @@ use crate::deliverer::Deliverer;
 use doido_core::Result;
 use serde::{Deserialize, Serialize};
 
+/// SMTP envelope address for `MAIL FROM` (RFC 5321). Extracts the addr-spec from
+/// a possibly display-named sender: `email@host`, `Name <email@host>`, or
+/// `"Name" <email@host>` all yield `email@host`. Falls back to the trimmed input
+/// when there is no `<…>` pair.
+pub fn envelope_address(from: &str) -> &str {
+    let trimmed = from.trim();
+    if let Some(start) = trimmed.find('<') {
+        if let Some(end) = trimmed[start + 1..].find('>') {
+            return trimmed[start + 1..start + 1 + end].trim();
+        }
+    }
+    trimmed
+}
+
 /// A file attached to a [`Mail`].
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Attachment {

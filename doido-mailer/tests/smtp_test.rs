@@ -3,17 +3,26 @@ use doido_mailer::{Deliverer, Mail};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::net::TcpListener;
 
-/// A minimal mock SMTP server: play the conversation, capture the DATA payload.
-async fn mock_smtp(listener: TcpListener) -> String {
+/// A minimal mock SMTP server (single recipient): play the conversation, capture
+/// the `MAIL FROM` command and the DATA payload.
+async fn mock_smtp(listener: TcpListener) -> (String, String) {
     let (mut sock, _) = listener.accept().await.unwrap();
     let (r, mut w) = sock.split();
     let mut reader = BufReader::new(r);
     let mut line = String::new();
+    let mut mail_from = String::new();
 
     w.write_all(b"220 mock\r\n").await.unwrap();
-    for reply in ["250 ok\r\n", "250 ok\r\n", "250 ok\r\n"] {
+    // Command order: EHLO, MAIL FROM, RCPT TO — capture the second.
+    for (i, reply) in ["250 ok\r\n", "250 ok\r\n", "250 ok\r\n"]
+        .iter()
+        .enumerate()
+    {
         line.clear();
-        reader.read_line(&mut line).await.unwrap(); // EHLO / MAIL FROM / RCPT TO
+        reader.read_line(&mut line).await.unwrap();
+        if i == 1 {
+            mail_from = line.trim_end().to_string();
+        }
         w.write_all(reply.as_bytes()).await.unwrap();
     }
     line.clear();
@@ -30,7 +39,7 @@ async fn mock_smtp(listener: TcpListener) -> String {
         data.push_str(&line);
     }
     w.write_all(b"250 ok\r\n").await.unwrap();
-    data
+    (mail_from, data)
 }
 
 #[tokio::test]
@@ -46,10 +55,58 @@ async fn smtp_deliverer_sends_the_message() {
         .body_text("Hello there");
     SmtpDeliverer::new(addr).deliver(&mail).await.unwrap();
 
-    let data = server.await.unwrap();
+    let (mail_from, data) = server.await.unwrap();
+    // Regression: a bare address envelope is passed through unchanged.
+    assert_eq!(mail_from, "MAIL FROM:<a@x.com>");
     assert!(data.contains("To: b@y.com"), "captured: {data}");
     assert!(data.contains("Subject: Hi"));
     assert!(data.contains("Hello there"));
+}
+
+#[tokio::test]
+async fn smtp_envelope_uses_addr_spec_but_header_keeps_display_name() {
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap().to_string();
+    let server = tokio::spawn(mock_smtp(listener));
+
+    let mail = Mail::new()
+        .from("Fivia App <app@fivia.com.br>")
+        .to("user@gmail.com")
+        .subject("Test")
+        .body_text("plain")
+        .body_html("<p>html</p>");
+    SmtpDeliverer::new(addr).deliver(&mail).await.unwrap();
+
+    let (mail_from, data) = server.await.unwrap();
+    // Envelope: only the addr-spec — no illegal nested angle brackets.
+    assert_eq!(mail_from, "MAIL FROM:<app@fivia.com.br>");
+    // Header: the full display-name value survives in the DATA payload.
+    assert!(
+        data.contains("From: Fivia App <app@fivia.com.br>"),
+        "From header keeps display name: {data}"
+    );
+}
+
+#[tokio::test]
+async fn smtp_dot_stuffs_body_lines_starting_with_a_dot() {
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap().to_string();
+    let server = tokio::spawn(mock_smtp(listener));
+
+    // A body line beginning with '.' (e.g. a CSS rule at column 0) must be
+    // dot-stuffed so it neither terminates DATA early nor is silently eaten.
+    let mail = Mail::new()
+        .from("a@x.com")
+        .to("b@y.com")
+        .subject("Hi")
+        .body_text(".email-body { color: red }");
+    SmtpDeliverer::new(addr).deliver(&mail).await.unwrap();
+
+    let (_mail_from, data) = server.await.unwrap();
+    assert!(
+        data.contains("..email-body { color: red }"),
+        "leading dot is doubled on the wire: {data}"
+    );
 }
 
 #[test]

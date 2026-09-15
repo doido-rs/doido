@@ -20,6 +20,25 @@ fn both_bodies_produce_multipart_alternative() {
 }
 
 #[test]
+fn from_header_keeps_display_name() {
+    let mail = Mail::new()
+        .from("Fivia App <app@fivia.com.br>")
+        .to("user@gmail.com")
+        .subject("Hi")
+        .body_text("plain")
+        .body_html("<p>html</p>");
+    let msg = to_mime(&mail);
+
+    // The MIME `From:` header preserves the full RFC 5322 display-name value —
+    // only the SMTP `MAIL FROM` envelope (in smtp.rs) is reduced to the addr-spec.
+    assert!(
+        msg.contains("From: Fivia App <app@fivia.com.br>"),
+        "From header keeps display name: {msg}"
+    );
+    assert!(msg.contains("multipart/alternative"));
+}
+
+#[test]
 fn cc_appears_in_headers_but_bcc_does_not() {
     let mail = Mail::new()
         .to("to@x.com")

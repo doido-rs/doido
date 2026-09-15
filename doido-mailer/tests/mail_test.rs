@@ -1,5 +1,22 @@
+use doido_mailer::mail::envelope_address;
 use doido_mailer::smtp::build_message;
 use doido_mailer::{Mail, TestDeliverer};
+
+#[test]
+fn envelope_address_extracts_addr_spec() {
+    // Bare address is returned unchanged.
+    assert_eq!(envelope_address("app@fivia.com.br"), "app@fivia.com.br");
+    assert_eq!(envelope_address("no-reply@localhost"), "no-reply@localhost");
+    // Display-name forms yield only the addr-spec inside the angle brackets.
+    assert_eq!(
+        envelope_address("Fivia App <app@fivia.com.br>"),
+        "app@fivia.com.br"
+    );
+    assert_eq!(
+        envelope_address("\"Fivia App\" <app@fivia.com.br>"),
+        "app@fivia.com.br"
+    );
+}
 
 #[test]
 fn multiple_to_recipients_land_in_header_and_envelope() {
