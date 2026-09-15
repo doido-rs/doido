@@ -66,6 +66,43 @@ fn recipients_span_to_cc_and_bcc() {
 }
 
 #[test]
+fn subject_with_trailing_newline_breaks_mime_boundaries_fixed() {
+    let mail = Mail::new()
+        .from("app@example.com")
+        .to("user@example.com")
+        .subject("Hello\n")
+        .body_html("<!DOCTYPE html><html><body><p>Hi</p></body></html>");
+
+    let raw = to_mime(&mail);
+
+    assert!(
+        !raw.contains("Subject: Hello\n\r\n"),
+        "subject must not contain bare LF inside the Subject header line"
+    );
+
+    let split = raw.find("\r\n\r\n").expect("CRLF CRLF separator");
+    let headers = &raw[..split];
+    assert!(headers.contains("Content-Type: text/html"));
+    assert!(headers.contains("MIME-Version: 1.0"));
+}
+
+#[test]
+fn subject_with_internal_newline_is_sanitized() {
+    let mail = Mail::new()
+        .to("user@example.com")
+        .subject("Hello\r\nWorld")
+        .body_html("<p>Hi</p>");
+
+    let raw = to_mime(&mail);
+
+    assert!(raw.contains("Subject: HelloWorld\r\n"));
+    let split = raw.find("\r\n\r\n").expect("CRLF CRLF separator");
+    let headers = &raw[..split];
+    assert!(headers.contains("Content-Type: text/html"));
+    assert!(headers.contains("MIME-Version: 1.0"));
+}
+
+#[test]
 fn single_body_produces_single_part() {
     let msg = to_mime(
         &Mail::new()
