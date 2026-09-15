@@ -1797,6 +1797,7 @@ dependencies = [
  "serde_norway",
  "sha2 0.10.9",
  "tempfile",
+ "tera",
  "thiserror 2.0.20",
  "tracing",
  "tracing-error",

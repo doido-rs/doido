@@ -117,29 +117,14 @@ impl MailerFileConfig {
     pub fn load_env(env: Environment) -> std::io::Result<Self> {
         let path = format!("config/{}.yml", env.as_str());
         let contents = std::fs::read_to_string(&path)?;
-        let mut cfg = Self::from_yaml(&contents)?;
-        apply_env_overrides(&mut cfg);
-        Ok(cfg)
+        Self::from_yaml(&contents)
     }
 
     pub fn from_yaml(yaml: &str) -> std::io::Result<Self> {
-        serde_norway::from_str(yaml)
+        let rendered = doido_core::config::render(yaml)
+            .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
+        serde_norway::from_str(&rendered)
             .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))
-    }
-}
-
-fn apply_env_overrides(cfg: &mut MailerFileConfig) {
-    if let Ok(kind) = std::env::var("MAILER__TYPE") {
-        match kind.trim().to_ascii_lowercase().as_str() {
-            "log" => cfg.mailer.backend = Backend::Log,
-            "test" => cfg.mailer.backend = Backend::Test,
-            "smtp" => cfg.mailer.backend = Backend::Smtp,
-            "sendmail" => cfg.mailer.backend = Backend::Sendmail,
-            _ => {}
-        }
-    }
-    if let Ok(addr) = std::env::var("MAILER__SMTP__ADDRESS") {
-        cfg.mailer.smtp.address = Some(addr);
     }
 }
 
@@ -179,14 +164,17 @@ mod tests {
     }
 
     #[test]
-    fn env_overrides_smtp_address_and_type() {
-        std::env::set_var("MAILER__TYPE", "smtp");
-        std::env::set_var("MAILER__SMTP__ADDRESS", "mailpit:1025");
-        let mut cfg = MailerFileConfig::from_yaml("mailer:\n  type: log\n").unwrap();
-        super::apply_env_overrides(&mut cfg);
-        std::env::remove_var("MAILER__TYPE");
-        std::env::remove_var("MAILER__SMTP__ADDRESS");
-        let runtime = cfg.mailer.into_config();
+    fn get_env_populates_type_and_smtp_address() {
+        std::env::set_var("DOIDO_MAILER_TYPE_T", "smtp");
+        std::env::set_var("DOIDO_MAILER_ADDR_T", "mailpit:1025");
+        let yaml = "mailer:\n  type: {{ get_env(name=\"DOIDO_MAILER_TYPE_T\") }}\n  \
+                    smtp:\n    address: {{ get_env(name=\"DOIDO_MAILER_ADDR_T\") }}\n";
+        let runtime = MailerFileConfig::from_yaml(yaml)
+            .unwrap()
+            .mailer
+            .into_config();
+        std::env::remove_var("DOIDO_MAILER_TYPE_T");
+        std::env::remove_var("DOIDO_MAILER_ADDR_T");
         assert_eq!(runtime.backend, Backend::Smtp);
         assert_eq!(runtime.smtp.address.as_deref(), Some("mailpit:1025"));
     }

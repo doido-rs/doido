@@ -4,32 +4,39 @@ Rails analogue: **Rails.application.config + credentials**
 
 > **Implementation status — reconciled.** The framework ships **per-env YAML**
 > (`config/<env>.yml`) loaded by `YamlConfig` (folded into `doido-controller` +
-> `doido-model`), `SECTION__KEY` env-var overrides (`doido_controller::env_override`),
-> an initializers boot registry, and **AES-256-GCM encrypted credentials**
-> (`config/credentials.yml.enc` + `config/master.key`/`DOIDO_MASTER_KEY`) with the
-> `doido credentials edit/show` CLI. This spec describes that design. See
-> [ARCHITECTURE.md](ARCHITECTURE.md).
+> `doido-model`), **Tera-rendered `get_env` env-var references** inside those YAML
+> files (`doido_core::config::render`), an initializers boot registry, and
+> **AES-256-GCM encrypted credentials** (`config/credentials.yml.enc` +
+> `config/master.key`/`DOIDO_MASTER_KEY`) with the `doido credentials edit/show` CLI.
+> This spec describes that design. See [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Decisions (resolved)
 
 - **File format: per-env YAML** (`config/<env>.yml`). A base-then-env layered format
   (e.g. TOML) was considered and dropped (decision US-085) — per-env YAML is the path.
-- **Secrets: encrypted credentials file + env vars, env vars always win.**
+- **Secrets: encrypted credentials file; env vars enter config only through explicit
+  `get_env` references inside the YAML files.**
 
 ## Environment selection
 
 `DOIDO_ENV` selects the environment (default: `development`). It picks the config file
-`config/<env>.yml` and the app's runtime mode.
+`config/<env>.yml` and the app's runtime mode. (This is `Environment::get_env()` in
+`doido-core` — the environment *mode* selector — not the YAML `get_env` function below.)
 
 ## Load order (lowest → highest priority)
 
 ```
-1. config/<env>.yml            ← per-environment config
+1. config/<env>.yml            ← per-environment config; env-var values are pulled in
+                                  here via `{{ get_env(name="…") }}` (Tera-rendered)
 2. config/credentials.yml.enc  ← encrypted secrets (decrypted at boot)
-3. Environment variables       ← always override everything
 ```
 
-`DOIDO_MASTER_KEY` (or `config/master.key`) decrypts the credentials file.
+Configuration is centralized in `config/<env>.yml`: environment variables reach the
+config **only** through `get_env` references written in those files — there is no
+implicit post-parse override layer.
+
+`DOIDO_MASTER_KEY` (or `config/master.key`) decrypts the credentials file — a bootstrap
+key, not a config value.
 
 ## File structure convention
 
@@ -98,16 +105,28 @@ Manage via CLI:
   (auto-generates + gitignores `config/master.key` on first run).
 - `doido credentials show` — decrypts and prints to stdout.
 
-## Env var mapping
+## Env vars via `get_env`
 
-Env vars override any config key using double-underscore path notation
-(`doido_controller::env_override`), coerced to bool/number/string:
+Each `config/<env>.yml` is rendered through Tera (`doido_core::config::render`) before
+it is parsed as YAML. A single function, `get_env`, pulls values from the process
+environment into the config:
 
+```yaml
+server:
+  port: {{ get_env(name="PORT", default="3000") }}
+database:
+  url: {{ get_env(name="DATABASE_URL") }}
 ```
-SERVER__PORT=8080     →  config.server.port
-DATABASE__URL=...     →  config.database.url
-LOGGER__LEVEL=debug   →  config.logger.level
-```
+
+- `get_env(name="VAR")` substitutes the value of the `VAR` environment variable.
+- `get_env(name="VAR", default="…")` supplies a fallback when `VAR` is unset.
+- A referenced variable that is **unset with no `default`** fails the config load with
+  an error naming the variable.
+
+This is the only way environment variables enter the configuration. Arguments are
+named (Tera functions take keyword arguments); positional `get_env("VAR")` is not
+valid. Rendering runs with autoescaping off, so values such as URLs and connection
+strings are substituted verbatim.
 
 ## Access pattern
 
@@ -140,14 +159,16 @@ etc. The first error aborts boot.
 - YAML parsing via `serde` (`serde_norway`).
 - Per-env file resolution from `DOIDO_ENV` (`config/<env>.yml`).
 - Encrypted credentials: AES-256-GCM, key from `DOIDO_MASTER_KEY` or `config/master.key`.
-- Env var override: `SECTION__KEY` double-underscore notation, with type coercion.
+- Env-var references: `{{ get_env(name="VAR", default="…") }}` rendered via Tera before
+  YAML parsing; missing var without a default is an error.
 - `doido credentials edit/show` for managing secrets.
 
 ## TDD surface
 
 - Test per-env YAML loads correctly and deserializes all sections.
-- Test env var overrides take highest precedence and coerce types.
+- Test `get_env` substitutes an env var's value, uses `default` when unset, and errors
+  when unset with no default.
 - Test credentials encrypt/decrypt round-trip; wrong master key fails to decrypt.
 - Test `credentials show` prints what `credentials edit` saved.
 - Test missing `master.key` with no `DOIDO_MASTER_KEY` returns a clear error.
-- Test unknown env var format is ignored gracefully.
+- Test a `get_env` value containing YAML-special characters round-trips (no escaping).

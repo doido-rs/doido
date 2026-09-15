@@ -27,7 +27,7 @@ Legend: **Done** = implemented + tested · **Partial** = core works, spec featur
 | Crate | Spec | Status | Notes |
 |-------|------|--------|-------|
 | `doido-core` | 11 | Done | errors, logger, inflector, notifications bus, `core_ext` (blank/present, String/Array/Hash), time helpers, concerns, `test_time`. Custom inflection rules load from **`config/inflection.yaml`** (runtime), not the spec's compiled `config/inflections.rs`. |
-| `doido-controller` | 01, 02, 07 | Done | `routes!` + `#[controller]` + filters (`before/after/around_action`, `skip_before_action`, `only/except`) + **controller helpers** (`#[helper]` + `Helper` trait; apps mount `app/helpers/` and import explicitly in controllers) + Tower stack (logging + panic always-on; CORS/CSRF/force-SSL/host-allowlist/rate-limit opt-in) + strong params (`permit/require`) + `respond_to`/format negotiation + `ctx.session()`/`ctx.flash()`/`ctx.cookies()` (flushed to `Set-Cookie` by the `#[controller]` macro; session cookie **AES-256-GCM** encrypted via `doido_core::crypto`, secret from `doido_controller::secret`) + `routes!` `constraints: { id: numeric }` DSL + health check + per-env YAML config + `SECTION__KEY` env overrides. No open gaps. |
+| `doido-controller` | 01, 02, 07 | Done | `routes!` + `#[controller]` + filters (`before/after/around_action`, `skip_before_action`, `only/except`) + **controller helpers** (`#[helper]` + `Helper` trait; apps mount `app/helpers/` and import explicitly in controllers) + Tower stack (logging + panic always-on; CORS/CSRF/force-SSL/host-allowlist/rate-limit opt-in) + strong params (`permit/require`) + `respond_to`/format negotiation + `ctx.session()`/`ctx.flash()`/`ctx.cookies()` (flushed to `Set-Cookie` by the `#[controller]` macro; session cookie **AES-256-GCM** encrypted via `doido_core::crypto`, secret from `doido_controller::secret`) + `routes!` `constraints: { id: numeric }` DSL + health check + per-env YAML config + in-YAML `get_env` env-var references. No open gaps. |
 | `doido-controller/macros` | 01, 02 | Done | `routes!`, `#[controller]`, `#[helper]`; `before/after/around_action` codegen works. |
 | `doido-model` | 03 | Done | sea-orm re-export + connection pool + Rails-style schema builders + db tasks (`seeds`, `tasks` reset/setup/prepare, `schema` dump/load, `migrate` rollback/redo, pool knobs) + `TestDb` (incl. `TestDb::run_migrations::<M>()` / `TestDb::seed()` convenience helpers). No open gaps. |
 | `doido-view` | 04 | Done | Tera engine (swappable) + `ViewResponse` + layouts/partials + helpers (`asset`, `form`, `link`, `tag`, `sanitize`, `i18n`, `number`, `hotwire`). |
@@ -41,7 +41,7 @@ Legend: **Done** = implemented + tested · **Partial** = core works, spec featur
 | `doido-cable/macros` | 12 | Done | real codegen (implements the channel trait + name resolution). |
 | `doido-generators` | 06, 06b | Done | CLI (`new`/`generate`/`server`/`console` via evcxr/`db`/`worker`) + generator registry (app-extensible: any `doido::Generator` installs via the `doido::Doido` builder in `src/main.rs` — threaded through `commands::generate::run_with` — and is dispatched by `cargo doido generate` alongside the built-ins) + generators (model, controller, migration, scaffold, resource, **helper**, mailer, job, channel, storage_install/adapter, templates, generator, locale) + route auto-injection + embedded templates. `doido new` scaffolds `app/helpers/` (`application_helper.rs` + registry); `generate helper` / `scaffold` / `controller` emit `{plural}_helper.rs` and register in `app/helpers/mod.rs`. `doido db` wires `create`/`reset`/`prepare`/`seed`/`schema dump|load` (delegating to `doido-model` tasks; `db/schema.sql`/`db/seeds.sql` conventions) plus the SeaORM passthrough; `jobs:failed/retry/discard` are backed by the dead-letter store (`discard_dead` trait method + per-backend impls). `credentials edit`/`show` encrypt/decrypt `config/credentials.yml.enc` with AES-256-GCM (`doido_core::crypto`), keyed by `config/master.key` (auto-generated + gitignored) or `DOIDO_MASTER_KEY`. `doido server --port/--env` override the bind port and environment; `doido worker`/`doido jobs` pick the backend (memory/db/redis), queues, and concurrency from the `jobs:` section of `config/<env>.yml` (`doido_jobs::config::load` + `build_configured_queue`; db/redis backends compiled into the CLI). **Gap:** the worker's job dispatch is still a stub (logs + acks) — a job-type registry mapping each `#[job]` to its `perform()` is not yet wired. |
 | `doido` (meta) | all | Done | re-exports + `run()` entry. |
-| `doido-config` | 05 | **Partial / decided** | Reality is per-env **YAML** (`config/<env>.yml`) via `YamlConfig` (split across `doido-controller` + `doido-model`) + `SECTION__KEY` env overrides (`doido_controller::env_override`) + an initializers boot registry. **AES-256-GCM encrypted credentials** (`config/credentials.yml.enc` + `config/master.key`/`DOIDO_MASTER_KEY`) with the `doido credentials edit/show` CLI are implemented (Phase 5, `doido-generators` + `doido_core::crypto`). **Still deferred:** auto-injecting decrypted credentials into the config tree. (Layered TOML was dropped from spec 05 — YAML is the decided path.) |
+| `doido-config` | 05 | **Partial / decided** | Reality is per-env **YAML** (`config/<env>.yml`) via `YamlConfig` (split across `doido-controller` + `doido-model`) + in-YAML env-var references via Tera-rendered `get_env` (`doido_core::config::render`, applied by every crate's `from_yaml`) + an initializers boot registry. **AES-256-GCM encrypted credentials** (`config/credentials.yml.enc` + `config/master.key`/`DOIDO_MASTER_KEY`) with the `doido credentials edit/show` CLI are implemented (Phase 5, `doido-generators` + `doido_core::crypto`). **Still deferred:** auto-injecting decrypted credentials into the config tree. (Layered TOML was dropped from spec 05 — YAML is the decided path; the earlier `SECTION__KEY` env-override layer was removed in favor of `get_env`.) |
 | `doido-auth` | 16 | Done | `AuthUser` trait + `auth:` YAML config + cookie session + JWT bearer + `OAuthProvider` trait (config-backed `OAuth2Provider`) + optional TOTP (`auth-2fa`) + axum extractors/layer + `routes::mount` (sign-in/up/out, password stubs, OAuth redirect/callback) + custom strategy registry + generators (`auth:install`/`auth:controller`/`auth:scaffold`) merged into CLI when `Cargo.toml` lists the dep (`doido new --auth`). **Deferred:** OAuth 1.0a built-in impl, `auth_routes!` macro (apps use explicit `post!` routes), refresh-token rotation table, `#[auth_user]` derive. Release e2e `auth_install` is `#[ignore]`. |
 
 ## Reconciliation decisions
@@ -73,10 +73,11 @@ and `crate::axum` respectively (the re-export layer).
    `YamlConfig` folded into `doido-controller` and `doido-model`). **Decision (US-085):**
    standardize on per-env **YAML**, the implemented and tested path; a base-then-env
    layered format (e.g. TOML) was dropped and is **no longer a spec item** (spec 05 rewritten
-   around YAML). `SECTION__KEY` env overrides exist (`doido_controller::env_override`); an
-   initializers registry exists. **AES-256-GCM encrypted credentials** + the `doido
-   credentials edit/show` CLI are implemented (Phase 5). The only remaining follow-up is
-   auto-injecting decrypted credentials into the config tree.
+   around YAML). Env vars enter config only via in-YAML `get_env`, rendered by Tera
+   (`doido_core::config::render`) before parsing — the earlier `SECTION__KEY` override
+   layer was removed. An initializers registry exists. **AES-256-GCM encrypted
+   credentials** + the `doido credentials edit/show` CLI are implemented (Phase 5). The
+   only remaining follow-up is auto-injecting decrypted credentials into the config tree.
 
 2. **Inflection rules — YAML, not a compiled Rust file.** Spec 11 describes
    `config/inflections.rs` (a compiled `configure(&mut Inflections)`); the implementation
@@ -90,11 +91,11 @@ then serves. Concrete wiring lives in the `doido-generators` `server` command; t
 generated app's `src/main.rs` calls `doido_generators::run(Some(routes))`.
 
 1. **Logger** — `doido_core` tracing subscriber.
-2. **Config** — load per-env YAML (`doido_controller::YamlConfig` for the current `Environment`), apply `SECTION__KEY` overrides, run initializers.
+2. **Config** — load per-env YAML (`doido_controller::YamlConfig` for the current `Environment`); each file is Tera-rendered (`get_env` expands env-var references) before parsing, then initializers run.
 3. **DB pool** — `doido_model::pool::init()` → `&'static DatabaseConnection`.
 4. **View engine** — `doido_view::init("app/views")`.
 5. **Storage** — `doido_storage::init_storage()` builds the configured
-   `Storage` facade from `config/<env>.yml` (with `STORAGE__*` env overrides);
+   `Storage` facade from `config/<env>.yml` (env-var values via `get_env`);
    controllers read it via `ctx.storage()`; serving routes are merged automatically
    at HTTP boot via `doido_storage::serving::merge_routes()` when initialisation succeeds.
 6. **Cache** — `doido_cache::global::init()` → `Arc<dyn CacheStore>`.
