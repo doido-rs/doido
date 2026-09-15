@@ -68,6 +68,24 @@ pub fn build_message(mail: &Mail) -> String {
     crate::mime::to_mime(mail)
 }
 
+/// SMTP dot-stuffing (RFC 5321 §4.5.2): a line whose first character is '.' gets an
+/// extra leading '.' so it can't be mistaken for the `.`-only end-of-DATA marker.
+/// Splitting/rejoining on CRLF is lossless, so a trailing CRLF (multipart messages)
+/// and the separate `\r\n.\r\n` terminator are preserved.
+fn dot_stuff(message: &str) -> String {
+    let mut out = String::with_capacity(message.len());
+    for (i, line) in message.split("\r\n").enumerate() {
+        if i > 0 {
+            out.push_str("\r\n");
+        }
+        if line.starts_with('.') {
+            out.push('.');
+        }
+        out.push_str(line);
+    }
+    out
+}
+
 /// EHLO-advertised capabilities we care about.
 #[derive(Default)]
 struct Caps {
@@ -110,7 +128,8 @@ impl Deliverer for SmtpDeliverer {
         }
 
         let from = mail.from.as_deref().unwrap_or("no-reply@localhost");
-        send(&mut stream, &format!("MAIL FROM:<{from}>")).await?;
+        let envelope = crate::mail::envelope_address(from);
+        send(&mut stream, &format!("MAIL FROM:<{envelope}>")).await?;
         expect(&mut stream, "250").await?;
         // One RCPT TO per envelope recipient (to + cc + bcc).
         for rcpt in mail.recipients() {
@@ -120,7 +139,9 @@ impl Deliverer for SmtpDeliverer {
 
         send(&mut stream, "DATA").await?;
         expect(&mut stream, "354").await?;
-        stream.write_all(build_message(mail).as_bytes()).await?;
+        stream
+            .write_all(dot_stuff(&build_message(mail)).as_bytes())
+            .await?;
         stream.write_all(b"\r\n.\r\n").await?;
         stream.flush().await?;
         expect(&mut stream, "250").await?;
