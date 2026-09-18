@@ -7,9 +7,23 @@ use base64::{engine::general_purpose::STANDARD, Engine as _};
 const BOUNDARY: &str = "doido_mime_boundary_9f2a";
 const MIXED_BOUNDARY: &str = "doido_mixed_boundary_7c3b";
 
+/// RFC 5322: header field bodies must not contain bare CR or LF.
+fn sanitize_header_value(value: &str) -> String {
+    value
+        .chars()
+        .filter(|c| *c != '\r' && *c != '\n')
+        .collect::<String>()
+        .trim()
+        .to_string()
+}
+
 /// The comma-separated `To:` header value (primary recipients).
 fn to_header(mail: &Mail) -> String {
-    mail.to.join(", ")
+    mail.to
+        .iter()
+        .map(|addr| sanitize_header_value(addr))
+        .collect::<Vec<_>>()
+        .join(", ")
 }
 
 /// A `Cc:` header line (with trailing CRLF) when there are cc recipients, else
@@ -18,7 +32,14 @@ fn cc_header(mail: &Mail) -> String {
     if mail.cc.is_empty() {
         String::new()
     } else {
-        format!("Cc: {}\r\n", mail.cc.join(", "))
+        format!(
+            "Cc: {}\r\n",
+            mail.cc
+                .iter()
+                .map(|addr| sanitize_header_value(addr))
+                .collect::<Vec<_>>()
+                .join(", ")
+        )
     }
 }
 
@@ -29,13 +50,13 @@ pub fn to_mime(mail: &Mail) -> String {
         return body_message(mail);
     }
 
-    let from = mail.from.as_deref().unwrap_or("no-reply@localhost");
+    let from = sanitize_header_value(mail.from.as_deref().unwrap_or("no-reply@localhost"));
+    let subject = sanitize_header_value(&mail.subject);
     let mut out = format!(
-        "From: {from}\r\nTo: {}\r\n{}Subject: {}\r\nMIME-Version: 1.0\r\n\
+        "From: {from}\r\nTo: {}\r\n{}Subject: {subject}\r\nMIME-Version: 1.0\r\n\
          Content-Type: multipart/mixed; boundary=\"{MIXED_BOUNDARY}\"\r\n\r\n",
         to_header(mail),
         cc_header(mail),
-        mail.subject
     );
 
     // Body part: prefer text, else html.
@@ -65,12 +86,12 @@ pub fn to_mime(mail: &Mail) -> String {
 /// The body-only message (no attachments): multipart/alternative when both text
 /// and HTML are present, otherwise a single part.
 fn body_message(mail: &Mail) -> String {
-    let from = mail.from.as_deref().unwrap_or("no-reply@localhost");
+    let from = sanitize_header_value(mail.from.as_deref().unwrap_or("no-reply@localhost"));
+    let subject = sanitize_header_value(&mail.subject);
     let headers = format!(
-        "From: {from}\r\nTo: {}\r\n{}Subject: {}\r\nMIME-Version: 1.0\r\n",
+        "From: {from}\r\nTo: {}\r\n{}Subject: {subject}\r\nMIME-Version: 1.0\r\n",
         to_header(mail),
         cc_header(mail),
-        mail.subject
     );
 
     match (&mail.body_text, &mail.body_html) {
