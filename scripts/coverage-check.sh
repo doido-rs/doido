@@ -133,7 +133,8 @@ coverage_ignore_regex() {
 	case "$1" in
 	# server.rs boots the real HTTP server (DB pool + views + axum::serve);
 	# it is covered end-to-end by the release e2e, not by in-process unit tests.
-	doido) echo 'doido/src/server\.rs' ;;
+	# llvm-cov reports crate-relative paths (`server.rs`), not repo paths.
+	doido) echo 'server\.rs' ;;
 	# commands/ is `#[cfg(feature = "cli")]` and covered by release e2e, not
 	# unit tests. postgres/mysql introspect adapters are feature-gated and
 	# not exercised in the sqlite coverage run. Without these exclusions,
@@ -159,7 +160,18 @@ for pkg in "${PACKAGES[@]}"; do
 	echo "    measuring ${pkg}..."
 	extra="$(coverage_extra_args "$pkg")"
 	ignore="$(coverage_ignore_regex "$pkg")"
+	# `doido` is first alphabetically but can inherit skewed profraw from a prior
+	# workspace llvm-cov run in the same job; clean keeps the gate deterministic.
+	if [[ "$pkg" == "doido" ]]; then
+		cargo llvm-cov clean -p "$pkg" >/dev/null 2>&1 || true
+	fi
 	summary="$(cargo llvm-cov -p "$pkg" ${extra} ${ignore:+--ignore-filename-regex "$ignore"} --summary-only 2>/dev/null || true)"
+	if [[ -z "$summary" ]]; then
+		# Instrumented builds can fail under memory pressure late in the loop; one
+		# clean + retry before reporting failure (see doido-jobs after many `-p` runs).
+		cargo llvm-cov clean -p "$pkg" >/dev/null 2>&1 || true
+		summary="$(cargo llvm-cov -p "$pkg" ${extra} ${ignore:+--ignore-filename-regex "$ignore"} --summary-only 2>/dev/null || true)"
+	fi
 	if [[ -z "$summary" ]]; then
 		echo "error: no coverage summary for ${pkg}" >&2
 		failed_crates+=("${pkg} (no summary)")

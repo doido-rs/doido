@@ -52,7 +52,7 @@ pub const NOISE_DIRECTIVES: &str = "sqlx=warn,hyper=warn,tower=warn";
 /// `info` shows app logs and the HTTP request/response events (emitted by
 /// `tower_http` at INFO). ORM/worker poll queries stay off stdout unless the
 /// configured level is `debug` or `trace` (see [`directives_for_level`]).
-pub const DEFAULT_DIRECTIVES: &str = "info,sqlx=warn,sqlx::query=warn,hyper=warn,tower=warn";
+pub const DEFAULT_DIRECTIVES: &str = "info,sqlx=warn,hyper=warn,tower=warn,sqlx::query=warn";
 
 /// Builds `EnvFilter` directives for an application log `level` (e.g. `info`,
 /// `debug`, `warn`).

@@ -202,3 +202,30 @@ async fn test_engine_run_drains_on_shutdown() {
         .unwrap()
         .is_none());
 }
+
+#[tokio::test]
+async fn test_engine_reclaimer_runs_during_run_loop() {
+    let queue: Arc<dyn JobQueue> =
+        Arc::new(MemoryQueue::new().with_visibility_timeout(Duration::from_millis(0)));
+    queue
+        .enqueue(JobPayload::new("default", json!({}), 3))
+        .await
+        .unwrap();
+    let _lease = queue
+        .reserve(&["default"], Duration::from_millis(50))
+        .await
+        .unwrap()
+        .unwrap();
+
+    let mut cfg = config(&["default"], 1);
+    cfg.reclaim_interval = Duration::from_millis(25);
+    let engine = WorkerEngine::new(queue.clone(), cfg);
+
+    let shutdown = async {
+        tokio::time::sleep(Duration::from_millis(120)).await;
+    };
+    engine
+        .run(|_job, _ctx| async { Ok(()) }, shutdown)
+        .await
+        .unwrap();
+}
