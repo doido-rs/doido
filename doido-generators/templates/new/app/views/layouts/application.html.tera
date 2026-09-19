@@ -1,5 +1,39 @@
 <!DOCTYPE html>
 <html>
-<head><title>{doido_name}</title></head>
+<head>
+    <title>{doido_name}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdn.simplecss.org/simple.min.css">
+    <style>
+        :root {
+            color-scheme: light dark;
+            --bg: #f5f5f5;
+            --accent-bg: #e8e8e8;
+            --text: #1a1a1a;
+            --text-light: #666666;
+            --accent: #e69500;
+            --accent-hover: #cc7a00;
+            --accent-text: #ffffff;
+            --code: #d81b60;
+            --preformatted: #333333;
+            --disabled: #cccccc;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #212121;
+                --accent-bg: #2b2b2b;
+                --text: #dcdcdc;
+                --text-light: #ababab;
+                --accent: #ffb300;
+                --accent-hover: #ffe099;
+                --accent-text: var(--bg);
+                --code: #f06292;
+                --preformatted: #ccc;
+                --disabled: #111;
+            }
+        }
+    </style>
+</head>
 <body>{% block content %}{% endblock %}</body>
 </html>
