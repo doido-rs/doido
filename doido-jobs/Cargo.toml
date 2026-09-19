@@ -11,7 +11,7 @@ doido-jobs-macros.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 serde_norway.workspace = true
-tokio = { workspace = true, features = ["sync", "time", "rt", "macros", "signal"] }
+tokio = { workspace = true, features = ["sync", "time", "rt", "rt-multi-thread", "macros", "signal"] }
 async-trait.workspace = true
 uuid.workspace = true
 inventory.workspace = true

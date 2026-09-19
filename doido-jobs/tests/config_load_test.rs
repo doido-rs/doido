@@ -152,6 +152,45 @@ fn jobs_file_config_load_reads_disk() {
     assert_eq!(file.jobs.into_config().concurrency, 11);
 }
 
+#[cfg(feature = "jobs-db")]
+#[tokio::test]
+async fn build_configured_queue_installs_global_pool_from_config() {
+    let _guard = CWD_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let _pool_guard = doido_model::pool::test_lock();
+
+    let dir = TempDir::new().unwrap();
+    fs::create_dir_all(dir.path().join("config")).unwrap();
+    fs::write(
+        dir.path().join("config/test.yml"),
+        "database:\n  url: \"sqlite::memory:\"\njobs:\n  type: db\n",
+    )
+    .unwrap();
+
+    let original_dir = std::env::current_dir().unwrap();
+    let original_env = std::env::var("DOIDO_ENV").ok();
+    std::env::set_current_dir(dir.path()).unwrap();
+    std::env::set_var("DOIDO_ENV", "test");
+
+    let cfg = doido_jobs::config::JobsConfig {
+        backend: Backend::Db,
+        ..JobsConfig::default()
+    };
+    let result = doido_jobs::config::build_configured_queue(&cfg).await;
+
+    std::env::set_current_dir(original_dir).unwrap();
+    if let Some(v) = original_env {
+        std::env::set_var("DOIDO_ENV", v);
+    } else {
+        std::env::remove_var("DOIDO_ENV");
+    }
+
+    result.expect("db queue should build");
+    doido_model::pool::pool()
+        .ping()
+        .await
+        .expect("global pool must be installed");
+}
+
 #[test]
 fn load_env_errors_when_file_missing() {
     let _guard = CWD_LOCK.lock().unwrap();

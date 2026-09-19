@@ -126,6 +126,21 @@ async fn test_engine_processes_multiple_queues() {
 }
 
 #[tokio::test]
+async fn test_engine_panic_is_a_failure_not_stuck_running() {
+    let queue: Arc<dyn JobQueue> = Arc::new(MemoryQueue::new());
+    let job = JobPayload::new("default", json!({}), 0);
+    queue.enqueue(job).await.unwrap();
+    let engine = WorkerEngine::new(queue.clone(), config(&["default"], 1));
+    engine
+        .run_once(&|_job, _ctx| async { panic!("test panic") })
+        .await
+        .unwrap();
+    assert_eq!(queue.dead_jobs("default").await.unwrap().len(), 1);
+    let dead = &queue.dead_jobs("default").await.unwrap()[0];
+    assert_eq!(dead.error.as_deref(), Some("job panicked"));
+}
+
+#[tokio::test]
 async fn test_engine_nacks_on_transient_failure() {
     let queue: Arc<dyn JobQueue> = Arc::new(MemoryQueue::new());
     let job = JobPayload::new("default", json!({}), 3).with_backoff(BackoffStrategy::None, 0);

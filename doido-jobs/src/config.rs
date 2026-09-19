@@ -206,9 +206,10 @@ async fn build_db_backed_queue() -> Result<Arc<dyn JobQueue>> {
     // connect using the app's `database` config.
     let conn = match doido_model::pool::try_pool() {
         Some(pool) => pool.clone(),
-        None => doido_model::pool::connect()
+        None => doido_model::pool::init()
             .await
-            .map_err(|e| anyhow!("jobs db backend: could not connect to the database: {e}"))?,
+            .map_err(|e| anyhow!("jobs db backend: could not init database pool: {e}"))?
+            .clone(),
     };
     let queue = crate::db::DbQueue::new(conn);
     queue.migrate().await?; // idempotent CREATE TABLE IF NOT EXISTS
