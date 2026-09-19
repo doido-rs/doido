@@ -1,9 +1,13 @@
+pub mod boot;
 pub mod cli;
 
 mod banner;
 mod server;
 
+pub use boot::{install_runtime_globals, BootOptions};
 pub use cli::{run, Doido};
+pub use doido_core::{BootPolicy, InitPolicy, DEFAULT_LOCALES_DIR};
+pub use doido_storage::{service as storage_service, StorageConfig, StorageConfigLoader};
 
 pub use doido_cache as cache;
 pub use doido_controller as controller;

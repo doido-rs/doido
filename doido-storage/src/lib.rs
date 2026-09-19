@@ -45,10 +45,11 @@ pub mod jobs;
 
 pub use blob::Blob;
 pub use client::Storage;
+pub use config::StorageConfigLoader;
 pub use config::{ServiceBackend, ServiceConfig, StorageConfig};
 pub use error::StorageError;
 pub use global::init as init_storage;
-pub use global::{init_from_config, init_with, set_storage, storage, try_storage};
+pub use global::{init_from_config, init_with, service, set_storage, storage, try_storage};
 pub use providers::disk::DiskService;
 pub use providers::memory::MemoryService;
 pub use registry::{register_adapter, registered_adapters, ServiceFactory};

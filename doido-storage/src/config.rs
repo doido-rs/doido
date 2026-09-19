@@ -221,6 +221,33 @@ pub struct StorageConfig {
 }
 
 impl StorageConfig {
+    /// When `STORAGE_S3_ENDPOINT` is set, apply it to the active driver's S3/R2
+    /// settings (Fivia-style override for S3-compatible endpoints).
+    pub fn apply_s3_endpoint_override(&mut self) {
+        let Ok(endpoint) = std::env::var("STORAGE_S3_ENDPOINT") else {
+            return;
+        };
+        let endpoint = endpoint.trim();
+        if endpoint.is_empty() {
+            return;
+        }
+        let Some(name) = self
+            .driver
+            .clone()
+            .or_else(|| self.drivers.keys().next().cloned())
+        else {
+            return;
+        };
+        if let Some(driver) = self.drivers.get_mut(&name) {
+            match driver.backend {
+                ServiceBackend::S3 | ServiceBackend::R2 => {
+                    driver.endpoint = Some(endpoint.to_string());
+                }
+                _ => {}
+            }
+        }
+    }
+
     /// Apply `STORAGE__*` environment overrides onto this config.
     pub fn apply_env_overrides(&mut self) {
         if let Ok(driver) = std::env::var("STORAGE__DRIVER") {
@@ -309,6 +336,9 @@ impl YamlConfig {
     }
 }
 
+/// Optional hook for apps to supply storage config (production templating, etc.).
+pub type StorageConfigLoader = Box<dyn Fn() -> StorageConfig + Send + Sync>;
+
 /// Load the current environment's [`StorageConfig`], falling back to the default
 /// (disk) when the file is missing or has no `storage` section. Applies
 /// `STORAGE__*` env overrides.
@@ -321,4 +351,17 @@ pub fn load() -> StorageConfig {
             cfg
         }
     }
+}
+
+/// Resolve storage config for CLI boot: custom loader, else [`load`], then env
+/// and `STORAGE_S3_ENDPOINT` overrides.
+pub fn resolve_for_boot(custom: Option<&StorageConfigLoader>) -> StorageConfig {
+    let mut cfg = if let Some(loader) = custom {
+        loader()
+    } else {
+        load()
+    };
+    cfg.apply_env_overrides();
+    cfg.apply_s3_endpoint_override();
+    cfg
 }

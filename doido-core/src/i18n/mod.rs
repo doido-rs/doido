@@ -8,6 +8,7 @@ mod yaml;
 
 use std::collections::{BTreeMap, HashMap};
 use std::path::Path;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{OnceLock, RwLock};
 
 use crate::Result;
@@ -20,6 +21,7 @@ pub const LOCALE_ENV_VAR: &str = "DOIDO_LOCALE";
 
 static CATALOG: OnceLock<RwLock<Catalog>> = OnceLock::new();
 static TEST_GUARD: OnceLock<std::sync::Mutex<()>> = OnceLock::new();
+static INITIALIZED: AtomicBool = AtomicBool::new(false);
 
 #[derive(Debug, Default)]
 struct Catalog {
@@ -191,9 +193,16 @@ pub fn load_locale_dir(path: &Path) -> Result<()> {
 }
 
 /// Loads app locale files and validates the active process locale.
+///
+/// Idempotent: after the first successful init, later calls are no-ops.
 pub fn init(locales_dir: &Path) -> Result<()> {
+    if INITIALIZED.load(Ordering::SeqCst) {
+        return Ok(());
+    }
     load_locale_dir(locales_dir)?;
-    validate_active_locale()
+    validate_active_locale()?;
+    INITIALIZED.store(true, Ordering::SeqCst);
+    Ok(())
 }
 
 /// Loads `config/locales/` when present and validates the active locale.
@@ -280,6 +289,7 @@ pub fn test_guard() -> std::sync::MutexGuard<'static, ()> {
 /// Clears the global catalog. Intended for unit tests.
 #[doc(hidden)]
 pub fn reset_for_test() {
+    INITIALIZED.store(false, Ordering::SeqCst);
     if let Ok(mut catalog) = catalog().write() {
         catalog.translations.clear();
     }

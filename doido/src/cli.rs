@@ -102,7 +102,14 @@ enum Commands {
 /// To also install app-owned code generators into `doido generate`, use the
 /// [`Doido`] builder instead.
 pub async fn run(routes: Option<axum::Router>) {
-    run_inner(routes, Vec::new(), None, None).await;
+    run_inner(
+        routes,
+        Vec::new(),
+        None,
+        None,
+        crate::boot::BootOptions::new(),
+    )
+    .await;
 }
 
 /// Builder for the Doido CLI. Lets an application install custom code
@@ -127,6 +134,7 @@ pub struct Doido {
     generators: Vec<Box<dyn doido_generators::Generator>>,
     migrator: Option<MigratorFn>,
     seeder: Option<SeederFn>,
+    boot: crate::boot::BootOptions,
 }
 
 impl Doido {
@@ -137,7 +145,20 @@ impl Doido {
             generators: Vec::new(),
             migrator: None,
             seeder: None,
+            boot: crate::boot::BootOptions::new(),
         }
+    }
+
+    /// Boot policy for i18n and storage (default: warn on failure).
+    pub fn boot_policy(mut self, policy: doido_core::BootPolicy) -> Self {
+        self.boot.policy = policy;
+        self
+    }
+
+    /// Custom storage config source (production YAML, etc.). Default: `config/<env>.yml`.
+    pub fn storage_config_loader(mut self, loader: doido_storage::StorageConfigLoader) -> Self {
+        self.boot.storage_config_loader = Some(std::sync::Arc::new(loader));
+        self
     }
 
     /// Attach the application's router so `doido server` can boot the HTTP server.
@@ -192,7 +213,14 @@ impl Doido {
     /// Run the CLI: like [`run`], plus any generators, migrator, and seeder
     /// installed on this builder.
     pub async fn run(self) {
-        run_inner(self.router, self.generators, self.migrator, self.seeder).await;
+        run_inner(
+            self.router,
+            self.generators,
+            self.migrator,
+            self.seeder,
+            self.boot,
+        )
+        .await;
     }
 }
 
@@ -207,6 +235,7 @@ async fn run_inner(
     generators: Vec<Box<dyn doido_generators::Generator>>,
     migrator: Option<MigratorFn>,
     seeder: Option<SeederFn>,
+    boot: crate::boot::BootOptions,
 ) {
     let mode = std::env::args()
         .skip(1)
@@ -227,6 +256,7 @@ async fn run_inner(
     let cli = Cli::parse();
     match cli.command {
         Commands::Server { port, env } => {
+            crate::boot::install_runtime_globals(&boot).await;
             crate::server::run(routes, env, port).await;
         }
         Commands::Routes => {
@@ -237,7 +267,10 @@ async fn run_inner(
             }
         }
         Commands::Console => doido_controller::commands::console::run(),
-        Commands::Worker { once } => doido_jobs::commands::worker::run(once).await,
+        Commands::Worker { once } => {
+            crate::boot::install_runtime_globals(&boot).await;
+            doido_jobs::commands::worker::run(once).await;
+        }
         Commands::Db { verbose, command } => {
             doido_model::commands::db::run(command, verbose, migrator, seeder).await
         }
