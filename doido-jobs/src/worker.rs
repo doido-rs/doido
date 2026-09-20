@@ -35,6 +35,23 @@ impl Default for EngineConfig {
 /// The retry-vs-dead-letter decision and backoff computation live here, so every
 /// backend behaves identically. The handler receives the job alongside the shared
 /// application context the engine carries.
+async fn finalize_job(
+    queue: &Arc<dyn JobQueue>,
+    job: JobPayload,
+    timeout: Duration,
+    perform: impl Future<Output = Result<()>> + Send + 'static,
+) -> Result<()> {
+    let id = job.id.clone();
+    let handle = tokio::spawn(perform);
+    match tokio::time::timeout(timeout, handle).await {
+        Ok(Ok(Ok(()))) => queue.ack(&id).await?,
+        Ok(Ok(Err(e))) => fail(queue, &job, &e.to_string()).await?,
+        Ok(Err(_join)) => fail(queue, &job, "job panicked").await?,
+        Err(_) => fail(queue, &job, "job timed out").await?,
+    }
+    Ok(())
+}
+
 async fn process<C, F, Fut>(
     queue: &Arc<dyn JobQueue>,
     ctx: &Arc<C>,
@@ -43,20 +60,13 @@ async fn process<C, F, Fut>(
 ) -> Result<()>
 where
     F: Fn(JobPayload, Arc<C>) -> Fut,
-    Fut: Future<Output = Result<()>>,
+    Fut: Future<Output = Result<()>> + Send + 'static,
+    C: Send + Sync + 'static,
 {
     let job = reserved.job;
-    let id = job.id.clone();
     let timeout = Duration::from_secs(job.timeout);
-
-    let outcome = tokio::time::timeout(timeout, handler(job.clone(), Arc::clone(ctx))).await;
-
-    match outcome {
-        Ok(Ok(())) => queue.ack(&id).await?,
-        Ok(Err(e)) => fail(queue, &job, &e.to_string()).await?,
-        Err(_) => fail(queue, &job, "job timed out").await?,
-    }
-    Ok(())
+    let perform = handler(job.clone(), Arc::clone(ctx));
+    finalize_job(queue, job, timeout, perform).await
 }
 
 /// Apply the failure policy: dead-letter if retries are exhausted, otherwise
@@ -118,7 +128,8 @@ impl<C: Send + Sync + 'static> WorkerEngine<C> {
     pub async fn run_once<F, Fut>(&self, handler: &F) -> Result<bool>
     where
         F: Fn(JobPayload, Arc<C>) -> Fut,
-        Fut: Future<Output = Result<()>>,
+        Fut: Future<Output = Result<()>> + Send + 'static,
+        C: Send + Sync + 'static,
     {
         let queues = self.queue_refs();
         if let Some(reserved) = self.queue.reserve(&queues, self.config.poll_wait).await? {
@@ -216,9 +227,9 @@ impl Worker {
     pub async fn run_once<F, Fut>(&self, performer: F) -> Result<()>
     where
         F: Fn(JobPayload) -> Fut,
-        Fut: Future<Output = Result<()>>,
+        Fut: Future<Output = Result<()>> + Send + 'static,
     {
-        let handler = |job: JobPayload, _ctx: Arc<()>| performer(job);
+        let handler = move |job: JobPayload, _ctx: Arc<()>| performer(job);
         self.engine.run_once(&handler).await?;
         Ok(())
     }

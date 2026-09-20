@@ -12,6 +12,20 @@ fn test_help_exits_zero() {
 }
 
 #[test]
+fn test_worker_and_server_subcommand_help() {
+    cmd()
+        .args(["worker", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("once"));
+    cmd()
+        .args(["server", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("port"));
+}
+
+#[test]
 fn test_version_output() {
     cmd()
         .arg("--version")
@@ -92,6 +106,28 @@ fn test_routes_without_router_warns() {
         .assert()
         .success()
         .stdout(predicate::str::contains("no routes configured"));
+}
+
+#[test]
+fn test_new_app_with_jobs_and_cache_backends() {
+    let dir = tempfile::tempdir().unwrap();
+    cmd()
+        .current_dir(dir.path())
+        .args([
+            "new",
+            "shop",
+            "--non-interactive",
+            "--database",
+            "sqlite",
+            "--jobs",
+            "memory",
+            "--cache",
+            "memory",
+        ])
+        .timeout(std::time::Duration::from_secs(60))
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("created 'shop'"));
 }
 
 #[test]
@@ -190,6 +226,34 @@ fn test_worker_command() {
 }
 
 #[test]
+fn test_server_and_worker_run_runtime_boot_in_app_dir() {
+    let dir = tempfile::tempdir().unwrap();
+    fs::create_dir_all(dir.path().join("config")).unwrap();
+    fs::write(
+        dir.path().join("config/test.yml"),
+        "database:\n  url: \"sqlite::memory:\"\njobs:\n  type: memory\n",
+    )
+    .unwrap();
+
+    cmd()
+        .current_dir(dir.path())
+        .args(["server", "--env", "test"])
+        .timeout(std::time::Duration::from_secs(30))
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("server not started"));
+
+    cmd()
+        .current_dir(dir.path())
+        .env("DOIDO_ENV", "test")
+        .args(["worker", "--once"])
+        .timeout(std::time::Duration::from_secs(30))
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("worker"));
+}
+
+#[test]
 fn test_credentials_edit_command() {
     // Run non-interactively: `true` stands in for $EDITOR (leaves the file as-is
     // and exits 0), an explicit master key avoids touching the repo, and a temp
@@ -247,4 +311,37 @@ fn test_console_command() {
         .assert()
         .success()
         .stdout(predicate::str::contains("console"));
+}
+
+#[test]
+fn test_db_verbose_flag_is_accepted() {
+    let dir = tempfile::tempdir().unwrap();
+    cmd()
+        .current_dir(dir.path())
+        .env("DATABASE_URL", "sqlite::memory:")
+        .args(["db", "-v", "create"])
+        .assert()
+        .success();
+}
+
+#[test]
+fn test_new_non_interactive_with_cable_and_auth_flags() {
+    let dir = tempfile::tempdir().unwrap();
+    cmd()
+        .current_dir(dir.path())
+        .args([
+            "new",
+            "wired",
+            "--non-interactive",
+            "--database",
+            "sqlite",
+            "--cable",
+            "--auth",
+            "--api",
+        ])
+        .timeout(std::time::Duration::from_secs(120))
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("created 'wired'"));
+    assert!(dir.path().join("wired/Cargo.toml").exists());
 }

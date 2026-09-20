@@ -63,3 +63,8 @@ pub fn storage() -> Storage {
 pub fn try_storage() -> Option<Storage> {
     STORAGE.get().cloned()
 }
+
+/// Returns the active [`Service`](crate::Service) from the global facade.
+pub fn service() -> std::sync::Arc<dyn crate::Service> {
+    storage().service().clone()
+}

@@ -3,8 +3,10 @@
 use chrono::{Duration as ChronoDuration, Utc};
 use doido_jobs::db::DbQueue;
 use doido_jobs::queue::{JobPayload, JobQueue, JobStatus};
+use doido_jobs::{EngineConfig, WorkerEngine};
 use doido_model::sea_orm::Database;
 use serde_json::json;
+use std::sync::Arc;
 use std::time::Duration;
 
 const QUEUES: &[&str] = &["default"];
@@ -177,4 +179,87 @@ async fn test_db_reclaim_skips_other_queues() {
 async fn test_db_dead_letter_missing_job_is_ok() {
     let q = fresh().await;
     q.dead_letter("missing", "reason").await.unwrap();
+}
+
+#[tokio::test]
+async fn test_db_engine_panic_keeps_row_as_dead() {
+    let q = Arc::new(fresh().await);
+    q.enqueue(JobPayload::new("default", json!({}), 0))
+        .await
+        .unwrap();
+    let engine = WorkerEngine::new(
+        q.clone(),
+        EngineConfig {
+            queues: vec!["default".into()],
+            concurrency: 1,
+            poll_wait: Duration::from_millis(50),
+            reclaim_interval: Duration::from_secs(60),
+        },
+    );
+    engine
+        .run_once(&|_job, _ctx| async { panic!("db panic test") })
+        .await
+        .unwrap();
+    let dead = q.dead_jobs("default").await.unwrap();
+    assert_eq!(dead.len(), 1);
+    assert_eq!(dead[0].error.as_deref(), Some("job panicked"));
+}
+
+#[tokio::test]
+async fn test_db_reclaim_syncs_json_then_run_once_processes() {
+    let conn = Database::connect("sqlite::memory:").await.unwrap();
+    let q = Arc::new(DbQueue::new(conn).with_visibility_timeout(Duration::from_millis(0)));
+    q.migrate().await.unwrap();
+    q.enqueue(JobPayload::new("default", json!({"n": 1}), 3))
+        .await
+        .unwrap();
+    let reserved = q
+        .reserve(QUEUES, Duration::from_millis(100))
+        .await
+        .unwrap()
+        .expect("job reserved");
+    assert_eq!(reserved.job.status, JobStatus::Running);
+
+    assert_eq!(q.reclaim_expired(QUEUES).await.unwrap(), 1);
+
+    let engine = WorkerEngine::new(
+        q.clone(),
+        EngineConfig {
+            queues: vec!["default".into()],
+            concurrency: 1,
+            poll_wait: Duration::from_millis(50),
+            reclaim_interval: Duration::from_secs(60),
+        },
+    );
+    let seen = Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let flag = seen.clone();
+    engine
+        .run_once(&move |_job, _ctx| {
+            let flag = flag.clone();
+            async move {
+                flag.store(true, std::sync::atomic::Ordering::SeqCst);
+                Ok(())
+            }
+        })
+        .await
+        .unwrap();
+    assert!(seen.load(std::sync::atomic::Ordering::SeqCst));
+}
+
+#[tokio::test]
+async fn test_db_reclaim_sets_lease_expired_error() {
+    let conn = Database::connect("sqlite::memory:").await.unwrap();
+    let q = DbQueue::new(conn).with_visibility_timeout(Duration::from_millis(0));
+    q.migrate().await.unwrap();
+    q.enqueue(JobPayload::new("default", json!({}), 3))
+        .await
+        .unwrap();
+    let _ = q.reserve(QUEUES, Duration::from_millis(100)).await.unwrap();
+    q.reclaim_expired(QUEUES).await.unwrap();
+    let r = q
+        .reserve(QUEUES, Duration::from_millis(100))
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(r.job.error.as_deref(), Some("lease expired"));
 }

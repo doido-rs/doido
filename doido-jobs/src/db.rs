@@ -243,24 +243,48 @@ impl JobQueue for DbQueue {
             return Ok(0);
         }
         let cutoff = millis(Utc::now()) - self.visibility_timeout.as_millis() as i64;
-        // Values: $1 pending, $2 running, $3 cutoff, $4.. queue names.
-        let placeholders: Vec<String> = (0..queues.len()).map(|i| format!("${}", i + 4)).collect();
-        let sql = format!(
-            "UPDATE doido_jobs SET status = $1, locked_at = NULL
-             WHERE status = $2 AND locked_at <= $3 AND queue IN ({ph})",
+        let placeholders: Vec<String> = (0..queues.len()).map(|i| format!("${}", i + 3)).collect();
+        let select = format!(
+            "SELECT id FROM doido_jobs
+             WHERE status = $1 AND locked_at <= $2 AND queue IN ({ph})",
             ph = placeholders.join(", "),
         );
-        let mut values: Vec<Value> = vec![STATUS_PENDING.into(), STATUS_RUNNING.into()];
-        values.push(cutoff.into());
+        let mut values: Vec<Value> = vec![STATUS_RUNNING.into(), cutoff.into()];
         for q in queues {
             values.push((*q).into());
         }
-        let res = self
+        let rows = self
             .conn
-            .execute_raw(self.stmt(&sql, values))
+            .query_all_raw(self.stmt(&select, values))
             .await
-            .map_err(|e| anyhow!("reclaim failed: {e}"))?;
-        Ok(res.rows_affected())
+            .map_err(|e| anyhow!("reclaim select failed: {e}"))?;
+        let mut count = 0u64;
+        for row in rows {
+            let id: String = row.try_get("", "id").map_err(|e| anyhow!("{e}"))?;
+            let Some(mut job) = self.load(&id).await? else {
+                continue;
+            };
+            job.status = JobStatus::Pending;
+            job.error = Some("lease expired".to_string());
+            let data = serde_json::to_string(&job)?;
+            let update = "UPDATE doido_jobs SET status = $1, locked_at = NULL, data = $2
+                            WHERE id = $3 AND status = $4";
+            let res = self
+                .conn
+                .execute_raw(self.stmt(
+                    update,
+                    vec![
+                        STATUS_PENDING.into(),
+                        data.into(),
+                        id.into(),
+                        STATUS_RUNNING.into(),
+                    ],
+                ))
+                .await
+                .map_err(|e| anyhow!("reclaim failed: {e}"))?;
+            count += res.rows_affected();
+        }
+        Ok(count)
     }
 
     async fn dead_letter(&self, id: &str, reason: &str) -> Result<()> {

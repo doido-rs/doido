@@ -132,7 +132,9 @@ through one subscriber:
 - HTTP **requests & responses** — logged at `INFO` by the always-on `TraceLayer`
   in `doido-controller`'s middleware stack (method, path, status, latency).
 - **ORM queries** — sea-orm's SQL logging (toggled by `logger.sql`, enabled on
-  the connection in `doido-model`) emits under target `sqlx::query` at `INFO`.
+  the connection in `doido-model`) emits under target `sqlx::query` at `INFO`,
+  but the default filter only shows those lines when `logger.level` is `debug`
+  or `trace` (so a `doido worker` at `info` does not spam reserve polls on stdout).
 - Jobs, mail, custom events — the [Tracing Helpers](#tracing-helpers) below.
 
 The `logger` config section drives all of it:
@@ -151,7 +153,8 @@ internals stay quiet); `directives`, when set, fully replaces it. Because
 sea-orm logs through this same subscriber, setting `file` captures SQL too.
 `RUST_LOG` (`EnvFilter` syntax), when set, overrides the configured verbosity;
 when no config file is present, `logger::DEFAULT_DIRECTIVES` applies (`info` +
-`sqlx::query=info`, with pool and hyper/tower internals quieted).
+`sqlx::query=warn`, with pool and hyper/tower internals quieted). Set
+`logger.level: debug` (or `RUST_LOG=debug,sqlx::query=info`) to see SQL.
 `init`/`init_with_config` are idempotent.
 
 `format` selects the renderer:

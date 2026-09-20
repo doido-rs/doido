@@ -1,3 +1,4 @@
+pub mod boot;
 pub mod commands;
 pub mod concerns;
 pub mod core_ext;
@@ -19,6 +20,7 @@ pub use ::serde;
 pub use ::thiserror;
 pub use ::tracing;
 
+pub use boot::{handle_init_error, install_i18n, BootPolicy, InitPolicy, DEFAULT_LOCALES_DIR};
 pub use environment::Environment;
 pub use error::{AnyhowContext, Result};
 pub use i18n::{

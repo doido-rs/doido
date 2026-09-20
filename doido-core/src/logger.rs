@@ -43,25 +43,31 @@ pub const RESPONSE_TARGET: &str = "doido::response";
 
 /// Framework targets quieted below the application log level.
 ///
-/// `sqlx::query=info` surfaces sea-orm's SQL statements (logged by sqlx under
-/// that target) while `sqlx=warn` quiets the rest of the connection-pool
-/// chatter; `hyper`/`tower` internals are quieted too. Appended after the app
-/// level by [`directives_for_level`].
-pub const NOISE_DIRECTIVES: &str = "sqlx=warn,sqlx::query=info,hyper=warn,tower=warn";
+/// Quiets connection-pool and HTTP stack chatter. SQL statement visibility is
+/// level-dependent — see [`directives_for_level`].
+pub const NOISE_DIRECTIVES: &str = "sqlx=warn,hyper=warn,tower=warn";
 
 /// Default `EnvFilter` directives when `RUST_LOG` is unset.
 ///
 /// `info` shows app logs and the HTTP request/response events (emitted by
-/// `tower_http` at INFO), followed by the [`NOISE_DIRECTIVES`] noise reduction.
-pub const DEFAULT_DIRECTIVES: &str = "info,sqlx=warn,sqlx::query=info,hyper=warn,tower=warn";
+/// `tower_http` at INFO). ORM/worker poll queries stay off stdout unless the
+/// configured level is `debug` or `trace` (see [`directives_for_level`]).
+pub const DEFAULT_DIRECTIVES: &str = "info,sqlx=warn,hyper=warn,tower=warn,sqlx::query=warn";
 
 /// Builds `EnvFilter` directives for an application log `level` (e.g. `info`,
-/// `debug`, `warn`), appending the framework [`NOISE_DIRECTIVES`] so SQL/HTTP
-/// internals stay quiet regardless of the chosen level.
+/// `debug`, `warn`).
+///
+/// At `info` (and `warn` / `error`), `sqlx::query=warn` hides sea-orm SQL on
+/// stdout — including the worker's repeated job `reserve` polls. At `debug` or
+/// `trace`, SQL is surfaced at `sqlx::query=info` when `logger.sql` is enabled.
 ///
 /// `directives_for_level("info")` is equivalent to [`DEFAULT_DIRECTIVES`].
 pub fn directives_for_level(level: &str) -> String {
-    format!("{level},{NOISE_DIRECTIVES}")
+    let sql_query = match level.trim().to_ascii_lowercase().as_str() {
+        "debug" | "trace" => "sqlx::query=info",
+        _ => "sqlx::query=warn",
+    };
+    format!("{level},{NOISE_DIRECTIVES},{sql_query}")
 }
 
 /// How log events are rendered.
@@ -277,9 +283,16 @@ mod tests {
     fn level_is_prepended_to_noise_directives() {
         let directives = directives_for_level("debug");
         assert!(directives.starts_with("debug,"));
-        assert!(directives.ends_with(NOISE_DIRECTIVES));
-        // Whatever the level, the result must remain a valid filter.
+        assert!(directives.contains("sqlx::query=info"));
+        assert!(directives.contains(NOISE_DIRECTIVES));
         assert!(EnvFilter::try_new(&directives).is_ok());
+    }
+
+    #[test]
+    fn info_level_hides_sql_on_stdout() {
+        let directives = directives_for_level("info");
+        assert!(directives.contains("sqlx::query=warn"));
+        assert!(!directives.contains("sqlx::query=info"));
     }
 
     #[test]

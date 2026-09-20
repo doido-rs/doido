@@ -1,5 +1,3 @@
-use std::path::Path;
-
 use doido_controller::axum;
 
 /// Boots the HTTP server with the application's `routes`, including optional auth
@@ -18,13 +16,11 @@ pub async fn run(routes: Option<axum::Router>, env: Option<String>, port: Option
                 }
             }
 
-            if let Err(e) = doido_core::i18n::init(Path::new("config/locales")) {
-                doido_core::tracing::warn!("failed to initialize i18n: {e}");
-            }
-
-            if let Err(e) = doido_model::pool::init().await {
-                doido_core::tracing::error!("failed to connect to the database: {e}");
-                return;
+            if doido_model::pool::try_pool().is_none() {
+                if let Err(e) = doido_model::pool::init().await {
+                    doido_core::tracing::error!("failed to connect to the database: {e}");
+                    return;
+                }
             }
 
             #[cfg(feature = "auth")]
@@ -42,10 +38,6 @@ pub async fn run(routes: Option<axum::Router>, env: Option<String>, port: Option
                 if let Err(e) = doido_auth::init(doido_model::pool::pool().clone(), &config).await {
                     doido_core::tracing::warn!("failed to initialise auth: {e}");
                 }
-            }
-
-            if let Err(e) = doido_storage::init_storage().await {
-                doido_core::tracing::warn!("failed to initialize storage: {e}");
             }
 
             if let Err(e) = doido_cache::init_cache().await {
