@@ -1,7 +1,7 @@
 //! Boot module integration tests (kept out of `src/boot.rs` so llvm-cov does not
 //! count test lines against the crate gate).
 
-use doido::{install_runtime_globals, BootOptions};
+use doido::{install_runtime_globals, install_test_runtime_globals, BootOptions};
 use doido_core::boot::install_i18n;
 use doido_core::i18n::{register_entry, reset_for_test, test_guard, translate, DEFAULT_LOCALE};
 use doido_core::{BootPolicy, InitPolicy};
@@ -154,4 +154,38 @@ async fn storage_install_is_idempotent_with_loader() {
     install_runtime_globals(&options).await;
     assert!(doido_storage::try_storage().is_some());
     assert_eq!(calls.load(Ordering::SeqCst), 1);
+}
+
+#[tokio::test]
+async fn install_test_runtime_globals_installs_pool_and_storage() {
+    let _boot = BOOT_TEST_LOCK.lock().unwrap();
+    let _lock = doido_model::pool::test_lock();
+    if doido_storage::try_storage().is_some() {
+        return;
+    }
+    let dir = TempDir::new().unwrap();
+    fs::create_dir_all(dir.path().join("config")).unwrap();
+    fs::write(
+        dir.path().join("config/test.yml"),
+        "database:\n  url: \"sqlite::memory:\"\nstorage:\n  driver: local\n  drivers:\n    local: { type: disk, root: tmp/storage }\n",
+    )
+    .unwrap();
+    let original_dir = std::env::current_dir().unwrap();
+    let original_env = std::env::var("DOIDO_ENV").ok();
+    std::env::set_current_dir(dir.path()).unwrap();
+    std::env::set_var("DOIDO_ENV", "test");
+
+    let conn = doido_model::connect_with_url("sqlite::memory:")
+        .await
+        .unwrap();
+    install_test_runtime_globals(conn).await;
+
+    std::env::set_current_dir(original_dir).unwrap();
+    if let Some(v) = original_env {
+        std::env::set_var("DOIDO_ENV", v);
+    } else {
+        std::env::remove_var("DOIDO_ENV");
+    }
+    assert!(doido_model::pool::try_pool().is_some());
+    assert!(doido_storage::try_storage().is_some());
 }

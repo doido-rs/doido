@@ -113,4 +113,13 @@ mod tests {
         let config = YamlConfig::from_yaml("server:\n  port: 3000\n").unwrap();
         assert_eq!(config.database().url, "sqlite://db/development.db");
     }
+
+    #[test]
+    fn get_env_substitutes_database_url_from_environment() {
+        std::env::set_var("DOIDO_MODEL_DB_URL_T", "postgres://from/env");
+        let yaml = "database:\n  url: '{{ get_env(name=\"DOIDO_MODEL_DB_URL_T\") }}'\n";
+        let config = YamlConfig::from_yaml(yaml).unwrap();
+        assert_eq!(config.database().url, "postgres://from/env");
+        std::env::remove_var("DOIDO_MODEL_DB_URL_T");
+    }
 }

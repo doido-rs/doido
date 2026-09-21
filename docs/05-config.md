@@ -14,8 +14,13 @@ Rails analogue: **Rails.application.config + credentials**
 
 - **File format: per-env YAML** (`config/<env>.yml`). A base-then-env layered format
   (e.g. TOML) was considered and dropped (decision US-085) — per-env YAML is the path.
-- **Secrets: encrypted credentials file; env vars enter config only through explicit
-  `get_env` references inside the YAML files.**
+- **Env vars enter typed config only via `get_env` in YAML** — every
+  `config/<env>.yml` is Tera-rendered before parse (`doido_core::config::render`).
+  Use `{{ get_env(name="VAR", default="…") }}` for secrets and deploy overrides.
+- **Secrets: encrypted credentials file** (`credentials.yml.enc`); bootstrap keys
+  (`DOIDO_ENV`, `DOIDO_MASTER_KEY`) and `RUST_LOG` are read outside YAML.
+- **App `settings:` blocks stay in the application** — typed `Settings::init` runs in
+  `main` or via `Doido::before_run`, not in `doido-core`.
 
 ## Environment selection
 
@@ -31,9 +36,9 @@ Rails analogue: **Rails.application.config + credentials**
 2. config/credentials.yml.enc  ← encrypted secrets (decrypted at boot)
 ```
 
-Configuration is centralized in `config/<env>.yml`: environment variables reach the
-config **only** through `get_env` references written in those files — there is no
-implicit post-parse override layer.
+Configuration is centralized in `config/<env>.yml`. Environment variables referenced
+with `get_env` are substituted at load time; there is no separate post-parse env
+override layer for YAML keys.
 
 `DOIDO_MASTER_KEY` (or `config/master.key`) decrypts the credentials file — a bootstrap
 key, not a config value.
@@ -57,7 +62,7 @@ server:
   port: 3000
 
 database:
-  url: "sqlite://db/development.sqlite3"
+  url: '{{ get_env(name="DATABASE_URL", default="sqlite://db/development.sqlite3") }}'
   pool: 5
 
 logger:
@@ -79,6 +84,7 @@ server:
   port: 3000
 
 database:
+  url: '{{ get_env(name="DATABASE_URL") }}'
   pool: 20
 
 logger:
@@ -105,17 +111,40 @@ Manage via CLI:
   (auto-generates + gitignores `config/master.key` on first run).
 - `doido credentials show` — decrypts and prints to stdout.
 
-## Env vars via `get_env`
+## Bootstrap env vars (outside YAML)
 
-Each `config/<env>.yml` is rendered through Tera (`doido_core::config::render`) before
-it is parsed as YAML. A single function, `get_env`, pulls values from the process
-environment into the config:
+| Variable | Effect |
+|----------|--------|
+| `DOIDO_ENV` | Selects `config/<env>.yml` (`development`, `test`, `production`) |
+| `RUST_LOG` | Overrides logger verbosity from `logger.level` / `logger.directives` |
+| `DOIDO_MASTER_KEY` | Decrypts `config/credentials.yml.enc` |
+
+All other deployment values (`DATABASE_URL`, storage endpoints, mailer SMTP, …) should
+be referenced from YAML with `get_env`. Development: copy `.env.example` to `.env`;
+generated apps call `startup::prepare()` so `get_env` sees those vars when
+`DOIDO_ENV=development`.
+
+## App boot hook
+
+Generated apps call `startup::prepare()` then `doido::Doido::new()…run()`. App-owned
+`Settings::init` (for a custom `settings:` YAML block) belongs in `main` or
+`.before_run(|| Settings::init())` on the builder — before CLI subcommands that need it.
+
+Integration tests can call `doido::install_test_runtime_globals(conn)` to install the
+global pool plus i18n and storage without booting the full CLI.
+
+## Deploy render (`doido config render`)
+
+When a pipeline materializes config before boot (no Tera in the running artifact), each
+source file can be rendered through Tera
+(`doido_core::config::render`) before it is parsed. A single function, `get_env`, pulls
+values from the process environment into the template:
 
 ```yaml
 server:
   port: {{ get_env(name="PORT", default="3000") }}
 database:
-  url: {{ get_env(name="DATABASE_URL") }}
+  url: '{{ get_env(name="DATABASE_URL") }}'
 ```
 
 - `get_env(name="VAR")` substitutes the value of the `VAR` environment variable.
@@ -123,10 +152,11 @@ database:
 - A referenced variable that is **unset with no `default`** fails the config load with
   an error naming the variable.
 
-This is the only way environment variables enter the configuration. Arguments are
-named (Tera functions take keyword arguments); positional `get_env("VAR")` is not
-valid. Rendering runs with autoescaping off, so values such as URLs and connection
-strings are substituted verbatim.
+CLI: `doido config render --env production [-o config/production.yml]`.
+
+Arguments are named (Tera functions take keyword arguments); positional
+`get_env("VAR")` is not valid. Rendering runs with autoescaping off, so values such as
+URLs and connection strings are substituted verbatim.
 
 ## Access pattern
 

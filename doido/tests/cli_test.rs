@@ -1,9 +1,20 @@
 use assert_cmd::Command;
 use predicates::prelude::*;
 use std::fs;
+use std::path::Path;
 
 fn cmd() -> Command {
     Command::cargo_bin("doido").unwrap()
+}
+
+/// Minimal `config/development.yml` so `database.url` comes from `get_env`.
+fn write_db_config_via_get_env(dir: &Path) {
+    fs::create_dir_all(dir.join("config")).unwrap();
+    fs::write(
+        dir.join("config/development.yml"),
+        "database:\n  url: '{{ get_env(name=\"DATABASE_URL\", default=\"sqlite::memory:\") }}'\n",
+    )
+    .unwrap();
 }
 
 #[test]
@@ -157,6 +168,7 @@ fn test_new_rejects_unknown_database() {
 #[test]
 fn test_db_create_and_prepare_subcommands() {
     let dir = tempfile::tempdir().unwrap();
+    write_db_config_via_get_env(dir.path());
     fs::create_dir_all(dir.path().join("db")).unwrap();
     fs::write(
         dir.path().join("db/schema.sql"),
@@ -165,6 +177,7 @@ fn test_db_create_and_prepare_subcommands() {
     .unwrap();
     cmd()
         .current_dir(dir.path())
+        .env("DOIDO_ENV", "development")
         .env("DATABASE_URL", "sqlite::memory:")
         .args(["db", "create"])
         .assert()
@@ -316,8 +329,10 @@ fn test_console_command() {
 #[test]
 fn test_db_verbose_flag_is_accepted() {
     let dir = tempfile::tempdir().unwrap();
+    write_db_config_via_get_env(dir.path());
     cmd()
         .current_dir(dir.path())
+        .env("DOIDO_ENV", "development")
         .env("DATABASE_URL", "sqlite::memory:")
         .args(["db", "-v", "create"])
         .assert()

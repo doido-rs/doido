@@ -110,10 +110,17 @@ fn db_schema_dump_and_load() {
 #[test]
 fn db_create_sqlite_file() {
     let dir = tempfile::tempdir().unwrap();
+    fs::create_dir_all(dir.path().join("config")).unwrap();
+    fs::write(
+        dir.path().join("config/development.yml"),
+        "database:\n  url: '{{ get_env(name=\"DATABASE_URL\", default=\"sqlite://db/development.db\") }}'\n",
+    )
+    .unwrap();
     fs::create_dir_all(dir.path().join("db")).unwrap();
     let db_path = dir.path().join("db/test.db");
     cmd()
         .current_dir(dir.path())
+        .env("DOIDO_ENV", "development")
         .env("DATABASE_URL", format!("sqlite:file:{}", db_path.display()))
         .args(["db", "create"])
         .assert()
@@ -127,7 +134,7 @@ fn db_prepare_seeds_database_url_from_config_yaml() {
     fs::create_dir_all(dir.path().join("config")).unwrap();
     fs::write(
         dir.path().join("config/development.yml"),
-        "database:\n  url: \"sqlite::memory:\"\n",
+        "database:\n  url: '{{ get_env(name=\"DATABASE_URL\", default=\"sqlite::memory:\") }}'\n",
     )
     .unwrap();
     fs::create_dir_all(dir.path().join("db")).unwrap();
@@ -149,8 +156,15 @@ fn db_prepare_seeds_database_url_from_config_yaml() {
 #[test]
 fn db_missing_schema_file_logs_error() {
     let dir = tempfile::tempdir().unwrap();
+    fs::create_dir_all(dir.path().join("config")).unwrap();
+    fs::write(
+        dir.path().join("config/development.yml"),
+        "database:\n  url: '{{ get_env(name=\"DATABASE_URL\", default=\"sqlite::memory:\") }}'\n",
+    )
+    .unwrap();
     cmd()
         .current_dir(dir.path())
+        .env("DOIDO_ENV", "development")
         .env("DATABASE_URL", "sqlite::memory:")
         .args(["db", "reset"])
         .assert()

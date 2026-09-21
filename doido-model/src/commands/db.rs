@@ -152,12 +152,7 @@ const SEA_ORM_CLI_DEFAULT_OUTPUT_DIR: &str = "./";
 /// an explicit `-u/--database-url` or a pre-set env var still wins. Call this
 /// before clap parses so the required `generate entity` URL is satisfied.
 pub fn ensure_database_url_from_config() {
-    if std::env::var_os("DATABASE_URL").is_some() {
-        return;
-    }
-    // Only seed from a real config file; absent config leaves DATABASE_URL unset
-    // so the user gets the usual "missing database URL" error rather than a
-    // surprising default.
+    // SeaORM CLI reads `DATABASE_URL`; seed it from rendered config (`get_env` in YAML).
     if let Ok(config) = crate::config::YamlConfig::load() {
         std::env::set_var("DATABASE_URL", config.database.url);
     }
@@ -303,17 +298,15 @@ async fn create() {
     }
 }
 
-/// Resolves the database URL from `DATABASE_URL` or `config/<env>.yml`, exiting
-/// with an error if neither is available.
+/// Resolves the database URL from rendered `config/<env>.yml` (`database.url`).
 fn database_url() -> String {
-    if let Ok(url) = std::env::var("DATABASE_URL") {
-        return url;
+    match crate::config::YamlConfig::load() {
+        Ok(config) => config.database.url,
+        Err(e) => {
+            doido_core::tracing::error!("config/<env>.yml could not be read: {e}");
+            std::process::exit(1);
+        }
     }
-    if let Ok(config) = crate::config::YamlConfig::load() {
-        return config.database.url;
-    }
-    doido_core::tracing::error!("DATABASE_URL is not set and config/<env>.yml could not be read");
-    std::process::exit(1);
 }
 
 /// Dispatches a flattened SeaORM CLI command, applying Doido's directory defaults.

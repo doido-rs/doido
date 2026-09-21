@@ -5,6 +5,8 @@ use doido_core::{BootPolicy, InitPolicy};
 use doido_generators::{GeneratedFile, Generator};
 use doido_model::sea_orm::DatabaseConnection;
 use doido_model::sea_orm_migration::{MigrationTrait, MigratorTrait};
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::Arc;
 
 struct DummyGenerator;
 impl Generator for DummyGenerator {
@@ -41,4 +43,14 @@ fn builder_collects_router_generators_migrator_and_seeder() {
         .storage_config_loader(Box::new(doido_storage::config::load))
         .migrator::<TestMigrator>()
         .seeder(test_seeder);
+}
+
+#[test]
+fn builder_accepts_before_run_hook() {
+    let hits = Arc::new(AtomicUsize::new(0));
+    let hits2 = hits.clone();
+    let _doido = Doido::new().before_run(move || {
+        hits2.fetch_add(1, Ordering::SeqCst);
+    });
+    assert_eq!(hits.load(Ordering::SeqCst), 0);
 }

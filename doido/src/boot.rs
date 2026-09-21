@@ -1,6 +1,7 @@
 //! Runtime globals shared by `server`, `worker`, and other CLI entrypoints.
 
 use doido_core::boot::{handle_init_error, install_i18n, BootPolicy, DEFAULT_LOCALES_DIR};
+use doido_model::sea_orm::DatabaseConnection;
 use doido_storage::config::{resolve_for_boot, StorageConfigLoader};
 use std::path::Path;
 use std::sync::Arc;
@@ -57,4 +58,17 @@ pub async fn install_runtime_globals(options: &BootOptions) {
     if let Err(e) = doido_storage::init_from_config(cfg).await {
         handle_init_error(options.policy.storage, "failed to initialize storage", e);
     }
+}
+
+/// Test harness: install a connection, then i18n + storage (same as server/worker boot).
+pub async fn install_test_runtime_globals(conn: DatabaseConnection) {
+    install_test_runtime_globals_with(conn, &BootOptions::new()).await;
+}
+
+/// Like [`install_test_runtime_globals`] with custom [`BootOptions`].
+pub async fn install_test_runtime_globals_with(conn: DatabaseConnection, options: &BootOptions) {
+    if doido_model::pool::try_pool().is_none() {
+        let _ = doido_model::pool::set_pool(conn);
+    }
+    install_runtime_globals(options).await;
 }
