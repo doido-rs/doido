@@ -73,9 +73,10 @@ and `crate::axum` respectively (the re-export layer).
    `YamlConfig` folded into `doido-controller` and `doido-model`). **Decision (US-085):**
    standardize on per-env **YAML**, the implemented and tested path; a base-then-env
    layered format (e.g. TOML) was dropped and is **no longer a spec item** (spec 05 rewritten
-   around YAML). Env vars enter config only via in-YAML `get_env`, rendered by Tera
-   (`doido_core::config::render`) before parsing — the earlier `SECTION__KEY` override
-   layer was removed. An initializers registry exists. **AES-256-GCM encrypted
+   around YAML).    Env vars enter typed config only via in-YAML `get_env`, rendered by Tera
+   (`doido_core::config::render`) on every load; optional `doido config render` for
+   deploy pipelines. The earlier `SECTION__KEY` override layer was removed. An
+   initializers registry exists. **AES-256-GCM encrypted
    credentials** + the `doido credentials edit/show` CLI are implemented (Phase 5). The
    only remaining follow-up is auto-injecting decrypted credentials into the config tree.
 
@@ -91,7 +92,7 @@ then serves. Concrete wiring lives in the `doido-generators` `server` command; t
 generated app's `src/main.rs` calls `doido_generators::run(Some(routes))`.
 
 1. **Logger** — `doido_core` tracing subscriber.
-2. **Config** — load per-env YAML (`doido_controller::YamlConfig` for the current `Environment`); each file is Tera-rendered (`get_env` expands env-var references) before parsing, then initializers run.
+2. **Config** — load per-env YAML (`doido_controller::YamlConfig`); Tera render expands `get_env` before parse. App `Settings::init` runs via `Doido::before_run` or `main` when needed.
 3. **DB pool** — `doido_model::pool::init()` → `&'static DatabaseConnection`.
 4. **View engine** — `doido_view::init("app/views")`.
 5. **Storage** — `doido_storage::init_storage()` builds the configured

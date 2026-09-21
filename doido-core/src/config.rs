@@ -14,12 +14,17 @@
 //! `get_env(name="VAR")` substitutes the value of the `VAR` environment
 //! variable. An optional `default` supplies a fallback; without it, a missing
 //! variable fails the render (and therefore the config load) with an error that
-//! names the variable. This is the *only* way environment variables enter the
-//! configuration — there is no implicit `SECTION__KEY` override.
+//! names the variable. This is how values such as `DATABASE_URL` reach `database.url`.
 //!
 //! Note: this `get_env` (a Tera function used inside config files) is unrelated
 //! to [`crate::Environment::get_env`], which selects the current environment
 //! *mode* from `DOIDO_ENV`.
+//!
+//! Environment variables enter **typed config only** through `get_env` references in
+//! `config/<env>.yml` (rendered by [`render`] on every [`YamlConfig::from_yaml`] load).
+//! Bootstrap keys (`DOIDO_ENV`, `DOIDO_MASTER_KEY`, …) and `RUST_LOG` are separate.
+//! Wrap `get_env` in YAML quotes when the value may contain `:` (e.g.
+//! `url: '{{ get_env(name="DATABASE_URL", default="sqlite://…") }}'`).
 
 use tera::{Context, Error, Kwargs, State, Tera, TeraResult, Value};
 
@@ -59,7 +64,8 @@ mod tests {
     fn substitutes_env_var_value() {
         // Unique name per test to avoid races with parallel tests mutating env.
         std::env::set_var("DOIDO_CFG_SUBSTITUTE", "postgres://u:p@h/db");
-        let out = render("database:\n  url: {{ get_env(name=\"DOIDO_CFG_SUBSTITUTE\") }}\n").unwrap();
+        let out =
+            render("database:\n  url: {{ get_env(name=\"DOIDO_CFG_SUBSTITUTE\") }}\n").unwrap();
         assert_eq!(out, "database:\n  url: postgres://u:p@h/db\n");
         std::env::remove_var("DOIDO_CFG_SUBSTITUTE");
     }
@@ -67,8 +73,10 @@ mod tests {
     #[test]
     fn uses_default_when_unset() {
         std::env::remove_var("DOIDO_CFG_DEFAULTED");
-        let out = render("server:\n  port: {{ get_env(name=\"DOIDO_CFG_DEFAULTED\", default=\"3000\") }}\n")
-            .unwrap();
+        let out = render(
+            "server:\n  port: {{ get_env(name=\"DOIDO_CFG_DEFAULTED\", default=\"3000\") }}\n",
+        )
+        .unwrap();
         assert_eq!(out, "server:\n  port: 3000\n");
     }
 

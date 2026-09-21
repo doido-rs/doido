@@ -58,9 +58,16 @@ Visit <http://0.0.0.0:3000> — `GET /` answers with JSON from `HelloController`
 
 ## Configuration
 
-Configuration is layered: `config/application.toml` provides the base, and
-`config/<env>.yml` (development / test / production) overrides per environment.
-Encrypted credentials and `SECTION__KEY` environment variables override on top.
+Each environment has a YAML file under `config/` (`development.yml`, `test.yml`,
+`production.yml`). Set `DOIDO_ENV` to pick the file (default: `development`).
+Environment variables are pulled in through `{{ get_env(name="…", default="…") }}`
+in those files (see `database.url` and `.env.example`).
+
+Optional `settings:` keys are app-owned: deserialize them in your own
+`Settings::init` and call it from `main` or `.before_run(...)` before handlers run.
+
+To bake env into YAML at deploy time instead of render-on-boot, run
+`doido config render --env production -o config/production.yml`.
 
 Secrets (`config/master.key`, `config/credentials.yml.enc`) and local databases
 are git-ignored by default.
@@ -81,7 +88,7 @@ docker compose up --build
 docker build -t {doido_name} .
 ```
 
-When using `docker compose`, the `web` service overrides `DATABASE__URL` (and
+When using `docker compose`, the `web` service sets `DATABASE_URL` (and
 cache/jobs endpoints when applicable) to reach backends by Docker service name.
 Outbound mail uses SMTP to the bundled Mailpit service (`MAILER__SMTP__ADDRESS`);
 open the inbox at <http://localhost:8025>. With `cargo doido server` on the host,

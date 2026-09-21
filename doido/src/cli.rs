@@ -68,6 +68,11 @@ enum Commands {
         #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
         args: Vec<String>,
     },
+    /// Render or inspect configuration (deploy pipelines)
+    Config {
+        #[command(subcommand)]
+        action: crate::config_cmd::ConfigCommand,
+    },
     /// Create a new Doido application
     New {
         /// Application name
@@ -111,6 +116,7 @@ pub async fn run(routes: Option<axum::Router>) {
         None,
         None,
         crate::boot::BootOptions::new(),
+        None,
     )
     .await;
 }
@@ -132,12 +138,15 @@ pub async fn run(routes: Option<axum::Router>) {
 ///         .await;
 /// }
 /// ```
+type BeforeRunHook = Box<dyn Fn() + Send + Sync>;
+
 pub struct Doido {
     router: Option<axum::Router>,
     generators: Vec<Box<dyn doido_generators::Generator>>,
     migrator: Option<MigratorFn>,
     seeder: Option<SeederFn>,
     boot: crate::boot::BootOptions,
+    before_run: Option<BeforeRunHook>,
 }
 
 impl Doido {
@@ -149,7 +158,18 @@ impl Doido {
             migrator: None,
             seeder: None,
             boot: crate::boot::BootOptions::new(),
+            before_run: None,
         }
+    }
+
+    /// App hook run once after the logger is installed and before the CLI subcommand
+    /// runs — use for `Settings::init`, dotenv-adjacent validation, etc.
+    pub fn before_run<F>(mut self, hook: F) -> Self
+    where
+        F: Fn() + Send + Sync + 'static,
+    {
+        self.before_run = Some(Box::new(hook));
+        self
     }
 
     /// Boot policy for i18n and storage (default: warn on failure).
@@ -222,6 +242,7 @@ impl Doido {
             self.migrator,
             self.seeder,
             self.boot,
+            self.before_run,
         )
         .await;
     }
@@ -239,6 +260,7 @@ async fn run_inner(
     migrator: Option<MigratorFn>,
     seeder: Option<SeederFn>,
     boot: crate::boot::BootOptions,
+    before_run: Option<BeforeRunHook>,
 ) {
     let mode = std::env::args()
         .skip(1)
@@ -255,6 +277,9 @@ async fn run_inner(
 
     if std::env::args().nth(1).as_deref() == Some("db") {
         doido_model::commands::db::ensure_database_url_from_config();
+    }
+    if let Some(hook) = before_run.as_ref() {
+        hook();
     }
     let cli = Cli::parse();
     match cli.command {
@@ -284,6 +309,12 @@ async fn run_inner(
         }
         Commands::Jobs { action } => doido_jobs::commands::jobs::run(action).await,
         Commands::Credentials { action } => doido_core::commands::credentials::run(action),
+        Commands::Config { action } => {
+            if let Err(e) = crate::config_cmd::run(action) {
+                eprintln!("{e}");
+                std::process::exit(1);
+            }
+        }
         Commands::Generate { args } => generator_commands::generate::run_with(&args, generators),
         Commands::New {
             name,

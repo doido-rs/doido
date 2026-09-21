@@ -2,10 +2,8 @@ server:
   bind: 0.0.0.0
   port: 8080
 database:
-  # The connection string comes from the DATABASE_URL environment variable at
-  # deploy time. The default below is a CHANGE_ME placeholder — never commit
-  # real production credentials.
-  url: {{ get_env(name="DATABASE_URL", default="{doido_db_url_production}") }}
+  # `DATABASE_URL` at deploy time (via get_env); default is a CHANGE_ME placeholder.
+  url: '{{ get_env(name="DATABASE_URL", default="{doido_db_url_production}") }}'
 logger:
   # Quieter logging in production. Override at deploy time with RUST_LOG.
   level: info

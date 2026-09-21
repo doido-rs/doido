@@ -221,33 +221,6 @@ pub struct StorageConfig {
 }
 
 impl StorageConfig {
-    /// When `STORAGE_S3_ENDPOINT` is set, apply it to the active driver's S3/R2
-    /// settings (Fivia-style override for S3-compatible endpoints).
-    pub fn apply_s3_endpoint_override(&mut self) {
-        let Ok(endpoint) = std::env::var("STORAGE_S3_ENDPOINT") else {
-            return;
-        };
-        let endpoint = endpoint.trim();
-        if endpoint.is_empty() {
-            return;
-        }
-        let Some(name) = self
-            .driver
-            .clone()
-            .or_else(|| self.drivers.keys().next().cloned())
-        else {
-            return;
-        };
-        if let Some(driver) = self.drivers.get_mut(&name) {
-            match driver.backend {
-                ServiceBackend::S3 | ServiceBackend::R2 => {
-                    driver.endpoint = Some(endpoint.to_string());
-                }
-                _ => {}
-            }
-        }
-    }
-
     /// Resolved serving route prefix.
     pub fn resolved_prefix(&self) -> &str {
         self.prefix.as_deref().unwrap_or(DEFAULT_PREFIX)
@@ -327,14 +300,11 @@ pub fn load() -> StorageConfig {
     }
 }
 
-/// Resolve storage config for CLI boot: custom loader, else [`load`], then env
-/// and `STORAGE_S3_ENDPOINT` overrides.
+/// Resolve storage config for CLI boot: custom loader, else [`load`].
 pub fn resolve_for_boot(custom: Option<&StorageConfigLoader>) -> StorageConfig {
-    let mut cfg = if let Some(loader) = custom {
+    if let Some(loader) = custom {
         loader()
     } else {
         load()
-    };
-    cfg.apply_s3_endpoint_override();
-    cfg
+    }
 }

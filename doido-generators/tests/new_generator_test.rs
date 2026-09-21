@@ -378,6 +378,9 @@ fn test_new_env_yml_files_carry_per_env_database_url() {
     let prod = find("blog/config/production.yml");
     assert!(prod.contains("postgres://postgres:CHANGE_ME@localhost:5432/blog_production"));
     assert!(!prod.contains(":postgres@"));
+    assert!(prod.contains("get_env(name=\"DATABASE_URL\""));
+    assert!(find("blog/.env.example").contains("DATABASE_URL="));
+    assert!(find("blog/src/startup.rs").contains("dotenvy"));
 }
 
 #[test]

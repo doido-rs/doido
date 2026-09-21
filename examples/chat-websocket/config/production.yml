@@ -4,7 +4,7 @@ server:
 database:
   # The connection string comes from the DATABASE_URL environment variable at
   # deploy time; the default below is used when it is unset.
-  url: {{ get_env(name="DATABASE_URL", default="sqlite://db/production.db") }}
+  url: '{{ get_env(name="DATABASE_URL", default="sqlite://db/production.db") }}'
 logger:
   # Quieter logging in production. Override at deploy time with RUST_LOG.
   level: info
