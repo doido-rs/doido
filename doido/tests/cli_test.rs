@@ -64,7 +64,8 @@ fn test_db_migrate_help_lists_subcommands() {
         .assert()
         .success()
         .stdout(predicate::str::contains("Apply pending migrations"))
-        .stdout(predicate::str::contains("Rollback applied migrations"));
+        .stdout(predicate::str::contains("Rollback applied migrations"))
+        .stdout(predicate::str::contains("without-entities"));
 }
 
 #[test]
