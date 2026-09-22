@@ -39,6 +39,9 @@ enum Commands {
         /// Show debug messages
         #[arg(short, long, global = true)]
         verbose: bool,
+        /// Run schema-changing migrate commands without re-exporting SeaORM entities
+        #[arg(long, global = true)]
+        without_entities: bool,
         #[command(subcommand)]
         command: DbCommand,
     },
@@ -271,8 +274,13 @@ async fn run_inner(
             crate::boot::install_runtime_globals(&boot).await;
             doido_jobs::commands::worker::run(once).await;
         }
-        Commands::Db { verbose, command } => {
-            doido_model::commands::db::run(command, verbose, migrator, seeder).await
+        Commands::Db {
+            verbose,
+            without_entities,
+            command,
+        } => {
+            doido_model::commands::db::run(command, verbose, without_entities, migrator, seeder)
+                .await
         }
         Commands::Jobs { action } => doido_jobs::commands::jobs::run(action).await,
         Commands::Credentials { action } => doido_core::commands::credentials::run(action),

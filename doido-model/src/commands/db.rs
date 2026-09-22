@@ -10,7 +10,8 @@
 //!
 //! After every schema-changing migrate (`up`, `down`, `fresh`, `refresh`, `reset`),
 //! Doido re-exports entities from the database into `_entities/` and ensures
-//! extension stubs exist under `app/models/<name>.rs`.
+//! extension stubs exist under `app/models/<name>.rs`, unless `--without-entities`
+//! is passed on `doido db`.
 //!
 //! A user-supplied `-d/--migration-dir` or `-o/--output-dir` always wins.
 
@@ -173,6 +174,7 @@ pub fn ensure_database_url_from_config() {
 pub async fn run(
     command: DbCommand,
     verbose: bool,
+    without_entities: bool,
     migrator: Option<MigratorFn>,
     seeder: Option<SeederFn>,
 ) {
@@ -182,7 +184,9 @@ pub async fn run(
         DbCommand::Prepare => prepare().await,
         DbCommand::Seed => seed(seeder).await,
         DbCommand::Schema { action } => schema(action).await,
-        DbCommand::SeaOrm(command) => run_sea_orm(command, verbose, migrator).await,
+        DbCommand::SeaOrm(command) => {
+            run_sea_orm(command, verbose, without_entities, migrator).await
+        }
     }
 }
 
@@ -317,7 +321,12 @@ fn database_url() -> String {
 }
 
 /// Dispatches a flattened SeaORM CLI command, applying Doido's directory defaults.
-async fn run_sea_orm(command: Commands, verbose: bool, migrator: Option<MigratorFn>) {
+async fn run_sea_orm(
+    command: Commands,
+    verbose: bool,
+    without_entities: bool,
+    migrator: Option<MigratorFn>,
+) {
     match command {
         Commands::Generate { mut command } => {
             apply_entity_output_default(&mut command);
@@ -357,7 +366,7 @@ async fn run_sea_orm(command: Commands, verbose: bool, migrator: Option<Migrator
                 );
                 return;
             };
-            let export = should_export_entities(command.as_ref());
+            let export = should_export_entities_after_migrate(command.as_ref(), without_entities);
             let conn = match database_url {
                 Some(url) => match crate::connect_with_url(&url).await {
                     Ok(conn) => conn,
@@ -398,6 +407,13 @@ fn should_export_entities(command: Option<&MigrateSubcommands>) -> bool {
             | Some(MigrateSubcommands::Refresh)
             | Some(MigrateSubcommands::Reset)
     )
+}
+
+fn should_export_entities_after_migrate(
+    command: Option<&MigrateSubcommands>,
+    without_entities: bool,
+) -> bool {
+    should_export_entities(command) && !without_entities
 }
 
 /// Re-export entities from the live database into [`DEFAULT_ENTITY_OUTPUT_DIR`].
@@ -478,6 +494,16 @@ fn apply_entity_output_default(command: &mut GenerateSubcommands) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn without_entities_skips_post_migrate_export() {
+        assert!(should_export_entities_after_migrate(None, false));
+        assert!(!should_export_entities_after_migrate(None, true));
+        assert!(!should_export_entities_after_migrate(
+            Some(&MigrateSubcommands::Status),
+            false
+        ));
+    }
 
     #[test]
     fn schema_changing_migrate_commands_export_entities() {
