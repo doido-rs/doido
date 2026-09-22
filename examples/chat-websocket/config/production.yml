@@ -2,11 +2,9 @@ server:
   bind: 0.0.0.0
   port: 8080
 database:
-  # The password below is a CHANGE_ME placeholder — never commit real
-  # production credentials. Override with a full connection string at deploy
-  # time via the DATABASE__URL environment variable (SECTION__KEY overrides
-  # config.database.url).
-  url: sqlite://db/production.db
+  # The connection string comes from the DATABASE_URL environment variable at
+  # deploy time; the default below is used when it is unset.
+  url: '{{ get_env(name="DATABASE_URL", default="sqlite://db/production.db") }}'
 logger:
   # Quieter logging in production. Override at deploy time with RUST_LOG.
   level: info

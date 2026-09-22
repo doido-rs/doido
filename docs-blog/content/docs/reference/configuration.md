@@ -19,7 +19,6 @@ type lives in `doido-controller`.
 
 ```rust
 use doido::controller::{Config, YamlConfig, ServerConfig};
-use doido::controller::env_override::{apply_env_overrides, from_process_env};
 ```
 
 ## Per-environment YAML
@@ -70,40 +69,31 @@ let config = doido::controller::config::load(); // Box<dyn Config>
 [Core](@/docs/reference/core.md)); `MiddlewareConfig`/`CorsConfig` are disabled unless
 enabled.
 
-## Environment-variable overrides
+## Environment variables
 
-Framework-level environment variables:
+Each `config/<env>.yml` is **Tera-rendered on load**. Reference environment variables
+with `get_env`:
+
+```yaml
+database:
+  url: '{{ get_env(name="DATABASE_URL", default="sqlite://db/development.db") }}'
+```
 
 | Variable | Purpose |
 |----------|---------|
 | `DOIDO_ENV` | Selects `config/<env>.yml` (`development`, `test`, `production`) |
+| `RUST_LOG` | Overrides logger verbosity from `logger.level` / `logger.directives` |
+| `DOIDO_MASTER_KEY` | Decrypts `config/credentials.yml.enc` |
 | `DOIDO_LOCALE` | Process-default backend locale (`en`, `pt`, `pt-BR`, `pt_BR` → catalog `pt_BR`) |
 
-Any YAML setting can also be overridden with `SECTION__KEY` (double underscore):
-`SERVER__PORT=4000` sets `server.port`. Values are coerced to bool or number when they
-parse, otherwise kept as strings — and a new section is created if it doesn't exist yet.
+Deployment secrets (`DATABASE_URL`, SMTP, storage endpoints, …) belong in YAML via
+`get_env`, not as implicit framework overrides. Use `.env` in development
+(`startup::prepare()`); inject env in production so render sees the values.
 
-```bash
-# Override at launch — ideal for secrets and per-deployment values:
-SERVER__PORT=4000 LOGGER__LEVEL=warn DATABASE__URL=postgres://... cargo doido server
-```
+Optional bake-at-deploy: `doido config render --env production -o config/production.yml`.
 
-Overrides are applied to the parsed config value before typed deserialization:
-
-```rust
-use doido::controller::env_override::{apply_env_overrides, from_process_env};
-
-let mut value: serde_json::Value = serde_json::to_value(&raw_config)?;
-
-// Pull SECTION__KEY vars straight from the process environment:
-from_process_env(&mut value);
-
-// …or apply an explicit set (handy in tests):
-apply_env_overrides(&mut value, &[
-    ("SERVER__PORT".into(), "4000".into()),
-    ("LOGGER__LEVEL".into(), "debug".into()),
-]);
-```
+App `settings:` and `Doido::before_run(|| Settings::init())`; tests:
+`doido::install_test_runtime_globals(conn)`.
 
 ## Subsystem configuration
 
@@ -120,10 +110,9 @@ database: { url: sqlite://db/development.db }     # → Models guide
 
 ## Spec vs. implementation
 
-> The spec describes **layered TOML** (`config/doido.toml` + per-env overrides) and
-> **AES-256-GCM encrypted credentials** (`config/credentials.toml.enc` + `master.key`).
-> Those are **deferred**. The implemented, tested path is **per-environment YAML** plus
-> `SECTION__KEY` env overrides, documented above.
+> Layered TOML was dropped (US-085). The path is **per-environment YAML** with Tera
+> `get_env`, optional `doido config render`, and **AES-256-GCM credentials**
+> (`credentials.yml.enc` + `master.key`).
 
 ## See also
 

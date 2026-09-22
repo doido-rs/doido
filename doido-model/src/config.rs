@@ -81,7 +81,9 @@ impl YamlConfig {
 
     /// Parses a [`YamlConfig`] from a YAML string.
     pub fn from_yaml(yaml: &str) -> std::io::Result<Self> {
-        serde_norway::from_str(yaml)
+        let rendered = doido_core::config::render(yaml)
+            .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
+        serde_norway::from_str(&rendered)
             .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))
     }
 }
@@ -110,5 +112,14 @@ mod tests {
     fn defaults_when_database_section_absent() {
         let config = YamlConfig::from_yaml("server:\n  port: 3000\n").unwrap();
         assert_eq!(config.database().url, "sqlite://db/development.db");
+    }
+
+    #[test]
+    fn get_env_substitutes_database_url_from_environment() {
+        std::env::set_var("DOIDO_MODEL_DB_URL_T", "postgres://from/env");
+        let yaml = "database:\n  url: '{{ get_env(name=\"DOIDO_MODEL_DB_URL_T\") }}'\n";
+        let config = YamlConfig::from_yaml(yaml).unwrap();
+        assert_eq!(config.database().url, "postgres://from/env");
+        std::env::remove_var("DOIDO_MODEL_DB_URL_T");
     }
 }

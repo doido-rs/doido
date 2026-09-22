@@ -5,7 +5,6 @@ pub mod context;
 pub mod cookies;
 pub mod csrf;
 pub mod development_errors;
-pub mod env_override;
 pub mod flash;
 pub mod health;
 pub mod helper;

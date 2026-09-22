@@ -156,7 +156,9 @@ impl YamlConfig {
 
     /// Parses a [`YamlConfig`] from a YAML string.
     pub fn from_yaml(yaml: &str) -> std::io::Result<Self> {
-        serde_norway::from_str(yaml)
+        let rendered = doido_core::config::render(yaml)
+            .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
+        serde_norway::from_str(&rendered)
             .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))
     }
 }

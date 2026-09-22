@@ -144,25 +144,26 @@ fn load_without_config_file_is_usable() {
 }
 
 #[test]
-fn apply_env_overrides_driver_prefix_and_expires() {
+fn get_env_populates_driver_prefix_and_expires() {
+    std::env::set_var("DOIDO_STORAGE_DRIVER_T", "test");
+    std::env::set_var("DOIDO_STORAGE_PREFIX_T", "/files");
+    std::env::set_var("DOIDO_STORAGE_EXPIRES_T", "900");
     let yaml = r#"
 storage:
-  driver: local
+  driver: {{ get_env(name="DOIDO_STORAGE_DRIVER_T") }}
+  prefix: {{ get_env(name="DOIDO_STORAGE_PREFIX_T") }}
+  expires_in: {{ get_env(name="DOIDO_STORAGE_EXPIRES_T") }}
   drivers:
     local: { type: disk, root: storage }
     test:  { type: memory }
 "#;
-    let mut cfg = YamlConfig::from_yaml(yaml).unwrap().storage;
-    std::env::set_var("STORAGE__DRIVER", "test");
-    std::env::set_var("STORAGE__PREFIX", "/files");
-    std::env::set_var("STORAGE__EXPIRES_IN", "900");
-    cfg.apply_env_overrides();
+    let cfg = YamlConfig::from_yaml(yaml).unwrap().storage;
     assert_eq!(cfg.driver.as_deref(), Some("test"));
     assert_eq!(cfg.resolved_prefix(), "/files");
     assert_eq!(cfg.resolved_expires_in().as_secs(), 900);
-    std::env::remove_var("STORAGE__DRIVER");
-    std::env::remove_var("STORAGE__PREFIX");
-    std::env::remove_var("STORAGE__EXPIRES_IN");
+    std::env::remove_var("DOIDO_STORAGE_DRIVER_T");
+    std::env::remove_var("DOIDO_STORAGE_PREFIX_T");
+    std::env::remove_var("DOIDO_STORAGE_EXPIRES_T");
 }
 
 #[test]
@@ -206,17 +207,20 @@ async fn into_storage_propagates_prefix_and_expiry() {
 }
 
 #[test]
-fn apply_s3_endpoint_override_sets_active_driver() {
+fn get_env_populates_s3_endpoint_on_driver() {
+    std::env::set_var("DOIDO_STORAGE_S3_EP_T", "https://minio.local:9000");
     let yaml = r#"
 storage:
   driver: amazon
   drivers:
-    amazon: { type: s3, bucket: b, region: us-east-1 }
+    amazon:
+      type: s3
+      bucket: b
+      region: us-east-1
+      endpoint: {{ get_env(name="DOIDO_STORAGE_S3_EP_T") }}
 "#;
-    let mut cfg = YamlConfig::from_yaml(yaml).unwrap().storage;
-    std::env::set_var("STORAGE_S3_ENDPOINT", "https://minio.local:9000");
-    cfg.apply_s3_endpoint_override();
-    std::env::remove_var("STORAGE_S3_ENDPOINT");
+    let cfg = YamlConfig::from_yaml(yaml).unwrap().storage;
+    std::env::remove_var("DOIDO_STORAGE_S3_EP_T");
     assert_eq!(
         cfg.drivers["amazon"].endpoint.as_deref(),
         Some("https://minio.local:9000")

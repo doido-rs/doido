@@ -221,54 +221,6 @@ pub struct StorageConfig {
 }
 
 impl StorageConfig {
-    /// When `STORAGE_S3_ENDPOINT` is set, apply it to the active driver's S3/R2
-    /// settings (Fivia-style override for S3-compatible endpoints).
-    pub fn apply_s3_endpoint_override(&mut self) {
-        let Ok(endpoint) = std::env::var("STORAGE_S3_ENDPOINT") else {
-            return;
-        };
-        let endpoint = endpoint.trim();
-        if endpoint.is_empty() {
-            return;
-        }
-        let Some(name) = self
-            .driver
-            .clone()
-            .or_else(|| self.drivers.keys().next().cloned())
-        else {
-            return;
-        };
-        if let Some(driver) = self.drivers.get_mut(&name) {
-            match driver.backend {
-                ServiceBackend::S3 | ServiceBackend::R2 => {
-                    driver.endpoint = Some(endpoint.to_string());
-                }
-                _ => {}
-            }
-        }
-    }
-
-    /// Apply `STORAGE__*` environment overrides onto this config.
-    pub fn apply_env_overrides(&mut self) {
-        if let Ok(driver) = std::env::var("STORAGE__DRIVER") {
-            let driver = driver.trim();
-            if !driver.is_empty() {
-                self.driver = Some(driver.to_string());
-            }
-        }
-        if let Ok(prefix) = std::env::var("STORAGE__PREFIX") {
-            let prefix = prefix.trim();
-            if !prefix.is_empty() {
-                self.prefix = Some(prefix.to_string());
-            }
-        }
-        if let Ok(expires) = std::env::var("STORAGE__EXPIRES_IN") {
-            if let Ok(secs) = expires.trim().parse::<u64>() {
-                self.expires_in = Some(secs);
-            }
-        }
-    }
-
     /// Resolved serving route prefix.
     pub fn resolved_prefix(&self) -> &str {
         self.prefix.as_deref().unwrap_or(DEFAULT_PREFIX)
@@ -316,22 +268,22 @@ impl YamlConfig {
         Self::load_env(doido_core::Environment::get_env())
     }
 
-    /// Load `config/<env>.yml` for a specific environment, applying `STORAGE__*`
-    /// env overrides. Missing files yield the default config (disk driver).
+    /// Load `config/<env>.yml` for a specific environment. Missing files yield
+    /// the default config (disk driver).
     pub fn load_env(env: doido_core::Environment) -> std::io::Result<Self> {
         let path = format!("config/{}.yml", env.as_str());
-        let mut cfg = match std::fs::read_to_string(&path) {
-            Ok(contents) => Self::from_yaml(&contents)?,
-            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Self::default(),
-            Err(e) => return Err(e),
-        };
-        cfg.storage.apply_env_overrides();
-        Ok(cfg)
+        match std::fs::read_to_string(&path) {
+            Ok(contents) => Self::from_yaml(&contents),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(Self::default()),
+            Err(e) => Err(e),
+        }
     }
 
     /// Parse a [`YamlConfig`] from a YAML string.
     pub fn from_yaml(yaml: &str) -> std::io::Result<Self> {
-        serde_norway::from_str(yaml)
+        let rendered = doido_core::config::render(yaml)
+            .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
+        serde_norway::from_str(&rendered)
             .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))
     }
 }
@@ -340,28 +292,19 @@ impl YamlConfig {
 pub type StorageConfigLoader = Box<dyn Fn() -> StorageConfig + Send + Sync>;
 
 /// Load the current environment's [`StorageConfig`], falling back to the default
-/// (disk) when the file is missing or has no `storage` section. Applies
-/// `STORAGE__*` env overrides.
+/// (disk) when the file is missing or has no `storage` section.
 pub fn load() -> StorageConfig {
     match YamlConfig::load() {
         Ok(c) => c.storage,
-        Err(_) => {
-            let mut cfg = StorageConfig::default();
-            cfg.apply_env_overrides();
-            cfg
-        }
+        Err(_) => StorageConfig::default(),
     }
 }
 
-/// Resolve storage config for CLI boot: custom loader, else [`load`], then env
-/// and `STORAGE_S3_ENDPOINT` overrides.
+/// Resolve storage config for CLI boot: custom loader, else [`load`].
 pub fn resolve_for_boot(custom: Option<&StorageConfigLoader>) -> StorageConfig {
-    let mut cfg = if let Some(loader) = custom {
+    if let Some(loader) = custom {
         loader()
     } else {
         load()
-    };
-    cfg.apply_env_overrides();
-    cfg.apply_s3_endpoint_override();
-    cfg
+    }
 }

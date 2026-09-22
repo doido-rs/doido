@@ -17,7 +17,6 @@ fuera del archivo. El tipo de config vive en `doido-controller`.
 
 ```rust
 use doido::controller::{Config, YamlConfig, ServerConfig};
-use doido::controller::env_override::{apply_env_overrides, from_process_env};
 ```
 
 ## YAML por entorno
@@ -69,42 +68,26 @@ let config = doido::controller::config::load(); // Box<dyn Config>
 [Core](@/docs/reference/core.es.md)); `MiddlewareConfig`/`CorsConfig` están desactivados a
 menos que se habiliten.
 
-## Overrides por variable de entorno
+## Variables de entorno
 
-Variables de entorno del framework:
+Cada `config/<env>.yml` se **renderiza con Tera al cargar**. Referencia variables con
+`get_env`:
+
+```yaml
+database:
+  url: '{{ get_env(name="DATABASE_URL", default="sqlite://db/development.db") }}'
+```
 
 | Variable | Propósito |
 |----------|-----------|
 | `DOIDO_ENV` | Selecciona `config/<env>.yml` (`development`, `test`, `production`) |
-| `DOIDO_LOCALE` | Locale por defecto del backend (`en`, `pt`, `pt-BR`, `pt_BR` → catálogo `pt_BR`) |
+| `RUST_LOG` | Sobrescribe el nivel del logger |
+| `DOIDO_MASTER_KEY` | Descifra `config/credentials.yml.enc` |
+| `DOIDO_LOCALE` | Locale por defecto del backend |
 
-Cualquier ajuste YAML también se puede sobrescribir con `SECTION__KEY`
-(doble guion bajo): `SERVER__PORT=4000` establece `server.port`. Los valores se convierten
-a bool o número cuando parsean, si no se mantienen como cadenas — y se crea una nueva
-sección si aún no existe.
-
-```bash
-# Override en el arranque — ideal para secretos y valores por despliegue:
-SERVER__PORT=4000 LOGGER__LEVEL=warn DATABASE__URL=postgres://... cargo doido server
-```
-
-Los overrides se aplican al valor de config ya parseado, antes de la deserialización
-tipada:
-
-```rust
-use doido::controller::env_override::{apply_env_overrides, from_process_env};
-
-let mut value: serde_json::Value = serde_json::to_value(&raw_config)?;
-
-// Toma las variables SECTION__KEY directamente del entorno del proceso:
-from_process_env(&mut value);
-
-// …o aplica un conjunto explícito (útil en pruebas):
-apply_env_overrides(&mut value, &[
-    ("SERVER__PORT".into(), "4000".into()),
-    ("LOGGER__LEVEL".into(), "debug".into()),
-]);
-```
+Secretos de despliegue (`DATABASE_URL`, SMTP, storage, …) van en YAML con `get_env`.
+Desarrollo: `.env` + `startup::prepare()`; producción: inyecta env para que el render
+los sustituya. Opcional: `doido config render --env production -o config/production.yml`.
 
 ## Configuración de los subsistemas
 
@@ -121,10 +104,8 @@ database: { url: sqlite://db/development.db }     # → guía de Modelos
 
 ## Especificación vs. implementación
 
-> La especificación describe **TOML por capas** (`config/doido.toml` + overrides por
-> entorno) y **credenciales cifradas con AES-256-GCM** (`config/credentials.toml.enc` +
-> `master.key`). Eso está **aplazado**. El camino implementado y probado es **YAML por
-> entorno** más overrides `SECTION__KEY`, documentado arriba.
+> TOML por capas descartado (US-085). **YAML por entorno** con Tera `get_env`, render
+> opcional (`doido config render`) y credenciales AES-256-GCM.
 
 ## Véase también
 

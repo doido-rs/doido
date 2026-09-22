@@ -1,6 +1,7 @@
 pub mod boot;
 pub mod commands;
 pub mod concerns;
+pub mod config;
 pub mod core_ext;
 pub mod crypto;
 pub mod environment;

@@ -14,7 +14,7 @@ services:
       - cargo-git:/usr/local/cargo/git
 {doido_compose_web_volumes}    environment:
       DOIDO_ENV: development
-      DATABASE__URL: {doido_compose_database_url}
+      DATABASE_URL: {doido_compose_database_url}
 {doido_compose_env_extras}
 {doido_compose_depends_on}
 
