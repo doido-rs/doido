@@ -126,8 +126,14 @@ fn auth_scaffold_adds_user_reference_and_auth_guards() {
         .iter()
         .find(|f| f.path.ends_with("articles_controller.rs"))
         .unwrap();
-    assert!(controller.content.contains("require_user"));
-    assert!(controller.content.contains("user_id: Set(user.id())"));
+    assert!(controller
+        .content
+        .contains("#[before_action(require_user)]"));
+    assert!(controller
+        .content
+        .contains("#[before_action(load_current_user)]"));
+    assert!(controller.content.contains("assign_current_user::<User>"));
+    assert!(controller.content.contains("user_id: Set(user.id)"));
 
     let routes = files.iter().find(|f| f.path == "config/routes.rs").unwrap();
     assert!(routes

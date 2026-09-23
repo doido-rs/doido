@@ -38,6 +38,32 @@ storage:
 }
 
 #[test]
+fn parses_emulator_endpoints_for_azure_and_gcs() {
+    let yaml = r#"
+storage:
+  drivers:
+    az:
+      type: azure
+      container: doido-test
+      account: devstoreaccount1
+      endpoint: http://127.0.0.1:10000/devstoreaccount1
+    gcs:
+      type: gcs
+      bucket: doido-test
+      endpoint: http://127.0.0.1:4443
+"#;
+    let cfg = YamlConfig::from_yaml(yaml).unwrap().storage;
+    assert_eq!(
+        cfg.drivers["az"].endpoint.as_deref(),
+        Some("http://127.0.0.1:10000/devstoreaccount1")
+    );
+    assert_eq!(
+        cfg.drivers["gcs"].endpoint.as_deref(),
+        Some("http://127.0.0.1:4443")
+    );
+}
+
+#[test]
 fn parses_gcs_and_custom_backends() {
     let yaml = r#"
 storage:
