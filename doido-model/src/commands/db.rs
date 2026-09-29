@@ -128,7 +128,7 @@ pub enum SchemaCommand {
         /// Output path (default: db/schema.html)
         #[arg(short, long, default_value = "db/schema.html")]
         output: PathBuf,
-        /// Tables to skip (repeatable; `seaql_migrations` is always ignored)
+        /// Tables to skip (repeatable; `seaql_migrations` and `doido_jobs` are always ignored)
         #[arg(long = "ignore-table")]
         ignore_tables: Vec<String>,
     },
@@ -440,7 +440,7 @@ fn default_entity_generate_command(database_url: String) -> GenerateSubcommands 
         frontend_format: false,
         include_hidden_tables: false,
         tables: Vec::new(),
-        ignore_tables: vec!["seaql_migrations".to_string()],
+        ignore_tables: crate::schema_design::resolve_ignore_tables(&[]),
         max_connections: 1,
         acquire_timeout: 30,
         output_dir: SEA_ORM_CLI_DEFAULT_OUTPUT_DIR.to_string(),
@@ -518,6 +518,18 @@ mod tests {
         apply_entity_output_default(&mut command);
         let GenerateSubcommands::Entity { output_dir, .. } = command;
         assert_eq!(output_dir, DEFAULT_ENTITY_OUTPUT_DIR);
+    }
+
+    #[test]
+    fn default_entity_generate_ignores_framework_tables() {
+        let command = default_entity_generate_command("sqlite://x".into());
+        let GenerateSubcommands::Entity { ignore_tables, .. } = command;
+        assert_eq!(
+            ignore_tables,
+            crate::schema_design::resolve_ignore_tables(&[])
+        );
+        assert!(ignore_tables.iter().any(|t| t == "seaql_migrations"));
+        assert!(ignore_tables.iter().any(|t| t == "doido_jobs"));
     }
 
     #[test]

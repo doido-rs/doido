@@ -11,8 +11,8 @@ use doido_core::Result;
 
 use super::model::SchemaDesign;
 
-/// Default tables omitted from ER diagrams.
-pub const DEFAULT_IGNORE_TABLES: &[&str] = &["seaql_migrations"];
+/// Default tables omitted from ER diagrams and post-migrate entity export.
+pub const DEFAULT_IGNORE_TABLES: &[&str] = &["seaql_migrations", "doido_jobs"];
 
 /// Introspect a live database and build an engine-agnostic [`SchemaDesign`].
 pub async fn introspect_from_url(
