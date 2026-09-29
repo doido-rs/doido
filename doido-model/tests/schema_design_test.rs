@@ -38,6 +38,13 @@ async fn load_blog_schema(name: &str) -> String {
     url
 }
 
+#[test]
+fn resolve_ignore_tables_includes_framework_tables() {
+    let ignore = resolve_ignore_tables(&[]);
+    assert!(ignore.iter().any(|t| t == "seaql_migrations"));
+    assert!(ignore.iter().any(|t| t == "doido_jobs"));
+}
+
 fn table<'a>(schema: &'a SchemaDesign, name: &str) -> &'a TableDesign {
     schema
         .tables
