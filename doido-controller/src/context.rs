@@ -35,6 +35,9 @@ pub struct Context {
     pub(crate) flash_loaded: BTreeMap<String, String>,
     /// Cookie jar, built from the request `Cookie` header on first access.
     pub(crate) cookies: Option<CookieJar>,
+    /// Shared variables staged with [`assign`](Self::assign), merged into every
+    /// [`render`](Self::render) (Rails instance-variable / `assigns` analogue).
+    pub(crate) assigns: serde_json::Map<String, serde_json::Value>,
 }
 
 impl Context {
@@ -43,7 +46,7 @@ impl Context {
     pub async fn build(req: Request) -> Self {
         let (mut parts, body) = req.into_parts();
         let path_params = Self::extract_path_params(&mut parts).await;
-        Self {
+        let mut ctx = Self {
             parts,
             body: Some(body),
             path_params,
@@ -51,7 +54,13 @@ impl Context {
             flash: None,
             flash_loaded: BTreeMap::new(),
             cookies: None,
-        }
+            assigns: serde_json::Map::new(),
+        };
+        // Eager-load the flash so views always see it (without the action touching
+        // `ctx.flash()`) and so read-only requests still sweep the flash cookie —
+        // see [`commit_to_response`](Self::commit_to_response).
+        ctx.flash();
+        ctx
     }
 
     async fn extract_path_params(parts: &mut http::request::Parts) -> Vec<(String, String)> {
@@ -73,6 +82,7 @@ impl Context {
             flash: None,
             flash_loaded: BTreeMap::new(),
             cookies: None,
+            assigns: serde_json::Map::new(),
         }
     }
 
@@ -85,6 +95,7 @@ impl Context {
             flash: None,
             flash_loaded: BTreeMap::new(),
             cookies: None,
+            assigns: serde_json::Map::new(),
         }
     }
 
@@ -96,6 +107,30 @@ impl Context {
     /// The application's storage facade (global singleton installed at boot).
     pub fn storage(&self) -> doido_storage::Storage {
         doido_storage::storage()
+    }
+
+    /// The incoming request parts (method, uri, headers, extensions). Used by
+    /// integrations that read request extensions — e.g. `doido-auth` resolves the
+    /// authenticated identity from here.
+    pub fn request_parts(&self) -> &http::request::Parts {
+        &self.parts
+    }
+
+    /// Stage a shared variable for every subsequent [`render`](Self::render) on this
+    /// request (Rails instance-variable / `assigns` analogue). Typically called from
+    /// a `#[before_action]` (e.g. to expose `current_user`), so all actions' views
+    /// see it without re-passing it. The per-render `data` wins on key conflicts.
+    pub fn assign(&mut self, key: impl Into<String>, value: impl Serialize) -> &mut Self {
+        self.assigns.insert(
+            key.into(),
+            serde_json::to_value(value).unwrap_or(serde_json::Value::Null),
+        );
+        self
+    }
+
+    /// The staged view assigns (see [`assign`](Self::assign)).
+    pub fn assigns(&self) -> &serde_json::Map<String, serde_json::Value> {
+        &self.assigns
     }
 
     /// A matched path parameter by name, e.g. `ctx.param("id")` for `/posts/{id}`.
@@ -150,13 +185,47 @@ impl Context {
         crate::params::Params::new(serde_json::Value::Object(map))
     }
 
+    /// Merge the staged [`assigns`](Self::assign) and the auto-injected `flash` into
+    /// the per-render `data`. Precedence (low → high): assigns < `data` < reserved
+    /// `flash` (so `flash` is always the real flash). Assigns/flash only merge into
+    /// object `data` (the normal template shape); non-object `data` passes through.
+    fn view_context(&self, data: serde_json::Value) -> serde_json::Value {
+        let serde_json::Value::Object(data_obj) = data else {
+            return data;
+        };
+        let mut obj = if self.assigns.is_empty() {
+            data_obj
+        } else {
+            let mut merged = self.assigns.clone();
+            for (key, value) in data_obj {
+                merged.insert(key, value);
+            }
+            merged
+        };
+        if let Some(flash) = &self.flash {
+            if !flash.is_empty() {
+                let mut flash_obj = serde_json::Map::new();
+                for (key, message) in flash.iter() {
+                    flash_obj.insert(key.clone(), serde_json::Value::String(message.clone()));
+                }
+                obj.insert("flash".to_string(), serde_json::Value::Object(flash_obj));
+            }
+        }
+        serde_json::Value::Object(obj)
+    }
+
     /// Render a Tera view to an HTML 200 response.
     ///
     /// `template` is resolved by the global [`doido_view`] engine (installed at
     /// boot) against `app/views`, with the `.html.tera` suffix added — e.g.
     /// `"posts/index"` → `app/views/posts/index.html.tera`. A render failure (or
     /// an uninitialised engine) yields a `500`.
+    ///
+    /// The template context is the per-render `data` merged with any
+    /// [`assign`](Self::assign)ed variables and the request `flash` (available under
+    /// the reserved `flash` key, e.g. `{{ flash.notice }}`).
     pub fn render(&self, template: &str, data: serde_json::Value) -> Response {
+        let data = self.view_context(data);
         match doido_view::render(template, &data) {
             Ok(html) => Response::builder()
                 .status(StatusCode::OK)
