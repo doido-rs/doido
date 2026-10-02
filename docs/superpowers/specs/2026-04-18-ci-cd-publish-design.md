@@ -70,6 +70,11 @@ Jobs (sequential, fail-fast):
    - When `unstable: true`, marks the release as a GitHub pre-release (not promoted to `latest`)
    - Attaches all 5 binary artifacts
    - Skipped when `dry_run: true`
+6. **this_week_in_rust**
+   - After a successful **release**, opens a PR on [rust-lang/this-week-in-rust](https://github.com/rust-lang/this-week-in-rust) against the current `draft/*-this-week-in-rust.md`
+   - Inserts a link under **Observations/Thoughts** (not Project/Tooling Updates — that section no longer accepts PRs; see [TWiR README](https://github.com/rust-lang/this-week-in-rust#projectstooling-updates))
+   - Skipped when `dry_run: true` or `unstable: true`
+   - Implemented by `scripts/twir-release-pr.sh` (fork sync, idempotent branch `doido-v<version>`); local dry run: `DRY_RUN=1 GH_TOKEN=… bash scripts/twir-release-pr.sh <version>`
 
 ### 3. `release-delete.yml` — Remove unstable release
 
@@ -123,6 +128,9 @@ Each build job:
 |--------|---------|
 | `CARGO_REGISTRY_TOKEN` | crates.io API token for publishing |
 | `GITHUB_TOKEN` | built-in; used for creating GitHub Releases |
+| `TWIR_TOKEN` | Classic PAT with `public_repo` for the account that forks `this-week-in-rust` and opens the draft PR (cannot use `GITHUB_TOKEN` cross-repo) |
+
+Optional repository variable **`TWIR_FORK`**: `owner/this-week-in-rust` when the fork is under an org instead of the PAT owner.
 
 ## Success Criteria
 
