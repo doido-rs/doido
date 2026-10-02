@@ -230,3 +230,16 @@ jobs:
           files: release-assets/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  this_week_in_rust:
+    name: This Week in Rust
+    needs: [release, version]
+    runs-on: ubuntu-latest
+    if: ${{ inputs.dry_run == false && inputs.unstable == false }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Open draft pull request
+        env:
+          GH_TOKEN: ${{ secrets.TWIR_TOKEN }}
+          VERSION: ${{ needs.version.outputs.version }}
+        run: bash scripts/twir-release-pr.sh "$VERSION"

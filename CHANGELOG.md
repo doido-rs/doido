@@ -25,6 +25,8 @@ in this history.
 
 ### Changed
 
+- **Release** workflow opens a [This Week in Rust](https://github.com/rust-lang/this-week-in-rust) draft PR for stable releases (skipped for unstable and dry-run).
+
 ### Fixed
 
 ## [0.0.31] - 2026-09-29
