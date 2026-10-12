@@ -5,6 +5,8 @@ pub mod commands;
 pub mod config;
 pub mod context;
 #[cfg(feature = "jobs-db")]
+mod entity;
+#[cfg(feature = "jobs-db")]
 pub mod db;
 pub mod memory;
 pub mod queue;
