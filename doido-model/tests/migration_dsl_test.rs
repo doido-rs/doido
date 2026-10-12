@@ -1,8 +1,10 @@
 //! Additional migration DSL coverage: column types, indexes, foreign keys.
 
 use doido_model::migration::{
-    add_column, add_index, create_table, remove_column, remove_index, rename_column,
+    add_column, add_index, create_table, drop_table_cascade, enable_extension, remove_column,
+    remove_index, rename_column, update_where,
 };
+use doido_model::sea_orm::sea_query::{Expr, ExprTrait};
 use doido_model::sea_orm::ConnectionTrait;
 use doido_model::testing::TestDb;
 use doido_model::SchemaManager;
@@ -17,6 +19,10 @@ async fn create_table_supports_all_common_column_types() {
         t.text("body");
         t.integer("count");
         t.big_integer("big");
+        t.small_integer("small");
+        t.time("at_time");
+        t.json_binary("payload");
+        t.timestamp_with_time_zone("at_tz");
         t.float("rate");
         t.double("precise");
         t.decimal("price");
@@ -115,4 +121,51 @@ async fn alter_table_batches_multiple_changes() {
         .execute_unprepared("INSERT INTO items (code) VALUES ('abc')")
         .await
         .unwrap();
+}
+
+#[tokio::test]
+async fn enable_extension_no_ops_on_sqlite() {
+    let db = TestDb::new().await.unwrap();
+    let manager = SchemaManager::new(db.conn());
+    enable_extension(&manager, "pgcrypto").await.unwrap();
+}
+
+#[tokio::test]
+async fn update_where_changes_rows() {
+    let db = TestDb::new().await.unwrap();
+    let manager = SchemaManager::new(db.conn());
+
+    create_table(&manager, "labels", |t| {
+        t.string("name");
+    })
+    .await
+    .unwrap();
+
+    db.conn()
+        .execute_unprepared("INSERT INTO labels (name) VALUES ('old')")
+        .await
+        .unwrap();
+
+    update_where(
+        &manager,
+        "labels",
+        &[("name", Expr::value("new"))],
+        Expr::col("name").eq(Expr::value("old")),
+    )
+    .await
+    .unwrap();
+}
+
+#[tokio::test]
+async fn drop_table_cascade_runs_on_sqlite() {
+    let db = TestDb::new().await.unwrap();
+    let manager = SchemaManager::new(db.conn());
+
+    create_table(&manager, "parent_tbl", |t| {
+        t.string("x");
+    })
+    .await
+    .unwrap();
+
+    drop_table_cascade(&manager, "parent_tbl").await.unwrap();
 }

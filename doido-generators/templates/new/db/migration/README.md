@@ -31,3 +31,11 @@ Generate a new migration file and register it in `mod.rs`:
 ```sh
 doido generate migration CreateUsers
 ```
+
+Generated migrations use `doido::model::migration` helpers (`create_table`,
+`alter_table`, `create_index`, `update_where`, …). Do not call
+`execute_unprepared` or embed hand-written SQL — extend the framework DSL in
+`doido-model` when you need new DDL/DML patterns.
+
+`doido db migrate --without-entities` skips re-exporting SeaORM entities after
+schema changes (same as SeaORM CLI).

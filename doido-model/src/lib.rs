@@ -42,10 +42,13 @@ pub use schema_design::{export_html, introspect_from_url, resolve_ignore_tables,
 
 // Rails-style migration helpers: create_table, alter_table, add_column, …
 pub use migration::{
-    add_column, add_column_with_opts, add_foreign_key, add_foreign_key_with_opts, add_index,
-    add_index_with_opts, alter_table, alter_table_with_opts, create_table, create_table_with_opts,
-    drop_table, drop_table_with_opts, remove_column, remove_column_with_opts, remove_foreign_key,
-    remove_foreign_key_with_opts, remove_index, remove_index_with_opts, rename_column,
-    rename_column_with_opts, rename_table, rename_table_with_opts, AlterTableBuilder, CmdOpts,
+    add_column, add_column_with_opts, add_foreign_key, add_foreign_key_with_cmd_opts,
+    add_foreign_key_with_opts, add_index, add_index_with_opts, alter_table, alter_table_with_opts,
+    create_index, create_table, create_table_with_opts, default_foreign_key_name,
+    default_index_name, drop_index, drop_table, drop_table_cascade, drop_table_with_opts,
+    enable_extension, remove_column, remove_column_with_opts, remove_foreign_key,
+    remove_foreign_key_by_name, remove_foreign_key_with_opts, remove_index, remove_index_with_opts,
+    rename_column, rename_column_with_opts, rename_table, rename_table_with_opts,
+    AlterTableBuilder, CmdOpts, ForeignKeyOpts, IndexColumn, IndexOpts, ReferenceOpts,
     TableBuilder,
 };
