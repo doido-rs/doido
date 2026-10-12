@@ -1,6 +1,7 @@
 //! Shared helpers for emitting SeaORM migration files that call the
 //! `doido_model::migration` builders (`create_table`, `alter_table`,
-//! `drop_table`, `add_index`, …) instead of raw sea-orm boilerplate.
+//! `drop_table`, `add_index`, …) instead of raw SQL (`execute_unprepared`,
+//! string `Statement`s, or hand-written DDL/DML).
 //!
 //! Used by both the model generator (which creates a table for a new model) and
 //! the migration generator.

@@ -74,3 +74,8 @@ tempfile = "3"
 name = "schema_design_test"
 path = "tests/schema_design_test.rs"
 required-features = ["cli"]
+
+[[test]]
+name = "migration_postgres_integration"
+path = "tests/migration_postgres_integration.rs"
+required-features = ["postgres"]
