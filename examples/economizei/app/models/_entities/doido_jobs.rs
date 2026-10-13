@@ -11,8 +11,10 @@ use serde::{Deserialize, Serialize};
 )]
 #[sea_orm(table_name = "doido_jobs")]
 pub struct Model {
-    #[sea_orm(primary_key, auto_increment = false, column_type = "Text")]
-    pub id: String,
+    #[sea_orm(primary_key)]
+    pub id: i64,
+    #[sea_orm(column_type = "Text", unique)]
+    pub job_id: String,
     #[sea_orm(column_type = "Text")]
     pub queue: String,
     #[sea_orm(column_type = "Text")]

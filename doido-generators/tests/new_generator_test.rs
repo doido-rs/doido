@@ -545,9 +545,9 @@ fn test_new_jobs_db_includes_doido_jobs_migration() {
         .find(|f| f.path == "my-app/db/migration/m20260101000001_create_doido_jobs_table.rs")
         .expect("jobs migration file");
     assert!(migration.content.contains("doido_jobs"));
-    assert!(migration.content.contains("run_at BIGINT NOT NULL"));
-    assert!(migration.content.contains("locked_at BIGINT"));
-    assert!(migration.content.contains("idx_doido_jobs_reserve"));
+    assert!(migration.content.contains("job_id"));
+    assert!(migration.content.contains("create_table"));
+    assert!(migration.content.contains("add_index"));
 }
 
 #[test]

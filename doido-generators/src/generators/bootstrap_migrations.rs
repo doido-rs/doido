@@ -55,38 +55,34 @@ const STORAGE_DOWN_BODY: &str = r#"        drop_table(manager, "storage_variant_
         drop_table(manager, "storage_blobs").await
 "#;
 
-const JOBS_IMPORTS: &str = "use doido::model::migration::drop_table;";
+const JOBS_IMPORTS: &str =
+    "use doido::model::migration::{add_index, create_table, drop_table, remove_index};";
 
-const JOBS_UP_BODY: &str = r#"        // `doido_jobs` uses a TEXT primary key (job id), not the implicit bigint `id`
-        // that `create_table` adds, so the schema is emitted as raw SQL.
-        manager
-            .get_connection()
-            .execute_unprepared(
-                "CREATE TABLE IF NOT EXISTS doido_jobs (
-                    id TEXT PRIMARY KEY,
-                    queue TEXT NOT NULL,
-                    status TEXT NOT NULL,
-                    priority INTEGER NOT NULL DEFAULT 0,
-                    run_at BIGINT NOT NULL,
-                    locked_at BIGINT,
-                    data TEXT NOT NULL
-                )",
-            )
-            .await?;
-        manager
-            .get_connection()
-            .execute_unprepared(
-                "CREATE INDEX IF NOT EXISTS idx_doido_jobs_reserve
-                    ON doido_jobs (queue, status, run_at)",
-            )
-            .await?;
+const JOBS_UP_BODY: &str = r#"        create_table(manager, "doido_jobs", |t| {
+            t.string("job_id").not_null().unique_key();
+            t.string("queue").not_null();
+            t.string("status").not_null();
+            t.big_integer("priority");
+            t.big_integer("run_at").not_null();
+            t.big_integer("locked_at");
+            t.text("data").not_null();
+        })
+        .await?;
+        add_index(
+            manager,
+            "doido_jobs",
+            &["queue", "status", "run_at"],
+        )
+        .await?;
         Ok(())
 "#;
 
-const JOBS_DOWN_BODY: &str = r#"        manager
-            .get_connection()
-            .execute_unprepared("DROP INDEX IF EXISTS idx_doido_jobs_reserve")
-            .await?;
+const JOBS_DOWN_BODY: &str = r#"        remove_index(
+            manager,
+            "doido_jobs",
+            &["queue", "status", "run_at"],
+        )
+        .await?;
         drop_table(manager, "doido_jobs").await
 "#;
 
@@ -179,9 +175,9 @@ mod tests {
             .find(|(m, _)| m == JOBS_MIGRATION_MODULE)
             .unwrap();
         assert!(jobs.1.contains("doido_jobs"));
-        assert!(jobs.1.contains("run_at BIGINT NOT NULL"));
-        assert!(jobs.1.contains("locked_at BIGINT"));
-        assert!(jobs.1.contains("idx_doido_jobs_reserve"));
+        assert!(jobs.1.contains("job_id"));
+        assert!(jobs.1.contains("create_table"));
+        assert!(jobs.1.contains("add_index"));
     }
 
     #[test]
