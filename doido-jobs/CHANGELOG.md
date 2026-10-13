@@ -13,6 +13,16 @@ documented in `RELEASING.md` at the repository root.
 
 _No user-facing changes yet._
 
+## 0.0.32 - 2026-10-13
+
+### Changed
+
+- Database-backed queue (`DbQueue`) reads and writes through a SeaORM entity and
+  `doido-model` migration helpers instead of raw SQL.
+- `doido_jobs` uses an auto-increment integer primary key (`id`); the worker-facing
+  job identifier is stored in a unique `job_id` column. `JobQueue` methods still
+  take the same string job IDs as before.
+
 ## 0.0.24 - 2026-08-14
 
 - Baseline changelog. Releases up to and including `0.0.24` are recorded only in
