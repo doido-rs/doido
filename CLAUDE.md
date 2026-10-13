@@ -26,6 +26,7 @@ decisions (config), and the runtime boot sequence — see the authoritative
 | [docs/12-cable.md](docs/12-cable.md) | `doido-cable` | WebSocket channels, pub/sub, Action Cable analogue |
 | [docs/15-storage.md](docs/15-storage.md) | `doido-storage` | Attached-file storage: blobs, polymorphic attachments, pluggable services (disk/memory/S3/R2/Azure/GCS) + custom-adapter registry, Active Storage analogue |
 | [docs/16-auth.md](docs/16-auth.md) | `doido-auth` | Unified authentication: generic `AuthUser`, axum extractors, cookie/JWT/OAuth strategies, optional 2FA, pre-built session/registration routes, Devise analogue |
+| [docs/17-release-process.md](docs/17-release-process.md) | _process_ | Release-driven branching (`develop`/`master`/`*-stable`/`release/*`), SemVer, per-crate changelogs, maintenance window — see [RELEASING.md](RELEASING.md) |
 
 ## Workspace Layout
 

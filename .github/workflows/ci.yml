@@ -4,7 +4,7 @@ name: CI
 # in the same commit (see paths + paths-ignore interaction in GitHub docs).
 on:
   push:
-    branches: ["master", "production", "development"]
+    branches: ["develop", "master", "*-stable", "release/**"]
     paths-ignore:
       - "docs-blog/**"
   pull_request:
