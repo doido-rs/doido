@@ -6,6 +6,8 @@ use crate::sea_orm::sea_query::{
 use crate::sea_orm::{ConnectionTrait, DbErr};
 use crate::sea_orm_migration::SchemaManager;
 
+use super::opts::{self, CmdOpts};
+
 /// Default foreign-key constraint name: `fk_<table>_<column>`.
 fn foreign_key_name(table: &str, column: &str) -> String {
     format!("fk_{table}_{column}")
@@ -44,7 +46,28 @@ pub async fn add_foreign_key(
     to_table: &str,
     to_column: &str,
 ) -> Result<(), DbErr> {
-    manager
+    add_foreign_key_with_opts(
+        manager,
+        from_table,
+        from_column,
+        to_table,
+        to_column,
+        CmdOpts::default(),
+    )
+    .await
+}
+
+/// Like [`add_foreign_key`], with explicit [`CmdOpts`].
+pub async fn add_foreign_key_with_opts(
+    manager: &SchemaManager<'_>,
+    from_table: &str,
+    from_column: &str,
+    to_table: &str,
+    to_column: &str,
+    opts: CmdOpts,
+) -> Result<(), DbErr> {
+    let backend = manager.get_database_backend();
+    match manager
         .get_connection()
         .execute(&add_foreign_key_statement(
             from_table,
@@ -53,7 +76,11 @@ pub async fn add_foreign_key(
             to_column,
         ))
         .await
-        .map(|_| ())
+    {
+        Ok(_) => Ok(()),
+        Err(e) if opts.if_not_exists && opts::is_duplicate_foreign_key_err(backend, &e) => Ok(()),
+        Err(e) => Err(e),
+    }
 }
 
 /// `remove_foreign_key :from_table, column: :from_column`.
@@ -62,11 +89,41 @@ pub async fn remove_foreign_key(
     from_table: &str,
     from_column: &str,
 ) -> Result<(), DbErr> {
-    manager
+    remove_foreign_key_with_opts(manager, from_table, from_column, CmdOpts::default()).await
+}
+
+/// Like [`remove_foreign_key`], with explicit [`CmdOpts`].
+pub async fn remove_foreign_key_with_opts(
+    manager: &SchemaManager<'_>,
+    from_table: &str,
+    from_column: &str,
+    opts: CmdOpts,
+) -> Result<(), DbErr> {
+    let backend = manager.get_database_backend();
+    match manager
         .get_connection()
         .execute(&remove_foreign_key_statement(from_table, from_column))
         .await
-        .map(|_| ())
+    {
+        Ok(_) => Ok(()),
+        Err(e) if opts.if_exists => {
+            let msg = e.to_string().to_lowercase();
+            let missing = match backend {
+                crate::sea_orm::DatabaseBackend::MySql => {
+                    msg.contains("1091") || msg.contains("check that column/key exists")
+                }
+                crate::sea_orm::DatabaseBackend::Postgres => msg.contains("does not exist"),
+                crate::sea_orm::DatabaseBackend::Sqlite => msg.contains("no such"),
+                _ => msg.contains("does not exist"),
+            };
+            if missing {
+                Ok(())
+            } else {
+                Err(e)
+            }
+        }
+        Err(e) => Err(e),
+    }
 }
 
 #[cfg(test)]

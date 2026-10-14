@@ -82,6 +82,9 @@ async fn index_helpers_add_and_remove() {
     .unwrap();
 
     add_index(&manager, "tags", &["label"]).await.unwrap();
+    add_index(&manager, "tags", &["label"])
+        .await
+        .expect("second add_index should be idempotent");
     remove_index(&manager, "tags", &["label"]).await.unwrap();
 }
 

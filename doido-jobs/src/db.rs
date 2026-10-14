@@ -8,7 +8,7 @@ use crate::entity;
 use crate::queue::{JobId, JobPayload, JobQueue, JobStatus, Reserved};
 use chrono::{DateTime, Utc};
 use doido_core::{anyhow::anyhow, Result};
-use doido_model::migration::{add_index, create_table};
+use doido_model::migration::{add_index_with_opts, create_table_with_opts, CmdOpts};
 use doido_model::sea_orm::sea_query::Expr;
 use doido_model::sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, NotSet, QueryFilter,
@@ -53,20 +53,31 @@ impl DbQueue {
     /// Create the `doido_jobs` table if it does not exist.
     pub async fn migrate(&self) -> Result<()> {
         let manager = SchemaManager::new(&self.conn);
-        create_table(&manager, "doido_jobs", |t| {
-            t.string("job_id").not_null().unique_key();
-            t.string("queue").not_null();
-            t.string("status").not_null();
-            t.big_integer("priority");
-            t.big_integer("run_at").not_null();
-            t.big_integer("locked_at");
-            t.text("data").not_null();
-        })
+        let if_not_exists = CmdOpts::if_not_exists();
+        create_table_with_opts(
+            &manager,
+            "doido_jobs",
+            |t| {
+                t.string("job_id").not_null().unique_key();
+                t.string("queue").not_null();
+                t.string("status").not_null();
+                t.big_integer("priority");
+                t.big_integer("run_at").not_null();
+                t.big_integer("locked_at");
+                t.text("data").not_null();
+            },
+            if_not_exists,
+        )
         .await
         .map_err(|e| anyhow!("doido_jobs migrate failed: {e}"))?;
-        add_index(&manager, "doido_jobs", &["queue", "status", "run_at"])
-            .await
-            .map_err(|e| anyhow!("doido_jobs index failed: {e}"))?;
+        add_index_with_opts(
+            &manager,
+            "doido_jobs",
+            &["queue", "status", "run_at"],
+            if_not_exists,
+        )
+        .await
+        .map_err(|e| anyhow!("doido_jobs index failed: {e}"))?;
         Ok(())
     }
 

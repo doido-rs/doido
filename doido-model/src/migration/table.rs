@@ -9,6 +9,8 @@ use crate::sea_orm::sea_query::{
 use crate::sea_orm::{ConnectionTrait, DbErr};
 use crate::sea_orm_migration::SchemaManager;
 
+use super::opts::CmdOpts;
+
 /// Collects column definitions inside [`create_table`].
 ///
 /// A big-integer, auto-incrementing `id` primary key is added automatically,
@@ -166,20 +168,30 @@ impl AlterTableBuilder {
     }
 }
 
-fn create_table_statement(name: &str, f: impl FnOnce(&mut TableBuilder)) -> TableCreateStatement {
+fn create_table_statement(
+    name: &str,
+    f: impl FnOnce(&mut TableBuilder),
+    opts: CmdOpts,
+) -> TableCreateStatement {
     let mut builder = TableBuilder::new();
     f(&mut builder);
     let mut stmt = SqTable::create();
-    stmt.table(Alias::new(name)).if_not_exists();
+    stmt.table(Alias::new(name));
+    if opts.if_not_exists {
+        stmt.if_not_exists();
+    }
     for col in builder.columns {
         stmt.col(col);
     }
     stmt
 }
 
-fn drop_table_statement(name: &str) -> TableDropStatement {
+fn drop_table_statement(name: &str, opts: CmdOpts) -> TableDropStatement {
     let mut stmt = SqTable::drop();
-    stmt.table(Alias::new(name)).if_exists();
+    stmt.table(Alias::new(name));
+    if opts.if_exists {
+        stmt.if_exists();
+    }
     stmt
 }
 
@@ -189,17 +201,29 @@ fn rename_table_statement(from: &str, to: &str) -> TableRenameStatement {
     stmt
 }
 
-fn alter_table_statements(name: &str, ops: Vec<AlterOp>) -> Vec<TableAlterStatement> {
+fn alter_table_statements(
+    name: &str,
+    ops: Vec<AlterOp>,
+    opts: CmdOpts,
+) -> Vec<TableAlterStatement> {
     ops.into_iter()
         .map(|op| {
             let mut stmt = SqTable::alter();
             stmt.table(Alias::new(name));
             match op {
                 AlterOp::Add(col) => {
-                    stmt.add_column(*col);
+                    if opts.if_not_exists {
+                        stmt.add_column_if_not_exists(*col);
+                    } else {
+                        stmt.add_column(*col);
+                    }
                 }
                 AlterOp::Drop(name) => {
-                    stmt.drop_column(Alias::new(name));
+                    if opts.if_exists {
+                        stmt.drop_column_if_exists(Alias::new(name));
+                    } else {
+                        stmt.drop_column(Alias::new(name));
+                    }
                 }
                 AlterOp::Rename(from, to) => {
                     stmt.rename_column(Alias::new(from), Alias::new(to));
@@ -217,24 +241,53 @@ pub async fn create_table(
     name: &str,
     f: impl FnOnce(&mut TableBuilder),
 ) -> Result<(), DbErr> {
+    create_table_with_opts(manager, name, f, CmdOpts::default()).await
+}
+
+/// Like [`create_table`], with explicit [`CmdOpts`] (e.g. [`CmdOpts::if_not_exists`]).
+pub async fn create_table_with_opts(
+    manager: &SchemaManager<'_>,
+    name: &str,
+    f: impl FnOnce(&mut TableBuilder),
+    opts: CmdOpts,
+) -> Result<(), DbErr> {
     manager
         .get_connection()
-        .execute(&create_table_statement(name, f))
+        .execute(&create_table_statement(name, f, opts))
         .await
         .map(|_| ())
 }
 
-/// `drop_table :name` — drops the table if it exists.
+/// `drop_table :name` — drops the table if it exists when [`CmdOpts::if_exists`] is set.
 pub async fn drop_table(manager: &SchemaManager<'_>, name: &str) -> Result<(), DbErr> {
+    drop_table_with_opts(manager, name, CmdOpts::default()).await
+}
+
+/// Like [`drop_table`], with explicit [`CmdOpts`].
+pub async fn drop_table_with_opts(
+    manager: &SchemaManager<'_>,
+    name: &str,
+    opts: CmdOpts,
+) -> Result<(), DbErr> {
     manager
         .get_connection()
-        .execute(&drop_table_statement(name))
+        .execute(&drop_table_statement(name, opts))
         .await
         .map(|_| ())
 }
 
 /// `rename_table :from, :to`.
 pub async fn rename_table(manager: &SchemaManager<'_>, from: &str, to: &str) -> Result<(), DbErr> {
+    rename_table_with_opts(manager, from, to, CmdOpts::default()).await
+}
+
+/// Like [`rename_table`], with explicit [`CmdOpts`] (currently ignored).
+pub async fn rename_table_with_opts(
+    manager: &SchemaManager<'_>,
+    from: &str,
+    to: &str,
+    _opts: CmdOpts,
+) -> Result<(), DbErr> {
     manager
         .get_connection()
         .execute(&rename_table_statement(from, to))
@@ -249,10 +302,20 @@ pub async fn alter_table(
     name: &str,
     f: impl FnOnce(&mut AlterTableBuilder),
 ) -> Result<(), DbErr> {
+    alter_table_with_opts(manager, name, f, CmdOpts::default()).await
+}
+
+/// Like [`alter_table`], with explicit [`CmdOpts`] for add/drop column idempotency.
+pub async fn alter_table_with_opts(
+    manager: &SchemaManager<'_>,
+    name: &str,
+    f: impl FnOnce(&mut AlterTableBuilder),
+    opts: CmdOpts,
+) -> Result<(), DbErr> {
     let mut builder = AlterTableBuilder::new();
     f(&mut builder);
     let conn = manager.get_connection();
-    for stmt in alter_table_statements(name, builder.ops) {
+    for stmt in alter_table_statements(name, builder.ops, opts) {
         conn.execute(&stmt).await.map(|_| ())?;
     }
     Ok(())
@@ -265,10 +328,14 @@ mod tests {
 
     #[test]
     fn create_table_adds_implicit_id_and_columns() {
-        let sql = create_table_statement("users", |t| {
-            t.string("email").not_null();
-            t.timestamps();
-        })
+        let sql = create_table_statement(
+            "users",
+            |t| {
+                t.string("email").not_null();
+                t.timestamps();
+            },
+            CmdOpts::if_not_exists(),
+        )
         .to_string(PostgresQueryBuilder);
         assert!(sql.contains("CREATE TABLE IF NOT EXISTS \"users\""));
         assert!(sql.contains("\"id\""));
@@ -279,16 +346,21 @@ mod tests {
 
     #[test]
     fn references_adds_id_suffixed_column() {
-        let sql = create_table_statement("comments", |t| {
-            t.references("post");
-        })
+        let sql = create_table_statement(
+            "comments",
+            |t| {
+                t.references("post");
+            },
+            CmdOpts::default(),
+        )
         .to_string(PostgresQueryBuilder);
         assert!(sql.contains("\"post_id\""));
     }
 
     #[test]
     fn drop_table_is_conditional() {
-        let sql = drop_table_statement("users").to_string(PostgresQueryBuilder);
+        let sql =
+            drop_table_statement("users", CmdOpts::if_exists()).to_string(PostgresQueryBuilder);
         assert!(sql.contains("DROP TABLE IF EXISTS \"users\""));
     }
 
@@ -301,7 +373,7 @@ mod tests {
         builder.drop_column("legacy");
         builder.rename_column("sku", "code");
 
-        let stmts = alter_table_statements("items", builder.ops);
+        let stmts = alter_table_statements("items", builder.ops, CmdOpts::default());
         assert_eq!(stmts.len(), 3);
         let add = stmts[0].to_string(PostgresQueryBuilder);
         assert!(add.contains("ALTER TABLE \"items\""));

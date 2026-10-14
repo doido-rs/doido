@@ -42,6 +42,10 @@ pub use schema_design::{export_html, introspect_from_url, resolve_ignore_tables,
 
 // Rails-style migration helpers: create_table, alter_table, add_column, …
 pub use migration::{
-    add_column, add_foreign_key, add_index, alter_table, create_table, drop_table, remove_column,
-    remove_foreign_key, remove_index, rename_column, rename_table, AlterTableBuilder, TableBuilder,
+    add_column, add_column_with_opts, add_foreign_key, add_foreign_key_with_opts, add_index,
+    add_index_with_opts, alter_table, alter_table_with_opts, create_table, create_table_with_opts,
+    drop_table, drop_table_with_opts, remove_column, remove_column_with_opts, remove_foreign_key,
+    remove_foreign_key_with_opts, remove_index, remove_index_with_opts, rename_column,
+    rename_column_with_opts, rename_table, rename_table_with_opts, AlterTableBuilder, CmdOpts,
+    TableBuilder,
 };

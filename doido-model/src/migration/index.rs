@@ -3,8 +3,10 @@
 use crate::sea_orm::sea_query::{
     Alias, Index as SqIndex, IndexCreateStatement, IndexDropStatement,
 };
-use crate::sea_orm::{ConnectionTrait, DbErr};
+use crate::sea_orm::{ConnectionTrait, DatabaseBackend, DbErr};
 use crate::sea_orm_migration::SchemaManager;
+
+use super::opts::{self, CmdOpts};
 
 /// Default index name for a `(table, columns)` pair: `idx_<table>_<col>_<col>`.
 fn index_name(table: &str, columns: &[&str]) -> String {
@@ -34,11 +36,26 @@ pub async fn add_index(
     table: &str,
     columns: &[&str],
 ) -> Result<(), DbErr> {
-    manager
-        .get_connection()
-        .execute(&add_index_statement(table, columns))
-        .await
-        .map(|_| ())
+    add_index_with_opts(manager, table, columns, CmdOpts::default()).await
+}
+
+/// Like [`add_index`], with explicit [`CmdOpts`] (e.g. [`CmdOpts::if_not_exists`]).
+pub async fn add_index_with_opts(
+    manager: &SchemaManager<'_>,
+    table: &str,
+    columns: &[&str],
+    opts: CmdOpts,
+) -> Result<(), DbErr> {
+    let backend = manager.get_database_backend();
+    let mut stmt = add_index_statement(table, columns);
+    if opts.if_not_exists && backend != DatabaseBackend::MySql {
+        stmt.if_not_exists();
+    }
+    match manager.get_connection().execute(&stmt).await {
+        Ok(_) => Ok(()),
+        Err(e) if opts.if_not_exists && opts::is_duplicate_index_err(backend, &e) => Ok(()),
+        Err(e) => Err(e),
+    }
 }
 
 /// `remove_index :table, [columns]` — drops `idx_<table>_<cols>`.
@@ -47,11 +64,26 @@ pub async fn remove_index(
     table: &str,
     columns: &[&str],
 ) -> Result<(), DbErr> {
-    manager
-        .get_connection()
-        .execute(&remove_index_statement(table, columns))
-        .await
-        .map(|_| ())
+    remove_index_with_opts(manager, table, columns, CmdOpts::default()).await
+}
+
+/// Like [`remove_index`], with explicit [`CmdOpts`] (e.g. [`CmdOpts::if_exists`]).
+pub async fn remove_index_with_opts(
+    manager: &SchemaManager<'_>,
+    table: &str,
+    columns: &[&str],
+    opts: CmdOpts,
+) -> Result<(), DbErr> {
+    let backend = manager.get_database_backend();
+    let mut stmt = remove_index_statement(table, columns);
+    if opts.if_exists && backend != DatabaseBackend::MySql {
+        stmt.if_exists();
+    }
+    match manager.get_connection().execute(&stmt).await {
+        Ok(_) => Ok(()),
+        Err(e) if opts.if_exists && opts::is_missing_index_err(backend, &e) => Ok(()),
+        Err(e) => Err(e),
+    }
 }
 
 #[cfg(test)]
