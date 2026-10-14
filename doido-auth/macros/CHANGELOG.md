@@ -13,6 +13,10 @@ documented in `RELEASING.md` at the repository root.
 
 _No user-facing changes yet._
 
+## 0.0.32-test1 - 2026-10-14
+
+_No user-facing changes yet._
+
 ## 0.0.32 - 2026-10-13
 
 _No user-facing changes yet._
