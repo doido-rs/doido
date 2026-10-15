@@ -15,6 +15,14 @@ _No user-facing changes yet._
 
 ## 0.0.32-test2 - 2026-10-15
 
+### Fixed
+
+- `DbQueue::migrate` creates the `doido_jobs` `(queue, status, run_at)` index with
+  `IF NOT EXISTS`, so a second migrate no longer fails when the table and index
+  are already present.
+
+## 0.0.32-test2 - 2026-10-15
+
 _No user-facing changes yet._
 
 ## 0.0.32-test1 - 2026-10-14
