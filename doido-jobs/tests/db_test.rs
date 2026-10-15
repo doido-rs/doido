@@ -19,6 +19,16 @@ async fn fresh() -> DbQueue {
 }
 
 #[tokio::test]
+async fn migrate_is_idempotent_when_table_and_index_exist() {
+    let conn = Database::connect("sqlite::memory:").await.unwrap();
+    let q = DbQueue::new(conn);
+    q.migrate().await.unwrap();
+    q.migrate()
+        .await
+        .expect("worker startup migrate after db migrate");
+}
+
+#[tokio::test]
 async fn test_db_enqueue_reserve_ack() {
     let q = fresh().await;
     q.enqueue(JobPayload::new("default", json!({"x": 1}), 3))
