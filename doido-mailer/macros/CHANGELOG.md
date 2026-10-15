@@ -17,6 +17,10 @@ _No user-facing changes yet._
 
 _No user-facing changes yet._
 
+## 0.0.32-test2 - 2026-10-15
+
+_No user-facing changes yet._
+
 ## 0.0.32-test1 - 2026-10-14
 
 _No user-facing changes yet._

@@ -15,6 +15,15 @@ _No user-facing changes yet._
 
 ## 0.0.32-test2 - 2026-10-15
 
+### Added
+
+- `CmdOpts` for Rails-style `if_not_exists` / `if_exists`
+  on migration helpers; `*_with_opts` variants for tables, columns, indexes, and
+  foreign keys (`create_table_with_opts`, `add_index_with_opts`, …). The short
+  helpers (`create_table`, `add_index`, …) keep the previous idempotent defaults.
+
+## 0.0.32-test2 - 2026-10-15
+
 _No user-facing changes yet._
 
 ## 0.0.32-test1 - 2026-10-14
