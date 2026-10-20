@@ -111,6 +111,29 @@ cargo doido worker            # process jobs continuously
 cargo doido worker --once     # drain the queue and exit
 ```
 
+## Running jobs from the CLI
+
+List handlers linked into your app binary, run one in-process (Rails `perform_now`), or
+enqueue a single job for the worker (`perform_later`).
+
+| Rails | Doido |
+|-------|-------|
+| `perform_later` | `cargo doido jobs run <name> --later` |
+| `perform_now` | `cargo doido jobs run <name>` |
+| Job processor | `cargo doido worker` / `cargo doido worker --once` |
+
+```bash
+cargo doido jobs list
+cargo doido jobs run send_welcome --payload '42'
+cargo doido jobs run send_welcome --payload '{"user_id":42}'
+cargo doido jobs run send_welcome --later
+```
+
+`--payload` is JSON (default `{}`). Queue, timeout, and max retries default to the
+`#[job(...)]` attributes unless you pass `--queue`, `--timeout`, or `--max-retries`.
+In-process runs do not write to `doido_jobs`; use `--later` plus `worker --once` to
+process asynchronously.
+
 ## Retries & backoff
 
 Failing jobs are retried up to `max_retries` with the configured `BackoffStrategy`
@@ -129,9 +152,9 @@ Jobs that exhaust their retries are moved to a dead-letter store, inspectable an
 re-runnable via the CLI.
 
 ```bash
-cargo doido jobs:failed            # list dead-lettered jobs
-cargo doido jobs:retry <job_id>    # requeue one
-cargo doido jobs:discard <job_id>  # drop one
+cargo doido jobs failed    # list dead-lettered jobs (tracing)
+cargo doido jobs retry     # re-enqueue all dead jobs
+cargo doido jobs discard   # remove all dead jobs
 ```
 
 ## Priority & scheduling
@@ -172,4 +195,4 @@ assert!(reserved.is_some());
 
 - [Mailer](@/docs/reference/mailer.md) — `deliver_later` enqueues onto the `mailers` queue.
 - [Cache](@/docs/reference/cache.md) & [Models](@/docs/reference/models.md) — Redis/DB backends.
-- [Generators & CLI](@/docs/reference/generators.md) — `cargo doido generate job` and `cargo doido worker`.
+- [Generators & CLI](@/docs/reference/generators.md) — `cargo doido generate job`, `cargo doido jobs run`, and `cargo doido worker`.

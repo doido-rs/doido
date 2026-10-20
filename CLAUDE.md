@@ -58,7 +58,7 @@ doido/                  ← workspace root (Cargo.toml)
 - [x] 06b-generators — **Separate crate, all Rails targets, `Generator` trait registry, `generate helper`, scaffold/controller emit helpers, auto-injects `config/routes.rs`. App-registrable generators: any `doido::Generator` (defined in the app or a third-party crate) installs via the `doido::Doido` builder in `src/main.rs` (`.register_generator(...)`, threaded through `commands::generate::run_with`) and is dispatched by `cargo doido generate` alongside built-ins.**
 - [x] 07-middleware — **Logging+PanicRecovery always-on, all else opt-in via config, pluggable `SessionStore` (cookie default). API mode (`MiddlewareStack::with_api_only`, read from `[app] api_only`) skips HTML-only middleware like CSRF.**
 - [x] 08-mailer — **`deliver_now()` + `deliver_later()`, templates in `views/mailers/`, pluggable `Deliverer` trait**
-- [x] 09-jobs — **Pluggable backends (memory/db/redis), exponential retry per-job via `#[job]` macro, dead letter queue + CLI**
+- [x] 09-jobs — **Pluggable backends (memory/db/redis), exponential retry per-job via `#[job]` macro, dead letter queue + CLI (`jobs list`, `jobs run`/`perform` with `--later`/`--payload`, `jobs failed/retry/discard`)**
 - [x] 10-cache — **Pluggable backends (memory/redis/db), configurable namespacing (`app:env:custom:key`), multiple named stores**
 - [x] 11-core — **`thiserror` per crate + `anyhow` at app level, all inflections + `config/inflections.rs` for custom rules**
 - [x] 12-cable — **`#[channel]` macro + trait, pluggable PubSub (memory/redis/db), middleware+`CableConnection` auth, ActionCable wire protocol, generator added**

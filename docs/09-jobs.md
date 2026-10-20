@@ -2,12 +2,11 @@
 
 Rails analogue: **Active Job**
 
-> **Status (2026-07-28): mostly done.** `JobQueue` trait, worker engine, leasing,
-> exponential backoff, dead-letter, memory/db/redis backends, and the `#[job]` macro are
-> implemented. **Open:** the fluent per-instance enqueue below (`Job{}.enqueue()`,
-> `.enqueue_at()`, `.on_queue()`) is not present — enqueue is via `queue.enqueue(payload)`
-> plus the macro-generated `*_enqueue()` helper. The `doido jobs:*` CLI commands are stubs
-> (see spec 06). See [ARCHITECTURE.md](ARCHITECTURE.md).
+> **Status (2026-10-20): done.** `JobQueue` trait, worker engine, leasing, exponential
+> backoff, dead-letter, memory/db/redis backends, the `#[job]` macro (including the fluent
+> `<Name>Job` builder), link-time handler registry, and CLI: `doido jobs list`, `doido jobs
+> run` (`perform_now` / `--later`), plus dead-letter admin (`failed` / `retry` / `discard`).
+> See [ARCHITECTURE.md](ARCHITECTURE.md) and [doido-jobs/README.md](../doido-jobs/README.md).
 
 ## Decisions (resolved in interview)
 
@@ -208,14 +207,40 @@ enqueue / enqueue_at → [queue]
 
 - Failed jobs written to a separate dead-letter store (same backend).
 - Each entry stores: job payload, last error message, attempt count, failed_at timestamp.
-- Inspectable and re-enqueueable via CLI:
+- Inspectable and re-enqueueable via CLI (see also **Running jobs from the CLI** below):
 
 ```
-doido jobs:failed             ← list dead letter jobs
-doido jobs:retry <job_id>     ← re-enqueue a specific dead letter job
-doido jobs:retry --all        ← re-enqueue all dead letter jobs
-doido jobs:discard <job_id>   ← permanently remove from dead letter queue
+doido jobs failed             ← list dead-letter jobs (tracing output)
+doido jobs retry              ← re-enqueue every dead job, then clear the dead store
+doido jobs discard            ← permanently remove all dead jobs
 ```
+
+## Running jobs from the CLI
+
+Rails analogue: **`perform_now`** vs **`perform_later`**.
+
+| Rails | Doido |
+|-------|-------|
+| `perform_later` | `cargo doido jobs run <name> --later` |
+| `perform_now` | `cargo doido jobs run <name>` |
+| Job processor | `cargo doido worker` / `cargo doido worker --once` |
+
+Handlers must be linked into the app binary (same as the worker). `jobs run` builds
+`JobContext` and, for the `db` backend, installs the global pool via
+`build_configured_queue` before dispatch.
+
+```bash
+cargo doido jobs list
+cargo doido jobs run sync_catalog --payload '{"skip_reschedule":true}'
+cargo doido jobs run import_anexo_a --queue catalog
+cargo doido jobs run sync_lote --later   # enqueue; drain with worker --once
+```
+
+Flags: `--payload` (JSON, default `{}`), `--queue`, `--timeout`, `--max-retries` (for
+`--later`). Defaults for queue/timeout/retries come from `#[job(...)]` metadata stamped
+into `JobRegistration` at compile time. In-process runs use `perform_job_now` (timeout +
+registry dispatch, no queue `ack`/`nack`). Exit code `0` on success, non-zero on unknown
+job name, bad JSON, handler error, or timeout.
 
 ## Enqueue API
 

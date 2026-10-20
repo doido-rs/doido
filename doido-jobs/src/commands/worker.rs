@@ -1,4 +1,4 @@
-use crate::{JobContext, JobRegistry, WorkerEngine};
+use crate::{JobRegistry, WorkerEngine};
 use std::sync::Arc;
 
 /// Start the background worker.
@@ -33,11 +33,7 @@ pub async fn run(once: bool) {
         config.concurrency,
     );
 
-    // The engine carries the application context handed to every job handler.
-    let mut job_ctx = JobContext::new();
-    if let Some(conn) = doido_model::pool::try_pool() {
-        job_ctx.insert(conn.clone());
-    }
+    let job_ctx = crate::context::job_context_from_runtime();
     let queue_refs: Vec<&str> = config.queues.iter().map(|s| s.as_str()).collect();
 
     // Every `#[job]` registers its handler at link time; build the lookup once and

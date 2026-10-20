@@ -110,6 +110,28 @@ cargo doido worker            # processa jobs continuamente
 cargo doido worker --once     # drena a fila e sai
 ```
 
+## Executar jobs pela CLI
+
+Liste handlers linkados no binário da app, rode um no processo (Rails `perform_now`) ou
+enfileire um job para o worker (`perform_later`).
+
+| Rails | Doido |
+|-------|-------|
+| `perform_later` | `cargo doido jobs run <nome> --later` |
+| `perform_now` | `cargo doido jobs run <nome>` |
+| Processador | `cargo doido worker` / `cargo doido worker --once` |
+
+```bash
+cargo doido jobs list
+cargo doido jobs run send_welcome --payload '42'
+cargo doido jobs run send_welcome --payload '{"user_id":42}'
+cargo doido jobs run send_welcome --later
+```
+
+`--payload` é JSON (padrão `{}`). Fila, timeout e max retries vêm dos atributos
+`#[job(...)]`, salvo `--queue`, `--timeout` ou `--max-retries`. Execução in-process não
+grava em `doido_jobs`; use `--later` e `worker --once` para processar de forma assíncrona.
+
 ## Retries & backoff
 
 Jobs que falham são retentados até `max_retries` com a `BackoffStrategy` configurada
@@ -128,9 +150,9 @@ Jobs que esgotam seus retries são movidos para um store de dead-letter, inspeci
 reexecutável via CLI.
 
 ```bash
-cargo doido jobs:failed            # lista jobs na dead-letter
-cargo doido jobs:retry <job_id>    # reenfileira um
-cargo doido jobs:discard <job_id>  # descarta um
+cargo doido jobs failed    # lista jobs na dead-letter (tracing)
+cargo doido jobs retry     # reenfileira todos os dead jobs
+cargo doido jobs discard   # remove todos os dead jobs
 ```
 
 ## Prioridade & agendamento

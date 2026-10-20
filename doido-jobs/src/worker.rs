@@ -1,10 +1,30 @@
+use crate::context::JobContext;
 use crate::queue::{JobPayload, JobQueue, Reserved};
+use crate::registry::JobRegistry;
 use chrono::Utc;
-use doido_core::Result;
+use doido_core::{anyhow::anyhow, Result};
 use std::future::Future;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::Semaphore;
+
+/// Run a job handler in-process (Rails `perform_now`): timeout enforced, no queue ack/nack.
+pub async fn perform_job_now(
+    registry: &JobRegistry,
+    job: JobPayload,
+    ctx: Arc<JobContext>,
+) -> Result<()> {
+    let timeout = Duration::from_secs(job.timeout);
+    let registry = registry.clone();
+    let perform = async move { registry.dispatch(job, ctx).await };
+    let handle = tokio::spawn(perform);
+    match tokio::time::timeout(timeout, handle).await {
+        Ok(Ok(Ok(()))) => Ok(()),
+        Ok(Ok(Err(e))) => Err(e),
+        Ok(Err(_join)) => Err(anyhow!("job panicked")),
+        Err(_) => Err(anyhow!("job timed out")),
+    }
+}
 
 /// Engine configuration. The engine is backend-agnostic: it only ever sees an
 /// `Arc<dyn JobQueue>`.

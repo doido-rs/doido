@@ -1,11 +1,17 @@
 //! `doido jobs` CLI commands against the in-memory backend.
 
 use doido_jobs::commands::jobs::{run, JobsCommand};
+use doido_jobs::commands::run::RunArgs;
 use std::fs;
 use std::sync::Mutex;
 use tempfile::TempDir;
 
 static CWD_LOCK: Mutex<()> = Mutex::new(());
+
+#[doido_jobs::job]
+async fn cli_run_smoke_job() -> doido_core::Result<()> {
+    Ok(())
+}
 
 #[tokio::test]
 async fn jobs_failed_with_empty_dead_store() {
@@ -166,6 +172,103 @@ async fn jobs_failed_lists_dead_lettered_jobs_in_db_backend() {
     queue.dead_letter(&reserved.job.id, "boom").await.unwrap();
 
     run(JobsCommand::Failed).await;
+
+    std::env::set_current_dir(original_dir).unwrap();
+    if let Some(v) = original_env {
+        std::env::set_var("DOIDO_ENV", v);
+    } else {
+        std::env::remove_var("DOIDO_ENV");
+    }
+}
+
+#[tokio::test]
+async fn jobs_list_prints_registered_handlers() {
+    let code = run(JobsCommand::List).await;
+    assert_eq!(code, 0);
+}
+
+#[tokio::test]
+async fn jobs_run_unknown_name_exits_with_error() {
+    let _guard = CWD_LOCK.lock().unwrap();
+    let dir = TempDir::new().unwrap();
+    fs::create_dir_all(dir.path().join("config")).unwrap();
+    fs::write(
+        dir.path().join("config/test.yml"),
+        "jobs:\n  type: memory\n  queues: [default]\n",
+    )
+    .unwrap();
+
+    let original_dir = std::env::current_dir().unwrap();
+    let original_env = std::env::var("DOIDO_ENV").ok();
+    std::env::set_current_dir(dir.path()).unwrap();
+    std::env::set_var("DOIDO_ENV", "test");
+
+    let code = run(JobsCommand::Run(RunArgs {
+        job_name: "definitely_not_a_real_job_xyz".to_string(),
+        payload: None,
+        queue: None,
+        later: false,
+        timeout: None,
+        max_retries: None,
+    }))
+    .await;
+    assert_eq!(code, 1);
+
+    std::env::set_current_dir(original_dir).unwrap();
+    if let Some(v) = original_env {
+        std::env::set_var("DOIDO_ENV", v);
+    } else {
+        std::env::remove_var("DOIDO_ENV");
+    }
+}
+
+#[cfg(feature = "jobs-db")]
+#[tokio::test]
+async fn jobs_run_perform_now_does_not_insert_db_rows() {
+    let _guard = CWD_LOCK.lock().unwrap();
+    let _pool = doido_model::pool::test_lock();
+    let dir = TempDir::new().unwrap();
+    fs::create_dir_all(dir.path().join("config")).unwrap();
+    fs::write(
+        dir.path().join("config/test.yml"),
+        "database:\n  url: \"sqlite::memory:\"\njobs:\n  type: db\n  queues: [default]\n",
+    )
+    .unwrap();
+
+    let original_dir = std::env::current_dir().unwrap();
+    let original_env = std::env::var("DOIDO_ENV").ok();
+    std::env::set_current_dir(dir.path()).unwrap();
+    std::env::set_var("DOIDO_ENV", "test");
+
+    let cfg = doido_jobs::config::load();
+    let queue = doido_jobs::config::build_configured_queue(&cfg)
+        .await
+        .unwrap();
+    assert!(queue
+        .reserve(&["default"], std::time::Duration::from_millis(20))
+        .await
+        .unwrap()
+        .is_none());
+
+    let code = run(JobsCommand::Run(RunArgs {
+        job_name: "cli_run_smoke_job".to_string(),
+        payload: None,
+        queue: None,
+        later: false,
+        timeout: None,
+        max_retries: None,
+    }))
+    .await;
+    assert_eq!(code, 0);
+
+    assert!(
+        queue
+            .reserve(&["default"], std::time::Duration::from_millis(20))
+            .await
+            .unwrap()
+            .is_none(),
+        "perform_now must not write to doido_jobs"
+    );
 
     std::env::set_current_dir(original_dir).unwrap();
     if let Some(v) = original_env {

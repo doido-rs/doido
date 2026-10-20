@@ -1,4 +1,4 @@
-//! `doido jobs` — inspect and manage the dead-letter store.
+//! `doido jobs` — run handlers, list registrations, and manage the dead-letter store.
 //!
 //! Backed by the configured queue backend (memory/db/redis), selected from the
 //! `jobs` section of `config/<env>.yml` (in-memory when absent) — the same
@@ -7,8 +7,15 @@
 use crate::{JobPayload, JobQueue, JobsConfig};
 use clap::Subcommand;
 
+use super::run::{self as run_cmd, RunArgs};
+
 #[derive(Subcommand)]
 pub enum JobsCommand {
+    /// List registered `#[job]` handler names
+    List,
+    /// Run a job in-process (`perform_now`) or enqueue with `--later`
+    #[command(visible_alias = "perform")]
+    Run(RunArgs),
     /// List failed (dead-lettered) jobs
     Failed,
     /// Retry every failed job (re-enqueue, then clear the dead-letter store)
@@ -17,20 +24,64 @@ pub enum JobsCommand {
     Discard,
 }
 
-pub async fn run(cmd: JobsCommand) {
+/// Run a `doido jobs` subcommand. Returns a process exit code (`0` = success).
+pub async fn run(cmd: JobsCommand) -> i32 {
+    match cmd {
+        JobsCommand::List => list_jobs(),
+        JobsCommand::Run(args) => {
+            // `build_configured_queue` installs the DB pool for the `db` backend (same as worker).
+            let _config = crate::config::load();
+            let queue = match crate::config::build_configured_queue(&_config).await {
+                Ok(q) => Some(q),
+                Err(e) => {
+                    doido_core::tracing::error!("failed to build jobs backend: {e}");
+                    eprintln!("error: failed to build jobs backend: {e:#}");
+                    return 1;
+                }
+            };
+            run_cmd::run(args, queue).await
+        }
+        JobsCommand::Failed => {
+            let Some((queue, config)) = configured_queue().await else {
+                return 1;
+            };
+            list_failed(queue.as_ref(), &config).await;
+            0
+        }
+        JobsCommand::Retry => {
+            let Some((queue, config)) = configured_queue().await else {
+                return 1;
+            };
+            retry_failed(queue.as_ref(), &config).await;
+            0
+        }
+        JobsCommand::Discard => {
+            let Some((queue, config)) = configured_queue().await else {
+                return 1;
+            };
+            discard_failed(queue.as_ref(), &config).await;
+            0
+        }
+    }
+}
+
+async fn configured_queue() -> Option<(std::sync::Arc<dyn JobQueue>, JobsConfig)> {
     let config = crate::config::load();
-    let queue = match crate::config::build_configured_queue(&config).await {
-        Ok(q) => q,
+    match crate::config::build_configured_queue(&config).await {
+        Ok(q) => Some((q, config)),
         Err(e) => {
             doido_core::tracing::error!("failed to build jobs backend: {e}");
-            return;
+            None
         }
-    };
-    match cmd {
-        JobsCommand::Failed => list_failed(queue.as_ref(), &config).await,
-        JobsCommand::Retry => retry_failed(queue.as_ref(), &config).await,
-        JobsCommand::Discard => discard_failed(queue.as_ref(), &config).await,
     }
+}
+
+fn list_jobs() -> i32 {
+    let registry = crate::JobRegistry::from_inventory();
+    for name in registry.names() {
+        println!("{name}");
+    }
+    0
 }
 
 /// Print every dead-lettered job across the configured queues.

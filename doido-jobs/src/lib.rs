@@ -31,6 +31,8 @@ pub use memory::{MemoryQueue, QueueStats};
 pub use queue::{BackoffStrategy, JobId, JobPayload, JobQueue, JobStatus, Reserved};
 #[cfg(feature = "jobs-redis")]
 pub use redis::RedisQueue;
-pub use registry::{HandlerFn, HandlerFuture, JobRegistration, JobRegistry};
+pub use registry::{
+    suggest_job_names, HandlerFn, HandlerFuture, JobDefaults, JobRegistration, JobRegistry,
+};
 pub use retry::{Decision, RetryPolicy};
-pub use worker::{EngineConfig, Worker, WorkerEngine};
+pub use worker::{perform_job_now, EngineConfig, Worker, WorkerEngine};
