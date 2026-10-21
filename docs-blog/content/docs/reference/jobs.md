@@ -77,11 +77,17 @@ let queue = build_queue(&JobsConfig::default()).await?; // Arc<dyn JobQueue>
 ```yaml
 # config/production.yml
 jobs:
-  backend: redis            # memory | db | redis
+  type: db                  # memory | db | redis
   queues: [critical, default, emails]
   concurrency: 8
-  redis_url: redis://127.0.0.1:6379
+  db:
+    sql_logging: false      # omit reserve/enqueue SQL noise on doido_jobs
+  redis:
+    url: redis://127.0.0.1:6379
 ```
+
+Failed jobs keep the last error in the `doido_jobs.last_error` column (and in the
+serialized payload) after a retry or dead-letter.
 
 ## Running the worker
 

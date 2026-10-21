@@ -2,9 +2,10 @@
 
 use chrono::{Duration as ChronoDuration, Utc};
 use doido_jobs::db::DbQueue;
+use doido_jobs::entity;
 use doido_jobs::queue::{JobPayload, JobQueue, JobStatus};
 use doido_jobs::{EngineConfig, WorkerEngine};
-use doido_model::sea_orm::Database;
+use doido_model::sea_orm::{ColumnTrait, Database, EntityTrait, QueryFilter};
 use serde_json::json;
 use std::sync::Arc;
 use std::time::Duration;
@@ -82,7 +83,9 @@ async fn test_db_enqueue_at_defers() {
 
 #[tokio::test]
 async fn test_db_nack_and_dead_letter() {
-    let q = fresh().await;
+    let conn = Database::connect("sqlite::memory:").await.unwrap();
+    let q = DbQueue::new(conn.clone());
+    q.migrate().await.unwrap();
     q.enqueue(JobPayload::new("default", json!({}), 3))
         .await
         .unwrap();
@@ -92,6 +95,13 @@ async fn test_db_nack_and_dead_letter() {
         .unwrap()
         .unwrap();
     q.nack(&r.job.id, None, "boom").await.unwrap();
+    let row = entity::Entity::find()
+        .filter(entity::Column::JobId.eq(&r.job.id))
+        .one(&conn)
+        .await
+        .unwrap()
+        .expect("row");
+    assert_eq!(row.last_error.as_deref(), Some("boom"));
     let r2 = q
         .reserve(QUEUES, Duration::from_millis(100))
         .await

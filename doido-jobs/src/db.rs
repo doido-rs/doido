@@ -8,7 +8,9 @@ use crate::entity;
 use crate::queue::{JobId, JobPayload, JobQueue, JobStatus, Reserved};
 use chrono::{DateTime, Utc};
 use doido_core::{anyhow::anyhow, Result};
-use doido_model::migration::{add_index_with_opts, create_table_with_opts, CmdOpts};
+use doido_model::migration::{
+    add_column_with_opts, add_index_with_opts, create_table_with_opts, CmdOpts,
+};
 use doido_model::sea_orm::sea_query::Expr;
 use doido_model::sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, NotSet, QueryFilter,
@@ -65,11 +67,23 @@ impl DbQueue {
                 t.big_integer("run_at").not_null();
                 t.big_integer("locked_at");
                 t.text("data").not_null();
+                t.text("last_error");
             },
             if_not_exists,
         )
         .await
         .map_err(|e| anyhow!("doido_jobs migrate failed: {e}"))?;
+        add_column_with_opts(
+            &manager,
+            "doido_jobs",
+            "last_error",
+            |c| {
+                c.text();
+            },
+            if_not_exists,
+        )
+        .await
+        .map_err(|e| anyhow!("doido_jobs last_error column failed: {e}"))?;
         add_index_with_opts(
             &manager,
             "doido_jobs",
@@ -92,6 +106,7 @@ impl DbQueue {
             run_at: Set(millis(job.run_at)),
             locked_at: Set(None),
             data: Set(data),
+            last_error: Set(None),
         }
         .insert(&self.conn)
         .await
@@ -144,6 +159,7 @@ impl DbQueue {
             .col_expr(entity::Column::Status, Expr::value(STATUS_RUNNING))
             .col_expr(entity::Column::LockedAt, Expr::value(millis(now)))
             .col_expr(entity::Column::Data, Expr::value(new_data))
+            .col_expr(entity::Column::LastError, Expr::value(None::<String>))
             .filter(entity::Column::Id.eq(row_id))
             .filter(entity::Column::Status.eq(STATUS_PENDING))
             .exec(&self.conn)
@@ -208,6 +224,7 @@ impl JobQueue for DbQueue {
             .col_expr(entity::Column::RunAt, Expr::value(millis(run_at)))
             .col_expr(entity::Column::LockedAt, Expr::value(None::<i64>))
             .col_expr(entity::Column::Data, Expr::value(data))
+            .col_expr(entity::Column::LastError, Expr::value(error.to_string()))
             .filter(entity::Column::JobId.eq(job_id))
             .exec(&self.conn)
             .await
@@ -236,12 +253,14 @@ impl JobQueue for DbQueue {
                 Err(_) => continue,
             };
             job.status = JobStatus::Pending;
-            job.error = Some("lease expired".to_string());
+            let reason = "lease expired";
+            job.error = Some(reason.to_string());
             let data = serde_json::to_string(&job)?;
             let res = entity::Entity::update_many()
                 .col_expr(entity::Column::Status, Expr::value(STATUS_PENDING))
                 .col_expr(entity::Column::LockedAt, Expr::value(None::<i64>))
                 .col_expr(entity::Column::Data, Expr::value(data))
+                .col_expr(entity::Column::LastError, Expr::value(reason))
                 .filter(entity::Column::Id.eq(row_id))
                 .filter(entity::Column::Status.eq(STATUS_RUNNING))
                 .exec(&self.conn)
@@ -263,6 +282,7 @@ impl JobQueue for DbQueue {
             .col_expr(entity::Column::Status, Expr::value(STATUS_DEAD))
             .col_expr(entity::Column::LockedAt, Expr::value(None::<i64>))
             .col_expr(entity::Column::Data, Expr::value(data))
+            .col_expr(entity::Column::LastError, Expr::value(reason.to_string()))
             .filter(entity::Column::JobId.eq(job_id))
             .exec(&self.conn)
             .await

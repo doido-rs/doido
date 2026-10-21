@@ -38,3 +38,15 @@ Flags for `jobs run`:
 Exit code `0` on success; `1` on unknown job name, bad JSON, handler error, or timeout.
 
 Dead-letter admin: `cargo doido jobs failed`, `retry`, `discard`.
+
+### DB backend: quieter logs & failure errors
+
+```yaml
+jobs:
+  type: db
+  db:
+    sql_logging: false   # stop tracing every reserve poll on doido_jobs
+```
+
+On failure the worker writes the error into the job JSON and the `last_error` column
+(pending retries and dead-letter rows).

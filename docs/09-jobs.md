@@ -183,7 +183,16 @@ namespace = "doido:jobs"
 
 [jobs.db]
 visibility_timeout_secs = 300
+sql_logging = false          # optional: dedicated jobs DB connection without SQL trace noise
 ```
+
+When `jobs.db.sql_logging` is `false`, the worker opens a separate database connection
+with sea-orm statement logging disabled for queue operations (`SELECT`/`UPDATE` on
+`doido_jobs`), while job handlers still use the global pool (and `logger.sql`) for
+application queries.
+
+Failed attempts persist the error on the row: in the JSON `data` payload and in the
+`last_error` column (visible in SQL clients and after `nack` / `dead_letter`).
 
 A `build_queue(config) -> Arc<dyn JobQueue>` factory (mirrors `CacheRegistry`) reads `backend` and
 constructs the matching implementation, so neither the engine nor the CLI knows which backend is live.

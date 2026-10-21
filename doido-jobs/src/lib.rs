@@ -7,7 +7,7 @@ pub mod context;
 #[cfg(feature = "jobs-db")]
 pub mod db;
 #[cfg(feature = "jobs-db")]
-mod entity;
+pub mod entity;
 pub mod memory;
 pub mod queue;
 #[cfg(feature = "jobs-redis")]

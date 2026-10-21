@@ -19,6 +19,8 @@ pub struct Model {
     pub locked_at: Option<i64>,
     #[sea_orm(column_type = "Text")]
     pub data: String,
+    #[sea_orm(column_type = "Text", nullable)]
+    pub last_error: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
