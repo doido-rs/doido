@@ -101,7 +101,10 @@ async fn test_db_nack_and_dead_letter() {
         .await
         .unwrap()
         .expect("row");
+    assert_eq!(row.status, "failed");
     assert_eq!(row.last_error.as_deref(), Some("boom"));
+    let stored: JobPayload = serde_json::from_str(&row.data).unwrap();
+    assert_eq!(stored.status, JobStatus::Failed);
     let r2 = q
         .reserve(QUEUES, Duration::from_millis(100))
         .await

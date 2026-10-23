@@ -134,10 +134,12 @@ grava em `doido_jobs`; use `--later` e `worker --once` para processar de forma a
 
 ## Retries & backoff
 
-Jobs que falham são retentados até `max_retries` com a `BackoffStrategy` configurada
-(`Exponential`, `Linear` ou `None`) e `backoff_base` segundos — tudo definido no `#[job]`. O
-worker dá `nack` numa falha com o `retry_at` calculado, e `reclaim_expired` reexecuta leases
-perdidos por uma queda.
+`attempts` sobe a cada `reserve`; `max_retries` limita o número total de **execuções**
+(incluindo a primeira). Jobs que falham com tentativas restantes ficam em status **`Failed`**
+na mesma fila, com `run_at` definido pela `BackoffStrategy` (`Exponential`, `Linear` ou
+`None`) e `backoff_base` do `#[job]`. Quando `run_at` vence, o worker reserva de novo. O
+engine chama `nack` com o `retry_at` calculado; `reclaim_expired` recupera leases expirados
+após queda do processo.
 
 ```rust
 #[job(max_retries = 5, backoff = "exponential", backoff_base = 10)]
@@ -146,8 +148,9 @@ async fn charge_card(order_id: i64) -> doido::Result<()> { Ok(()) }
 
 ## Dead-letter queue
 
-Jobs que esgotam seus retries são movidos para um store de dead-letter, inspecionável e
-reexecutável via CLI.
+Jobs que esgotam `max_retries` vão para status **`Dead`** no store de dead-letter,
+inspecionável e reexecutável via CLI. `jobs retry` reenfileira cada dead job com id novo,
+`tentativas` zeradas e **`job_name` preservado** (mesma política de retry/timeout).
 
 ```bash
 cargo doido jobs failed    # lista jobs na dead-letter (tracing)

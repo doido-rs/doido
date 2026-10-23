@@ -4,7 +4,7 @@
 //! `jobs` section of `config/<env>.yml` (in-memory when absent) — the same
 //! backend the worker drains.
 
-use crate::{JobPayload, JobQueue, JobsConfig};
+use crate::{JobQueue, JobsConfig};
 use clap::Subcommand;
 
 use super::run::{self as run_cmd, RunArgs};
@@ -127,10 +127,7 @@ async fn retry_failed(queue: &dyn JobQueue, config: &JobsConfig) {
             // A fresh run: `JobPayload::new` mints a new id (status Pending,
             // attempts 0) so it doesn't collide with the dead row still in the
             // store, and we carry the original policy over via the setters.
-            let fresh = JobPayload::new(job.queue.clone(), job.payload.clone(), job.max_retries)
-                .with_priority(job.priority)
-                .with_backoff(job.backoff, job.backoff_base)
-                .with_timeout(job.timeout);
+            let fresh = job.requeue_fresh();
             match queue.enqueue(fresh).await {
                 Ok(_) => retried += 1,
                 Err(e) => doido_core::tracing::error!("re-enqueue failed: {e}"),

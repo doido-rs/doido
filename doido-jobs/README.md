@@ -48,5 +48,7 @@ jobs:
     sql_logging: false   # stop tracing every reserve poll on doido_jobs
 ```
 
-On failure the worker writes the error into the job JSON and the `last_error` column
-(pending retries and dead-letter rows).
+On failure the worker writes the error into the job JSON and the `last_error` column.
+Retryable failures become **`Failed`** (scheduled at `run_at` via backoff); exhausted jobs
+become **`Dead`**. `doido jobs retry` re-enqueues dead jobs with a new id via
+[`JobPayload::requeue_fresh`](src/queue.rs) (preserves `job_name` and retry policy).

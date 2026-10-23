@@ -282,7 +282,7 @@ async fn connect_jobs_database(
 }
 
 #[cfg(not(feature = "jobs-db"))]
-async fn build_db_backed_queue() -> Result<Arc<dyn JobQueue>> {
+async fn build_db_backed_queue(_config: &JobsConfig) -> Result<Arc<dyn JobQueue>> {
     Err(anyhow!(
         "jobs backend 'db' selected in config but doido-jobs was built without the \
          `jobs-db` feature"

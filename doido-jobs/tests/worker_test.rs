@@ -1,3 +1,4 @@
+use doido_jobs::queue::JobStatus;
 use doido_jobs::{BackoffStrategy, EngineConfig, JobPayload, JobQueue, MemoryQueue, WorkerEngine};
 use serde_json::json;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -138,6 +139,23 @@ async fn test_engine_panic_is_a_failure_not_stuck_running() {
     assert_eq!(queue.dead_jobs("default").await.unwrap().len(), 1);
     let dead = &queue.dead_jobs("default").await.unwrap()[0];
     assert_eq!(dead.error.as_deref(), Some("job panicked"));
+}
+
+#[tokio::test]
+async fn test_engine_retry_cycle_then_dead_letter() {
+    let queue: Arc<dyn JobQueue> = Arc::new(MemoryQueue::new());
+    let job = JobPayload::new("default", json!({}), 2).with_backoff(BackoffStrategy::None, 0);
+    queue.enqueue(job).await.unwrap();
+    let engine = WorkerEngine::new(queue.clone(), config(&["default"], 1));
+    let fail = |_job: JobPayload, _ctx: Arc<()>| async {
+        Err(doido_core::anyhow::anyhow!("nope"))
+    };
+    engine.run_once(&fail).await.unwrap();
+    assert!(queue.dead_jobs("default").await.unwrap().is_empty());
+    engine.run_once(&fail).await.unwrap();
+    let dead = queue.dead_jobs("default").await.unwrap();
+    assert_eq!(dead.len(), 1);
+    assert_eq!(dead[0].status, JobStatus::Dead);
 }
 
 #[tokio::test]

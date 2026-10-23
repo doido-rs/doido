@@ -172,7 +172,7 @@ impl JobQueue for MemoryQueue {
     async fn nack(&self, id: &str, retry_at: Option<DateTime<Utc>>, error: &str) -> Result<()> {
         if let Some(Leased { mut job, .. }) = self.running.lock().await.remove(id) {
             job.error = Some(error.to_string());
-            job.status = JobStatus::Pending;
+            job.status = JobStatus::Failed;
             job.run_at = retry_at.unwrap_or_else(Utc::now);
             self.push(job).await;
         }

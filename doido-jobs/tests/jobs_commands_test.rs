@@ -95,6 +95,66 @@ async fn jobs_exits_when_backend_cannot_be_built() {
 
 #[cfg(feature = "jobs-db")]
 #[tokio::test]
+async fn jobs_retry_preserves_job_name_on_reenqueue() {
+    use doido_jobs::JobPayload;
+    use serde_json::json;
+
+    let _guard = CWD_LOCK.lock().unwrap();
+    let _pool = doido_model::pool::test_lock();
+    let dir = TempDir::new().unwrap();
+    fs::create_dir_all(dir.path().join("config")).unwrap();
+    fs::write(
+        dir.path().join("config/test.yml"),
+        "database:\n  url: \"sqlite::memory:\"\njobs:\n  type: db\n  queues: [default]\n",
+    )
+    .unwrap();
+
+    let original_dir = std::env::current_dir().unwrap();
+    let original_env = std::env::var("DOIDO_ENV").ok();
+    std::env::set_current_dir(dir.path()).unwrap();
+    std::env::set_var("DOIDO_ENV", "test");
+
+    let cfg = doido_jobs::config::load();
+    let queue = doido_jobs::config::build_configured_queue(&cfg)
+        .await
+        .unwrap();
+    let job = JobPayload::new("default", json!({}), 3).with_name("cli_run_smoke_job");
+    queue.enqueue(job).await.unwrap();
+    let reserved = queue
+        .reserve(&["default"], std::time::Duration::from_millis(50))
+        .await
+        .unwrap()
+        .unwrap();
+    queue
+        .dead_letter(&reserved.job.id, "failed")
+        .await
+        .unwrap();
+
+    // Same re-enqueue path as `doido jobs retry` (one shared queue — not the CLI,
+    // which opens a new DB connection per invocation).
+    for dead in queue.dead_jobs("default").await.unwrap() {
+        queue.enqueue(dead.requeue_fresh()).await.unwrap();
+    }
+    queue.discard_dead("default").await.unwrap();
+
+    let again = queue
+        .reserve(&["default"], std::time::Duration::from_millis(50))
+        .await
+        .unwrap()
+        .expect("retried job should be enqueued");
+    assert_eq!(again.job.job_name, "cli_run_smoke_job");
+    assert_eq!(again.job.attempts, 1);
+
+    std::env::set_current_dir(original_dir).unwrap();
+    if let Some(v) = original_env {
+        std::env::set_var("DOIDO_ENV", v);
+    } else {
+        std::env::remove_var("DOIDO_ENV");
+    }
+}
+
+#[cfg(feature = "jobs-db")]
+#[tokio::test]
 async fn jobs_retry_requeues_dead_lettered_job_in_db_backend() {
     use doido_jobs::JobPayload;
     use serde_json::json;

@@ -142,10 +142,11 @@ process asynchronously.
 
 ## Retries & backoff
 
-Failing jobs are retried up to `max_retries` with the configured `BackoffStrategy`
-(`Exponential`, `Linear`, or `None`) and `backoff_base` seconds — all set on `#[job]`. The
-worker `nack`s a failure with the computed `retry_at`, and `reclaim_expired` replays leases
-lost to a crash.
+`attempts` increments on each `reserve`; `max_retries` caps total **executions** (including
+the first run). Jobs that fail with retries left enter **`Failed`** on the same queue with
+`run_at` driven by the `BackoffStrategy` (`Exponential`, `Linear`, or `None`) and
+`backoff_base` from `#[job]`. When `run_at` is due, the worker reserves again. The engine
+`nack`s with the computed `retry_at`; `reclaim_expired` replays leases lost to a crash.
 
 ```rust
 #[job(max_retries = 5, backoff = "exponential", backoff_base = 10)]
@@ -154,8 +155,9 @@ async fn charge_card(order_id: i64) -> doido::Result<()> { Ok(()) }
 
 ## Dead-letter queue
 
-Jobs that exhaust their retries are moved to a dead-letter store, inspectable and
-re-runnable via the CLI.
+Jobs that exhaust `max_retries` move to **`Dead`** in the dead-letter store, inspectable and
+re-runnable via the CLI. `jobs retry` re-enqueues each dead job with a fresh id, reset
+attempts, and preserved **`job_name`** (same retry/timeout policy).
 
 ```bash
 cargo doido jobs failed    # list dead-lettered jobs (tracing)

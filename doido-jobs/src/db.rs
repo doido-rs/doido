@@ -21,6 +21,7 @@ use std::time::Duration;
 
 const STATUS_PENDING: &str = "pending";
 const STATUS_RUNNING: &str = "running";
+const STATUS_FAILED: &str = "failed";
 const STATUS_DEAD: &str = "dead";
 
 /// Default visibility timeout for reserved jobs.
@@ -133,7 +134,7 @@ impl DbQueue {
         }
         let queue_names: Vec<String> = queues.iter().map(|q| (*q).to_string()).collect();
         let row = entity::Entity::find()
-            .filter(entity::Column::Status.eq(STATUS_PENDING))
+            .filter(entity::Column::Status.is_in([STATUS_PENDING, STATUS_FAILED]))
             .filter(entity::Column::RunAt.lte(millis(now)))
             .filter(entity::Column::Queue.is_in(queue_names))
             .order_by_desc(entity::Column::Priority)
@@ -161,7 +162,7 @@ impl DbQueue {
             .col_expr(entity::Column::Data, Expr::value(new_data))
             .col_expr(entity::Column::LastError, Expr::value(None::<String>))
             .filter(entity::Column::Id.eq(row_id))
-            .filter(entity::Column::Status.eq(STATUS_PENDING))
+            .filter(entity::Column::Status.is_in([STATUS_PENDING, STATUS_FAILED]))
             .exec(&self.conn)
             .await
             .map_err(|e| anyhow!("reserve claim failed: {e}"))?;
@@ -215,12 +216,12 @@ impl JobQueue for DbQueue {
             return Ok(());
         };
         let run_at = retry_at.unwrap_or_else(Utc::now);
-        job.status = JobStatus::Pending;
+        job.status = JobStatus::Failed;
         job.error = Some(error.to_string());
         job.run_at = run_at;
         let data = serde_json::to_string(&job)?;
         entity::Entity::update_many()
-            .col_expr(entity::Column::Status, Expr::value(STATUS_PENDING))
+            .col_expr(entity::Column::Status, Expr::value(STATUS_FAILED))
             .col_expr(entity::Column::RunAt, Expr::value(millis(run_at)))
             .col_expr(entity::Column::LockedAt, Expr::value(None::<i64>))
             .col_expr(entity::Column::Data, Expr::value(data))

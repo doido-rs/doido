@@ -199,28 +199,38 @@ constructs the matching implementation, so neither the engine nor the CLI knows 
 
 ## Job Lifecycle
 
+`attempts` increments on each `reserve`; `max_retries` is the maximum number of
+**executions** (including the first run), not “extra retries after the first failure”.
+
 ```
-enqueue / enqueue_at → [queue]
+enqueue / enqueue_at → Pending (run_at)
         │ run_at reached
         ▼
-   reserve (lease, visibility timeout) ──► perform()
-        │                                    ├─ Ok       → ack (done)
-        │                                    └─ Err/timeout → nack
-        │                                          ├─ attempts < max_retries → re-enqueue at retry_at
-        │                                          └─ attempts == max_retries → dead_letter
+   reserve (lease) ──► Running ──► perform()
+        │                         ├─ Ok → ack (row removed / done)
+        │                         └─ Err / timeout / panic
+        │                               ├─ attempts < max_retries → Failed (run_at = retry_at, backoff)
+        │                               └─ attempts >= max_retries → Dead (dead-letter store)
         ▼
-   lease expires (worker died) → reclaim_expired → back to [queue]
+   Failed ──► reserve when run_at due ──► Running (retry)
+        ▼
+   lease expires (worker died) → reclaim_expired → Pending/Failed with run_at unchanged
 ```
+
+After a retryable failure the engine calls `nack`: the job stays in the same logical
+queue with status **`Failed`**, `run_at` set from the job’s `BackoffStrategy`, and
+`last_error` populated (DB backend). When `run_at` is due, `reserve` claims it like
+any other eligible work.
 
 ## Dead Letter Queue
 
-- Failed jobs written to a separate dead-letter store (same backend).
+- Exhausted jobs (`Dead` status) live in the dead-letter store (same backend).
 - Each entry stores: job payload, last error message, attempt count, failed_at timestamp.
 - Inspectable and re-enqueueable via CLI (see also **Running jobs from the CLI** below):
 
 ```
 doido jobs failed             ← list dead-letter jobs (tracing output)
-doido jobs retry              ← re-enqueue every dead job, then clear the dead store
+doido jobs retry              ← re-enqueue every dead job (fresh id, attempts reset, job_name kept), then clear the dead store
 doido jobs discard            ← permanently remove all dead jobs
 ```
 

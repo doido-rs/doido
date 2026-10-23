@@ -90,7 +90,7 @@ where
 }
 
 /// Apply the failure policy: dead-letter if retries are exhausted, otherwise
-/// re-enqueue at the backoff-derived `retry_at`.
+/// `nack` schedules a retry (`JobStatus::Failed`, eligible at backoff `retry_at`).
 async fn fail(queue: &Arc<dyn JobQueue>, job: &JobPayload, error: &str) -> Result<()> {
     if job.attempts >= job.max_retries {
         queue.dead_letter(&job.id, error).await?;
