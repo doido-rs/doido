@@ -52,6 +52,7 @@ On failure the worker writes the error into the job JSON and the `last_error` co
 Retryable failures become **`Failed`** (scheduled at `run_at` via backoff); exhausted jobs
 become **`Dead`**. `doido jobs retry` re-enqueues dead jobs with a new id via
 [`JobPayload::requeue_fresh`](src/queue.rs) (preserves `job_name` and retry policy).
+<<<<<<< HEAD
 
 ## Periodic cron
 
@@ -71,3 +72,5 @@ jobs:
         schedule: "0 0 3 * * *"
         payload: {}
 ```
+=======
+>>>>>>> aa98e6c (feat: update the concurrency between codes)
