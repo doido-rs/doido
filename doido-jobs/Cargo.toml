@@ -37,6 +37,10 @@ required-features = ["cli", "jobs-db"]
 name = "worker_command_test"
 required-features = ["cli", "jobs-db"]
 
+[[test]]
+name = "db_mysql_concurrency_test"
+required-features = ["jobs-db", "mysql"]
+
 [dev-dependencies]
 tokio = { workspace = true, features = ["rt-multi-thread", "macros", "time"] }
 doido-model = { workspace = true, features = ["sqlite"] }

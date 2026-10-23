@@ -1,8 +1,12 @@
 //! Database-backed queue (sea-orm). Enabled with the `jobs-db` feature.
 //!
-//! Jobs live in a single `doido_jobs` table. `reserve` claims a row atomically via
-//! a guarded update (`status = pending`), which works on both SQLite and Postgres
-//! without `SKIP LOCKED` (the guard ensures only one worker wins a row).
+//! Jobs live in a single `doido_jobs` table. On **MySQL** and **PostgreSQL** (when the
+//! corresponding crate features are enabled), `reserve` claims a row inside a transaction
+//! using `SELECT … FOR UPDATE SKIP LOCKED`, so a single worker process can reserve up to
+//! `jobs.concurrency` distinct jobs in parallel. On **SQLite** and other builds without
+//! those features, claim uses a guarded update (select + `UPDATE … WHERE status IN
+//! (pending, failed)`), which serializes on the same row under contention but needs no
+//! row-level skip lock support.
 
 use crate::entity;
 use crate::queue::{JobId, JobPayload, JobQueue, JobStatus, Reserved};
@@ -12,10 +16,14 @@ use doido_model::migration::{
     add_column_with_opts, add_index_with_opts, create_table_with_opts, CmdOpts,
 };
 use doido_model::sea_orm::sea_query::Expr;
+#[cfg(any(feature = "mysql", feature = "postgres"))]
+use doido_model::sea_orm::sea_query::{LockBehavior, LockType};
 use doido_model::sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, NotSet, QueryFilter,
     QueryOrder, Set,
 };
+#[cfg(any(feature = "mysql", feature = "postgres"))]
+use doido_model::sea_orm::{QuerySelect, TransactionTrait};
 use doido_model::SchemaManager;
 use std::time::Duration;
 
@@ -132,6 +140,22 @@ impl DbQueue {
         if queues.is_empty() {
             return Ok(None);
         }
+        #[cfg(any(feature = "mysql", feature = "postgres"))]
+        {
+            return self.try_claim_skip_locked(queues, now).await;
+        }
+        #[cfg(not(any(feature = "mysql", feature = "postgres")))]
+        {
+            return self.try_claim_legacy(queues, now).await;
+        }
+    }
+
+    #[cfg(not(any(feature = "mysql", feature = "postgres")))]
+    async fn try_claim_legacy(
+        &self,
+        queues: &[&str],
+        now: DateTime<Utc>,
+    ) -> Result<Option<Reserved>> {
         let queue_names: Vec<String> = queues.iter().map(|q| (*q).to_string()).collect();
         let row = entity::Entity::find()
             .filter(entity::Column::Status.is_in([STATUS_PENDING, STATUS_FAILED]))
@@ -172,6 +196,71 @@ impl DbQueue {
         } else {
             Ok(None)
         }
+    }
+
+    #[cfg(any(feature = "mysql", feature = "postgres"))]
+    async fn try_claim_skip_locked(
+        &self,
+        queues: &[&str],
+        now: DateTime<Utc>,
+    ) -> Result<Option<Reserved>> {
+        let queue_names: Vec<String> = queues.iter().map(|q| (*q).to_string()).collect();
+        let txn = self
+            .conn
+            .begin()
+            .await
+            .map_err(|e| anyhow!("reserve begin txn failed: {e}"))?;
+
+        let row = entity::Entity::find()
+            .filter(entity::Column::Status.is_in([STATUS_PENDING, STATUS_FAILED]))
+            .filter(entity::Column::RunAt.lte(millis(now)))
+            .filter(entity::Column::Queue.is_in(queue_names))
+            .order_by_desc(entity::Column::Priority)
+            .order_by_asc(entity::Column::RunAt)
+            .lock_with_behavior(LockType::Update, LockBehavior::SkipLocked)
+            .one(&txn)
+            .await
+            .map_err(|e| anyhow!("reserve select failed: {e}"))?;
+
+        let Some(model) = row else {
+            txn.rollback()
+                .await
+                .map_err(|e| anyhow!("reserve rollback failed: {e}"))?;
+            return Ok(None);
+        };
+
+        let row_id = model.id;
+        let mut job: JobPayload = job_from_data(&model.data)?;
+
+        job.attempts += 1;
+        job.status = JobStatus::Running;
+        let new_data = serde_json::to_string(&job)?;
+        let lease_until = now
+            + chrono::Duration::from_std(self.visibility_timeout)
+                .unwrap_or_else(|_| chrono::Duration::seconds(300));
+
+        let res = entity::Entity::update_many()
+            .col_expr(entity::Column::Status, Expr::value(STATUS_RUNNING))
+            .col_expr(entity::Column::LockedAt, Expr::value(millis(now)))
+            .col_expr(entity::Column::Data, Expr::value(new_data))
+            .col_expr(entity::Column::LastError, Expr::value(None::<String>))
+            .filter(entity::Column::Id.eq(row_id))
+            .filter(entity::Column::Status.is_in([STATUS_PENDING, STATUS_FAILED]))
+            .exec(&txn)
+            .await
+            .map_err(|e| anyhow!("reserve claim failed: {e}"))?;
+
+        if res.rows_affected != 1 {
+            txn.rollback()
+                .await
+                .map_err(|e| anyhow!("reserve rollback failed: {e}"))?;
+            return Ok(None);
+        }
+
+        txn.commit()
+            .await
+            .map_err(|e| anyhow!("reserve commit failed: {e}"))?;
+        Ok(Some(Reserved { job, lease_until }))
     }
 }
 
