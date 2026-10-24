@@ -47,3 +47,54 @@ pub async fn current_user<U: crate::user::AuthUser>(
         .map_err(|e| AuthError::Internal(e.to_string()))?
         .ok_or(AuthError::Unauthorized)
 }
+
+/// The signed-in user's id, resolved from the request without a database hit.
+///
+/// Prefers the auth-layer [`AuthIdentity`] (JWT/API strategies, or when the auth
+/// middleware is applied), falling back to the encrypted session cookie (the
+/// default cookie strategy). Returns `None` for anonymous requests.
+pub fn current_user_id<U: crate::user::AuthUser>(
+    ctx: &mut doido_controller::Context,
+) -> Option<U::Id> {
+    if let Some(identity) = current_identity(ctx.request_parts()) {
+        if let Ok(id) = serde_json::from_value::<U::Id>(identity.user_id) {
+            return Some(id);
+        }
+    }
+    ctx.session().get::<U::Id>(crate::session::USER_ID_KEY)
+}
+
+/// Load the signed-in user model, or `None` when anonymous / not found. Resolves
+/// the id via [`current_user_id`] (identity or session), then hits the database.
+pub async fn load_current_user<U: crate::user::AuthUser>(
+    ctx: &mut doido_controller::Context,
+) -> Option<U> {
+    let id = current_user_id::<U>(ctx)?;
+    U::find_by_id(&global().db, id).await.ok().flatten()
+}
+
+/// Stage the authenticated user for views (Rails `current_user` helper analogue).
+///
+/// Assigns the full serialized user under `current_user` and a `signed_in`
+/// boolean onto the controller [`Context`](doido_controller::Context), so every
+/// template rendered on this request can use e.g.
+/// `{% if signed_in %}{{ current_user.email }}{% endif %}`. When no user is
+/// authenticated it only sets `signed_in = false`. Designed to be wired as a
+/// `#[before_action]` — generated controllers do this automatically.
+///
+/// The user model must derive `Serialize`; the generated user entity skips
+/// `password_digest` so the hash never reaches the template context.
+pub async fn assign_current_user<U>(ctx: &mut doido_controller::Context)
+where
+    U: crate::user::AuthUser + serde::Serialize,
+{
+    match load_current_user::<U>(ctx).await {
+        Some(user) => {
+            ctx.assign("current_user", &user);
+            ctx.assign("signed_in", true);
+        }
+        None => {
+            ctx.assign("signed_in", false);
+        }
+    }
+}
