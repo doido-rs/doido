@@ -1,8 +1,7 @@
 //! `doido jobs run` / `perform` — in-process perform or enqueue for the worker.
 
 use crate::context::job_context_from_runtime;
-use crate::queue::JobPayload;
-use crate::registry::{suggest_job_names, JobRegistry};
+use crate::registry::{build_job_payload, suggest_job_names, JobRegistry};
 use crate::worker::perform_job_now;
 use crate::JobQueue;
 use clap::Args;
@@ -51,7 +50,7 @@ pub async fn run(args: RunArgs, queue: Option<Arc<dyn JobQueue>>) -> i32 {
 async fn run_inner(args: RunArgs, queue: Option<Arc<dyn JobQueue>>) -> Result<()> {
     let registry = JobRegistry::from_inventory();
 
-    let Some(defaults) = registry.defaults_for(&args.job_name) else {
+    if registry.defaults_for(&args.job_name).is_none() {
         let known = registry.names();
         let mut msg = format!("unknown job `{}`", args.job_name);
         let hints = suggest_job_names(&known, &args.job_name, 5);
@@ -66,16 +65,19 @@ async fn run_inner(args: RunArgs, queue: Option<Arc<dyn JobQueue>>) -> Result<()
         }
         msg.push_str("\nlist handlers with: cargo doido jobs list");
         return Err(anyhow!(msg));
-    };
+    }
 
     let payload = parse_payload(args.payload.as_deref())?;
-    let queue_name = args.queue.unwrap_or_else(|| defaults.queue.to_string());
-    let timeout = args.timeout.unwrap_or(defaults.timeout_secs);
-    let max_retries = args.max_retries.unwrap_or(defaults.max_retries);
 
-    let job = JobPayload::new(queue_name.clone(), payload, max_retries)
-        .with_name(&args.job_name)
-        .with_timeout(timeout);
+    let job = build_job_payload(
+        &registry,
+        &args.job_name,
+        payload,
+        args.queue.clone(),
+        args.timeout,
+        args.max_retries,
+    )?;
+    let queue_name = job.queue.clone();
 
     if args.later {
         let queue = queue.ok_or_else(|| {

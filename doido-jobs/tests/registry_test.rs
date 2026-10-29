@@ -2,7 +2,8 @@
 //! and a reserved payload is routed back to its function and actually runs.
 
 use doido_jobs::{
-    EngineConfig, JobContext, JobPayload, JobQueue, JobRegistry, MemoryQueue, WorkerEngine,
+    build_job_payload, EngineConfig, JobContext, JobPayload, JobQueue, JobRegistry, MemoryQueue,
+    WorkerEngine,
 };
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::Arc;
@@ -133,4 +134,21 @@ async fn manual_register_dispatches_handler() {
         .await
         .unwrap();
     assert_eq!(HIT.load(Ordering::SeqCst), 1);
+}
+
+#[test]
+fn build_job_payload_uses_macro_defaults() {
+    let registry = JobRegistry::from_inventory();
+    let job = build_job_payload(
+        &registry,
+        "add_to_total",
+        serde_json::json!(3),
+        None,
+        None,
+        None,
+    )
+    .unwrap();
+    assert_eq!(job.job_name, "add_to_total");
+    assert_eq!(job.queue, "default");
+    assert_eq!(job.payload, serde_json::json!(3));
 }

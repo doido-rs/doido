@@ -89,6 +89,23 @@ jobs:
 Failed jobs keep the last error in the `doido_jobs.last_error` column (and in the
 serialized payload) after a retry or dead-letter.
 
+## Periodic cron
+
+With `cargo doido worker` (long-lived mode), the worker loads `jobs.cron` from
+`config/<env>.yml` at boot, validates cron expressions and registered `#[job]` names, and
+enqueues on each tick (**UTC**, six fields: `sec min hour dom month dow`). Multiple workers
+use a leader lock (Redis or Postgres/MySQL advisory locks) to avoid duplicate enqueues.
+Cron is off in `test` by default; `worker --once` does not start the scheduler.
+
+```yaml
+jobs:
+  cron:
+    tasks:
+      - job_name: sync_catalog_daily
+        schedule: "0 0 3 * * *"
+        payload: {}
+```
+
 ## Running the worker
 
 The worker reserves jobs (leasing them so a crashed worker's jobs are reclaimed) and runs

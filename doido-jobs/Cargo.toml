@@ -17,6 +17,7 @@ uuid.workspace = true
 inventory.workspace = true
 clap = { workspace = true, optional = true }
 chrono = { workspace = true, features = ["serde"] }
+cron.workspace = true
 doido-model = { workspace = true, optional = true, default-features = false }
 redis = { workspace = true, optional = true }
 

@@ -234,6 +234,37 @@ doido jobs retry              ← re-enqueue every dead job (fresh id, attempts 
 doido jobs discard            ← permanently remove all dead jobs
 ```
 
+## Periodic cron (worker)
+
+When `cargo doido worker` starts (long-lived mode, not `--once`), it reads
+`jobs.cron` from `config/<env>.yml`, validates each task’s cron expression and
+registered `job_name`, and enqueues a `JobPayload` on each tick. Schedules are
+**reloaded only at worker boot** (no hot-reload). All times are **UTC**.
+
+```yaml
+jobs:
+  type: db
+  cron:
+    enabled: true          # default: true when tasks are present
+    tasks:
+      - job_name: sync_catalog_daily
+        schedule: "0 0 3 * * *"   # sec min hour dom month dow
+        payload: {"skip_reschedule": true}
+        queue: catalog            # optional; default from #[job]
+        enabled: true
+```
+
+Expressions use **six fields** (`sec min hour day month weekday`), as parsed by
+the `cron` crate. Cron is **off in `test`** unless `cron.enabled: true` is set
+explicitly.
+
+**Multiple workers:** each tick acquires a short-lived leader lock before enqueue
+(Redis `SET NX` when `jobs.type: redis`; Postgres/MySQL advisory locks when
+`jobs.type: db` and the app DB is not SQLite). Memory/SQLite dev setups log a
+warning and behave like a single worker.
+
+`cargo doido worker --once` does **not** start the cron scheduler (drain-only).
+
 ## Running jobs from the CLI
 
 Rails analogue: **`perform_now`** vs **`perform_later`**.

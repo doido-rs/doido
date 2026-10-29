@@ -11,6 +11,7 @@
 use crate::context::JobContext;
 use crate::queue::JobPayload;
 use doido_core::{anyhow::anyhow, Result};
+use serde_json::Value;
 use std::collections::HashMap;
 use std::future::Future;
 use std::pin::Pin;
@@ -129,6 +130,26 @@ impl JobRegistry {
             )),
         }
     }
+}
+
+/// Build a [`JobPayload`] for enqueue / cron, using `#[job]` defaults from the registry.
+pub fn build_job_payload(
+    registry: &JobRegistry,
+    job_name: &str,
+    payload: Value,
+    queue: Option<String>,
+    timeout: Option<u64>,
+    max_retries: Option<u32>,
+) -> Result<JobPayload> {
+    let defaults = registry
+        .defaults_for(job_name)
+        .ok_or_else(|| anyhow!("unknown job `{job_name}`"))?;
+    let queue_name = queue.unwrap_or_else(|| defaults.queue.to_string());
+    let timeout = timeout.unwrap_or(defaults.timeout_secs);
+    let max_retries = max_retries.unwrap_or(defaults.max_retries);
+    Ok(JobPayload::new(queue_name, payload, max_retries)
+        .with_name(job_name)
+        .with_timeout(timeout))
 }
 
 /// Names closest to `query` among `known` (prefix/substring match), for CLI hints.

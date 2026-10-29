@@ -4,6 +4,7 @@ pub mod callbacks;
 pub mod commands;
 pub mod config;
 pub mod context;
+pub mod cron;
 #[cfg(feature = "jobs-db")]
 pub mod db;
 #[cfg(feature = "jobs-db")]
@@ -32,7 +33,8 @@ pub use queue::{BackoffStrategy, JobId, JobPayload, JobQueue, JobStatus, Reserve
 #[cfg(feature = "jobs-redis")]
 pub use redis::RedisQueue;
 pub use registry::{
-    suggest_job_names, HandlerFn, HandlerFuture, JobDefaults, JobRegistration, JobRegistry,
+    build_job_payload, suggest_job_names, HandlerFn, HandlerFuture, JobDefaults, JobRegistration,
+    JobRegistry,
 };
 pub use retry::{Decision, RetryPolicy};
 pub use worker::{perform_job_now, EngineConfig, Worker, WorkerEngine};

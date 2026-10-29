@@ -52,3 +52,22 @@ On failure the worker writes the error into the job JSON and the `last_error` co
 Retryable failures become **`Failed`** (scheduled at `run_at` via backoff); exhausted jobs
 become **`Dead`**. `doido jobs retry` re-enqueues dead jobs with a new id via
 [`JobPayload::requeue_fresh`](src/queue.rs) (preserves `job_name` and retry policy).
+
+## Periodic cron
+
+Configure recurring enqueue under `jobs.cron` in `config/<env>.yml`. The
+long-lived worker loads tasks at boot and enqueues registered `#[job]` handlers
+on each UTC tick (`schedule`: six-field cron, e.g. `0 0 3 * * *` for 03:00 UTC).
+Use `jobs.type: db` (Postgres/MySQL) or `redis` so leader locks dedupe ticks
+across multiple worker processes. Cron is disabled in the `test` environment by
+default; `worker --once` does not run cron.
+
+```yaml
+jobs:
+  type: db
+  cron:
+    tasks:
+      - job_name: sync_catalog_daily
+        schedule: "0 0 3 * * *"
+        payload: {}
+```

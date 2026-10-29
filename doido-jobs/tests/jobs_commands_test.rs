@@ -125,10 +125,7 @@ async fn jobs_retry_preserves_job_name_on_reenqueue() {
         .await
         .unwrap()
         .unwrap();
-    queue
-        .dead_letter(&reserved.job.id, "failed")
-        .await
-        .unwrap();
+    queue.dead_letter(&reserved.job.id, "failed").await.unwrap();
 
     // Same re-enqueue path as `doido jobs retry` (one shared queue — not the CLI,
     // which opens a new DB connection per invocation).

@@ -81,6 +81,23 @@ jobs:
   redis_url: redis://127.0.0.1:6379
 ```
 
+## Cron periódico
+
+Com `cargo doido worker` (modo contínuo), o worker lê `jobs.cron` em `config/<env>.yml` na
+inicialização, valida expressões cron e nomes de `#[job]`, e enfileira um job a cada tick
+(horários **UTC**, seis campos: `sec min hour dom month dow`). Vários workers usam leader
+lock (Redis ou advisory lock Postgres/MySQL) para não duplicar enqueue. Cron fica desligado
+em `test` por padrão; `worker --once` não inicia o agendador.
+
+```yaml
+jobs:
+  cron:
+    tasks:
+      - job_name: sync_catalog_daily
+        schedule: "0 0 3 * * *"
+        payload: {}
+```
+
 ## Rodando o worker
 
 O worker reserva jobs (fazendo lease, de modo que os jobs de um worker que caiu sejam

@@ -152,6 +152,8 @@ coverage_ignore_regex() {
 	doido-generators) echo 'commands/(credentials|db|dbconsole|jobs|worker|server|console|runner)\.rs|(^|/)(cli|banner|main)\.rs' ;;
 	# commands/server.rs boots axum; commands/console.rs is an interactive REPL.
 	doido-controller) echo 'doido-controller/src/commands/(server|console)\.rs' ;;
+	# Redis queue backend needs a live Redis; covered when REDIS_URL is set in e2e.
+	doido-jobs) echo 'redis\.rs' ;;
 	esac
 }
 
