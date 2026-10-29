@@ -1,4 +1,5 @@
-use crate::{JobContext, JobRegistry, WorkerEngine};
+use crate::cron;
+use crate::{JobRegistry, WorkerEngine};
 use std::sync::Arc;
 
 /// Start the background worker.
@@ -33,11 +34,7 @@ pub async fn run(once: bool) {
         config.concurrency,
     );
 
-    // The engine carries the application context handed to every job handler.
-    let mut job_ctx = JobContext::new();
-    if let Some(conn) = doido_model::pool::try_pool() {
-        job_ctx.insert(conn.clone());
-    }
+    let job_ctx = crate::context::job_context_from_runtime();
     let queue_refs: Vec<&str> = config.queues.iter().map(|s| s.as_str()).collect();
 
     // Every `#[job]` registers its handler at link time; build the lookup once and
@@ -46,12 +43,15 @@ pub async fn run(once: bool) {
     // than silently acking work with no handler.
     let registry = Arc::new(JobRegistry::from_inventory());
     doido_core::tracing::info!("registered jobs: {:?}", registry.names());
-    let handler = move |job, ctx| {
-        let registry = Arc::clone(&registry);
-        async move { registry.dispatch(job, ctx).await }
-    };
 
     if once {
+        let handler = {
+            let registry = Arc::clone(&registry);
+            move |job, ctx| {
+                let registry = Arc::clone(&registry);
+                async move { registry.dispatch(job, ctx).await }
+            }
+        };
         match queue.reclaim_expired(&queue_refs).await {
             Ok(n) if n > 0 => doido_core::tracing::info!("reclaimed {n} expired job(s)"),
             Ok(_) => {}
@@ -73,7 +73,35 @@ pub async fn run(once: bool) {
         return;
     }
 
-    let engine = WorkerEngine::with_context(queue, config.engine_config(), job_ctx);
+    let handler = {
+        let registry = Arc::clone(&registry);
+        move |job, ctx| {
+            let registry = Arc::clone(&registry);
+            async move { registry.dispatch(job, ctx).await }
+        }
+    };
+
+    let engine = WorkerEngine::with_context(Arc::clone(&queue), config.engine_config(), job_ctx);
+
+    let cron_handles = match cron::boot(
+        &config.cron,
+        &config,
+        Arc::clone(&queue),
+        Arc::clone(&registry),
+    )
+    .await
+    {
+        Ok(handles) => {
+            if !handles.is_empty() {
+                doido_core::tracing::info!("cron scheduler started ({} task(s))", handles.len());
+            }
+            handles
+        }
+        Err(e) => {
+            doido_core::tracing::error!("failed to load jobs.cron: {e:#}");
+            return;
+        }
+    };
 
     let shutdown = async {
         let _ = tokio::signal::ctrl_c().await;
@@ -81,5 +109,9 @@ pub async fn run(once: bool) {
     };
     if let Err(e) = engine.run(handler, shutdown).await {
         doido_core::tracing::error!("worker engine error: {e}");
+    }
+
+    for handle in cron_handles {
+        handle.abort();
     }
 }

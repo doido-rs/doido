@@ -4,10 +4,11 @@ pub mod callbacks;
 pub mod commands;
 pub mod config;
 pub mod context;
+pub mod cron;
 #[cfg(feature = "jobs-db")]
 pub mod db;
 #[cfg(feature = "jobs-db")]
-mod entity;
+pub mod entity;
 pub mod memory;
 pub mod queue;
 #[cfg(feature = "jobs-redis")]
@@ -31,6 +32,9 @@ pub use memory::{MemoryQueue, QueueStats};
 pub use queue::{BackoffStrategy, JobId, JobPayload, JobQueue, JobStatus, Reserved};
 #[cfg(feature = "jobs-redis")]
 pub use redis::RedisQueue;
-pub use registry::{HandlerFn, HandlerFuture, JobRegistration, JobRegistry};
+pub use registry::{
+    build_job_payload, suggest_job_names, HandlerFn, HandlerFuture, JobDefaults, JobRegistration,
+    JobRegistry,
+};
 pub use retry::{Decision, RetryPolicy};
-pub use worker::{EngineConfig, Worker, WorkerEngine};
+pub use worker::{perform_job_now, EngineConfig, Worker, WorkerEngine};

@@ -1,24 +1,35 @@
 //! Database-backed queue (sea-orm). Enabled with the `jobs-db` feature.
 //!
-//! Jobs live in a single `doido_jobs` table. `reserve` claims a row atomically via
-//! a guarded update (`status = pending`), which works on both SQLite and Postgres
-//! without `SKIP LOCKED` (the guard ensures only one worker wins a row).
+//! Jobs live in a single `doido_jobs` table. On **MySQL** and **PostgreSQL** (when the
+//! corresponding crate features are enabled), `reserve` claims a row inside a transaction
+//! using `SELECT … FOR UPDATE SKIP LOCKED`, so a single worker process can reserve up to
+//! `jobs.concurrency` distinct jobs in parallel. On **SQLite** and other builds without
+//! those features, claim uses a guarded update (select + `UPDATE … WHERE status IN
+//! (pending, failed)`), which serializes on the same row under contention but needs no
+//! row-level skip lock support.
 
 use crate::entity;
 use crate::queue::{JobId, JobPayload, JobQueue, JobStatus, Reserved};
 use chrono::{DateTime, Utc};
 use doido_core::{anyhow::anyhow, Result};
-use doido_model::migration::{add_index_with_opts, create_table_with_opts, CmdOpts};
+use doido_model::migration::{
+    add_column_with_opts, add_index_with_opts, create_table_with_opts, CmdOpts,
+};
 use doido_model::sea_orm::sea_query::Expr;
+#[cfg(any(feature = "mysql", feature = "postgres"))]
+use doido_model::sea_orm::sea_query::{LockBehavior, LockType};
 use doido_model::sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, NotSet, QueryFilter,
     QueryOrder, Set,
 };
+#[cfg(any(feature = "mysql", feature = "postgres"))]
+use doido_model::sea_orm::{QuerySelect, TransactionTrait};
 use doido_model::SchemaManager;
 use std::time::Duration;
 
 const STATUS_PENDING: &str = "pending";
 const STATUS_RUNNING: &str = "running";
+const STATUS_FAILED: &str = "failed";
 const STATUS_DEAD: &str = "dead";
 
 /// Default visibility timeout for reserved jobs.
@@ -65,11 +76,23 @@ impl DbQueue {
                 t.big_integer("run_at").not_null();
                 t.big_integer("locked_at");
                 t.text("data").not_null();
+                t.text("last_error");
             },
             if_not_exists,
         )
         .await
         .map_err(|e| anyhow!("doido_jobs migrate failed: {e}"))?;
+        add_column_with_opts(
+            &manager,
+            "doido_jobs",
+            "last_error",
+            |c| {
+                c.text();
+            },
+            if_not_exists,
+        )
+        .await
+        .map_err(|e| anyhow!("doido_jobs last_error column failed: {e}"))?;
         add_index_with_opts(
             &manager,
             "doido_jobs",
@@ -92,6 +115,7 @@ impl DbQueue {
             run_at: Set(millis(job.run_at)),
             locked_at: Set(None),
             data: Set(data),
+            last_error: Set(None),
         }
         .insert(&self.conn)
         .await
@@ -116,9 +140,25 @@ impl DbQueue {
         if queues.is_empty() {
             return Ok(None);
         }
+        #[cfg(any(feature = "mysql", feature = "postgres"))]
+        {
+            return self.try_claim_skip_locked(queues, now).await;
+        }
+        #[cfg(not(any(feature = "mysql", feature = "postgres")))]
+        {
+            return self.try_claim_legacy(queues, now).await;
+        }
+    }
+
+    #[cfg(not(any(feature = "mysql", feature = "postgres")))]
+    async fn try_claim_legacy(
+        &self,
+        queues: &[&str],
+        now: DateTime<Utc>,
+    ) -> Result<Option<Reserved>> {
         let queue_names: Vec<String> = queues.iter().map(|q| (*q).to_string()).collect();
         let row = entity::Entity::find()
-            .filter(entity::Column::Status.eq(STATUS_PENDING))
+            .filter(entity::Column::Status.is_in([STATUS_PENDING, STATUS_FAILED]))
             .filter(entity::Column::RunAt.lte(millis(now)))
             .filter(entity::Column::Queue.is_in(queue_names))
             .order_by_desc(entity::Column::Priority)
@@ -144,8 +184,9 @@ impl DbQueue {
             .col_expr(entity::Column::Status, Expr::value(STATUS_RUNNING))
             .col_expr(entity::Column::LockedAt, Expr::value(millis(now)))
             .col_expr(entity::Column::Data, Expr::value(new_data))
+            .col_expr(entity::Column::LastError, Expr::value(None::<String>))
             .filter(entity::Column::Id.eq(row_id))
-            .filter(entity::Column::Status.eq(STATUS_PENDING))
+            .filter(entity::Column::Status.is_in([STATUS_PENDING, STATUS_FAILED]))
             .exec(&self.conn)
             .await
             .map_err(|e| anyhow!("reserve claim failed: {e}"))?;
@@ -155,6 +196,71 @@ impl DbQueue {
         } else {
             Ok(None)
         }
+    }
+
+    #[cfg(any(feature = "mysql", feature = "postgres"))]
+    async fn try_claim_skip_locked(
+        &self,
+        queues: &[&str],
+        now: DateTime<Utc>,
+    ) -> Result<Option<Reserved>> {
+        let queue_names: Vec<String> = queues.iter().map(|q| (*q).to_string()).collect();
+        let txn = self
+            .conn
+            .begin()
+            .await
+            .map_err(|e| anyhow!("reserve begin txn failed: {e}"))?;
+
+        let row = entity::Entity::find()
+            .filter(entity::Column::Status.is_in([STATUS_PENDING, STATUS_FAILED]))
+            .filter(entity::Column::RunAt.lte(millis(now)))
+            .filter(entity::Column::Queue.is_in(queue_names))
+            .order_by_desc(entity::Column::Priority)
+            .order_by_asc(entity::Column::RunAt)
+            .lock_with_behavior(LockType::Update, LockBehavior::SkipLocked)
+            .one(&txn)
+            .await
+            .map_err(|e| anyhow!("reserve select failed: {e}"))?;
+
+        let Some(model) = row else {
+            txn.rollback()
+                .await
+                .map_err(|e| anyhow!("reserve rollback failed: {e}"))?;
+            return Ok(None);
+        };
+
+        let row_id = model.id;
+        let mut job: JobPayload = job_from_data(&model.data)?;
+
+        job.attempts += 1;
+        job.status = JobStatus::Running;
+        let new_data = serde_json::to_string(&job)?;
+        let lease_until = now
+            + chrono::Duration::from_std(self.visibility_timeout)
+                .unwrap_or_else(|_| chrono::Duration::seconds(300));
+
+        let res = entity::Entity::update_many()
+            .col_expr(entity::Column::Status, Expr::value(STATUS_RUNNING))
+            .col_expr(entity::Column::LockedAt, Expr::value(millis(now)))
+            .col_expr(entity::Column::Data, Expr::value(new_data))
+            .col_expr(entity::Column::LastError, Expr::value(None::<String>))
+            .filter(entity::Column::Id.eq(row_id))
+            .filter(entity::Column::Status.is_in([STATUS_PENDING, STATUS_FAILED]))
+            .exec(&txn)
+            .await
+            .map_err(|e| anyhow!("reserve claim failed: {e}"))?;
+
+        if res.rows_affected != 1 {
+            txn.rollback()
+                .await
+                .map_err(|e| anyhow!("reserve rollback failed: {e}"))?;
+            return Ok(None);
+        }
+
+        txn.commit()
+            .await
+            .map_err(|e| anyhow!("reserve commit failed: {e}"))?;
+        Ok(Some(Reserved { job, lease_until }))
     }
 }
 
@@ -199,15 +305,16 @@ impl JobQueue for DbQueue {
             return Ok(());
         };
         let run_at = retry_at.unwrap_or_else(Utc::now);
-        job.status = JobStatus::Pending;
+        job.status = JobStatus::Failed;
         job.error = Some(error.to_string());
         job.run_at = run_at;
         let data = serde_json::to_string(&job)?;
         entity::Entity::update_many()
-            .col_expr(entity::Column::Status, Expr::value(STATUS_PENDING))
+            .col_expr(entity::Column::Status, Expr::value(STATUS_FAILED))
             .col_expr(entity::Column::RunAt, Expr::value(millis(run_at)))
             .col_expr(entity::Column::LockedAt, Expr::value(None::<i64>))
             .col_expr(entity::Column::Data, Expr::value(data))
+            .col_expr(entity::Column::LastError, Expr::value(error.to_string()))
             .filter(entity::Column::JobId.eq(job_id))
             .exec(&self.conn)
             .await
@@ -236,12 +343,14 @@ impl JobQueue for DbQueue {
                 Err(_) => continue,
             };
             job.status = JobStatus::Pending;
-            job.error = Some("lease expired".to_string());
+            let reason = "lease expired";
+            job.error = Some(reason.to_string());
             let data = serde_json::to_string(&job)?;
             let res = entity::Entity::update_many()
                 .col_expr(entity::Column::Status, Expr::value(STATUS_PENDING))
                 .col_expr(entity::Column::LockedAt, Expr::value(None::<i64>))
                 .col_expr(entity::Column::Data, Expr::value(data))
+                .col_expr(entity::Column::LastError, Expr::value(reason))
                 .filter(entity::Column::Id.eq(row_id))
                 .filter(entity::Column::Status.eq(STATUS_RUNNING))
                 .exec(&self.conn)
@@ -263,6 +372,7 @@ impl JobQueue for DbQueue {
             .col_expr(entity::Column::Status, Expr::value(STATUS_DEAD))
             .col_expr(entity::Column::LockedAt, Expr::value(None::<i64>))
             .col_expr(entity::Column::Data, Expr::value(data))
+            .col_expr(entity::Column::LastError, Expr::value(reason.to_string()))
             .filter(entity::Column::JobId.eq(job_id))
             .exec(&self.conn)
             .await

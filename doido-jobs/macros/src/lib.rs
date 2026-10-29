@@ -172,6 +172,9 @@ pub fn job(attr: TokenStream, item: TokenStream) -> TokenStream {
             doido_jobs::JobRegistration {
                 name: #job_name_lit,
                 handler: #handler_ident,
+                default_queue: #queue_lit,
+                default_timeout: #timeout,
+                default_max_retries: #max_retries,
             }
         }
 

@@ -11,6 +11,7 @@
 use crate::context::JobContext;
 use crate::queue::JobPayload;
 use doido_core::{anyhow::anyhow, Result};
+use serde_json::Value;
 use std::collections::HashMap;
 use std::future::Future;
 use std::pin::Pin;
@@ -23,12 +24,41 @@ pub type HandlerFuture = Pin<Box<dyn Future<Output = Result<()>> + Send>>;
 /// `#[job]` macro; a plain `fn` pointer so it can live in an `inventory` item.
 pub type HandlerFn = fn(JobPayload, Arc<JobContext>) -> HandlerFuture;
 
+/// Compile-time defaults stamped by the `#[job]` macro (queue, timeout, retries).
+#[derive(Clone, Copy, Debug)]
+pub struct JobDefaults {
+    pub queue: &'static str,
+    pub timeout_secs: u64,
+    pub max_retries: u32,
+}
+
+impl JobDefaults {
+    /// Used for handlers registered manually in tests (no `#[job]` metadata).
+    pub const CLI_FALLBACK: Self = Self {
+        queue: "default",
+        timeout_secs: 3600,
+        max_retries: 0,
+    };
+}
+
+#[derive(Clone)]
+struct JobEntry {
+    handler: HandlerFn,
+    defaults: JobDefaults,
+}
+
 /// One `#[job]`'s registration, submitted at link time via `inventory::submit!`.
 pub struct JobRegistration {
     /// The job's name — matches [`JobPayload::job_name`].
     pub name: &'static str,
     /// The handler that runs a payload for this job.
     pub handler: HandlerFn,
+    /// Default queue from `#[job(queue = "...")]`.
+    pub default_queue: &'static str,
+    /// Default per-attempt timeout from `#[job(timeout = ...)]`.
+    pub default_timeout: u64,
+    /// Default max retries from `#[job(max_retries = ...)]`.
+    pub default_max_retries: u32,
 }
 
 inventory::collect!(JobRegistration);
@@ -36,7 +66,7 @@ inventory::collect!(JobRegistration);
 /// Maps a job name to its handler. Built once at worker boot.
 #[derive(Default, Clone)]
 pub struct JobRegistry {
-    handlers: HashMap<&'static str, HandlerFn>,
+    entries: HashMap<&'static str, JobEntry>,
 }
 
 impl JobRegistry {
@@ -49,32 +79,99 @@ impl JobRegistry {
     pub fn from_inventory() -> Self {
         let mut registry = Self::new();
         for reg in inventory::iter::<JobRegistration> {
-            registry.handlers.insert(reg.name, reg.handler);
+            registry.entries.insert(
+                reg.name,
+                JobEntry {
+                    handler: reg.handler,
+                    defaults: JobDefaults {
+                        queue: reg.default_queue,
+                        timeout_secs: reg.default_timeout,
+                        max_retries: reg.default_max_retries,
+                    },
+                },
+            );
         }
         registry
     }
 
     /// Register a handler explicitly (used by tests and for programmatic jobs).
     pub fn register(&mut self, name: &'static str, handler: HandlerFn) -> &mut Self {
-        self.handlers.insert(name, handler);
+        self.entries.insert(
+            name,
+            JobEntry {
+                handler,
+                defaults: JobDefaults::CLI_FALLBACK,
+            },
+        );
         self
     }
 
-    /// The names of all registered jobs (for `doido jobs`/diagnostics).
+    /// The names of all registered jobs (for `doido jobs list`/diagnostics), sorted.
     pub fn names(&self) -> Vec<&'static str> {
-        self.handlers.keys().copied().collect()
+        let mut names: Vec<_> = self.entries.keys().copied().collect();
+        names.sort_unstable();
+        names
+    }
+
+    /// Compile-time defaults for a registered job, if present.
+    pub fn defaults_for(&self, name: &str) -> Option<JobDefaults> {
+        self.entries.get(name).map(|e| e.defaults)
     }
 
     /// Run `job` on its registered handler. Returns `Err` for an unknown job
     /// name so the engine applies its retry/dead-letter policy instead of
     /// silently dropping work with no handler.
     pub async fn dispatch(&self, job: JobPayload, ctx: Arc<JobContext>) -> Result<()> {
-        match self.handlers.get(job.job_name.as_str()) {
-            Some(handler) => handler(job, ctx).await,
+        match self.entries.get(job.job_name.as_str()) {
+            Some(entry) => (entry.handler)(job, ctx).await,
             None => Err(anyhow!(
                 "no handler registered for job `{}` (is its `#[job]` crate linked?)",
                 job.job_name
             )),
         }
     }
+}
+
+/// Build a [`JobPayload`] for enqueue / cron, using `#[job]` defaults from the registry.
+pub fn build_job_payload(
+    registry: &JobRegistry,
+    job_name: &str,
+    payload: Value,
+    queue: Option<String>,
+    timeout: Option<u64>,
+    max_retries: Option<u32>,
+) -> Result<JobPayload> {
+    let defaults = registry
+        .defaults_for(job_name)
+        .ok_or_else(|| anyhow!("unknown job `{job_name}`"))?;
+    let queue_name = queue.unwrap_or_else(|| defaults.queue.to_string());
+    let timeout = timeout.unwrap_or(defaults.timeout_secs);
+    let max_retries = max_retries.unwrap_or(defaults.max_retries);
+    Ok(JobPayload::new(queue_name, payload, max_retries)
+        .with_name(job_name)
+        .with_timeout(timeout))
+}
+
+/// Names closest to `query` among `known` (prefix/substring match), for CLI hints.
+pub fn suggest_job_names<'a>(known: &'a [&'a str], query: &str, limit: usize) -> Vec<&'a str> {
+    let q = query.to_ascii_lowercase();
+    let mut scored: Vec<(&str, usize)> = known
+        .iter()
+        .copied()
+        .filter_map(|name| {
+            let n = name.to_ascii_lowercase();
+            let score = if n == q {
+                100
+            } else if n.starts_with(&q) || q.starts_with(&n) {
+                50
+            } else if n.contains(&q) || q.contains(&n) {
+                30
+            } else {
+                n.chars().zip(q.chars()).take_while(|(a, b)| a == b).count()
+            };
+            (score > 0).then_some((name, score))
+        })
+        .collect();
+    scored.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(b.0)));
+    scored.into_iter().take(limit).map(|(n, _)| n).collect()
 }

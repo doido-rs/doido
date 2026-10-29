@@ -77,10 +77,33 @@ let queue = build_queue(&JobsConfig::default()).await?; // Arc<dyn JobQueue>
 ```yaml
 # config/production.yml
 jobs:
-  backend: redis            # memory | db | redis
+  type: db                  # memory | db | redis
   queues: [critical, default, emails]
   concurrency: 8
-  redis_url: redis://127.0.0.1:6379
+  db:
+    sql_logging: false      # omit reserve/enqueue SQL noise on doido_jobs
+  redis:
+    url: redis://127.0.0.1:6379
+```
+
+Failed jobs keep the last error in the `doido_jobs.last_error` column (and in the
+serialized payload) after a retry or dead-letter.
+
+## Periodic cron
+
+With `cargo doido worker` (long-lived mode), the worker loads `jobs.cron` from
+`config/<env>.yml` at boot, validates cron expressions and registered `#[job]` names, and
+enqueues on each tick (**UTC**, six fields: `sec min hour dom month dow`). Multiple workers
+use a leader lock (Redis or Postgres/MySQL advisory locks) to avoid duplicate enqueues.
+Cron is off in `test` by default; `worker --once` does not start the scheduler.
+
+```yaml
+jobs:
+  cron:
+    tasks:
+      - job_name: sync_catalog_daily
+        schedule: "0 0 3 * * *"
+        payload: {}
 ```
 
 ## Running the worker
@@ -111,12 +134,36 @@ cargo doido worker            # process jobs continuously
 cargo doido worker --once     # drain the queue and exit
 ```
 
+## Running jobs from the CLI
+
+List handlers linked into your app binary, run one in-process (Rails `perform_now`), or
+enqueue a single job for the worker (`perform_later`).
+
+| Rails | Doido |
+|-------|-------|
+| `perform_later` | `cargo doido jobs run <name> --later` |
+| `perform_now` | `cargo doido jobs run <name>` |
+| Job processor | `cargo doido worker` / `cargo doido worker --once` |
+
+```bash
+cargo doido jobs list
+cargo doido jobs run send_welcome --payload '42'
+cargo doido jobs run send_welcome --payload '{"user_id":42}'
+cargo doido jobs run send_welcome --later
+```
+
+`--payload` is JSON (default `{}`). Queue, timeout, and max retries default to the
+`#[job(...)]` attributes unless you pass `--queue`, `--timeout`, or `--max-retries`.
+In-process runs do not write to `doido_jobs`; use `--later` plus `worker --once` to
+process asynchronously.
+
 ## Retries & backoff
 
-Failing jobs are retried up to `max_retries` with the configured `BackoffStrategy`
-(`Exponential`, `Linear`, or `None`) and `backoff_base` seconds — all set on `#[job]`. The
-worker `nack`s a failure with the computed `retry_at`, and `reclaim_expired` replays leases
-lost to a crash.
+`attempts` increments on each `reserve`; `max_retries` caps total **executions** (including
+the first run). Jobs that fail with retries left enter **`Failed`** on the same queue with
+`run_at` driven by the `BackoffStrategy` (`Exponential`, `Linear`, or `None`) and
+`backoff_base` from `#[job]`. When `run_at` is due, the worker reserves again. The engine
+`nack`s with the computed `retry_at`; `reclaim_expired` replays leases lost to a crash.
 
 ```rust
 #[job(max_retries = 5, backoff = "exponential", backoff_base = 10)]
@@ -125,13 +172,14 @@ async fn charge_card(order_id: i64) -> doido::Result<()> { Ok(()) }
 
 ## Dead-letter queue
 
-Jobs that exhaust their retries are moved to a dead-letter store, inspectable and
-re-runnable via the CLI.
+Jobs that exhaust `max_retries` move to **`Dead`** in the dead-letter store, inspectable and
+re-runnable via the CLI. `jobs retry` re-enqueues each dead job with a fresh id, reset
+attempts, and preserved **`job_name`** (same retry/timeout policy).
 
 ```bash
-cargo doido jobs:failed            # list dead-lettered jobs
-cargo doido jobs:retry <job_id>    # requeue one
-cargo doido jobs:discard <job_id>  # drop one
+cargo doido jobs failed    # list dead-lettered jobs (tracing)
+cargo doido jobs retry     # re-enqueue all dead jobs
+cargo doido jobs discard   # remove all dead jobs
 ```
 
 ## Priority & scheduling
@@ -172,4 +220,4 @@ assert!(reserved.is_some());
 
 - [Mailer](@/docs/reference/mailer.md) — `deliver_later` enqueues onto the `mailers` queue.
 - [Cache](@/docs/reference/cache.md) & [Models](@/docs/reference/models.md) — Redis/DB backends.
-- [Generators & CLI](@/docs/reference/generators.md) — `cargo doido generate job` and `cargo doido worker`.
+- [Generators & CLI](@/docs/reference/generators.md) — `cargo doido generate job`, `cargo doido jobs run`, and `cargo doido worker`.

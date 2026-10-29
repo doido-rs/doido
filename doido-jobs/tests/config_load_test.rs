@@ -45,7 +45,7 @@ fn redis_settings_merge_with_defaults() {
 
 #[test]
 fn load_env_reads_jobs_yaml_from_disk() {
-    let _guard = CWD_LOCK.lock().unwrap();
+    let _guard = CWD_LOCK.lock().unwrap_or_else(|e| e.into_inner());
     let dir = TempDir::new().unwrap();
     fs::create_dir_all(dir.path().join("config")).unwrap();
     fs::write(
@@ -68,7 +68,7 @@ fn load_env_reads_jobs_yaml_from_disk() {
 
 #[test]
 fn load_defaults_when_config_file_missing() {
-    let _guard = CWD_LOCK.lock().unwrap();
+    let _guard = CWD_LOCK.lock().unwrap_or_else(|e| e.into_inner());
     let dir = TempDir::new().unwrap();
     fs::create_dir_all(dir.path().join("config")).unwrap();
 
@@ -91,7 +91,7 @@ fn load_defaults_when_config_file_missing() {
 
 #[test]
 fn load_reads_existing_config_file() {
-    let _guard = CWD_LOCK.lock().unwrap();
+    let _guard = CWD_LOCK.lock().unwrap_or_else(|e| e.into_inner());
     let dir = TempDir::new().unwrap();
     fs::create_dir_all(dir.path().join("config")).unwrap();
     fs::write(
@@ -127,7 +127,7 @@ fn jobs_settings_default_merges_into_config() {
 
 #[test]
 fn jobs_file_config_load_reads_disk() {
-    let _guard = CWD_LOCK.lock().unwrap();
+    let _guard = CWD_LOCK.lock().unwrap_or_else(|e| e.into_inner());
     let dir = TempDir::new().unwrap();
     fs::create_dir_all(dir.path().join("config")).unwrap();
     fs::write(
@@ -193,7 +193,7 @@ async fn build_configured_queue_installs_global_pool_from_config() {
 
 #[test]
 fn load_env_errors_when_file_missing() {
-    let _guard = CWD_LOCK.lock().unwrap();
+    let _guard = CWD_LOCK.lock().unwrap_or_else(|e| e.into_inner());
     let dir = TempDir::new().unwrap();
     fs::create_dir_all(dir.path().join("config")).unwrap();
     let original = std::env::current_dir().unwrap();

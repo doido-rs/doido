@@ -1,6 +1,7 @@
 //! Config-driven backend selection. Mirrors `doido-cache`'s registry: the engine
 //! and CLI only ever see an `Arc<dyn JobQueue>`, never a concrete backend.
 
+use crate::cron::{CronConfig, CronSettings};
 use crate::queue::JobQueue;
 use crate::worker::EngineConfig;
 use doido_core::{anyhow::anyhow, Environment, Result};
@@ -38,6 +39,9 @@ pub struct JobsConfig {
     pub reclaim_interval: Duration,
     pub redis_url: Option<String>,
     pub redis_namespace: String,
+    pub db_sql_logging: Option<bool>,
+    pub db_visibility_timeout: Duration,
+    pub cron: CronConfig,
 }
 
 impl Default for JobsConfig {
@@ -50,6 +54,12 @@ impl Default for JobsConfig {
             reclaim_interval: Duration::from_secs(30),
             redis_url: None,
             redis_namespace: "doido:jobs".to_string(),
+            db_sql_logging: None,
+            db_visibility_timeout: Duration::from_secs(300),
+            cron: CronConfig {
+                enabled: false,
+                tasks: Vec::new(),
+            },
         }
     }
 }
@@ -103,6 +113,19 @@ pub fn build_db_queue(conn: doido_model::sea_orm::DatabaseConnection) -> Arc<dyn
 
 // ── Config-file loading (mirrors `doido-cache`'s `config`) ──────────────────
 
+/// Database backend settings (`jobs.db`).
+#[derive(Debug, Clone, Default, Deserialize)]
+pub struct DbSettings {
+    /// When `false`, the jobs backend uses its own connection with sea-orm SQL
+    /// logging disabled so worker `reserve` polls do not flood logs (even when
+    /// `logger.sql` is true). When omitted, the global pool is reused when
+    /// installed; otherwise SQL logging follows `logger.sql`.
+    #[serde(default)]
+    pub sql_logging: Option<bool>,
+    #[serde(default)]
+    pub visibility_timeout_secs: Option<u64>,
+}
+
 /// Redis connection settings for the jobs backend (`jobs.redis`).
 #[derive(Debug, Clone, Default, Deserialize)]
 pub struct RedisSettings {
@@ -134,14 +157,26 @@ pub struct JobsSettings {
     pub concurrency: Option<usize>,
     #[serde(default)]
     pub redis: Option<RedisSettings>,
+    #[serde(default)]
+    pub db: Option<DbSettings>,
+    #[serde(default)]
+    pub cron: Option<CronSettings>,
 }
 
 impl JobsSettings {
     /// Turn parsed settings into a runtime [`JobsConfig`], filling unspecified
     /// fields from [`JobsConfig::default`].
     pub fn into_config(self) -> JobsConfig {
+        self.into_config_for(Environment::get_env())
+    }
+
+    /// Same as [`into_config`](Self::into_config) but with an explicit environment
+    /// (used to disable cron in test without relying on process env).
+    pub fn into_config_for(self, env: Environment) -> JobsConfig {
         let d = JobsConfig::default();
         let redis = self.redis.unwrap_or_default();
+        let db = self.db.unwrap_or_default();
+        let cron = self.cron.unwrap_or_default().into_config(env);
         JobsConfig {
             backend: self.backend,
             queues: self.queues.filter(|q| !q.is_empty()).unwrap_or(d.queues),
@@ -150,6 +185,12 @@ impl JobsSettings {
             reclaim_interval: d.reclaim_interval,
             redis_url: redis.url.or(d.redis_url),
             redis_namespace: redis.namespace.unwrap_or(d.redis_namespace),
+            db_sql_logging: db.sql_logging,
+            db_visibility_timeout: db
+                .visibility_timeout_secs
+                .map(Duration::from_secs)
+                .unwrap_or(d.db_visibility_timeout),
+            cron,
         }
     }
 }
@@ -197,29 +238,76 @@ pub fn load() -> JobsConfig {
 /// exists. Memory/redis delegate to [`build_queue`].
 pub async fn build_configured_queue(config: &JobsConfig) -> Result<Arc<dyn JobQueue>> {
     match config.backend {
-        Backend::Db => build_db_backed_queue().await,
+        Backend::Db => build_db_backed_queue(config).await,
         _ => build_queue(config).await,
     }
 }
 
 #[cfg(feature = "jobs-db")]
-async fn build_db_backed_queue() -> Result<Arc<dyn JobQueue>> {
-    // Reuse an already-installed global pool (tests / a booted app), otherwise
-    // connect using the app's `database` config.
-    let conn = match doido_model::pool::try_pool() {
-        Some(pool) => pool.clone(),
-        None => doido_model::pool::init()
-            .await
-            .map_err(|e| anyhow!("jobs db backend: could not init database pool: {e}"))?
-            .clone(),
+async fn build_db_backed_queue(config: &JobsConfig) -> Result<Arc<dyn JobQueue>> {
+    let had_pool = doido_model::pool::try_pool().is_some();
+    let conn = jobs_db_connection(config).await?;
+    let queue_conn = if had_pool {
+        conn
+    } else {
+        let queue_conn = conn.clone();
+        let _ = doido_model::pool::set_pool(conn);
+        queue_conn
     };
-    let queue = crate::db::DbQueue::new(conn);
+    let queue =
+        crate::db::DbQueue::new(queue_conn).with_visibility_timeout(config.db_visibility_timeout);
     queue.migrate().await?; // idempotent CREATE TABLE IF NOT EXISTS
     Ok(Arc::new(queue))
 }
 
+#[cfg(feature = "jobs-db")]
+async fn jobs_db_connection(
+    config: &JobsConfig,
+) -> Result<doido_model::sea_orm::DatabaseConnection> {
+    use doido_model::Config;
+
+    match config.db_sql_logging {
+        Some(false) => connect_jobs_database(false).await,
+        Some(true) => {
+            if let Some(pool) = doido_model::pool::try_pool() {
+                Ok(pool.clone())
+            } else {
+                connect_jobs_database(true).await
+            }
+        }
+        None => {
+            if let Some(pool) = doido_model::pool::try_pool() {
+                Ok(pool.clone())
+            } else {
+                let sql = doido_model::config::YamlConfig::load()
+                    .map(|c| c.logger().sql)
+                    .unwrap_or(true);
+                connect_jobs_database(sql).await
+            }
+        }
+    }
+}
+
+#[cfg(feature = "jobs-db")]
+async fn connect_jobs_database(
+    sql_logging: bool,
+) -> Result<doido_model::sea_orm::DatabaseConnection> {
+    use doido_model::sea_orm::Database;
+
+    let app = doido_model::config::YamlConfig::load().unwrap_or_default();
+    let opts = doido_model::pool::pool_options(
+        app.database.url.as_str(),
+        sql_logging,
+        app.database.pool,
+        app.database.connect_timeout,
+    );
+    Database::connect(opts)
+        .await
+        .map_err(|e| anyhow!("jobs db backend: could not connect: {e}"))
+}
+
 #[cfg(not(feature = "jobs-db"))]
-async fn build_db_backed_queue() -> Result<Arc<dyn JobQueue>> {
+async fn build_db_backed_queue(_config: &JobsConfig) -> Result<Arc<dyn JobQueue>> {
     Err(anyhow!(
         "jobs backend 'db' selected in config but doido-jobs was built without the \
          `jobs-db` feature"
@@ -229,6 +317,15 @@ async fn build_db_backed_queue() -> Result<Arc<dyn JobQueue>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn parses_jobs_db_sql_logging() {
+        let yaml =
+            "jobs:\n  type: db\n  db:\n    sql_logging: false\n    visibility_timeout_secs: 120\n";
+        let cfg = JobsFileConfig::from_yaml(yaml).unwrap().jobs.into_config();
+        assert_eq!(cfg.db_sql_logging, Some(false));
+        assert_eq!(cfg.db_visibility_timeout, Duration::from_secs(120));
+    }
 
     #[test]
     fn parses_jobs_section() {
@@ -252,6 +349,15 @@ mod tests {
         assert_eq!(cfg.backend, Backend::Memory);
         assert_eq!(cfg.queues, vec!["default"]);
         assert_eq!(cfg.concurrency, JobsConfig::default().concurrency);
+    }
+
+    #[test]
+    fn parses_jobs_cron_section() {
+        let yaml = "jobs:\n  type: memory\n  cron:\n    tasks:\n      - job_name: tick\n        schedule: \"0 */5 * * * *\"\n";
+        let cfg = JobsFileConfig::from_yaml(yaml).unwrap();
+        assert_eq!(cfg.jobs.cron.as_ref().unwrap().tasks.len(), 1);
+        let runtime = cfg.jobs.into_config_for(Environment::Development);
+        assert!(runtime.cron.enabled);
     }
 
     #[test]

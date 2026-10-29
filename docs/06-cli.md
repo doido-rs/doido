@@ -5,10 +5,9 @@ Rails analogue: **rails runtime commands** (`rails server`, `rails console`, `ra
 > **Status (2026-07-28): mostly done.** Runtime commands are merged into
 > **`doido-generators`**. Implemented: `server`, `console` (evcxr), `routes`,
 > `db create` + SeaORM migrate/rollback/status passthrough, `worker`, `generate`, `new`.
-> **Open:** `db seed`/`db reset`/`db prepare`/`db schema` exist in `doido-model` but are
-> **not wired** as subcommands; `jobs:failed/retry/discard` and `credentials:edit` are
-> log-only stubs and `credentials:show` is absent; `server` does not parse `--port`/`--env`.
-> See [ARCHITECTURE.md](ARCHITECTURE.md).
+> **Open:** see [ARCHITECTURE.md](ARCHITECTURE.md) for remaining gaps. **Jobs CLI:** `doido
+> jobs list`, `doido jobs run` (alias `perform`, `--later` for enqueue), and dead-letter
+> `failed` / `retry` / `discard` are implemented in `doido-jobs` (not log-only stubs).
 
 ## Decisions (resolved in interview)
 
@@ -36,13 +35,16 @@ doido db status
 doido db seed
 doido db reset                ← drop + migrate + seed
 
-doido jobs:failed             ← list dead letter jobs
-doido jobs:retry <job_id>
-doido jobs:retry --all
-doido jobs:discard <job_id>
+doido jobs list               ← registered #[job] handler names
+doido jobs run <name>         ← perform_now (in-process; same registry as worker)
+doido jobs run <name> --later ← perform_later (enqueue one job)
+doido jobs run <name> --payload '{"key":true}'
+doido jobs failed             ← list dead-letter jobs
+doido jobs retry              ← re-enqueue all dead jobs
+doido jobs discard            ← discard all dead jobs
 
 doido worker                  ← start background job worker process
-doido worker --queue critical
+doido worker --once           ← drain ready jobs, then exit
 
 doido credentials:edit        ← decrypt, open $EDITOR, re-encrypt
 doido credentials:show        ← print decrypted credentials (dev only)
