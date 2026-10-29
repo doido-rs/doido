@@ -114,7 +114,8 @@ Each line reads: `- [ ] `[tag]` **Feature** — note. *(state)*`
 - [x] `[nice]` **Job lifecycle callbacks** (before/after/around perform, on-failure) — *(missing)*
 - [ ] `[nice]` **Fluent per-instance enqueue** (`Job{}.enqueue()/.enqueue_at()/.on_queue()`) — only `queue.enqueue(payload)` + macro-generated `*_enqueue()`; `enqueue_at` on the queue exists (spec 09). *(partial)*
 - [x] `[nice]` **Job batches / workflows** — *(missing)*
-- [ ] `[nice]` **Job status introspection** (`doido jobs:failed/retry/discard`) — CLI commands are log-only stubs; dead-letter queue exists in the backend but isn't wired. *(partial)*
+- [x] `[nice]` **Job status introspection** (`doido jobs failed/retry/discard`) — wired to the dead-letter store. *(done)*
+- [x] `[nice]` **Run jobs from CLI** (`doido jobs list`, `doido jobs run` / `perform`, `--later`) — Active Job `perform_now` / `perform_later` analogue. *(done)*
 - [x] `[nice]` **Richer worker app-context** (beyond db handle) — *(partial)*
 
 ## Cache / Active Support Cache — `doido-cache`

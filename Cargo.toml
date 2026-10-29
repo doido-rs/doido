@@ -121,6 +121,7 @@ uuid        = { version = "1", features = ["v4"] }
 inventory   = "0.3"                     # link-time job registration (Active Job analogue)
 clap        = { version = "4", features = ["derive"] }
 chrono      = { version = "0.4", features = ["clock"] }
+cron        = "0.15"
 redis       = { version = "1", features = ["tokio-comp", "aio"] }
 figlet-rs   = "1.0"
 tempfile    = "3"                       # dev-only: temp dirs/files in tests

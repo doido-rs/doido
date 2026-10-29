@@ -143,6 +143,26 @@ impl JobPayload {
     pub fn is_ready(&self, now: DateTime<Utc>) -> bool {
         self.run_at <= now
     }
+
+    /// Build a fresh enqueue from a dead (or completed) job: new id, reset attempts,
+    /// preserve handler name and retry policy (used by `doido jobs retry`).
+    pub fn requeue_fresh(&self) -> Self {
+        Self {
+            id: uuid::Uuid::new_v4().to_string(),
+            queue: self.queue.clone(),
+            job_name: self.job_name.clone(),
+            payload: self.payload.clone(),
+            attempts: 0,
+            max_retries: self.max_retries,
+            status: JobStatus::Pending,
+            error: None,
+            priority: self.priority,
+            run_at: Utc::now(),
+            backoff: self.backoff,
+            backoff_base: self.backoff_base,
+            timeout: self.timeout,
+        }
+    }
 }
 
 /// A job leased from the queue. It stays invisible to other workers until the

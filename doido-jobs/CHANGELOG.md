@@ -11,7 +11,7 @@ documented in `RELEASING.md` at the repository root.
 
 ## Unreleased
 
-_No user-facing changes yet._
+- DbQueue (MySQL/PostgreSQL): parallel job reserve via `FOR UPDATE SKIP LOCKED`
 
 ## 0.0.32-test2 - 2026-10-15
 

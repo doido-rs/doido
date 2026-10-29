@@ -201,7 +201,7 @@ impl JobQueue for RedisQueue {
             .zrem(self.processing_key(), id)
             .await
             .map_err(|e| anyhow!("nack zrem failed: {e}"))?;
-        job.status = JobStatus::Pending;
+        job.status = JobStatus::Failed;
         job.error = Some(error.to_string());
         job.run_at = retry_at.unwrap_or_else(Utc::now);
         self.put_ready(&job).await?;

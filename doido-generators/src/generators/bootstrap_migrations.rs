@@ -66,6 +66,7 @@ const JOBS_UP_BODY: &str = r#"        create_table(manager, "doido_jobs", |t| {
             t.big_integer("run_at").not_null();
             t.big_integer("locked_at");
             t.text("data").not_null();
+            t.text("last_error");
         })
         .await?;
         add_index(

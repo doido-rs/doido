@@ -2,12 +2,11 @@
 
 Rails analogue: **Active Job**
 
-> **Status (2026-07-28): mostly done.** `JobQueue` trait, worker engine, leasing,
-> exponential backoff, dead-letter, memory/db/redis backends, and the `#[job]` macro are
-> implemented. **Open:** the fluent per-instance enqueue below (`Job{}.enqueue()`,
-> `.enqueue_at()`, `.on_queue()`) is not present — enqueue is via `queue.enqueue(payload)`
-> plus the macro-generated `*_enqueue()` helper. The `doido jobs:*` CLI commands are stubs
-> (see spec 06). See [ARCHITECTURE.md](ARCHITECTURE.md).
+> **Status (2026-10-20): done.** `JobQueue` trait, worker engine, leasing, exponential
+> backoff, dead-letter, memory/db/redis backends, the `#[job]` macro (including the fluent
+> `<Name>Job` builder), link-time handler registry, and CLI: `doido jobs list`, `doido jobs
+> run` (`perform_now` / `--later`), plus dead-letter admin (`failed` / `retry` / `discard`).
+> See [ARCHITECTURE.md](ARCHITECTURE.md) and [doido-jobs/README.md](../doido-jobs/README.md).
 
 ## Decisions (resolved in interview)
 
@@ -184,38 +183,114 @@ namespace = "doido:jobs"
 
 [jobs.db]
 visibility_timeout_secs = 300
+sql_logging = false          # optional: dedicated jobs DB connection without SQL trace noise
 ```
+
+When `jobs.db.sql_logging` is `false`, the worker opens a separate database connection
+with sea-orm statement logging disabled for queue operations (`SELECT`/`UPDATE` on
+`doido_jobs`), while job handlers still use the global pool (and `logger.sql`) for
+application queries.
+
+Failed attempts persist the error on the row: in the JSON `data` payload and in the
+`last_error` column (visible in SQL clients and after `nack` / `dead_letter`).
 
 A `build_queue(config) -> Arc<dyn JobQueue>` factory (mirrors `CacheRegistry`) reads `backend` and
 constructs the matching implementation, so neither the engine nor the CLI knows which backend is live.
 
 ## Job Lifecycle
 
+`attempts` increments on each `reserve`; `max_retries` is the maximum number of
+**executions** (including the first run), not “extra retries after the first failure”.
+
 ```
-enqueue / enqueue_at → [queue]
+enqueue / enqueue_at → Pending (run_at)
         │ run_at reached
         ▼
-   reserve (lease, visibility timeout) ──► perform()
-        │                                    ├─ Ok       → ack (done)
-        │                                    └─ Err/timeout → nack
-        │                                          ├─ attempts < max_retries → re-enqueue at retry_at
-        │                                          └─ attempts == max_retries → dead_letter
+   reserve (lease) ──► Running ──► perform()
+        │                         ├─ Ok → ack (row removed / done)
+        │                         └─ Err / timeout / panic
+        │                               ├─ attempts < max_retries → Failed (run_at = retry_at, backoff)
+        │                               └─ attempts >= max_retries → Dead (dead-letter store)
         ▼
-   lease expires (worker died) → reclaim_expired → back to [queue]
+   Failed ──► reserve when run_at due ──► Running (retry)
+        ▼
+   lease expires (worker died) → reclaim_expired → Pending/Failed with run_at unchanged
 ```
+
+After a retryable failure the engine calls `nack`: the job stays in the same logical
+queue with status **`Failed`**, `run_at` set from the job’s `BackoffStrategy`, and
+`last_error` populated (DB backend). When `run_at` is due, `reserve` claims it like
+any other eligible work.
 
 ## Dead Letter Queue
 
-- Failed jobs written to a separate dead-letter store (same backend).
+- Exhausted jobs (`Dead` status) live in the dead-letter store (same backend).
 - Each entry stores: job payload, last error message, attempt count, failed_at timestamp.
-- Inspectable and re-enqueueable via CLI:
+- Inspectable and re-enqueueable via CLI (see also **Running jobs from the CLI** below):
 
 ```
-doido jobs:failed             ← list dead letter jobs
-doido jobs:retry <job_id>     ← re-enqueue a specific dead letter job
-doido jobs:retry --all        ← re-enqueue all dead letter jobs
-doido jobs:discard <job_id>   ← permanently remove from dead letter queue
+doido jobs failed             ← list dead-letter jobs (tracing output)
+doido jobs retry              ← re-enqueue every dead job (fresh id, attempts reset, job_name kept), then clear the dead store
+doido jobs discard            ← permanently remove all dead jobs
 ```
+
+## Periodic cron (worker)
+
+When `cargo doido worker` starts (long-lived mode, not `--once`), it reads
+`jobs.cron` from `config/<env>.yml`, validates each task’s cron expression and
+registered `job_name`, and enqueues a `JobPayload` on each tick. Schedules are
+**reloaded only at worker boot** (no hot-reload). All times are **UTC**.
+
+```yaml
+jobs:
+  type: db
+  cron:
+    enabled: true          # default: true when tasks are present
+    tasks:
+      - job_name: sync_catalog_daily
+        schedule: "0 0 3 * * *"   # sec min hour dom month dow
+        payload: {"skip_reschedule": true}
+        queue: catalog            # optional; default from #[job]
+        enabled: true
+```
+
+Expressions use **six fields** (`sec min hour day month weekday`), as parsed by
+the `cron` crate. Cron is **off in `test`** unless `cron.enabled: true` is set
+explicitly.
+
+**Multiple workers:** each tick acquires a short-lived leader lock before enqueue
+(Redis `SET NX` when `jobs.type: redis`; Postgres/MySQL advisory locks when
+`jobs.type: db` and the app DB is not SQLite). Memory/SQLite dev setups log a
+warning and behave like a single worker.
+
+`cargo doido worker --once` does **not** start the cron scheduler (drain-only).
+
+## Running jobs from the CLI
+
+Rails analogue: **`perform_now`** vs **`perform_later`**.
+
+| Rails | Doido |
+|-------|-------|
+| `perform_later` | `cargo doido jobs run <name> --later` |
+| `perform_now` | `cargo doido jobs run <name>` |
+| Job processor | `cargo doido worker` / `cargo doido worker --once` |
+
+Handlers must be linked into the app binary (same as the worker). `jobs run` builds
+`JobContext` and, for the `db` backend, installs the global pool via
+`build_configured_queue` before dispatch.
+
+```bash
+cargo doido jobs list
+cargo doido jobs run sync_catalog --payload '{"skip_reschedule":true}'
+cargo doido jobs run import_anexo_a --queue catalog
+cargo doido jobs run sync_lote --later   # enqueue; drain with worker --once
+```
+
+Flags: `--payload` (JSON, default `{}`), `--queue`, `--timeout`, `--max-retries` (for
+`--later`). Defaults for queue/timeout/retries come from `#[job(...)]` metadata stamped
+into `JobRegistration` at compile time. In-process runs use `perform_job_now` (timeout +
+registry dispatch, no queue `ack`/`nack`). Exit code `0` on success, non-zero on unknown
+job name, bad JSON, handler error, or timeout.
 
 ## Enqueue API
 

@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Runs before each commit. Mirrors `make check` (rustfmt + clippy, same as CI lint).
+set -euo pipefail
+
+root="$(git rev-parse --show-toplevel)"
+cd "$root"
+
+echo "pre-commit: checking rustfmt (cargo fmt --check --all)..."
+cargo fmt --check --all
+
+echo "pre-commit: running clippy (cargo clippy --workspace -- -D warnings)..."
+cargo clippy --workspace -- -D warnings
+
+echo "pre-commit: ok"

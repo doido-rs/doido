@@ -45,3 +45,13 @@ impl JobContext {
         doido_model::pool::pool()
     }
 }
+
+/// Build the context the worker and `doido jobs run` hand to handlers (DB pool when installed).
+pub fn job_context_from_runtime() -> JobContext {
+    let mut job_ctx = JobContext::new();
+    #[cfg(feature = "jobs-db")]
+    if let Some(conn) = doido_model::pool::try_pool() {
+        job_ctx.insert(conn.clone());
+    }
+    job_ctx
+}
