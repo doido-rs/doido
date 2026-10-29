@@ -126,6 +126,7 @@ async fn jobs_retry_preserves_job_name_on_reenqueue() {
         .unwrap()
         .unwrap();
 <<<<<<< HEAD
+<<<<<<< HEAD
     queue.dead_letter(&reserved.job.id, "failed").await.unwrap();
 =======
     queue
@@ -133,6 +134,9 @@ async fn jobs_retry_preserves_job_name_on_reenqueue() {
         .await
         .unwrap();
 >>>>>>> aa98e6c (feat: update the concurrency between codes)
+=======
+    queue.dead_letter(&reserved.job.id, "failed").await.unwrap();
+>>>>>>> 2cce0dd (feat: create a cronjob operation)
 
     // Same re-enqueue path as `doido jobs retry` (one shared queue — not the CLI,
     // which opens a new DB connection per invocation).

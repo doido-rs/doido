@@ -53,6 +53,9 @@ Retryable failures become **`Failed`** (scheduled at `run_at` via backoff); exha
 become **`Dead`**. `doido jobs retry` re-enqueues dead jobs with a new id via
 [`JobPayload::requeue_fresh`](src/queue.rs) (preserves `job_name` and retry policy).
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 2cce0dd (feat: create a cronjob operation)
 
 ## Periodic cron
 
@@ -72,5 +75,8 @@ jobs:
         schedule: "0 0 3 * * *"
         payload: {}
 ```
+<<<<<<< HEAD
 =======
 >>>>>>> aa98e6c (feat: update the concurrency between codes)
+=======
+>>>>>>> 2cce0dd (feat: create a cronjob operation)
