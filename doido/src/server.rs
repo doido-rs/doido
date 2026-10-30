@@ -28,6 +28,8 @@ pub async fn run(routes: Option<axum::Router>, env: Option<String>, port: Option
                 doido_auth::register_views();
             }
 
+            doido_jobs::webui::register_views();
+
             if let Err(e) = doido_view::init("app/views") {
                 doido_core::tracing::warn!("failed to load views from app/views: {e}");
             }
@@ -45,6 +47,24 @@ pub async fn run(routes: Option<axum::Router>, env: Option<String>, port: Option
             }
 
             let router = doido_storage::serving::merge_routes(router);
+
+            let jobs_config = doido_jobs::config::load();
+            let router = if jobs_config.webui.enabled {
+                match doido_jobs::config::build_configured_queue(&jobs_config).await {
+                    Ok(queue) => {
+                        let state = doido_jobs::webui::JobsWebState::new(queue, jobs_config);
+                        doido_jobs::webui::try_merge_routes(router, state)
+                    }
+                    Err(e) => {
+                        doido_core::tracing::warn!(
+                            "jobs webui enabled but queue backend failed: {e:#}; dashboard not mounted"
+                        );
+                        router
+                    }
+                }
+            } else {
+                router
+            };
 
             if let Err(e) = doido_controller::start_server_with(router, None, port).await {
                 doido_core::tracing::error!("server error: {e}");

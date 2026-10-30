@@ -43,6 +43,9 @@ doido jobs failed             ← list dead-letter jobs
 doido jobs retry              ← re-enqueue all dead jobs
 doido jobs discard            ← discard all dead jobs
 
+# Jobs Web UI (not a CLI command): enable `jobs.webui.enabled` in config and use
+# `doido server` — dashboard mounts at `jobs.webui.mount_path` (default `/doido/jobs`).
+
 doido worker                  ← start background job worker process
 doido worker --once           ← drain ready jobs, then exit
 

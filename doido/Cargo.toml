@@ -30,6 +30,7 @@ doido-jobs = { workspace = true, default-features = false, features = [
     "jobs-db",
     "jobs-redis",
     "sqlite",
+    "webui",
 ] }
 doido-mailer.workspace = true
 doido-cable.workspace = true

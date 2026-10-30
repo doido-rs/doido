@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Doido Jobs</title>
+  <style>
+    :root { --bg: #0f1419; --panel: #1a2332; --text: #e7ecf3; --muted: #8b9cb3; --accent: #3d8bfd; --border: #2a3544; --danger: #e5534b; --ok: #3fb950; }
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 1.5rem; line-height: 1.45; }
+    h1 { font-size: 1.35rem; margin: 0 0 1rem; font-weight: 600; }
+    .flash { background: #243044; border: 1px solid var(--border); padding: 0.5rem 0.75rem; border-radius: 6px; margin-bottom: 1rem; color: var(--ok); }
+    nav.tabs { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 1rem; }
+    nav.tabs a { color: var(--muted); text-decoration: none; padding: 0.4rem 0.75rem; border-radius: 6px; border: 1px solid transparent; font-size: 0.9rem; }
+    nav.tabs a.active { color: var(--text); background: var(--panel); border-color: var(--border); }
+    nav.tabs a:hover { color: var(--text); }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; margin-bottom: 1rem; }
+    select, .btn { font: inherit; }
+    select { background: var(--panel); color: var(--text); border: 1px solid var(--border); padding: 0.35rem 0.5rem; border-radius: 6px; }
+    .btn { display: inline-block; padding: 0.35rem 0.65rem; border-radius: 6px; text-decoration: none; font-size: 0.85rem; border: 1px solid var(--border); color: var(--text); background: var(--panel); }
+    .btn-danger { border-color: var(--danger); color: var(--danger); }
+    .btn-primary { border-color: var(--accent); color: var(--accent); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; background: var(--panel); border-radius: 8px; overflow: hidden; }
+    th, td { padding: 0.5rem 0.65rem; text-align: left; border-bottom: 1px solid var(--border); vertical-align: top; }
+    th { color: var(--muted); font-weight: 500; }
+    tr:last-child td { border-bottom: none; }
+    .mono { font-family: ui-monospace, monospace; font-size: 0.8rem; word-break: break-all; }
+    pre.payload { margin: 0; max-width: 28rem; white-space: pre-wrap; color: var(--muted); font-size: 0.75rem; }
+    .meta { color: var(--muted); font-size: 0.8rem; margin-top: 1rem; }
+    .actions { display: flex; gap: 0.35rem; flex-wrap: wrap; }
+    .pager { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; margin: 0.75rem 0 0; font-size: 0.85rem; }
+    .pager .muted { color: var(--muted); }
+    .pager .btn.disabled { opacity: 0.4; cursor: default; pointer-events: none; border-style: dashed; }
+  </style>
+</head>
+<body>
+  <h1>Doido Jobs</h1>
+  {% if flash %}<p class="flash">{{ flash }}</p>{% endif %}
+
+  <nav class="tabs">
+    <a href="{{ mount }}?tab=queues" class="{% if tab == 'queues' %}active{% endif %}">Queues</a>
+    <a href="{{ mount }}?tab=in_queue{% if selected_queue %}&amp;queue={{ selected_queue }}{% endif %}" class="{% if tab == 'in_queue' %}active{% endif %}">In queue</a>
+    <a href="{{ mount }}?tab=executing{% if selected_queue %}&amp;queue={{ selected_queue }}{% endif %}" class="{% if tab == 'executing' %}active{% endif %}">Executing</a>
+    <a href="{{ mount }}?tab=retry{% if selected_queue %}&amp;queue={{ selected_queue }}{% endif %}" class="{% if tab == 'retry' %}active{% endif %}">Retry</a>
+    <a href="{{ mount }}?tab=dead{% if selected_queue %}&amp;queue={{ selected_queue }}{% endif %}" class="{% if tab == 'dead' %}active{% endif %}">Dead</a>
+  </nav>
+
+  {% if tab != 'queues' %}
+  <div class="toolbar">
+    <label>Queue
+      <select onchange="location.href='{{ mount }}?tab={{ tab }}&amp;queue='+this.value">
+        {% for q in queues %}
+        <option value="{{ q }}" {% if selected_queue == q %}selected{% endif %}>{{ q }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    {% if tab == 'dead' %}
+    <a class="btn btn-primary" href="{{ mount }}/retry_all?queue={{ selected_queue | default(value='default') }}">Retry all</a>
+    <a class="btn btn-danger" href="{{ mount }}/discard_all?queue={{ selected_queue | default(value='default') }}" onclick="return confirm('Discard all dead jobs in this queue?')">Discard all</a>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% if tab == 'queues' %}
+  <table>
+    <thead>
+      <tr>
+        <th>Queue</th>
+        <th>Ready</th>
+        <th>Scheduled</th>
+        <th>Running</th>
+        <th>Retry wait</th>
+        <th>Failed ready</th>
+        <th>Dead</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in queue_counts %}
+      <tr>
+        <td class="mono">{{ row.name }}</td>
+        <td><a href="{{ mount }}?tab=in_queue&amp;queue={{ row.name }}">{{ row.pending_ready }}</a></td>
+        <td>{{ row.scheduled }}</td>
+        <td><a href="{{ mount }}?tab=executing&amp;queue={{ row.name }}">{{ row.running }}</a></td>
+        <td><a href="{{ mount }}?tab=retry&amp;queue={{ row.name }}">{{ row.retry }}</a></td>
+        <td>{{ row.failed_ready }}</td>
+        <td><a href="{{ mount }}?tab=dead&amp;queue={{ row.name }}">{{ row.dead }}</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <nav class="pager" aria-label="Queues pagination">
+    {% if queue_pagination.has_prev %}
+    <a class="btn" href="{{ mount }}?tab=queues&amp;queue_page_token={{ queue_pagination.prev_token }}">Previous</a>
+    {% else %}
+    <span class="btn disabled" aria-disabled="true">Previous</span>
+    {% endif %}
+    <span class="muted">
+      {% if queue_pagination.has_prev or queue_pagination.has_next %}
+      {{ queue_counts | length }} of {{ queue_total }} queues
+      {% else %}
+      Page 1 of 1 · {{ queue_total }} queue{% if queue_total != 1 %}s{% endif %}
+      {% endif %}
+    </span>
+    {% if queue_pagination.has_next %}
+    <a class="btn" href="{{ mount }}?tab=queues&amp;queue_page_token={{ queue_pagination.next_token }}">Next</a>
+    {% else %}
+    <span class="btn disabled" aria-disabled="true">Next</span>
+    {% endif %}
+  </nav>
+  {% else %}
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Job</th>
+        <th>Attempts</th>
+        <th>Run at</th>
+        <th>Error</th>
+        <th>Payload</th>
+        {% if show_dead_actions %}<th></th>{% endif %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for job in jobs %}
+      <tr>
+        <td class="mono">{{ job.id }}</td>
+        <td>{{ job.job_name | default(value="—") }}</td>
+        <td>{{ job.attempts }} / {{ job.max_retries }}</td>
+        <td class="mono">{{ job.run_at }}</td>
+        <td>{{ job.error }}</td>
+        <td><pre class="payload">{{ job.payload }}</pre></td>
+        {% if show_dead_actions %}
+        <td class="actions">
+          <a class="btn btn-primary" href="{{ mount }}/retry/{{ job.queue }}/{{ job.id }}">Retry</a>
+          <a class="btn btn-danger" href="{{ mount }}/discard/{{ job.queue }}/{{ job.id }}" onclick="return confirm('Discard this job?')">Discard</a>
+        </td>
+        {% endif %}
+      </tr>
+      {% endfor %}
+      {% if jobs | length == 0 %}
+      <tr><td colspan="{% if show_dead_actions %}7{% else %}6{% endif %}">No jobs in this view.</td></tr>
+      {% endif %}
+    </tbody>
+  </table>
+  <nav class="pager" aria-label="Jobs pagination">
+    {% if job_pagination.has_prev %}
+    <a class="btn" href="{{ mount }}?tab={{ tab }}{% if selected_queue %}&amp;queue={{ selected_queue }}{% endif %}&amp;page_token={{ job_pagination.prev_token }}">Previous</a>
+    {% else %}
+    <span class="btn disabled" aria-disabled="true">Previous</span>
+    {% endif %}
+    <span class="muted">
+      {% if job_pagination.has_prev or job_pagination.has_next %}
+      {{ jobs | length }} jobs on this page (up to {{ page_size }})
+      {% else %}
+      Page 1 of 1 · {{ jobs | length }} job{% if jobs | length != 1 %}s{% endif %}
+      {% endif %}
+    </span>
+    {% if job_pagination.has_next %}
+    <a class="btn" href="{{ mount }}?tab={{ tab }}{% if selected_queue %}&amp;queue={{ selected_queue }}{% endif %}&amp;page_token={{ job_pagination.next_token }}">Next</a>
+    {% else %}
+    <span class="btn disabled" aria-disabled="true">Next</span>
+    {% endif %}
+  </nav>
+  {% endif %}
+
+  <p class="meta">Server time: {{ now }}</p>
+</body>
+</html>

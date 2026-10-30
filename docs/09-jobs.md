@@ -234,6 +234,42 @@ doido jobs retry              ← re-enqueue every dead job (fresh id, attempts 
 doido jobs discard            ← permanently remove all dead jobs
 ```
 
+## Web UI (dashboard)
+
+When `jobs.webui.enabled` is true, the HTTP server mounts a Mission Control–style
+dashboard (default **`/doido/jobs`**) on boot. It uses the same configured queue
+backend as the worker (`memory` / `db` / `redis`).
+
+Tabs:
+
+| Tab | Shows |
+|-----|--------|
+| **Queues** | Per-queue counts (ready, scheduled, running, retry wait, failed-ready, dead) |
+| **In queue** | Pending jobs ready now plus failed jobs ready to run again |
+| **Executing** | Leased / running jobs |
+| **Retry** | Failed jobs still waiting for backoff (`run_at` in the future) |
+| **Dead** | Dead-letter jobs with per-job and bulk **retry** / **discard** actions |
+
+Job and queue tables paginate with opaque **`page_token`** / **`queue_page_token`**
+query params (cursor-based on job sort key: priority, run-at, id — not offset/limit).
+
+```yaml
+jobs:
+  type: db
+  queues: [default, mailers]
+  webui:
+    enabled: true
+    mount_path: /doido/jobs
+    username: admin
+    password: "{{ get_env(name=JOBS_WEBUI_PASSWORD, default=change-me) }}"
+```
+
+- **`webui.enabled`** defaults to `false` (no routes).
+- In **production**, enabling the dashboard without **`username`** and **`password`**
+  logs a warning and **does not mount** routes.
+- When credentials are set, the dashboard is protected with **HTTP Basic Auth**.
+- Build `doido-jobs` with the **`webui`** feature (enabled on the `doido` metacrate).
+
 ## Periodic cron (worker)
 
 When `cargo doido worker` starts (long-lived mode, not `--once`), it reads

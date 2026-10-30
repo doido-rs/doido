@@ -9,6 +9,10 @@
 //! row-level skip lock support.
 
 use crate::entity;
+use crate::inspect::{
+    encode_job_page_token, JobBucket, JobListPage, JobPageAnchor, JobPageDirection, JobSortKey,
+    QueueCounts,
+};
 use crate::queue::{JobId, JobPayload, JobQueue, JobStatus, Reserved};
 use chrono::{DateTime, Utc};
 use doido_core::{anyhow::anyhow, Result};
@@ -18,12 +22,12 @@ use doido_model::migration::{
 use doido_model::sea_orm::sea_query::Expr;
 #[cfg(any(feature = "mysql", feature = "postgres"))]
 use doido_model::sea_orm::sea_query::{LockBehavior, LockType};
-use doido_model::sea_orm::{
-    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, NotSet, QueryFilter,
-    QueryOrder, Set,
-};
 #[cfg(any(feature = "mysql", feature = "postgres"))]
-use doido_model::sea_orm::{QuerySelect, TransactionTrait};
+use doido_model::sea_orm::TransactionTrait;
+use doido_model::sea_orm::{
+    ActiveModelTrait, ColumnTrait, Condition, DatabaseConnection, EntityTrait, NotSet,
+    PaginatorTrait, QueryFilter, QueryOrder, QuerySelect, Set,
+};
 use doido_model::SchemaManager;
 use std::time::Duration;
 
@@ -46,6 +50,90 @@ fn millis(dt: DateTime<Utc>) -> i64 {
 
 fn job_from_data(data: &str) -> Result<JobPayload> {
     Ok(serde_json::from_str(data)?)
+}
+
+fn list_jobs_base_filter(
+    queue: &str,
+    bucket: JobBucket,
+    now: i64,
+) -> doido_model::sea_orm::Select<entity::Entity> {
+    let mut q = entity::Entity::find().filter(entity::Column::Queue.eq(queue));
+    match bucket {
+        JobBucket::PendingReady => {
+            q = q
+                .filter(entity::Column::Status.eq(STATUS_PENDING))
+                .filter(entity::Column::RunAt.lte(now));
+        }
+        JobBucket::Scheduled => {
+            q = q
+                .filter(entity::Column::Status.eq(STATUS_PENDING))
+                .filter(entity::Column::RunAt.gt(now));
+        }
+        JobBucket::Running => {
+            q = q.filter(entity::Column::Status.eq(STATUS_RUNNING));
+        }
+        JobBucket::Retry => {
+            q = q
+                .filter(entity::Column::Status.eq(STATUS_FAILED))
+                .filter(entity::Column::RunAt.gt(now));
+        }
+        JobBucket::FailedReady => {
+            q = q
+                .filter(entity::Column::Status.eq(STATUS_FAILED))
+                .filter(entity::Column::RunAt.lte(now));
+        }
+        JobBucket::Dead => {
+            q = q.filter(entity::Column::Status.eq(STATUS_DEAD));
+        }
+        JobBucket::InQueue => {
+            q = q.filter(
+                Condition::any()
+                    .add(
+                        Condition::all()
+                            .add(entity::Column::Status.eq(STATUS_PENDING))
+                            .add(entity::Column::RunAt.lte(now)),
+                    )
+                    .add(
+                        Condition::all()
+                            .add(entity::Column::Status.eq(STATUS_FAILED))
+                            .add(entity::Column::RunAt.lte(now)),
+                    ),
+            );
+        }
+    }
+    q
+}
+
+fn after_key_condition(key: &JobSortKey) -> Condition {
+    Condition::any()
+        .add(entity::Column::Priority.lt(key.priority))
+        .add(
+            Condition::all()
+                .add(entity::Column::Priority.eq(key.priority))
+                .add(entity::Column::RunAt.gt(key.run_at_ms)),
+        )
+        .add(
+            Condition::all()
+                .add(entity::Column::Priority.eq(key.priority))
+                .add(entity::Column::RunAt.eq(key.run_at_ms))
+                .add(entity::Column::JobId.gt(key.id.clone())),
+        )
+}
+
+fn before_key_condition(key: &JobSortKey) -> Condition {
+    Condition::any()
+        .add(entity::Column::Priority.gt(key.priority))
+        .add(
+            Condition::all()
+                .add(entity::Column::Priority.eq(key.priority))
+                .add(entity::Column::RunAt.lt(key.run_at_ms)),
+        )
+        .add(
+            Condition::all()
+                .add(entity::Column::Priority.eq(key.priority))
+                .add(entity::Column::RunAt.eq(key.run_at_ms))
+                .add(entity::Column::JobId.lt(key.id.clone())),
+        )
 }
 
 impl DbQueue {
@@ -262,6 +350,117 @@ impl DbQueue {
             .map_err(|e| anyhow!("reserve commit failed: {e}"))?;
         Ok(Some(Reserved { job, lease_until }))
     }
+
+    async fn list_jobs_forward(
+        &self,
+        base: doido_model::sea_orm::Select<entity::Entity>,
+        limit: u32,
+        page: Option<JobPageAnchor>,
+    ) -> Result<JobListPage> {
+        let mut q = base;
+        let start_after = match page {
+            Some(JobPageAnchor::After(key)) => {
+                q = q.filter(after_key_condition(&key));
+                Some(key)
+            }
+            _ => None,
+        };
+        let rows = q
+            .order_by_desc(entity::Column::Priority)
+            .order_by_asc(entity::Column::RunAt)
+            .order_by_asc(entity::Column::JobId)
+            .limit((limit as u64) + 1)
+            .all(&self.conn)
+            .await
+            .map_err(|e| anyhow!("list_jobs failed: {e}"))?;
+        let mut jobs = Vec::with_capacity(rows.len());
+        for model in rows {
+            jobs.push(job_from_data(&model.data)?);
+        }
+        let has_next = jobs.len() > limit as usize;
+        if has_next {
+            jobs.pop();
+        }
+        let has_prev = start_after.is_some();
+        Ok(job_list_page_from_jobs(jobs, has_prev, has_next))
+    }
+
+    async fn list_jobs_before(
+        &self,
+        base: doido_model::sea_orm::Select<entity::Entity>,
+        limit: u32,
+        before: &JobSortKey,
+    ) -> Result<JobListPage> {
+        let rows = base
+            .clone()
+            .filter(before_key_condition(before))
+            .order_by_asc(entity::Column::Priority)
+            .order_by_desc(entity::Column::RunAt)
+            .order_by_desc(entity::Column::JobId)
+            .limit(limit as u64)
+            .all(&self.conn)
+            .await
+            .map_err(|e| anyhow!("list_jobs before failed: {e}"))?;
+        let mut jobs = Vec::with_capacity(rows.len());
+        for model in rows {
+            jobs.push(job_from_data(&model.data)?);
+        }
+        jobs.reverse();
+        let has_next = base
+            .clone()
+            .filter(at_or_after_key_condition(before))
+            .count(&self.conn)
+            .await
+            .map_err(|e| anyhow!("list_jobs count next: {e}"))?
+            > 0;
+        let has_prev = if let Some(first) = jobs.first() {
+            let key = JobSortKey::from_job(first);
+            base.filter(before_key_condition(&key))
+                .count(&self.conn)
+                .await
+                .map_err(|e| anyhow!("list_jobs count prev: {e}"))?
+                > 0
+        } else {
+            false
+        };
+        Ok(job_list_page_from_jobs(jobs, has_prev, has_next))
+    }
+}
+
+fn at_or_after_key_condition(key: &JobSortKey) -> Condition {
+    Condition::any()
+        .add(entity::Column::Priority.lt(key.priority))
+        .add(
+            Condition::all()
+                .add(entity::Column::Priority.eq(key.priority))
+                .add(entity::Column::RunAt.gt(key.run_at_ms)),
+        )
+        .add(
+            Condition::all()
+                .add(entity::Column::Priority.eq(key.priority))
+                .add(entity::Column::RunAt.eq(key.run_at_ms))
+                .add(entity::Column::JobId.gte(key.id.clone())),
+        )
+}
+
+fn job_list_page_from_jobs(jobs: Vec<JobPayload>, has_prev: bool, has_next: bool) -> JobListPage {
+    let next_page_token = if has_next {
+        jobs.last()
+            .map(|j| encode_job_page_token(&JobSortKey::from_job(j), JobPageDirection::After))
+    } else {
+        None
+    };
+    let prev_page_token = if has_prev {
+        jobs.first()
+            .map(|j| encode_job_page_token(&JobSortKey::from_job(j), JobPageDirection::Before))
+    } else {
+        None
+    };
+    JobListPage {
+        jobs,
+        next_page_token,
+        prev_page_token,
+    }
 }
 
 #[async_trait::async_trait]
@@ -403,5 +602,103 @@ impl JobQueue for DbQueue {
             .await
             .map_err(|e| anyhow!("discard_dead failed: {e}"))?;
         Ok(res.rows_affected)
+    }
+
+    async fn queue_counts(&self, queues: &[&str]) -> Result<Vec<(String, QueueCounts)>> {
+        let now = millis(Utc::now());
+        let mut out = Vec::with_capacity(queues.len());
+        for name in queues {
+            let queue = (*name).to_string();
+            let pending_ready = entity::Entity::find()
+                .filter(entity::Column::Queue.eq(&queue))
+                .filter(entity::Column::Status.eq(STATUS_PENDING))
+                .filter(entity::Column::RunAt.lte(now))
+                .count(&self.conn)
+                .await
+                .map_err(|e| anyhow!("count pending_ready: {e}"))?;
+            let scheduled = entity::Entity::find()
+                .filter(entity::Column::Queue.eq(&queue))
+                .filter(entity::Column::Status.eq(STATUS_PENDING))
+                .filter(entity::Column::RunAt.gt(now))
+                .count(&self.conn)
+                .await
+                .map_err(|e| anyhow!("count scheduled: {e}"))?;
+            let running = entity::Entity::find()
+                .filter(entity::Column::Queue.eq(&queue))
+                .filter(entity::Column::Status.eq(STATUS_RUNNING))
+                .count(&self.conn)
+                .await
+                .map_err(|e| anyhow!("count running: {e}"))?;
+            let retry = entity::Entity::find()
+                .filter(entity::Column::Queue.eq(&queue))
+                .filter(entity::Column::Status.eq(STATUS_FAILED))
+                .filter(entity::Column::RunAt.gt(now))
+                .count(&self.conn)
+                .await
+                .map_err(|e| anyhow!("count retry: {e}"))?;
+            let failed_ready = entity::Entity::find()
+                .filter(entity::Column::Queue.eq(&queue))
+                .filter(entity::Column::Status.eq(STATUS_FAILED))
+                .filter(entity::Column::RunAt.lte(now))
+                .count(&self.conn)
+                .await
+                .map_err(|e| anyhow!("count failed_ready: {e}"))?;
+            let dead = entity::Entity::find()
+                .filter(entity::Column::Queue.eq(&queue))
+                .filter(entity::Column::Status.eq(STATUS_DEAD))
+                .count(&self.conn)
+                .await
+                .map_err(|e| anyhow!("count dead: {e}"))?;
+            out.push((
+                queue,
+                QueueCounts {
+                    pending_ready: pending_ready as u32,
+                    scheduled: scheduled as u32,
+                    running: running as u32,
+                    retry: retry as u32,
+                    failed_ready: failed_ready as u32,
+                    dead: dead as u32,
+                },
+            ));
+        }
+        Ok(out)
+    }
+
+    async fn list_jobs(
+        &self,
+        queue: &str,
+        bucket: JobBucket,
+        limit: u32,
+        page: Option<JobPageAnchor>,
+    ) -> Result<JobListPage> {
+        let now = millis(Utc::now());
+        let base = list_jobs_base_filter(queue, bucket, now);
+        let limit = limit.max(1);
+        match page {
+            None | Some(JobPageAnchor::After(_)) => self.list_jobs_forward(base, limit, page).await,
+            Some(JobPageAnchor::Before(key)) => self.list_jobs_before(base, limit, &key).await,
+        }
+    }
+
+    async fn retry_dead_job(&self, queue: &str, job_id: &str) -> Result<()> {
+        let dead = self.dead_jobs(queue).await?;
+        let Some(job) = dead.into_iter().find(|j| j.id == job_id) else {
+            return Ok(());
+        };
+        if self.discard_dead_job(queue, job_id).await? {
+            self.enqueue(job.requeue_fresh()).await?;
+        }
+        Ok(())
+    }
+
+    async fn discard_dead_job(&self, queue: &str, job_id: &str) -> Result<bool> {
+        let res = entity::Entity::delete_many()
+            .filter(entity::Column::Queue.eq(queue))
+            .filter(entity::Column::Status.eq(STATUS_DEAD))
+            .filter(entity::Column::JobId.eq(job_id))
+            .exec(&self.conn)
+            .await
+            .map_err(|e| anyhow!("discard_dead_job failed: {e}"))?;
+        Ok(res.rows_affected > 0)
     }
 }
