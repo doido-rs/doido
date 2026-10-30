@@ -15,6 +15,7 @@ use axum::{
 use chrono::Utc;
 use serde::Deserialize;
 use serde_json::json;
+use std::time::{Duration, Instant};
 
 const PAGE_SIZE: u32 = 50;
 const QUEUE_PAGE_SIZE: usize = 25;
@@ -31,6 +32,9 @@ pub struct DashboardQuery {
     /// Opaque cursor for the **Queues** tab.
     #[serde(default)]
     pub queue_page_token: Option<String>,
+    /// Include pretty-printed payloads (`1`, `true`, `yes`, …).
+    #[serde(default)]
+    pub include_payload: Option<String>,
     #[serde(default)]
     pub flash: Option<String>,
 }
@@ -49,7 +53,12 @@ fn active_tab(query: &DashboardQuery) -> &str {
     query.tab.as_deref().unwrap_or("queues")
 }
 
-fn job_row(job: &crate::queue::JobPayload) -> serde_json::Value {
+fn job_row(job: &crate::queue::JobPayload, include_payload: bool) -> serde_json::Value {
+    let payload = if include_payload {
+        serde_json::to_string_pretty(&job.payload).unwrap_or_else(|_| "{}".into())
+    } else {
+        String::new()
+    };
     json!({
         "id": job.id,
         "job_name": job.job_name,
@@ -59,7 +68,7 @@ fn job_row(job: &crate::queue::JobPayload) -> serde_json::Value {
         "status": format!("{:?}", job.status),
         "run_at": job.run_at.to_rfc3339(),
         "error": job.error.as_deref().unwrap_or(""),
-        "payload": serde_json::to_string_pretty(&job.payload).unwrap_or_else(|_| "{}".into()),
+        "payload": payload,
     })
 }
 
@@ -67,11 +76,46 @@ fn parse_job_page_token(token: Option<&str>) -> Option<JobPageAnchor> {
     token.and_then(decode_job_page_token)
 }
 
+async fn queue_counts_for_tab(
+    state: &JobsWebState,
+    tab: &str,
+    queue_names: &[&str],
+) -> Result<Vec<(String, QueueCounts)>, String> {
+    if tab != "queues" {
+        return Ok(Vec::new());
+    }
+    if let Some(ttl_secs) = state.config.webui.stats_ttl_secs {
+        let ttl = Duration::from_secs(ttl_secs);
+        let mut guard = state.stats_cache.lock().await;
+        if let Some((fetched_at, ref data)) = *guard {
+            if fetched_at.elapsed() < ttl {
+                return Ok(data.clone());
+            }
+        }
+        let counts = state
+            .queue
+            .queue_counts(queue_names)
+            .await
+            .map_err(|e| format!("{e:#}"))?;
+        *guard = Some((Instant::now(), counts.clone()));
+        return Ok(counts);
+    }
+    state
+        .queue
+        .queue_counts(queue_names)
+        .await
+        .map_err(|e| format!("{e:#}"))
+}
+
 pub async fn index(
     State(state): State<JobsWebState>,
     Query(query): Query<DashboardQuery>,
 ) -> impl IntoResponse {
     let tab = active_tab(&query);
+    let include_payload = query
+        .include_payload
+        .as_deref()
+        .is_some_and(|v| matches!(v, "1" | "true" | "yes" | "on"));
     let queues: Vec<String> = state.config.queues.clone();
     let queue_names: Vec<&str> = queues.iter().map(String::as_str).collect();
     let selected_queue = query
@@ -80,14 +124,18 @@ pub async fn index(
         .filter(|q| queues.iter().any(|c| c == q))
         .or_else(|| queues.first().cloned());
 
-    let counts = match state.queue.queue_counts(&queue_names).await {
+    let counts = match queue_counts_for_tab(&state, tab, &queue_names).await {
         Ok(c) => c,
         Err(e) => {
-            return Html(format!("Jobs dashboard error: {e:#}")).into_response();
+            return Html(format!("Jobs dashboard error: {e}")).into_response();
         }
     };
 
-    let queue_total = counts.len();
+    let queue_total = if tab == "queues" {
+        counts.len()
+    } else {
+        queues.len()
+    };
     let queue_page_anchor = query
         .queue_page_token
         .as_deref()
@@ -107,13 +155,14 @@ pub async fn index(
         "has_prev": false,
     });
     let mut jobs = Vec::new();
+    let light_list = !include_payload;
 
     if tab != "queues" {
         if let Some(ref qname) = selected_queue {
             if let Some(bucket) = tab_bucket(tab) {
                 match state
                     .queue
-                    .list_jobs(qname, bucket, PAGE_SIZE, job_page_anchor)
+                    .list_jobs(qname, bucket, PAGE_SIZE, job_page_anchor, light_list)
                     .await
                 {
                     Ok(page) => {
@@ -148,6 +197,8 @@ pub async fn index(
         "queues": queues,
         "selected_queue": selected_queue,
         "page_size": PAGE_SIZE,
+        "include_payload": include_payload,
+        "page_token": query.page_token.as_deref().unwrap_or(""),
         "queue_total": queue_total,
         "job_pagination": job_pagination,
         "queue_pagination": {
@@ -157,7 +208,7 @@ pub async fn index(
             "has_prev": queue_page.prev_page_token.is_some(),
         },
         "queue_counts": queue_page.rows.iter().map(|(name, c)| queue_count_row(name, c)).collect::<Vec<_>>(),
-        "jobs": jobs.iter().map(job_row).collect::<Vec<_>>(),
+        "jobs": jobs.iter().map(|j| job_row(j, include_payload)).collect::<Vec<_>>(),
         "show_dead_actions": tab == "dead",
         "now": Utc::now().to_rfc3339(),
     });

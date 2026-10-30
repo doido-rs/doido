@@ -174,7 +174,7 @@ fn duration_until(fire_at: DateTime<Utc>, now: DateTime<Utc>) -> Duration {
 mod tests {
     use super::*;
     use crate::cron::{CronConfig, CronTaskSettings, NoopCronLeader};
-    use crate::memory::MemoryQueue;
+    use crate::drivers::memory::MemoryQueue;
     use chrono::{Datelike, TimeZone, Timelike};
     use std::sync::Arc;
 

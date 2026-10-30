@@ -213,12 +213,15 @@ pub trait JobQueue: Send + Sync {
     ) -> Result<Vec<(String, crate::inspect::QueueCounts)>>;
 
     /// List jobs in a logical bucket (cursor-paginated).
+    ///
+    /// When `light` is true, omit heavy payload fields (dashboard list views).
     async fn list_jobs(
         &self,
         queue: &str,
         bucket: crate::inspect::JobBucket,
         limit: u32,
         page: Option<crate::inspect::JobPageAnchor>,
+        light: bool,
     ) -> Result<crate::inspect::JobListPage>;
 
     /// Re-enqueue one dead job with a fresh id, removing it from the dead store.

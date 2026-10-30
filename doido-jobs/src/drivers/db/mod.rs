@@ -8,7 +8,9 @@
 //! (pending, failed)`), which serializes on the same row under contention but needs no
 //! row-level skip lock support.
 
-use crate::entity;
+pub mod entity;
+mod stats;
+
 use crate::inspect::{
     encode_job_page_token, JobBucket, JobListPage, JobPageAnchor, JobPageDirection, JobSortKey,
     QueueCounts,
@@ -25,8 +27,8 @@ use doido_model::sea_orm::sea_query::{LockBehavior, LockType};
 #[cfg(any(feature = "mysql", feature = "postgres"))]
 use doido_model::sea_orm::TransactionTrait;
 use doido_model::sea_orm::{
-    ActiveModelTrait, ColumnTrait, Condition, DatabaseConnection, EntityTrait, NotSet,
-    PaginatorTrait, QueryFilter, QueryOrder, QuerySelect, Set,
+    ActiveModelTrait, ColumnTrait, Condition, DatabaseConnection, EntityTrait, NotSet, QueryFilter,
+    QueryOrder, QuerySelect, Set,
 };
 use doido_model::SchemaManager;
 use std::time::Duration;
@@ -356,6 +358,7 @@ impl DbQueue {
         base: doido_model::sea_orm::Select<entity::Entity>,
         limit: u32,
         page: Option<JobPageAnchor>,
+        light: bool,
     ) -> Result<JobListPage> {
         let mut q = base;
         let start_after = match page {
@@ -377,6 +380,7 @@ impl DbQueue {
         for model in rows {
             jobs.push(job_from_data(&model.data)?);
         }
+        apply_light_jobs(&mut jobs, light);
         let has_next = jobs.len() > limit as usize;
         if has_next {
             jobs.pop();
@@ -390,6 +394,7 @@ impl DbQueue {
         base: doido_model::sea_orm::Select<entity::Entity>,
         limit: u32,
         before: &JobSortKey,
+        light: bool,
     ) -> Result<JobListPage> {
         let rows = base
             .clone()
@@ -406,24 +411,36 @@ impl DbQueue {
             jobs.push(job_from_data(&model.data)?);
         }
         jobs.reverse();
+        apply_light_jobs(&mut jobs, light);
         let has_next = base
             .clone()
             .filter(at_or_after_key_condition(before))
-            .count(&self.conn)
+            .limit(1)
+            .one(&self.conn)
             .await
-            .map_err(|e| anyhow!("list_jobs count next: {e}"))?
-            > 0;
+            .map_err(|e| anyhow!("list_jobs exists next: {e}"))?
+            .is_some();
         let has_prev = if let Some(first) = jobs.first() {
             let key = JobSortKey::from_job(first);
             base.filter(before_key_condition(&key))
-                .count(&self.conn)
+                .limit(1)
+                .one(&self.conn)
                 .await
-                .map_err(|e| anyhow!("list_jobs count prev: {e}"))?
-                > 0
+                .map_err(|e| anyhow!("list_jobs exists prev: {e}"))?
+                .is_some()
         } else {
             false
         };
         Ok(job_list_page_from_jobs(jobs, has_prev, has_next))
+    }
+}
+
+fn apply_light_jobs(jobs: &mut [JobPayload], light: bool) {
+    if !light {
+        return;
+    }
+    for job in jobs.iter_mut() {
+        job.payload = serde_json::json!({});
     }
 }
 
@@ -605,63 +622,7 @@ impl JobQueue for DbQueue {
     }
 
     async fn queue_counts(&self, queues: &[&str]) -> Result<Vec<(String, QueueCounts)>> {
-        let now = millis(Utc::now());
-        let mut out = Vec::with_capacity(queues.len());
-        for name in queues {
-            let queue = (*name).to_string();
-            let pending_ready = entity::Entity::find()
-                .filter(entity::Column::Queue.eq(&queue))
-                .filter(entity::Column::Status.eq(STATUS_PENDING))
-                .filter(entity::Column::RunAt.lte(now))
-                .count(&self.conn)
-                .await
-                .map_err(|e| anyhow!("count pending_ready: {e}"))?;
-            let scheduled = entity::Entity::find()
-                .filter(entity::Column::Queue.eq(&queue))
-                .filter(entity::Column::Status.eq(STATUS_PENDING))
-                .filter(entity::Column::RunAt.gt(now))
-                .count(&self.conn)
-                .await
-                .map_err(|e| anyhow!("count scheduled: {e}"))?;
-            let running = entity::Entity::find()
-                .filter(entity::Column::Queue.eq(&queue))
-                .filter(entity::Column::Status.eq(STATUS_RUNNING))
-                .count(&self.conn)
-                .await
-                .map_err(|e| anyhow!("count running: {e}"))?;
-            let retry = entity::Entity::find()
-                .filter(entity::Column::Queue.eq(&queue))
-                .filter(entity::Column::Status.eq(STATUS_FAILED))
-                .filter(entity::Column::RunAt.gt(now))
-                .count(&self.conn)
-                .await
-                .map_err(|e| anyhow!("count retry: {e}"))?;
-            let failed_ready = entity::Entity::find()
-                .filter(entity::Column::Queue.eq(&queue))
-                .filter(entity::Column::Status.eq(STATUS_FAILED))
-                .filter(entity::Column::RunAt.lte(now))
-                .count(&self.conn)
-                .await
-                .map_err(|e| anyhow!("count failed_ready: {e}"))?;
-            let dead = entity::Entity::find()
-                .filter(entity::Column::Queue.eq(&queue))
-                .filter(entity::Column::Status.eq(STATUS_DEAD))
-                .count(&self.conn)
-                .await
-                .map_err(|e| anyhow!("count dead: {e}"))?;
-            out.push((
-                queue,
-                QueueCounts {
-                    pending_ready: pending_ready as u32,
-                    scheduled: scheduled as u32,
-                    running: running as u32,
-                    retry: retry as u32,
-                    failed_ready: failed_ready as u32,
-                    dead: dead as u32,
-                },
-            ));
-        }
-        Ok(out)
+        stats::aggregate_queue_counts(&self.conn, queues, millis(Utc::now())).await
     }
 
     async fn list_jobs(
@@ -670,13 +631,18 @@ impl JobQueue for DbQueue {
         bucket: JobBucket,
         limit: u32,
         page: Option<JobPageAnchor>,
+        light: bool,
     ) -> Result<JobListPage> {
         let now = millis(Utc::now());
         let base = list_jobs_base_filter(queue, bucket, now);
         let limit = limit.max(1);
         match page {
-            None | Some(JobPageAnchor::After(_)) => self.list_jobs_forward(base, limit, page).await,
-            Some(JobPageAnchor::Before(key)) => self.list_jobs_before(base, limit, &key).await,
+            None | Some(JobPageAnchor::After(_)) => {
+                self.list_jobs_forward(base, limit, page, light).await
+            }
+            Some(JobPageAnchor::Before(key)) => {
+                self.list_jobs_before(base, limit, &key, light).await
+            }
         }
     }
 

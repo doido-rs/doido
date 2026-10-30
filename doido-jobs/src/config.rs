@@ -37,6 +37,8 @@ pub struct WebUiConfig {
     pub mount_path: String,
     pub username: Option<String>,
     pub password: Option<String>,
+    /// Cache `queue_counts` in-process for this many seconds (dashboard **Queues** tab).
+    pub stats_ttl_secs: Option<u64>,
 }
 
 impl Default for WebUiConfig {
@@ -46,6 +48,7 @@ impl Default for WebUiConfig {
             mount_path: "/doido/jobs".to_string(),
             username: None,
             password: None,
+            stats_ttl_secs: None,
         }
     }
 }
@@ -123,7 +126,7 @@ impl JobsConfig {
 /// connection, so it is constructed via [`build_db_queue`] instead.
 pub async fn build_queue(config: &JobsConfig) -> Result<Arc<dyn JobQueue>> {
     match config.backend {
-        Backend::Memory => Ok(Arc::new(crate::memory::MemoryQueue::new())),
+        Backend::Memory => Ok(Arc::new(crate::drivers::memory::MemoryQueue::new())),
         Backend::Redis => build_redis_queue(config).await,
         Backend::Db => Err(anyhow!(
             "the `db` jobs backend must be built with a database connection via build_db_queue()"
@@ -137,7 +140,7 @@ async fn build_redis_queue(config: &JobsConfig) -> Result<Arc<dyn JobQueue>> {
         .redis_url
         .as_deref()
         .ok_or_else(|| anyhow!("redis backend selected but [jobs.redis] url is not set"))?;
-    let q = crate::redis::RedisQueue::connect(url, config.redis_namespace.clone()).await?;
+    let q = crate::drivers::redis::RedisQueue::connect(url, config.redis_namespace.clone()).await?;
     Ok(Arc::new(q))
 }
 
@@ -151,7 +154,7 @@ async fn build_redis_queue(_config: &JobsConfig) -> Result<Arc<dyn JobQueue>> {
 /// Build the database-backed queue from an existing sea-orm connection.
 #[cfg(feature = "jobs-db")]
 pub fn build_db_queue(conn: doido_model::sea_orm::DatabaseConnection) -> Arc<dyn JobQueue> {
-    Arc::new(crate::db::DbQueue::new(conn))
+    Arc::new(crate::drivers::db::DbQueue::new(conn))
 }
 
 // ── Config-file loading (mirrors `doido-cache`'s `config`) ──────────────────
@@ -180,6 +183,8 @@ pub struct WebUiSettings {
     pub username: Option<String>,
     #[serde(default)]
     pub password: Option<String>,
+    #[serde(default)]
+    pub stats_ttl_secs: Option<u64>,
 }
 
 /// Redis connection settings for the jobs backend (`jobs.redis`).
@@ -244,6 +249,7 @@ impl JobsSettings {
                 .unwrap_or_else(|| d.webui.mount_path.clone()),
             username: webui_raw.username.filter(|u| !u.is_empty()),
             password: webui_raw.password.filter(|p| !p.is_empty()),
+            stats_ttl_secs: webui_raw.stats_ttl_secs.filter(|&s| s > 0),
         };
         JobsConfig {
             backend: self.backend,
@@ -323,8 +329,8 @@ async fn build_db_backed_queue(config: &JobsConfig) -> Result<Arc<dyn JobQueue>>
         let _ = doido_model::pool::set_pool(conn);
         queue_conn
     };
-    let queue =
-        crate::db::DbQueue::new(queue_conn).with_visibility_timeout(config.db_visibility_timeout);
+    let queue = crate::drivers::db::DbQueue::new(queue_conn)
+        .with_visibility_timeout(config.db_visibility_timeout);
     queue.migrate().await?; // idempotent CREATE TABLE IF NOT EXISTS
     Ok(Arc::new(queue))
 }

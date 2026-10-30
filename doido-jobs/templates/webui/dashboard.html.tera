@@ -116,7 +116,7 @@
         <th>Attempts</th>
         <th>Run at</th>
         <th>Error</th>
-        <th>Payload</th>
+        {% if include_payload %}<th>Payload</th>{% else %}<th></th>{% endif %}
         {% if show_dead_actions %}<th></th>{% endif %}
       </tr>
     </thead>
@@ -128,7 +128,13 @@
         <td>{{ job.attempts }} / {{ job.max_retries }}</td>
         <td class="mono">{{ job.run_at }}</td>
         <td>{{ job.error }}</td>
-        <td><pre class="payload">{{ job.payload }}</pre></td>
+        <td>
+          {% if include_payload %}
+          <pre class="payload">{{ job.payload }}</pre>
+          {% else %}
+          <a class="btn" href="{{ mount }}?tab={{ tab }}{% if selected_queue %}&amp;queue={{ selected_queue }}{% endif %}&amp;include_payload=1{% if page_token %}&amp;page_token={{ page_token }}{% endif %}">Show payload</a>
+          {% endif %}
+        </td>
         {% if show_dead_actions %}
         <td class="actions">
           <a class="btn btn-primary" href="{{ mount }}/retry/{{ job.queue }}/{{ job.id }}">Retry</a>
