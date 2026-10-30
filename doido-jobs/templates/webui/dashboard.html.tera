@@ -10,6 +10,15 @@
     body { font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 1.5rem; line-height: 1.45; }
     h1 { font-size: 1.35rem; margin: 0 0 1rem; font-weight: 600; }
     .flash { background: #243044; border: 1px solid var(--border); padding: 0.5rem 0.75rem; border-radius: 6px; margin-bottom: 1rem; color: var(--ok); }
+    .flash-error { color: var(--danger); }
+    .enqueue-form { max-width: 36rem; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 1rem 1.25rem; }
+    .enqueue-form label { display: block; margin-bottom: 0.85rem; font-size: 0.9rem; }
+    .enqueue-form label.inline { display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.35rem; }
+    .enqueue-form input[type="text"], .enqueue-form input[type="number"], .enqueue-form input[type="datetime-local"], .enqueue-form textarea, .enqueue-form select { width: 100%; margin-top: 0.25rem; background: var(--bg); color: var(--text); border: 1px solid var(--border); padding: 0.4rem 0.5rem; border-radius: 6px; font: inherit; }
+    .enqueue-form textarea { min-height: 5rem; font-family: ui-monospace, monospace; font-size: 0.85rem; }
+    .enqueue-form .hint { color: var(--muted); font-size: 0.8rem; margin: 0 0 0.85rem; }
+    .enqueue-form .mode-group { margin-bottom: 0.85rem; }
+    .enqueue-form .run-at-field { margin-left: 1.25rem; margin-bottom: 0.85rem; }
     nav.tabs { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 1rem; }
     nav.tabs a { color: var(--muted); text-decoration: none; padding: 0.4rem 0.75rem; border-radius: 6px; border: 1px solid transparent; font-size: 0.9rem; }
     nav.tabs a.active { color: var(--text); background: var(--panel); border-color: var(--border); }
@@ -35,7 +44,7 @@
 </head>
 <body>
   <h1>Doido Jobs</h1>
-  {% if flash %}<p class="flash">{{ flash }}</p>{% endif %}
+  {% if flash %}<p class="flash{% if flash_is_error %} flash-error{% endif %}">{{ flash }}</p>{% endif %}
 
   <nav class="tabs">
     <a href="{{ mount }}?tab=queues" class="{% if tab == 'queues' %}active{% endif %}">Queues</a>
@@ -43,9 +52,10 @@
     <a href="{{ mount }}?tab=executing{% if selected_queue %}&amp;queue={{ selected_queue }}{% endif %}" class="{% if tab == 'executing' %}active{% endif %}">Executing</a>
     <a href="{{ mount }}?tab=retry{% if selected_queue %}&amp;queue={{ selected_queue }}{% endif %}" class="{% if tab == 'retry' %}active{% endif %}">Retry</a>
     <a href="{{ mount }}?tab=dead{% if selected_queue %}&amp;queue={{ selected_queue }}{% endif %}" class="{% if tab == 'dead' %}active{% endif %}">Dead</a>
+    <a href="{{ mount }}?tab=enqueue" class="{% if tab == 'enqueue' %}active{% endif %}">Enqueue</a>
   </nav>
 
-  {% if tab != 'queues' %}
+  {% if tab != 'queues' and tab != 'enqueue' %}
   <div class="toolbar">
     <label>Queue
       <select onchange="location.href='{{ mount }}?tab={{ tab }}&amp;queue='+this.value">
@@ -61,7 +71,49 @@
   </div>
   {% endif %}
 
-  {% if tab == 'queues' %}
+  {% if tab == 'enqueue' %}
+  <form class="enqueue-form" method="post" action="{{ mount }}/enqueue">
+    <p class="hint">Pick a registered <code>#[job]</code>, optional JSON payload, and how to run it. Scheduled times are <strong>UTC</strong> (see server time below). Enqueue modes need a worker; perform now runs in this web server process.</p>
+    <label>Job
+      <select name="job_name" required>
+        <option value="">— select —</option>
+        {% for j in registered_jobs %}
+        <option value="{{ j.name }}">{{ j.name }} (default queue: {{ j.default_queue }})</option>
+        {% endfor %}
+      </select>
+    </label>
+    {% if registered_jobs | length == 0 %}
+    <p class="hint">No registered jobs in this binary — link a crate that defines <code>#[job]</code> handlers.</p>
+    {% endif %}
+    <label>Payload (JSON)
+      <textarea name="payload" placeholder="{}">{{ default_payload }}</textarea>
+    </label>
+    <label>Queue override (optional)
+      <select name="queue">
+        <option value="">— job default —</option>
+        {% for q in queues %}
+        <option value="{{ q }}">{{ q }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Timeout (seconds, optional)
+      <input type="number" name="timeout" min="0" step="1" placeholder="job default">
+    </label>
+    <label>Max retries (optional)
+      <input type="number" name="max_retries" min="0" step="1" placeholder="job default">
+    </label>
+    <div class="mode-group">
+      <p class="hint" style="margin-bottom: 0.35rem;">Execution</p>
+      <label class="inline"><input type="radio" name="mode" value="enqueue_now" checked> Enqueue now (worker runs ASAP)</label>
+      <label class="inline"><input type="radio" name="mode" value="enqueue_at"> Schedule enqueue (UTC)</label>
+      <label class="inline"><input type="radio" name="mode" value="perform_now"> Perform now (in this server process)</label>
+    </div>
+    <label class="run-at-field">Run at (UTC, for scheduled enqueue)
+      <input type="datetime-local" name="run_at" step="60">
+    </label>
+    <button type="submit" class="btn btn-primary">Submit</button>
+  </form>
+  {% elif tab == 'queues' %}
   <table>
     <thead>
       <tr>

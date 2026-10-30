@@ -1,12 +1,11 @@
 //! `doido jobs run` / `perform` — in-process perform or enqueue for the worker.
 
 use crate::context::job_context_from_runtime;
-use crate::registry::{build_job_payload, suggest_job_names, JobRegistry};
+use crate::registry::{build_job_payload, parse_job_payload_json, suggest_job_names, JobRegistry};
 use crate::worker::perform_job_now;
 use crate::JobQueue;
 use clap::Args;
 use doido_core::{anyhow::anyhow, Result};
-use serde_json::Value;
 use std::sync::Arc;
 
 /// Arguments for `doido jobs run <job_name>`.
@@ -67,7 +66,7 @@ async fn run_inner(args: RunArgs, queue: Option<Arc<dyn JobQueue>>) -> Result<()
         return Err(anyhow!(msg));
     }
 
-    let payload = parse_payload(args.payload.as_deref())?;
+    let payload = parse_job_payload_json(args.payload.as_deref())?;
 
     let job = build_job_payload(
         &registry,
@@ -95,26 +94,4 @@ async fn run_inner(args: RunArgs, queue: Option<Arc<dyn JobQueue>>) -> Result<()
 
     let ctx = Arc::new(job_context_from_runtime());
     perform_job_now(&registry, job, ctx).await
-}
-
-fn parse_payload(raw: Option<&str>) -> Result<Value> {
-    match raw {
-        None | Some("") => Ok(Value::Object(Default::default())),
-        Some(s) => serde_json::from_str(s).map_err(|e| anyhow!("invalid JSON for --payload: {e}")),
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn parse_payload_defaults_to_empty_object() {
-        assert_eq!(parse_payload(None).unwrap(), serde_json::json!({}));
-    }
-
-    #[test]
-    fn parse_payload_accepts_scalar_json() {
-        assert_eq!(parse_payload(Some("1")).unwrap(), serde_json::json!(1));
-    }
 }

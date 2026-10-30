@@ -249,6 +249,12 @@ Tabs:
 | **Executing** | Leased / running jobs |
 | **Retry** | Failed jobs still waiting for backoff (`run_at` in the future) |
 | **Dead** | Dead-letter jobs with per-job and bulk **retry** / **discard** actions |
+| **Enqueue** | Form to pick a registered `#[job]`, optional JSON payload, and run it **enqueue now**, **schedule enqueue** (UTC `run_at`), or **perform now** in the web server process (CLI parity) |
+
+The **Enqueue** tab POSTs to `{mount}/enqueue`. Enqueue modes require a worker draining
+the configured backend; **perform now** runs the handler in the server process (same as
+`cargo doido jobs run` without `--later`) and does not insert a queue row. Scheduled times
+use the HTML `datetime-local` field interpreted as **UTC**.
 
 Job and queue tables paginate with opaque **`page_token`** / **`queue_page_token`**
 query params (cursor-based on job sort key: priority, run-at, id — not offset/limit).

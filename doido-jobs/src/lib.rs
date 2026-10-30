@@ -41,8 +41,8 @@ pub use queue::{BackoffStrategy, JobId, JobPayload, JobQueue, JobStatus, Reserve
 #[cfg(feature = "jobs-redis")]
 pub use redis::RedisQueue;
 pub use registry::{
-    build_job_payload, suggest_job_names, HandlerFn, HandlerFuture, JobDefaults, JobRegistration,
-    JobRegistry,
+    build_job_payload, parse_job_payload_json, suggest_job_names, HandlerFn, HandlerFuture,
+    JobDefaults, JobRegistration, JobRegistry,
 };
 pub use retry::{Decision, RetryPolicy};
 pub use worker::{perform_job_now, EngineConfig, Worker, WorkerEngine};

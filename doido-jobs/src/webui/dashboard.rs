@@ -7,6 +7,7 @@ use crate::inspect::{
     QueueCounts,
 };
 use crate::queue::JobQueue;
+use crate::registry::JobRegistry;
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
@@ -157,7 +158,7 @@ pub async fn index(
     let mut jobs = Vec::new();
     let light_list = !include_payload;
 
-    if tab != "queues" {
+    if tab != "queues" && tab != "enqueue" {
         if let Some(ref qname) = selected_queue {
             if let Some(bucket) = tab_bucket(tab) {
                 match state
@@ -190,10 +191,32 @@ pub async fn index(
         .mount_path
         .trim_end_matches('/')
         .to_string();
+
+    let registered_jobs: Vec<serde_json::Value> = if tab == "enqueue" {
+        let registry = JobRegistry::from_inventory();
+        registry
+            .names()
+            .into_iter()
+            .map(|name| {
+                let default_queue = registry
+                    .defaults_for(name)
+                    .map(|d| d.queue.to_string())
+                    .unwrap_or_else(|| "default".to_string());
+                json!({ "name": name, "default_queue": default_queue })
+            })
+            .collect()
+    } else {
+        Vec::new()
+    };
+
+    let flash = query.flash.as_deref().unwrap_or("");
     let ctx = json!({
         "mount": mount,
         "tab": tab,
-        "flash": query.flash.as_deref().unwrap_or(""),
+        "flash": flash,
+        "flash_is_error": flash.starts_with("Error:"),
+        "registered_jobs": registered_jobs,
+        "default_payload": "{}",
         "queues": queues,
         "selected_queue": selected_queue,
         "page_size": PAGE_SIZE,
@@ -231,7 +254,7 @@ fn queue_count_row(name: &str, c: &QueueCounts) -> serde_json::Value {
     })
 }
 
-fn redirect_dashboard(
+pub(crate) fn redirect_dashboard(
     state: &JobsWebState,
     tab: &str,
     queue: Option<&str>,

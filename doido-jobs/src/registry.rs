@@ -132,6 +132,14 @@ impl JobRegistry {
     }
 }
 
+/// Parse JSON for a job handler payload (CLI `--payload`, Web UI enqueue form).
+pub fn parse_job_payload_json(raw: Option<&str>) -> Result<Value> {
+    match raw {
+        None | Some("") => Ok(Value::Object(Default::default())),
+        Some(s) => serde_json::from_str(s).map_err(|e| anyhow!("invalid JSON payload: {e}")),
+    }
+}
+
 /// Build a [`JobPayload`] for enqueue / cron, using `#[job]` defaults from the registry.
 pub fn build_job_payload(
     registry: &JobRegistry,
@@ -174,4 +182,22 @@ pub fn suggest_job_names<'a>(known: &'a [&'a str], query: &str, limit: usize) ->
         .collect();
     scored.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(b.0)));
     scored.into_iter().take(limit).map(|(n, _)| n).collect()
+}
+
+#[cfg(test)]
+mod payload_parse_tests {
+    use super::*;
+
+    #[test]
+    fn parse_job_payload_json_defaults_to_empty_object() {
+        assert_eq!(parse_job_payload_json(None).unwrap(), serde_json::json!({}));
+    }
+
+    #[test]
+    fn parse_job_payload_json_accepts_scalar_json() {
+        assert_eq!(
+            parse_job_payload_json(Some("1")).unwrap(),
+            serde_json::json!(1)
+        );
+    }
 }
