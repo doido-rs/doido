@@ -175,6 +175,15 @@ cargo doido jobs retry     # reenfileira todos os dead jobs
 cargo doido jobs discard   # remove todos os dead jobs
 ```
 
+## Web UI
+
+Com `jobs.webui.enabled: true` em `config/<env>.yml` e `cargo doido server`, o framework
+monta um dashboard com abas (padrão `/doido/jobs`) no mesmo backend de fila do worker:
+contagens, fila, em execução, retry e dead letters. A aba **Dead** permite
+retry/discard (por job e em lote). Em produção, defina `jobs.webui.username` e
+`password` (HTTP Basic Auth) ou o dashboard não será montado. Feature `webui` em
+`doido-jobs` (ativa no crate `doido`).
+
 ## Prioridade & agendamento
 
 `priority` (maior roda antes) é definido no `#[job]` ou por payload com `with_priority`;

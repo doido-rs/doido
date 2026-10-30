@@ -29,6 +29,47 @@ impl Backend {
     }
 }
 
+/// HTTP dashboard settings (`jobs.webui` in YAML).
+#[derive(Clone, Debug)]
+pub struct WebUiConfig {
+    pub enabled: bool,
+    /// Router prefix (default `/doido/jobs`).
+    pub mount_path: String,
+    pub username: Option<String>,
+    pub password: Option<String>,
+}
+
+impl Default for WebUiConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            mount_path: "/doido/jobs".to_string(),
+            username: None,
+            password: None,
+        }
+    }
+}
+
+impl WebUiConfig {
+    /// Whether routes may be mounted for `env` (production requires credentials).
+    pub fn safe_to_mount(&self, env: Environment) -> bool {
+        if !self.enabled {
+            return false;
+        }
+        match env {
+            Environment::Development | Environment::Test => true,
+            Environment::Production => {
+                self.username.as_ref().is_some_and(|u| !u.is_empty())
+                    && self.password.as_ref().is_some_and(|p| !p.is_empty())
+            }
+        }
+    }
+
+    pub fn requires_credentials(&self, env: Environment) -> bool {
+        self.enabled && matches!(env, Environment::Production)
+    }
+}
+
 /// Runtime configuration for the jobs subsystem (typically loaded from `[jobs]`).
 #[derive(Clone, Debug)]
 pub struct JobsConfig {
@@ -42,6 +83,7 @@ pub struct JobsConfig {
     pub db_sql_logging: Option<bool>,
     pub db_visibility_timeout: Duration,
     pub cron: CronConfig,
+    pub webui: WebUiConfig,
 }
 
 impl Default for JobsConfig {
@@ -60,6 +102,7 @@ impl Default for JobsConfig {
                 enabled: false,
                 tasks: Vec::new(),
             },
+            webui: WebUiConfig::default(),
         }
     }
 }
@@ -126,6 +169,19 @@ pub struct DbSettings {
     pub visibility_timeout_secs: Option<u64>,
 }
 
+/// Dashboard settings (`jobs.webui`).
+#[derive(Debug, Clone, Default, Deserialize)]
+pub struct WebUiSettings {
+    #[serde(default)]
+    pub enabled: bool,
+    #[serde(default)]
+    pub mount_path: Option<String>,
+    #[serde(default)]
+    pub username: Option<String>,
+    #[serde(default)]
+    pub password: Option<String>,
+}
+
 /// Redis connection settings for the jobs backend (`jobs.redis`).
 #[derive(Debug, Clone, Default, Deserialize)]
 pub struct RedisSettings {
@@ -161,6 +217,8 @@ pub struct JobsSettings {
     pub db: Option<DbSettings>,
     #[serde(default)]
     pub cron: Option<CronSettings>,
+    #[serde(default)]
+    pub webui: Option<WebUiSettings>,
 }
 
 impl JobsSettings {
@@ -177,6 +235,16 @@ impl JobsSettings {
         let redis = self.redis.unwrap_or_default();
         let db = self.db.unwrap_or_default();
         let cron = self.cron.unwrap_or_default().into_config(env);
+        let webui_raw = self.webui.unwrap_or_default();
+        let webui = WebUiConfig {
+            enabled: webui_raw.enabled,
+            mount_path: webui_raw
+                .mount_path
+                .filter(|p| !p.is_empty())
+                .unwrap_or_else(|| d.webui.mount_path.clone()),
+            username: webui_raw.username.filter(|u| !u.is_empty()),
+            password: webui_raw.password.filter(|p| !p.is_empty()),
+        };
         JobsConfig {
             backend: self.backend,
             queues: self.queues.filter(|q| !q.is_empty()).unwrap_or(d.queues),
@@ -191,6 +259,7 @@ impl JobsSettings {
                 .map(Duration::from_secs)
                 .unwrap_or(d.db_visibility_timeout),
             cron,
+            webui,
         }
     }
 }
@@ -367,6 +436,16 @@ mod tests {
             .jobs
             .backend;
         assert_eq!(backend, Backend::Redis);
+    }
+
+    #[test]
+    fn parses_jobs_webui_section() {
+        let yaml = "jobs:\n  webui:\n    enabled: true\n    mount_path: /jobs\n    username: admin\n    password: secret\n";
+        let cfg = JobsFileConfig::from_yaml(yaml).unwrap().jobs.into_config();
+        assert!(cfg.webui.enabled);
+        assert_eq!(cfg.webui.mount_path, "/jobs");
+        assert_eq!(cfg.webui.username.as_deref(), Some("admin"));
+        assert!(cfg.webui.safe_to_mount(Environment::Production));
     }
 
     #[tokio::test]

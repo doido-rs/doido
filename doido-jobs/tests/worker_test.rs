@@ -147,17 +147,7 @@ async fn test_engine_retry_cycle_then_dead_letter() {
     let job = JobPayload::new("default", json!({}), 2).with_backoff(BackoffStrategy::None, 0);
     queue.enqueue(job).await.unwrap();
     let engine = WorkerEngine::new(queue.clone(), config(&["default"], 1));
-<<<<<<< HEAD
-<<<<<<< HEAD
     let fail = |_job: JobPayload, _ctx: Arc<()>| async { Err(doido_core::anyhow::anyhow!("nope")) };
-=======
-    let fail = |_job: JobPayload, _ctx: Arc<()>| async {
-        Err(doido_core::anyhow::anyhow!("nope"))
-    };
->>>>>>> aa98e6c (feat: update the concurrency between codes)
-=======
-    let fail = |_job: JobPayload, _ctx: Arc<()>| async { Err(doido_core::anyhow::anyhow!("nope")) };
->>>>>>> 2cce0dd (feat: create a cronjob operation)
     engine.run_once(&fail).await.unwrap();
     assert!(queue.dead_jobs("default").await.unwrap().is_empty());
     engine.run_once(&fail).await.unwrap();

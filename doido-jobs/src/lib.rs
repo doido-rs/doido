@@ -9,12 +9,15 @@ pub mod cron;
 pub mod db;
 #[cfg(feature = "jobs-db")]
 pub mod entity;
+pub mod inspect;
 pub mod memory;
 pub mod queue;
 #[cfg(feature = "jobs-redis")]
 pub mod redis;
 pub mod registry;
 pub mod retry;
+#[cfg(feature = "webui")]
+pub mod webui;
 pub mod worker;
 
 // Re-exported so `#[job]`-generated fluent builders can name chrono types
@@ -22,11 +25,12 @@ pub mod worker;
 pub use chrono;
 // Re-exported so `#[job]`-generated code can call `doido_jobs::inventory::submit!`
 // without the app depending on inventory directly.
-pub use config::{build_queue, Backend, JobsConfig};
+pub use config::{build_queue, Backend, JobsConfig, WebUiConfig};
 pub use context::JobContext;
 #[cfg(feature = "jobs-db")]
 pub use db::DbQueue;
 pub use doido_jobs_macros::job;
+pub use inspect::{classify_stored, JobBucket, QueueCounts};
 pub use inventory;
 pub use memory::{MemoryQueue, QueueStats};
 pub use queue::{BackoffStrategy, JobId, JobPayload, JobQueue, JobStatus, Reserved};

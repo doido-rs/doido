@@ -1839,19 +1839,26 @@ name = "doido-jobs"
 version = "0.0.9"
 dependencies = [
  "async-trait",
+ "axum",
+ "base64 0.23.1",
  "chrono",
  "clap",
  "cron",
  "doido-core",
  "doido-jobs-macros",
  "doido-model",
+ "doido-view",
+ "http 1.5.0",
+ "http-body-util",
  "inventory",
  "redis",
  "serde",
  "serde_json",
  "serde_norway",
+ "subtle",
  "tempfile",
  "tokio",
+ "tower",
  "uuid",
 ]
 

@@ -39,6 +39,14 @@ Exit code `0` on success; `1` on unknown job name, bad JSON, handler error, or t
 
 Dead-letter admin: `cargo doido jobs failed`, `retry`, `discard`.
 
+## Web UI
+
+Enable in `config/<env>.yml` (`jobs.webui.enabled: true`) to mount a tabbed dashboard
+at `/doido/jobs` when you run `cargo doido server`. Inspect queues, running jobs,
+retry backlog, and dead letters; retry or discard from the **Dead** tab. Set
+`username` / `password` in production (HTTP Basic Auth). Requires the `webui` feature
+on `doido-jobs` (on by default in the `doido` crate).
+
 ### DB backend: quieter logs & failure errors
 
 ```yaml
@@ -52,10 +60,6 @@ On failure the worker writes the error into the job JSON and the `last_error` co
 Retryable failures become **`Failed`** (scheduled at `run_at` via backoff); exhausted jobs
 become **`Dead`**. `doido jobs retry` re-enqueues dead jobs with a new id via
 [`JobPayload::requeue_fresh`](src/queue.rs) (preserves `job_name` and retry policy).
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 2cce0dd (feat: create a cronjob operation)
 
 ## Periodic cron
 
@@ -75,8 +79,3 @@ jobs:
         schedule: "0 0 3 * * *"
         payload: {}
 ```
-<<<<<<< HEAD
-=======
->>>>>>> aa98e6c (feat: update the concurrency between codes)
-=======
->>>>>>> 2cce0dd (feat: create a cronjob operation)
