@@ -175,6 +175,15 @@ cargo doido jobs retry     # reencola todos los dead jobs
 cargo doido jobs discard   # elimina todos los dead jobs
 ```
 
+## Web UI
+
+Con `jobs.webui.enabled: true` en `config/<env>.yml` y `cargo doido server`, el framework
+monta un panel con pestañas (por defecto `/doido/jobs`) sobre el mismo backend de cola
+que el worker: conteos, cola, en ejecución, retry y dead letters. La pestaña **Dead**
+permite retry/discard (por job y en lote). En producción, configure
+`jobs.webui.username` y `password` (HTTP Basic Auth) o el panel no se montará. Feature
+`webui` en `doido-jobs` (activa en el crate `doido`).
+
 ## Prioridad y programación
 
 `priority` (mayor se ejecuta antes) se define en `#[job]` o por payload con `with_priority`;

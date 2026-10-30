@@ -182,6 +182,16 @@ cargo doido jobs retry     # re-enqueue all dead jobs
 cargo doido jobs discard   # remove all dead jobs
 ```
 
+## Web UI
+
+Set `jobs.webui.enabled: true` in `config/<env>.yml` and start the app with
+`cargo doido server`. The framework mounts a tabbed dashboard (default
+`/doido/jobs`) on the same queue backend as the worker: queue counts, jobs in
+queue, executing, retry backlog, and dead letters. The **Dead** tab supports
+retry/discard (per job and bulk). In production, set `jobs.webui.username` and
+`password` (HTTP Basic Auth) or the dashboard will not mount. Enable the
+`webui` feature on `doido-jobs` (default in the `doido` crate).
+
 ## Priority & scheduling
 
 `priority` (higher runs sooner) is set on `#[job]` or per payload with `with_priority`;

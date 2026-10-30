@@ -1,3 +1,7 @@
+use crate::inspect::{
+    count_stored, matches_bucket, paginate_sorted, JobBucket, JobListPage, JobPageAnchor,
+    QueueCounts,
+};
 use crate::queue::{JobId, JobPayload, JobQueue, JobStatus, Reserved};
 use chrono::{DateTime, Utc};
 use doido_core::Result;
@@ -236,5 +240,99 @@ impl JobQueue for MemoryQueue {
             .map(|jobs| jobs.len() as u64)
             .unwrap_or(0);
         Ok(removed)
+    }
+
+    async fn queue_counts(&self, queues: &[&str]) -> Result<Vec<(String, QueueCounts)>> {
+        let now = Utc::now();
+        let mut out = Vec::with_capacity(queues.len());
+        let qs = self.queues.lock().await;
+        let running = self.running.lock().await;
+        let dead = self.dead.lock().await;
+        for name in queues {
+            let mut counts = QueueCounts::default();
+            if let Some(list) = qs.get(*name) {
+                for job in list {
+                    count_stored(&mut counts, job, now);
+                }
+            }
+            for leased in running.values() {
+                if leased.job.queue == *name {
+                    counts.running += 1;
+                }
+            }
+            counts.dead = dead.get(*name).map(|v| v.len() as u32).unwrap_or(0);
+            out.push(((*name).to_string(), counts));
+        }
+        Ok(out)
+    }
+
+    async fn list_jobs(
+        &self,
+        queue: &str,
+        bucket: JobBucket,
+        limit: u32,
+        page: Option<JobPageAnchor>,
+    ) -> Result<JobListPage> {
+        let now = Utc::now();
+        let mut matches = Vec::new();
+        if bucket == JobBucket::Running {
+            let running = self.running.lock().await;
+            for leased in running.values() {
+                if leased.job.queue == queue {
+                    matches.push(leased.job.clone());
+                }
+            }
+        } else if bucket == JobBucket::Dead {
+            let dead = self.dead.lock().await;
+            if let Some(list) = dead.get(queue) {
+                matches.extend(list.iter().cloned());
+            }
+        } else {
+            let qs = self.queues.lock().await;
+            if let Some(list) = qs.get(queue) {
+                for job in list {
+                    let in_bucket = match bucket {
+                        JobBucket::InQueue => {
+                            matches_bucket(job, JobBucket::PendingReady, now)
+                                || matches_bucket(job, JobBucket::FailedReady, now)
+                        }
+                        _ => matches_bucket(job, bucket, now),
+                    };
+                    if in_bucket {
+                        matches.push(job.clone());
+                    }
+                }
+            }
+        }
+        Ok(paginate_sorted(matches, page, limit))
+    }
+
+    async fn retry_dead_job(&self, queue: &str, job_id: &str) -> Result<()> {
+        let job = {
+            let mut dead = self.dead.lock().await;
+            let Some(list) = dead.get_mut(queue) else {
+                return Ok(());
+            };
+            let pos = list.iter().position(|j| j.id == job_id);
+            let Some(idx) = pos else {
+                return Ok(());
+            };
+            list.remove(idx)
+        };
+        self.enqueue(job.requeue_fresh()).await?;
+        Ok(())
+    }
+
+    async fn discard_dead_job(&self, queue: &str, job_id: &str) -> Result<bool> {
+        let mut dead = self.dead.lock().await;
+        let Some(list) = dead.get_mut(queue) else {
+            return Ok(false);
+        };
+        let pos = list.iter().position(|j| j.id == job_id);
+        let Some(idx) = pos else {
+            return Ok(false);
+        };
+        list.remove(idx);
+        Ok(true)
     }
 }

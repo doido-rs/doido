@@ -205,4 +205,25 @@ pub trait JobQueue: Send + Sync {
     /// Discard every dead-lettered job for a queue (Rails `jobs:discard`).
     /// Returns the number of jobs removed.
     async fn discard_dead(&self, queue: &str) -> Result<u64>;
+
+    /// Per-queue counts for the jobs dashboard.
+    async fn queue_counts(
+        &self,
+        queues: &[&str],
+    ) -> Result<Vec<(String, crate::inspect::QueueCounts)>>;
+
+    /// List jobs in a logical bucket (cursor-paginated).
+    async fn list_jobs(
+        &self,
+        queue: &str,
+        bucket: crate::inspect::JobBucket,
+        limit: u32,
+        page: Option<crate::inspect::JobPageAnchor>,
+    ) -> Result<crate::inspect::JobListPage>;
+
+    /// Re-enqueue one dead job with a fresh id, removing it from the dead store.
+    async fn retry_dead_job(&self, queue: &str, job_id: &str) -> Result<()>;
+
+    /// Remove one job from the dead-letter store. Returns whether a row was removed.
+    async fn discard_dead_job(&self, queue: &str, job_id: &str) -> Result<bool>;
 }

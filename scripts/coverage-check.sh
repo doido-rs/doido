@@ -120,7 +120,7 @@ coverage_extra_args() {
 	# `cli` compiles the jobs CLI dispatchers (commands/jobs.rs, worker.rs) and
 	# lets their `required-features = ["cli", ...]` integration tests run — without
 	# it those tests are skipped and the crate falls below its floor.
-	doido-jobs) echo "--features jobs-db,jobs-redis,cli" ;;
+	doido-jobs) echo "--features jobs-db,jobs-redis,cli,webui,sqlite" ;;
 	# schema_design and its tests require `cli`; without it, llvm-cov can
 	# still attribute 0% lines from binaries built earlier by `doido`.
 	doido-model) echo "--features cli" ;;
@@ -153,7 +153,8 @@ coverage_ignore_regex() {
 	# commands/server.rs boots axum; commands/console.rs is an interactive REPL.
 	doido-controller) echo 'doido-controller/src/commands/(server|console)\.rs' ;;
 	# Redis queue backend needs a live Redis; covered when REDIS_URL is set in e2e.
-	doido-jobs) echo 'redis\.rs' ;;
+	# `webui/` is feature-gated HTML dashboard code; covered by `webui_test`.
+	doido-jobs) echo 'redis\.rs|webui/' ;;
 	esac
 }
 
