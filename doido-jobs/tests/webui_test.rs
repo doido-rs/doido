@@ -17,6 +17,7 @@ fn test_jobs_config() -> JobsConfig {
             mount_path: "/doido/jobs".to_string(),
             username: None,
             password: None,
+            stats_ttl_secs: None,
         },
         ..JobsConfig::default()
     }
@@ -87,6 +88,37 @@ async fn webui_job_tab_exposes_cursor_pagination() {
     assert!(html.contains("page_token="));
     assert!(!html.contains("aria-disabled=\"true\">Next</span>"));
     assert!(!html.contains("offset="));
+    assert!(html.contains("Show payload"));
+    assert!(!html.contains("<pre class=\"payload\">"));
+}
+
+#[tokio::test]
+async fn webui_include_payload_renders_pre() {
+    doido_jobs::webui::register_views();
+    let _ = doido_view::init("app/views");
+
+    let queue = Arc::new(MemoryQueue::new()) as Arc<dyn JobQueue>;
+    queue
+        .enqueue(JobPayload::new("default", json!({"x": 1}), 3))
+        .await
+        .unwrap();
+
+    let state = JobsWebState::new(queue, test_jobs_config());
+    let app = webui::routes(state);
+
+    let response = app
+        .oneshot(
+            http::Request::builder()
+                .uri("/doido/jobs?tab=in_queue&queue=default&include_payload=1")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), http::StatusCode::OK);
+    let body = response.into_body().collect().await.unwrap().to_bytes();
+    let html = String::from_utf8(body.to_vec()).unwrap();
+    assert!(html.contains("<pre class=\"payload\">"));
 }
 
 #[tokio::test]

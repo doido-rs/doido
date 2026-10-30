@@ -5,15 +5,9 @@ pub mod commands;
 pub mod config;
 pub mod context;
 pub mod cron;
-#[cfg(feature = "jobs-db")]
-pub mod db;
-#[cfg(feature = "jobs-db")]
-pub mod entity;
+pub mod drivers;
 pub mod inspect;
-pub mod memory;
 pub mod queue;
-#[cfg(feature = "jobs-redis")]
-pub mod redis;
 pub mod registry;
 pub mod retry;
 #[cfg(feature = "webui")]
@@ -30,6 +24,16 @@ pub use context::JobContext;
 #[cfg(feature = "jobs-db")]
 pub use db::DbQueue;
 pub use doido_jobs_macros::job;
+#[cfg(feature = "jobs-db")]
+#[doc(inline)]
+pub use drivers::db;
+#[cfg(feature = "jobs-db")]
+pub use drivers::db::entity;
+#[doc(inline)]
+pub use drivers::memory;
+#[cfg(feature = "jobs-redis")]
+#[doc(inline)]
+pub use drivers::redis;
 pub use inspect::{classify_stored, JobBucket, QueueCounts};
 pub use inventory;
 pub use memory::{MemoryQueue, QueueStats};

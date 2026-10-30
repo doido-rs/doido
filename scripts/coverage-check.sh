@@ -154,7 +154,7 @@ coverage_ignore_regex() {
 	doido-controller) echo 'doido-controller/src/commands/(server|console)\.rs' ;;
 	# Redis queue backend needs a live Redis; covered when REDIS_URL is set in e2e.
 	# `webui/` is feature-gated HTML dashboard code; covered by `webui_test`.
-	doido-jobs) echo 'redis\.rs|webui/' ;;
+	doido-jobs) echo 'drivers/redis|webui/' ;;
 	esac
 }
 

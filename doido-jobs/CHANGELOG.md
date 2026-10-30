@@ -12,6 +12,9 @@ documented in `RELEASING.md` at the repository root.
 ## Unreleased
 
 - DbQueue (MySQL/PostgreSQL): parallel job reserve via `FOR UPDATE SKIP LOCKED`
+- **Performance:** Jobs Web UI — `queue_counts` only on the Queues tab; optional `jobs.webui.stats_ttl_secs`; `include_payload` query param (payload omitted by default); lighter DB `list_jobs` and aggregated SQL `queue_counts`; Redis batched `MGET` and chunked ready-set scans; memory driver lists pages without cloning full buckets
+- **Changed:** queue backends moved to `doido-jobs/src/drivers/` (public `doido_jobs::{db,memory,redis}` re-exports unchanged)
+- **Changed:** `JobQueue::list_jobs` takes a `light` flag to skip heavy payload fields for dashboard lists
 
 ## 0.0.24 - 2026-08-14
 
