@@ -7,21 +7,32 @@ mod framework_views;
 pub use framework_views::register_views;
 
 use crate::config::JobsConfig;
+use crate::inspect::QueueCounts;
 use crate::queue::JobQueue;
 use axum::{middleware, routing::get, Router};
 use doido_core::Environment;
 use std::sync::Arc;
+use std::time::Instant;
+use tokio::sync::Mutex;
+
+type QueueCountsSnapshot = Vec<(String, QueueCounts)>;
+type StatsCache = Arc<Mutex<Option<(Instant, QueueCountsSnapshot)>>>;
 
 /// Shared state for dashboard routes.
 #[derive(Clone)]
 pub struct JobsWebState {
     pub queue: Arc<dyn JobQueue>,
     pub config: JobsConfig,
+    pub(crate) stats_cache: StatsCache,
 }
 
 impl JobsWebState {
     pub fn new(queue: Arc<dyn JobQueue>, config: JobsConfig) -> Self {
-        Self { queue, config }
+        Self {
+            queue,
+            config,
+            stats_cache: Arc::new(Mutex::new(None)),
+        }
     }
 }
 

@@ -253,6 +253,14 @@ Tabs:
 Job and queue tables paginate with opaque **`page_token`** / **`queue_page_token`**
 query params (cursor-based on job sort key: priority, run-at, id — not offset/limit).
 
+**Performance:** the **Queues** tab alone loads per-queue counts (`queue_counts`).
+Job tabs list jobs without calling `queue_counts`. Payload JSON is omitted by default;
+add **`include_payload=1`** to show the payload column (or use **Show payload** on a row).
+Optional **`stats_ttl_secs`** caches queue counts in-process on the Queues tab.
+
+Queue backends live under `doido-jobs` **`drivers/`** (`memory`, `db`, `redis`); the
+public imports (`doido_jobs::db::DbQueue`, etc.) are unchanged.
+
 ```yaml
 jobs:
   type: db
@@ -260,11 +268,13 @@ jobs:
   webui:
     enabled: true
     mount_path: /doido/jobs
+    stats_ttl_secs: 30
     username: admin
     password: "{{ get_env(name=JOBS_WEBUI_PASSWORD, default=change-me) }}"
 ```
 
 - **`webui.enabled`** defaults to `false` (no routes).
+- **`webui.stats_ttl_secs`** — optional in-process cache TTL for Queues-tab stats (omit to refresh every request).
 - In **production**, enabling the dashboard without **`username`** and **`password`**
   logs a warning and **does not mount** routes.
 - When credentials are set, the dashboard is protected with **HTTP Basic Auth**.

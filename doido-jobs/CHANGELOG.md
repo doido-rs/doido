@@ -11,6 +11,7 @@ documented in `RELEASING.md` at the repository root.
 
 ## Unreleased
 
+<<<<<<< HEAD
 ## 0.0.32-test3 - 2026-10-30
 
 ### Added
@@ -57,6 +58,12 @@ _No user-facing changes yet._
 - `doido_jobs` uses an auto-increment integer primary key (`id`); the worker-facing
   job identifier is stored in a unique `job_id` column. `JobQueue` methods still
   take the same string job IDs as before.
+=======
+- DbQueue (MySQL/PostgreSQL): parallel job reserve via `FOR UPDATE SKIP LOCKED`
+- **Performance:** Jobs Web UI — `queue_counts` only on the Queues tab; optional `jobs.webui.stats_ttl_secs`; `include_payload` query param (payload omitted by default); lighter DB `list_jobs` and aggregated SQL `queue_counts`; Redis batched `MGET` and chunked ready-set scans; memory driver lists pages without cloning full buckets
+- **Changed:** queue backends moved to `doido-jobs/src/drivers/` (public `doido_jobs::{db,memory,redis}` re-exports unchanged)
+- **Changed:** `JobQueue::list_jobs` takes a `light` flag to skip heavy payload fields for dashboard lists
+>>>>>>> 6e29489 (feat: optimize queries and organize drivers (#74))
 
 ## 0.0.24 - 2026-08-14
 

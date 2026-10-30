@@ -96,15 +96,85 @@ impl RedisQueue {
     }
 
     async fn load(&self, id: &str) -> Result<Option<JobPayload>> {
-        let mut conn = self.conn.clone();
-        let data: Option<String> = conn
-            .get(self.job_key(id))
-            .await
-            .map_err(|e| anyhow!("load job failed: {e}"))?;
-        match data {
-            Some(d) => Ok(Some(serde_json::from_str(&d)?)),
-            None => Ok(None),
+        let id = id.to_string();
+        let mut jobs = self.load_many(std::slice::from_ref(&id)).await?;
+        Ok(jobs.pop())
+    }
+
+    async fn load_many(&self, ids: &[String]) -> Result<Vec<JobPayload>> {
+        if ids.is_empty() {
+            return Ok(Vec::new());
         }
+        const BATCH: usize = 100;
+        let mut out = Vec::with_capacity(ids.len());
+        let mut conn = self.conn.clone();
+        for chunk in ids.chunks(BATCH) {
+            let keys: Vec<String> = chunk.iter().map(|id| self.job_key(id)).collect();
+            let values: Vec<Option<String>> = conn
+                .mget(keys)
+                .await
+                .map_err(|e| anyhow!("mget jobs failed: {e}"))?;
+            for (id, data) in chunk.iter().zip(values) {
+                let Some(data) = data else {
+                    continue;
+                };
+                let mut job: JobPayload = serde_json::from_str(&data)?;
+                if job.id.is_empty() {
+                    job.id = id.clone();
+                }
+                out.push(job);
+            }
+        }
+        Ok(out)
+    }
+
+    fn strip_light(jobs: &mut [JobPayload], light: bool) {
+        if !light {
+            return;
+        }
+        for job in jobs.iter_mut() {
+            job.payload = serde_json::json!({});
+        }
+    }
+
+    async fn collect_ready_bucket_jobs(
+        &self,
+        queue: &str,
+        bucket: JobBucket,
+        now: DateTime<Utc>,
+        conn: &mut MultiplexedConnection,
+        matches: &mut Vec<JobPayload>,
+    ) -> Result<()> {
+        const CHUNK: isize = 200;
+        let key = self.ready_key(queue);
+        let mut start: isize = 0;
+        loop {
+            let end = start + CHUNK - 1;
+            let ids: Vec<String> = conn
+                .zrange(&key, start, end)
+                .await
+                .map_err(|e| anyhow!("list ready chunk: {e}"))?;
+            if ids.is_empty() {
+                break;
+            }
+            start += ids.len() as isize;
+            for job in self.load_many(&ids).await? {
+                let in_bucket = match bucket {
+                    JobBucket::InQueue => {
+                        matches_bucket(&job, JobBucket::PendingReady, now)
+                            || matches_bucket(&job, JobBucket::FailedReady, now)
+                    }
+                    _ => matches_bucket(&job, bucket, now),
+                };
+                if in_bucket {
+                    matches.push(job);
+                }
+            }
+            if ids.len() < CHUNK as usize {
+                break;
+            }
+        }
+        Ok(())
     }
 
     async fn put_ready(&self, job: &JobPayload) -> Result<()> {
@@ -298,28 +368,31 @@ impl JobQueue for RedisQueue {
     async fn queue_counts(&self, queues: &[&str]) -> Result<Vec<(String, QueueCounts)>> {
         let now = Utc::now();
         let mut conn = self.conn.clone();
+        let queue_set: std::collections::HashSet<&str> = queues.iter().copied().collect();
+        let mut running_by_queue: std::collections::HashMap<String, u32> =
+            std::collections::HashMap::new();
+        let processing_ids: Vec<String> = conn
+            .zrange(self.processing_key(), 0, -1)
+            .await
+            .map_err(|e| anyhow!("queue_counts processing: {e}"))?;
+        for job in self.load_many(&processing_ids).await? {
+            if queue_set.contains(job.queue.as_str()) {
+                *running_by_queue.entry(job.queue.clone()).or_default() += 1;
+            }
+        }
+
         let mut out = Vec::with_capacity(queues.len());
         for name in queues {
-            let mut counts = QueueCounts::default();
+            let mut counts = QueueCounts {
+                running: running_by_queue.get(*name).copied().unwrap_or(0),
+                ..QueueCounts::default()
+            };
             let ids: Vec<String> = conn
                 .zrange(self.ready_key(name), 0, -1)
                 .await
                 .map_err(|e| anyhow!("queue_counts zrange: {e}"))?;
-            for id in ids {
-                if let Some(job) = self.load(&id).await? {
-                    count_stored(&mut counts, &job, now);
-                }
-            }
-            let processing: Vec<String> = conn
-                .zrange(self.processing_key(), 0, -1)
-                .await
-                .map_err(|e| anyhow!("queue_counts processing: {e}"))?;
-            for id in processing {
-                if let Some(job) = self.load(&id).await? {
-                    if job.queue == *name {
-                        counts.running += 1;
-                    }
-                }
+            for job in self.load_many(&ids).await? {
+                count_stored(&mut counts, &job, now);
             }
             let dead_len: usize = conn
                 .llen(self.dead_key(name))
@@ -337,6 +410,7 @@ impl JobQueue for RedisQueue {
         bucket: JobBucket,
         limit: u32,
         page: Option<JobPageAnchor>,
+        light: bool,
     ) -> Result<JobListPage> {
         let now = Utc::now();
         let mut matches = Vec::new();
@@ -346,11 +420,9 @@ impl JobQueue for RedisQueue {
                 .zrange(self.processing_key(), 0, -1)
                 .await
                 .map_err(|e| anyhow!("list running: {e}"))?;
-            for id in ids {
-                if let Some(job) = self.load(&id).await? {
-                    if job.queue == queue {
-                        matches.push(job);
-                    }
+            for job in self.load_many(&ids).await? {
+                if job.queue == queue {
+                    matches.push(job);
                 }
             }
         } else if bucket == JobBucket::Dead {
@@ -358,31 +430,12 @@ impl JobQueue for RedisQueue {
                 .lrange(self.dead_key(queue), 0, -1)
                 .await
                 .map_err(|e| anyhow!("list dead: {e}"))?;
-            for id in ids {
-                if let Some(job) = self.load(&id).await? {
-                    matches.push(job);
-                }
-            }
+            matches.extend(self.load_many(&ids).await?);
         } else {
-            let ids: Vec<String> = conn
-                .zrange(self.ready_key(queue), 0, -1)
-                .await
-                .map_err(|e| anyhow!("list ready: {e}"))?;
-            for id in ids {
-                if let Some(job) = self.load(&id).await? {
-                    let in_bucket = match bucket {
-                        JobBucket::InQueue => {
-                            matches_bucket(&job, JobBucket::PendingReady, now)
-                                || matches_bucket(&job, JobBucket::FailedReady, now)
-                        }
-                        _ => matches_bucket(&job, bucket, now),
-                    };
-                    if in_bucket {
-                        matches.push(job);
-                    }
-                }
-            }
+            self.collect_ready_bucket_jobs(queue, bucket, now, &mut conn, &mut matches)
+                .await?;
         }
+        Self::strip_light(&mut matches, light);
         Ok(paginate_sorted(matches, page, limit))
     }
 
