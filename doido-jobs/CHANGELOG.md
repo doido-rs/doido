@@ -11,7 +11,27 @@ documented in `RELEASING.md` at the repository root.
 
 ## Unreleased
 
-<<<<<<< HEAD
+## 0.0.32-test4 - 2026-10-30
+
+### Performance
+
+- Jobs Web UI: `queue_counts` only on the **Queues** tab; optional
+  `jobs.webui.stats_ttl_secs` in-process cache; `include_payload` query param
+  (payload omitted by default).
+- **DbQueue:** aggregated SQL for `queue_counts`; lighter dashboard `list_jobs`
+  projection; cheaper cursor “previous page” hints.
+- **RedisQueue:** batched `MGET` for job loads; single processing-set scan for
+  running counts; chunked ready-set reads for listings.
+- **MemoryQueue:** paginate from sort keys, then materialize only jobs on the
+  current page.
+
+### Changed
+
+- Queue backends live under `doido-jobs/src/drivers/`; public imports
+  (`doido_jobs::{db,memory,redis}`) unchanged.
+- `JobQueue::list_jobs` accepts a `light` flag to skip heavy payload fields for
+  dashboard lists.
+
 ## 0.0.32-test3 - 2026-10-30
 
 ### Added
@@ -58,12 +78,6 @@ _No user-facing changes yet._
 - `doido_jobs` uses an auto-increment integer primary key (`id`); the worker-facing
   job identifier is stored in a unique `job_id` column. `JobQueue` methods still
   take the same string job IDs as before.
-=======
-- DbQueue (MySQL/PostgreSQL): parallel job reserve via `FOR UPDATE SKIP LOCKED`
-- **Performance:** Jobs Web UI — `queue_counts` only on the Queues tab; optional `jobs.webui.stats_ttl_secs`; `include_payload` query param (payload omitted by default); lighter DB `list_jobs` and aggregated SQL `queue_counts`; Redis batched `MGET` and chunked ready-set scans; memory driver lists pages without cloning full buckets
-- **Changed:** queue backends moved to `doido-jobs/src/drivers/` (public `doido_jobs::{db,memory,redis}` re-exports unchanged)
-- **Changed:** `JobQueue::list_jobs` takes a `light` flag to skip heavy payload fields for dashboard lists
->>>>>>> 6e29489 (feat: optimize queries and organize drivers (#74))
 
 ## 0.0.24 - 2026-08-14
 
