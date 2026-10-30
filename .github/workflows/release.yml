@@ -35,24 +35,9 @@ jobs:
             *) echo "::error::Release must be dispatched from a release/* branch (got '${GITHUB_REF_NAME}'). See RELEASING.md." ; exit 1 ;;
           esac
 
-  test:
-    name: Test
-    needs: guard
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@1.95.0
-      - uses: Swatinem/rust-cache@v2
-      - run: cargo test --workspace
-      - run: make install-check
-      - name: Generator release e2e
-        run: make release-e2e
-        env:
-          CARGO_TARGET_DIR: target/e2e-cargo
-
   version:
     name: Verify version
-    needs: test
+    needs: guard
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.check.outputs.version }}
@@ -72,6 +57,21 @@ jobs:
           fi
           echo "version=$VERSION" >>"$GITHUB_OUTPUT"
           echo "==> release version: $VERSION (matches committed tree)"
+
+  test:
+    name: Test
+    needs: version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.95.0
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo test --workspace
+      - run: make install-check
+      - name: Generator release e2e
+        run: make release-e2e
+        env:
+          CARGO_TARGET_DIR: target/e2e-cargo
 
   publish:
     name: Publish to crates.io
