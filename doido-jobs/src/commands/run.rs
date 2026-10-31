@@ -1,8 +1,10 @@
 //! `doido jobs run` / `perform` — in-process perform or enqueue for the worker.
 
 use crate::context::job_context_from_runtime;
-use crate::registry::{build_job_payload, parse_job_payload_json, suggest_job_names, JobRegistry};
-use crate::worker::perform_job_now;
+use crate::perform::{enqueue_jobs, perform_jobs_now};
+use crate::registry::{
+    build_job_payloads, parse_job_payloads_json, suggest_job_names, JobRegistry,
+};
 use crate::JobQueue;
 use clap::Args;
 use doido_core::{anyhow::anyhow, Result};
@@ -66,17 +68,20 @@ async fn run_inner(args: RunArgs, queue: Option<Arc<dyn JobQueue>>) -> Result<()
         return Err(anyhow!(msg));
     }
 
-    let payload = parse_job_payload_json(args.payload.as_deref())?;
+    let payloads = parse_job_payloads_json(args.payload.as_deref())?;
 
-    let job = build_job_payload(
+    let jobs = build_job_payloads(
         &registry,
         &args.job_name,
-        payload,
+        payloads,
         args.queue.clone(),
         args.timeout,
         args.max_retries,
     )?;
-    let queue_name = job.queue.clone();
+    let queue_name = jobs
+        .first()
+        .map(|j| j.queue.clone())
+        .unwrap_or_else(|| "default".to_string());
 
     if args.later {
         let queue = queue.ok_or_else(|| {
@@ -84,14 +89,23 @@ async fn run_inner(args: RunArgs, queue: Option<Arc<dyn JobQueue>>) -> Result<()
                 "jobs backend is not available (check config and DATABASE_URL for the db backend)"
             )
         })?;
-        let id = queue.enqueue(job).await?;
-        println!(
-            "enqueued job_id={id} queue={queue_name} job_name={}",
-            args.job_name
-        );
+        let ids = enqueue_jobs(queue.as_ref(), jobs).await?;
+        if ids.len() == 1 {
+            println!(
+                "enqueued job_id={} queue={queue_name} job_name={}",
+                ids[0], args.job_name
+            );
+        } else {
+            println!(
+                "enqueued {} job(s) queue={queue_name} job_name={} ids={}",
+                ids.len(),
+                args.job_name,
+                ids.join(", ")
+            );
+        }
         return Ok(());
     }
 
     let ctx = Arc::new(job_context_from_runtime());
-    perform_job_now(&registry, job, ctx).await
+    perform_jobs_now(&registry, jobs, ctx).await
 }

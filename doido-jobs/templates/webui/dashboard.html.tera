@@ -42,6 +42,7 @@
     .pager .btn.disabled { opacity: 0.4; cursor: default; pointer-events: none; border-style: dashed; }
     th.col-select, td.col-select { width: 2.25rem; text-align: center; }
     input.job-select { margin: 0; }
+    time.relative-time { cursor: help; }
   </style>
 </head>
 <body>
@@ -86,6 +87,7 @@
     <label>Payload (JSON)
       <textarea name="payload" placeholder="{}">{{ default_payload }}</textarea>
     </label>
+    <p class="hint">Use a JSON <strong>array</strong> (e.g. <code>[1, 2, 3]</code>) to enqueue, schedule, or perform multiple jobs in one submit.</p>
     <label>Queue override (optional)
       <select name="queue">
         <option value="">— job default —</option>
@@ -195,7 +197,7 @@
         <td class="mono">{{ job.id }}</td>
         <td>{{ job.job_name | default(value="—") }}</td>
         <td>{{ job.attempts }} / {{ job.max_retries }}</td>
-        <td class="mono">{{ job.run_at }}</td>
+        <td><time class="relative-time mono" datetime="{{ job.run_at }}" title="{{ job.run_at_tooltip }}">{{ job.run_at_relative }}</time></td>
         <td>{{ job.error }}</td>
         <td>
           {% if include_payload %}
@@ -241,6 +243,47 @@
   {% endif %}
   {% endif %}
 
-  <p class="meta">Server time: {{ now }}</p>
+  <p class="meta">Server time: <time class="relative-time" datetime="{{ now }}" title="{{ now_tooltip }}">{{ now_relative }}</time></p>
+  <script>
+  (function () {
+    function pad(n) { return n < 10 ? '0' + n : String(n); }
+    function tooltipFromDate(d) {
+      return pad(d.getUTCDate()) + '/' + pad(d.getUTCMonth() + 1) + '/' + d.getUTCFullYear()
+        + ' - ' + pad(d.getUTCHours()) + ':' + pad(d.getUTCMinutes()) + ':' + pad(d.getUTCSeconds());
+    }
+    function relativeFromDate(d, nowMs) {
+      var secs = Math.floor((nowMs - d.getTime()) / 1000);
+      if (secs === 0) return 'just now';
+      function ago(n, unit) { return n === 1 ? '1 ' + unit + ' ago' : n + ' ' + unit + 's ago'; }
+      function infut(n, unit) { return n === 1 ? 'in 1 ' + unit : 'in ' + n + ' ' + unit + 's'; }
+      if (secs > 0) {
+        if (secs < 60) return ago(secs, 'second');
+        var mins = Math.floor(secs / 60);
+        if (mins < 60) return ago(mins, 'minute');
+        var hours = Math.floor(mins / 60);
+        if (hours < 24) return ago(hours, 'hour');
+        return ago(Math.floor(hours / 24), 'day');
+      }
+      secs = -secs;
+      if (secs < 60) return infut(secs, 'second');
+      mins = Math.floor(secs / 60);
+      if (mins < 60) return infut(mins, 'minute');
+      hours = Math.floor(mins / 60);
+      if (hours < 24) return infut(hours, 'hour');
+      return infut(Math.floor(hours / 24), 'day');
+    }
+    function tick() {
+      var nowMs = Date.now();
+      document.querySelectorAll('time.relative-time[datetime]').forEach(function (el) {
+        var d = new Date(el.getAttribute('datetime'));
+        if (isNaN(d.getTime())) return;
+        el.textContent = relativeFromDate(d, nowMs);
+        if (!el.getAttribute('title')) el.setAttribute('title', tooltipFromDate(d));
+      });
+    }
+    tick();
+    setInterval(tick, 1000);
+  })();
+  </script>
 </body>
 </html>

@@ -3,8 +3,10 @@
 use super::dashboard::redirect_dashboard;
 use super::JobsWebState;
 use crate::context::job_context_from_runtime;
-use crate::registry::{build_job_payload, parse_job_payload_json, suggest_job_names, JobRegistry};
-use crate::worker::perform_job_now;
+use crate::perform::{enqueue_jobs, enqueue_jobs_at, perform_jobs_now};
+use crate::registry::{
+    build_job_payloads, parse_job_payloads_json, suggest_job_names, JobRegistry,
+};
 use axum::{
     extract::{Form, State},
     response::IntoResponse,
@@ -60,39 +62,82 @@ async fn submit_inner(state: &JobsWebState, form: EnqueueForm) -> Result<String>
         return Err(anyhow!(msg));
     }
 
-    let payload = parse_job_payload_json(Some(form.payload.as_str()))?;
+    let payloads = parse_job_payloads_json(Some(form.payload.as_str()))?;
     let queue = optional_non_empty(form.queue);
     let timeout = parse_optional_u64(form.timeout.as_str())?;
     let max_retries = parse_optional_u32(form.max_retries.as_str())?;
+    let queue_name = queue.clone().unwrap_or_else(|| {
+        registry
+            .defaults_for(job_name)
+            .map(|d| d.queue.to_string())
+            .unwrap_or_else(|| "default".to_string())
+    });
 
-    let job = build_job_payload(&registry, job_name, payload, queue, timeout, max_retries)?;
-    let queue_name = job.queue.clone();
+    let jobs = build_job_payloads(&registry, job_name, payloads, queue, timeout, max_retries)?;
+    let n = jobs.len();
 
     match form.mode.as_str() {
         "enqueue_now" => {
-            let id = state.queue.enqueue(job).await?;
-            Ok(format!(
-                "Enqueued job_id={id} queue={queue_name} job_name={job_name}"
-            ))
+            let ids = enqueue_jobs(state.queue.as_ref(), jobs).await?;
+            Ok(flash_enqueued(n, &ids, &queue_name, job_name))
         }
         "enqueue_at" => {
             let at = parse_run_at_utc(form.run_at.as_str())?;
-            let id = state.queue.enqueue_at(job, at).await?;
-            Ok(format!(
-                "Scheduled job_id={id} queue={queue_name} job_name={job_name} run_at={}",
-                at.to_rfc3339()
+            let ids = enqueue_jobs_at(state.queue.as_ref(), jobs, at).await?;
+            Ok(flash_scheduled(
+                n,
+                &ids,
+                &queue_name,
+                job_name,
+                &at.to_rfc3339(),
             ))
         }
         "perform_now" => {
             let ctx = Arc::new(job_context_from_runtime());
-            perform_job_now(&registry, job, ctx).await?;
-            Ok(format!(
-                "Performed job_name={job_name} in this server process"
-            ))
+            perform_jobs_now(&registry, jobs, ctx).await?;
+            Ok(if n == 1 {
+                format!("Performed job_name={job_name} in this server process")
+            } else {
+                format!("Performed {n} job(s) job_name={job_name} in this server process")
+            })
         }
         other => Err(anyhow!(
             "invalid mode `{other}` (expected enqueue_now, enqueue_at, or perform_now)"
         )),
+    }
+}
+
+fn flash_enqueued(n: usize, ids: &[crate::queue::JobId], queue: &str, job_name: &str) -> String {
+    if n == 1 {
+        format!(
+            "Enqueued job_id={} queue={queue} job_name={job_name}",
+            ids[0]
+        )
+    } else {
+        format!(
+            "Enqueued {n} job(s) queue={queue} job_name={job_name} ids={}",
+            ids.join(", ")
+        )
+    }
+}
+
+fn flash_scheduled(
+    n: usize,
+    ids: &[crate::queue::JobId],
+    queue: &str,
+    job_name: &str,
+    run_at: &str,
+) -> String {
+    if n == 1 {
+        format!(
+            "Scheduled job_id={} queue={queue} job_name={job_name} run_at={run_at}",
+            ids[0]
+        )
+    } else {
+        format!(
+            "Scheduled {n} job(s) queue={queue} job_name={job_name} run_at={run_at} ids={}",
+            ids.join(", ")
+        )
     }
 }
 

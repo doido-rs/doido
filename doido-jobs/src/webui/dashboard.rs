@@ -1,5 +1,6 @@
 //! Dashboard HTTP handlers.
 
+use super::time_format::{format_relative, format_tooltip};
 use super::JobsWebState;
 use crate::config::JobsConfig;
 use crate::inspect::{
@@ -13,7 +14,7 @@ use axum::{
     http::StatusCode,
     response::{Html, IntoResponse, Redirect},
 };
-use chrono::Utc;
+use chrono::{DateTime, Utc};
 use serde::Deserialize;
 use serde_json::json;
 use std::time::{Duration, Instant};
@@ -54,12 +55,17 @@ fn active_tab(query: &DashboardQuery) -> &str {
     query.tab.as_deref().unwrap_or("queues")
 }
 
-fn job_row(job: &crate::queue::JobPayload, include_payload: bool) -> serde_json::Value {
+fn job_row(
+    job: &crate::queue::JobPayload,
+    include_payload: bool,
+    now: DateTime<Utc>,
+) -> serde_json::Value {
     let payload = if include_payload {
         serde_json::to_string_pretty(&job.payload).unwrap_or_else(|_| "{}".into())
     } else {
         String::new()
     };
+    let run_at = job.run_at;
     json!({
         "id": job.id,
         "job_name": job.job_name,
@@ -67,7 +73,9 @@ fn job_row(job: &crate::queue::JobPayload, include_payload: bool) -> serde_json:
         "attempts": job.attempts,
         "max_retries": job.max_retries,
         "status": format!("{:?}", job.status),
-        "run_at": job.run_at.to_rfc3339(),
+        "run_at": run_at.to_rfc3339(),
+        "run_at_relative": format_relative(run_at, now),
+        "run_at_tooltip": format_tooltip(run_at),
         "error": job.error.as_deref().unwrap_or(""),
         "payload": payload,
     })
@@ -210,6 +218,7 @@ pub async fn index(
     };
 
     let flash = query.flash.as_deref().unwrap_or("");
+    let now = Utc::now();
     let ctx = json!({
         "mount": mount,
         "tab": tab,
@@ -231,10 +240,12 @@ pub async fn index(
             "has_prev": queue_page.prev_page_token.is_some(),
         },
         "queue_counts": queue_page.rows.iter().map(|(name, c)| queue_count_row(name, c)).collect::<Vec<_>>(),
-        "jobs": jobs.iter().map(|j| job_row(j, include_payload)).collect::<Vec<_>>(),
+        "jobs": jobs.iter().map(|j| job_row(j, include_payload, now)).collect::<Vec<_>>(),
         "show_dead_actions": tab == "dead",
         "show_bulk_form": matches!(tab, "in_queue" | "executing" | "retry" | "dead"),
-        "now": Utc::now().to_rfc3339(),
+        "now": now.to_rfc3339(),
+        "now_relative": format_relative(now, now),
+        "now_tooltip": format_tooltip(now),
     });
 
     match doido_view::render("jobs/dashboard", &ctx) {

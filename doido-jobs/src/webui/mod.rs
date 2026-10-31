@@ -5,6 +5,7 @@ mod bulk;
 mod dashboard;
 mod enqueue;
 mod framework_views;
+mod time_format;
 
 pub use framework_views::register_views;
 

@@ -107,6 +107,10 @@ async fn webui_job_tab_exposes_cursor_pagination() {
     assert!(!html.contains("offset="));
     assert!(html.contains("Show payload"));
     assert!(!html.contains("<pre class=\"payload\">"));
+    assert!(html.contains("class=\"relative-time"));
+    assert!(html.contains(" seconds ago") || html.contains("just now"));
+    assert!(html.contains("title=\""));
+    assert!(html.contains(" - ") && html.contains(":"));
 }
 
 #[tokio::test]
@@ -232,6 +236,31 @@ async fn webui_enqueue_now_inserts_job() {
         .unwrap();
     assert_eq!(page.jobs.len(), 1);
     assert_eq!(page.jobs[0].job_name, "webui_enqueue_probe");
+}
+
+#[tokio::test]
+async fn webui_enqueue_payload_array_inserts_multiple_jobs() {
+    doido_jobs::webui::register_views();
+    let _ = doido_view::init("app/views");
+
+    let queue = Arc::new(MemoryQueue::new()) as Arc<dyn JobQueue>;
+    let state = JobsWebState::new(queue.clone(), test_jobs_config());
+    let app = webui::routes(state);
+
+    let response = app
+        .oneshot(form_post(
+            "/doido/jobs/enqueue",
+            "job_name=webui_enqueue_probe&payload=%5B1%2C2%2C3%5D&mode=enqueue_now",
+        ))
+        .await
+        .unwrap();
+    assert_eq!(response.status(), http::StatusCode::SEE_OTHER);
+
+    let page = queue
+        .list_jobs("default", JobBucket::InQueue, 10, None, true)
+        .await
+        .unwrap();
+    assert_eq!(page.jobs.len(), 3);
 }
 
 #[tokio::test]

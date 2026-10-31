@@ -7,6 +7,7 @@ pub mod context;
 pub mod cron;
 pub mod drivers;
 pub mod inspect;
+pub mod perform;
 pub mod queue;
 pub mod registry;
 pub mod retry;
@@ -37,12 +38,13 @@ pub use drivers::redis;
 pub use inspect::{classify_stored, JobBucket, QueueCounts};
 pub use inventory;
 pub use memory::{MemoryQueue, QueueStats};
+pub use perform::{enqueue_jobs, enqueue_jobs_at, perform_jobs_now};
 pub use queue::{BackoffStrategy, JobId, JobPayload, JobQueue, JobStatus, Reserved};
 #[cfg(feature = "jobs-redis")]
 pub use redis::RedisQueue;
 pub use registry::{
-    build_job_payload, parse_job_payload_json, suggest_job_names, HandlerFn, HandlerFuture,
-    JobDefaults, JobRegistration, JobRegistry,
+    build_job_payload, build_job_payloads, parse_job_payload_json, parse_job_payloads_json,
+    suggest_job_names, HandlerFn, HandlerFuture, JobDefaults, JobRegistration, JobRegistry,
 };
 pub use retry::{Decision, RetryPolicy};
 pub use worker::{perform_job_now, EngineConfig, Worker, WorkerEngine};
