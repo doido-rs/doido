@@ -15,7 +15,7 @@ use crate::inspect::{
     count_stored, matches_bucket, paginate_sorted, JobBucket, JobListPage, JobPageAnchor,
     QueueCounts,
 };
-use crate::queue::{JobId, JobPayload, JobQueue, JobStatus, Reserved};
+use crate::queue::{JobId, JobPayload, JobQueue, JobStatus, Reserved, DEFAULT_ENQUEUE_BATCH_SIZE};
 use chrono::{DateTime, Utc};
 use doido_core::{anyhow::anyhow, Result};
 use redis::aio::MultiplexedConnection;
@@ -28,6 +28,7 @@ pub struct RedisQueue {
     conn: MultiplexedConnection,
     namespace: String,
     visibility_timeout: Duration,
+    enqueue_batch_size: usize,
 }
 
 fn millis(dt: DateTime<Utc>) -> i64 {
@@ -56,11 +57,21 @@ impl RedisQueue {
             conn,
             namespace: namespace.into(),
             visibility_timeout: VISIBILITY_TIMEOUT,
+            enqueue_batch_size: DEFAULT_ENQUEUE_BATCH_SIZE,
         })
     }
 
     pub fn with_visibility_timeout(mut self, timeout: Duration) -> Self {
         self.visibility_timeout = timeout;
+        self
+    }
+
+    pub fn with_enqueue_batch_size(mut self, size: usize) -> Self {
+        self.enqueue_batch_size = if size == 0 {
+            DEFAULT_ENQUEUE_BATCH_SIZE
+        } else {
+            size
+        };
         self
     }
 
@@ -177,13 +188,22 @@ impl RedisQueue {
         Ok(())
     }
 
-    async fn put_ready(&self, job: &JobPayload) -> Result<()> {
-        self.store(job).await?;
+    async fn put_ready_many(&self, jobs: &[JobPayload]) -> Result<()> {
+        if jobs.is_empty() {
+            return Ok(());
+        }
         let mut conn = self.conn.clone();
-        let _: () = conn
-            .zadd(self.ready_key(&job.queue), job.id.clone(), self.score(job))
-            .await
-            .map_err(|e| anyhow!("enqueue zadd failed: {e}"))?;
+        for chunk in jobs.chunks(self.enqueue_batch_size.max(1)) {
+            let mut pipe = redis::pipe();
+            for job in chunk {
+                let data = serde_json::to_string(job)?;
+                pipe.set(self.job_key(&job.id), data);
+                pipe.zadd(self.ready_key(&job.queue), job.id.clone(), self.score(job));
+            }
+            pipe.query_async::<()>(&mut conn)
+                .await
+                .map_err(|e| anyhow!("enqueue pipeline failed: {e}"))?;
+        }
         Ok(())
     }
 
@@ -221,19 +241,33 @@ impl RedisQueue {
 
 #[async_trait::async_trait]
 impl JobQueue for RedisQueue {
-    async fn enqueue(&self, mut job: JobPayload) -> Result<JobId> {
-        job.status = JobStatus::Pending;
-        let id = job.id.clone();
-        self.put_ready(&job).await?;
-        Ok(id)
+    async fn enqueue_many(&self, jobs: Vec<JobPayload>) -> Result<Vec<JobId>> {
+        let ids: Vec<JobId> = jobs.iter().map(|j| j.id.clone()).collect();
+        let pending: Vec<JobPayload> = jobs
+            .into_iter()
+            .map(|mut job| {
+                job.status = JobStatus::Pending;
+                job
+            })
+            .collect();
+        self.put_ready_many(&pending).await?;
+        Ok(ids)
     }
 
-    async fn enqueue_at(&self, mut job: JobPayload, at: DateTime<Utc>) -> Result<JobId> {
-        job.status = JobStatus::Pending;
-        job.run_at = at;
-        let id = job.id.clone();
-        self.put_ready(&job).await?;
-        Ok(id)
+    async fn enqueue_many_at(
+        &self,
+        jobs: Vec<JobPayload>,
+        at: DateTime<Utc>,
+    ) -> Result<Vec<JobId>> {
+        let jobs = jobs
+            .into_iter()
+            .map(|mut job| {
+                job.status = JobStatus::Pending;
+                job.run_at = at;
+                job
+            })
+            .collect();
+        self.enqueue_many(jobs).await
     }
 
     async fn reserve(&self, queues: &[&str], wait: Duration) -> Result<Option<Reserved>> {
@@ -278,7 +312,7 @@ impl JobQueue for RedisQueue {
         job.status = JobStatus::Failed;
         job.error = Some(error.to_string());
         job.run_at = retry_at.unwrap_or_else(Utc::now);
-        self.put_ready(&job).await?;
+        self.put_ready_many(std::slice::from_ref(&job)).await?;
         Ok(())
     }
 
@@ -305,7 +339,7 @@ impl JobQueue for RedisQueue {
                 .zrem(self.processing_key(), &id)
                 .await
                 .map_err(|e| anyhow!("{e}"))?;
-            self.put_ready(&job).await?;
+            self.put_ready_many(std::slice::from_ref(&job)).await?;
             count += 1;
         }
         Ok(count)
@@ -465,5 +499,32 @@ impl JobQueue for RedisQueue {
         } else {
             Ok(false)
         }
+    }
+
+    async fn cancel_job(&self, queue: &str, job_id: &str) -> Result<bool> {
+        let Some(job) = self.load(job_id).await? else {
+            return Ok(false);
+        };
+        if job.queue != queue || job.status == JobStatus::Dead {
+            return Ok(false);
+        }
+        let mut conn = self.conn.clone();
+        let _: () = conn
+            .zrem(self.ready_key(queue), job_id)
+            .await
+            .map_err(|e| anyhow!("cancel_job zrem ready: {e}"))?;
+        let _: () = conn
+            .zrem(self.processing_key(), job_id)
+            .await
+            .map_err(|e| anyhow!("cancel_job zrem processing: {e}"))?;
+        let _: () = conn
+            .lrem(self.dead_key(queue), 0, job_id)
+            .await
+            .map_err(|e| anyhow!("cancel_job lrem dead: {e}"))?;
+        let deleted: i32 = conn
+            .del(self.job_key(job_id))
+            .await
+            .map_err(|e| anyhow!("cancel_job del: {e}"))?;
+        Ok(deleted > 0)
     }
 }

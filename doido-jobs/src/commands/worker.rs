@@ -34,7 +34,7 @@ pub async fn run(once: bool) {
         config.concurrency,
     );
 
-    let job_ctx = crate::context::job_context_from_runtime();
+    let job_ctx = crate::context::job_context_with_queue(Arc::clone(&queue));
     let queue_refs: Vec<&str> = config.queues.iter().map(|s| s.as_str()).collect();
 
     // Every `#[job]` registers its handler at link time; build the lookup once and

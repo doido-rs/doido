@@ -3,6 +3,7 @@
 use chrono::{Duration as ChronoDuration, Utc};
 use doido_jobs::db::DbQueue;
 use doido_jobs::entity;
+use doido_jobs::perform::enqueue_jobs;
 use doido_jobs::queue::{JobPayload, JobQueue, JobStatus};
 use doido_jobs::{EngineConfig, WorkerEngine};
 use doido_model::sea_orm::{ColumnTrait, Database, EntityTrait, QueryFilter};
@@ -285,4 +286,19 @@ async fn test_db_reclaim_sets_lease_expired_error() {
         .unwrap()
         .unwrap();
     assert_eq!(r.job.error.as_deref(), Some("lease expired"));
+}
+
+#[tokio::test]
+async fn enqueue_jobs_inserts_all_rows_in_one_batch() {
+    let q = fresh().await;
+    let jobs: Vec<_> = (0..5)
+        .map(|i| JobPayload::new("default", json!({ "i": i }), 3))
+        .collect();
+    let ids = enqueue_jobs(&q, jobs).await.unwrap();
+    assert_eq!(ids.len(), 5);
+    let page = q
+        .list_jobs("default", doido_jobs::JobBucket::InQueue, 10, None, true)
+        .await
+        .unwrap();
+    assert_eq!(page.jobs.len(), 5);
 }

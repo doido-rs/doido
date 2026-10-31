@@ -118,6 +118,80 @@ async fn memory_failed_retry_bucket() {
 }
 
 #[tokio::test]
+async fn memory_cancel_job_pending_running_and_retry() {
+    let q = MemoryQueue::new();
+    let id = q
+        .enqueue(JobPayload::new("default", json!({}), 3))
+        .await
+        .unwrap();
+    assert!(q.cancel_job("default", &id).await.unwrap());
+    assert!(q
+        .list_jobs("default", JobBucket::InQueue, 10, None, false)
+        .await
+        .unwrap()
+        .jobs
+        .is_empty());
+
+    let id2 = q
+        .enqueue(JobPayload::new("default", json!({}), 3))
+        .await
+        .unwrap();
+    let r = q
+        .reserve(&["default"], StdDuration::ZERO)
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(r.job.id, id2);
+    assert!(q.cancel_job("default", &id2).await.unwrap());
+    assert!(q
+        .list_jobs("default", JobBucket::Running, 10, None, false)
+        .await
+        .unwrap()
+        .jobs
+        .is_empty());
+
+    let id3 = q
+        .enqueue(JobPayload::new("default", json!({}), 3))
+        .await
+        .unwrap();
+    let r3 = q
+        .reserve(&["default"], StdDuration::ZERO)
+        .await
+        .unwrap()
+        .unwrap();
+    let later = Utc::now() + Duration::minutes(5);
+    q.nack(&r3.job.id, Some(later), "err").await.unwrap();
+    assert_eq!(id3, r3.job.id);
+    assert!(q.cancel_job("default", &id3).await.unwrap());
+    assert!(q
+        .list_jobs("default", JobBucket::Retry, 10, None, false)
+        .await
+        .unwrap()
+        .jobs
+        .is_empty());
+
+    let id4 = q
+        .enqueue(JobPayload::new("default", json!({}), 0))
+        .await
+        .unwrap();
+    let r4 = q
+        .reserve(&["default"], StdDuration::ZERO)
+        .await
+        .unwrap()
+        .unwrap();
+    q.dead_letter(&r4.job.id, "boom").await.unwrap();
+    assert!(!q.cancel_job("default", &id4).await.unwrap());
+    assert_eq!(
+        q.list_jobs("default", JobBucket::Dead, 10, None, false)
+            .await
+            .unwrap()
+            .jobs
+            .len(),
+        1
+    );
+}
+
+#[tokio::test]
 async fn memory_list_jobs_cursor_pages_and_in_queue() {
     use doido_jobs::inspect::decode_job_page_token;
 
@@ -283,6 +357,34 @@ mod db {
         assert_eq!(by_name["beta"].pending_ready, 1);
         assert_eq!(by_name["gamma"].scheduled, 1);
         assert_eq!(by_name["empty"].pending_ready, 0);
+    }
+
+    #[tokio::test]
+    async fn db_cancel_job_active_not_dead() {
+        let q = sqlite_queue().await;
+        let id = q
+            .enqueue(JobPayload::new("default", json!({}), 3))
+            .await
+            .unwrap();
+        assert!(q.cancel_job("default", &id).await.unwrap());
+        assert!(q
+            .list_jobs("default", JobBucket::InQueue, 10, None, false)
+            .await
+            .unwrap()
+            .jobs
+            .is_empty());
+
+        let id2 = q
+            .enqueue(JobPayload::new("default", json!({}), 0))
+            .await
+            .unwrap();
+        let r = q
+            .reserve(&["default"], StdDuration::ZERO)
+            .await
+            .unwrap()
+            .unwrap();
+        q.dead_letter(&r.job.id, "x").await.unwrap();
+        assert!(!q.cancel_job("default", &id2).await.unwrap());
     }
 
     #[tokio::test]

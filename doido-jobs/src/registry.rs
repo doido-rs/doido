@@ -132,6 +132,30 @@ impl JobRegistry {
     }
 }
 
+/// Parse JSON for a job handler payload (CLI `--payload`, Web UI enqueue form).
+pub fn parse_job_payload_json(raw: Option<&str>) -> Result<Value> {
+    match raw {
+        None | Some("") => Ok(Value::Object(Default::default())),
+        Some(s) => serde_json::from_str(s).map_err(|e| anyhow!("invalid JSON payload: {e}")),
+    }
+}
+
+/// Parse one or more JSON payloads. A top-level **array** enqueues/runs multiple
+/// jobs with the same job name and options; any other JSON value is treated as a
+/// single payload (same as [`parse_job_payload_json`]).
+pub fn parse_job_payloads_json(raw: Option<&str>) -> Result<Vec<Value>> {
+    let value = parse_job_payload_json(raw)?;
+    Ok(match value {
+        Value::Array(items) => {
+            if items.is_empty() {
+                return Err(anyhow!("payload array must not be empty"));
+            }
+            items
+        }
+        other => vec![other],
+    })
+}
+
 /// Build a [`JobPayload`] for enqueue / cron, using `#[job]` defaults from the registry.
 pub fn build_job_payload(
     registry: &JobRegistry,
@@ -150,6 +174,30 @@ pub fn build_job_payload(
     Ok(JobPayload::new(queue_name, payload, max_retries)
         .with_name(job_name)
         .with_timeout(timeout))
+}
+
+/// Build one [`JobPayload`] per JSON value (shared queue/timeout/retry overrides).
+pub fn build_job_payloads(
+    registry: &JobRegistry,
+    job_name: &str,
+    payloads: impl IntoIterator<Item = Value>,
+    queue: Option<String>,
+    timeout: Option<u64>,
+    max_retries: Option<u32>,
+) -> Result<Vec<JobPayload>> {
+    payloads
+        .into_iter()
+        .map(|payload| {
+            build_job_payload(
+                registry,
+                job_name,
+                payload,
+                queue.clone(),
+                timeout,
+                max_retries,
+            )
+        })
+        .collect()
 }
 
 /// Names closest to `query` among `known` (prefix/substring match), for CLI hints.
@@ -174,4 +222,42 @@ pub fn suggest_job_names<'a>(known: &'a [&'a str], query: &str, limit: usize) ->
         .collect();
     scored.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(b.0)));
     scored.into_iter().take(limit).map(|(n, _)| n).collect()
+}
+
+#[cfg(test)]
+mod payload_parse_tests {
+    use super::*;
+
+    #[test]
+    fn parse_job_payload_json_defaults_to_empty_object() {
+        assert_eq!(parse_job_payload_json(None).unwrap(), serde_json::json!({}));
+    }
+
+    #[test]
+    fn parse_job_payload_json_accepts_scalar_json() {
+        assert_eq!(
+            parse_job_payload_json(Some("1")).unwrap(),
+            serde_json::json!(1)
+        );
+    }
+
+    #[test]
+    fn parse_job_payloads_json_expands_array() {
+        assert_eq!(
+            parse_job_payloads_json(Some("[1,2,3]")).unwrap(),
+            vec![
+                serde_json::json!(1),
+                serde_json::json!(2),
+                serde_json::json!(3)
+            ]
+        );
+    }
+
+    #[test]
+    fn parse_job_payloads_json_single_value() {
+        assert_eq!(
+            parse_job_payloads_json(Some(r#"{"a":1}"#)).unwrap(),
+            vec![serde_json::json!({"a": 1})]
+        );
+    }
 }

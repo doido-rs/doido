@@ -11,6 +11,13 @@ documented in `RELEASING.md` at the repository root.
 
 ## Unreleased
 
+### Added
+
+- **`JobQueue::cancel_job`** — remove pending, failed, or running jobs (not dead-letter).
+- Jobs Web UI bulk actions on listing tabs: delete selected (in queue / executing / retry),
+  retry/discard selected and all on **Dead** (`POST {mount}/bulk`).
+
+- Jobs Web UI **Enqueue** tab: select a registered job, optional payload/queue overrides, enqueue now, schedule (`enqueue_at`, UTC), or perform now in-process
 - DbQueue (MySQL/PostgreSQL): parallel job reserve via `FOR UPDATE SKIP LOCKED`
 - **Performance:** Jobs Web UI — `queue_counts` only on the Queues tab; optional `jobs.webui.stats_ttl_secs`; `include_payload` query param (payload omitted by default); lighter DB `list_jobs` and aggregated SQL `queue_counts`; Redis batched `MGET` and chunked ready-set scans; memory driver lists pages without cloning full buckets
 - **Changed:** queue backends moved to `doido-jobs/src/drivers/` (public `doido_jobs::{db,memory,redis}` re-exports unchanged)

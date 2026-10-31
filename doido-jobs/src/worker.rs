@@ -199,6 +199,9 @@ impl<C: Send + Sync + 'static> WorkerEngine<C> {
                 Err(e) => {
                     doido_core::tracing::error!("worker reserve error: {e}");
                     drop(permit);
+                    // Transient pool/DB errors (e.g. Postgres restart after OOM): back off
+                    // instead of tight-looping reserve while connections recover.
+                    tokio::time::sleep(self.config.poll_wait).await;
                 }
             }
         }

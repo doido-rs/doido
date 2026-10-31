@@ -15,7 +15,7 @@ use crate::inspect::{
     encode_job_page_token, JobBucket, JobListPage, JobPageAnchor, JobPageDirection, JobSortKey,
     QueueCounts,
 };
-use crate::queue::{JobId, JobPayload, JobQueue, JobStatus, Reserved};
+use crate::queue::{JobId, JobPayload, JobQueue, JobStatus, Reserved, DEFAULT_ENQUEUE_BATCH_SIZE};
 use chrono::{DateTime, Utc};
 use doido_core::{anyhow::anyhow, Result};
 use doido_model::migration::{
@@ -27,8 +27,8 @@ use doido_model::sea_orm::sea_query::{LockBehavior, LockType};
 #[cfg(any(feature = "mysql", feature = "postgres"))]
 use doido_model::sea_orm::TransactionTrait;
 use doido_model::sea_orm::{
-    ActiveModelTrait, ColumnTrait, Condition, DatabaseConnection, EntityTrait, NotSet, QueryFilter,
-    QueryOrder, QuerySelect, Set,
+    ColumnTrait, Condition, DatabaseConnection, EntityTrait, NotSet, QueryFilter, QueryOrder,
+    QuerySelect, Set,
 };
 use doido_model::SchemaManager;
 use std::time::Duration;
@@ -44,6 +44,7 @@ const VISIBILITY_TIMEOUT: Duration = Duration::from_secs(300);
 pub struct DbQueue {
     conn: DatabaseConnection,
     visibility_timeout: Duration,
+    enqueue_batch_size: usize,
 }
 
 fn millis(dt: DateTime<Utc>) -> i64 {
@@ -143,11 +144,21 @@ impl DbQueue {
         Self {
             conn,
             visibility_timeout: VISIBILITY_TIMEOUT,
+            enqueue_batch_size: DEFAULT_ENQUEUE_BATCH_SIZE,
         }
     }
 
     pub fn with_visibility_timeout(mut self, timeout: Duration) -> Self {
         self.visibility_timeout = timeout;
+        self
+    }
+
+    pub fn with_enqueue_batch_size(mut self, size: usize) -> Self {
+        self.enqueue_batch_size = if size == 0 {
+            DEFAULT_ENQUEUE_BATCH_SIZE
+        } else {
+            size
+        };
         self
     }
 
@@ -194,9 +205,9 @@ impl DbQueue {
         Ok(())
     }
 
-    async fn insert(&self, job: &JobPayload) -> Result<JobId> {
+    fn active_model_for_insert(job: &JobPayload) -> Result<entity::ActiveModel> {
         let data = serde_json::to_string(job)?;
-        entity::ActiveModel {
+        Ok(entity::ActiveModel {
             id: NotSet,
             job_id: Set(job.id.clone()),
             queue: Set(job.queue.clone()),
@@ -206,11 +217,24 @@ impl DbQueue {
             locked_at: Set(None),
             data: Set(data),
             last_error: Set(None),
+        })
+    }
+
+    async fn insert_many(&self, jobs: &[JobPayload]) -> Result<()> {
+        if jobs.is_empty() {
+            return Ok(());
         }
-        .insert(&self.conn)
-        .await
-        .map_err(|e| anyhow!("enqueue failed: {e}"))?;
-        Ok(job.id.clone())
+        for chunk in jobs.chunks(self.enqueue_batch_size.max(1)) {
+            let models: Vec<entity::ActiveModel> = chunk
+                .iter()
+                .map(Self::active_model_for_insert)
+                .collect::<Result<_>>()?;
+            entity::Entity::insert_many(models)
+                .exec(&self.conn)
+                .await
+                .map_err(|e| anyhow!("enqueue batch failed: {e}"))?;
+        }
+        Ok(())
     }
 
     async fn load(&self, job_id: &str) -> Result<Option<JobPayload>> {
@@ -482,15 +506,33 @@ fn job_list_page_from_jobs(jobs: Vec<JobPayload>, has_prev: bool, has_next: bool
 
 #[async_trait::async_trait]
 impl JobQueue for DbQueue {
-    async fn enqueue(&self, mut job: JobPayload) -> Result<JobId> {
-        job.status = JobStatus::Pending;
-        self.insert(&job).await
+    async fn enqueue_many(&self, jobs: Vec<JobPayload>) -> Result<Vec<JobId>> {
+        let ids: Vec<JobId> = jobs.iter().map(|j| j.id.clone()).collect();
+        let pending: Vec<JobPayload> = jobs
+            .into_iter()
+            .map(|mut job| {
+                job.status = JobStatus::Pending;
+                job
+            })
+            .collect();
+        self.insert_many(&pending).await?;
+        Ok(ids)
     }
 
-    async fn enqueue_at(&self, mut job: JobPayload, at: DateTime<Utc>) -> Result<JobId> {
-        job.status = JobStatus::Pending;
-        job.run_at = at;
-        self.insert(&job).await
+    async fn enqueue_many_at(
+        &self,
+        jobs: Vec<JobPayload>,
+        at: DateTime<Utc>,
+    ) -> Result<Vec<JobId>> {
+        let jobs = jobs
+            .into_iter()
+            .map(|mut job| {
+                job.status = JobStatus::Pending;
+                job.run_at = at;
+                job
+            })
+            .collect();
+        self.enqueue_many(jobs).await
     }
 
     async fn reserve(&self, queues: &[&str], wait: Duration) -> Result<Option<Reserved>> {
@@ -665,6 +707,17 @@ impl JobQueue for DbQueue {
             .exec(&self.conn)
             .await
             .map_err(|e| anyhow!("discard_dead_job failed: {e}"))?;
+        Ok(res.rows_affected > 0)
+    }
+
+    async fn cancel_job(&self, queue: &str, job_id: &str) -> Result<bool> {
+        let res = entity::Entity::delete_many()
+            .filter(entity::Column::Queue.eq(queue))
+            .filter(entity::Column::JobId.eq(job_id))
+            .filter(entity::Column::Status.is_in([STATUS_PENDING, STATUS_RUNNING, STATUS_FAILED]))
+            .exec(&self.conn)
+            .await
+            .map_err(|e| anyhow!("cancel_job failed: {e}"))?;
         Ok(res.rows_affected > 0)
     }
 }

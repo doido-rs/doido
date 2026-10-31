@@ -2,7 +2,7 @@ use crate::inspect::{
     count_stored, job_sort_cmp, matches_bucket, paginate_sorted, JobBucket, JobListPage,
     JobPageAnchor, JobSortKey, QueueCounts,
 };
-use crate::queue::{JobId, JobPayload, JobQueue, JobStatus, Reserved};
+use crate::queue::{JobId, JobPayload, JobQueue, JobStatus, Reserved, DEFAULT_ENQUEUE_BATCH_SIZE};
 use chrono::{DateTime, Utc};
 use doido_core::Result;
 use serde_json::json;
@@ -37,6 +37,8 @@ pub struct MemoryQueue {
     visibility_timeout: Duration,
     /// Wakes reservers when new work is enqueued.
     notify: Notify,
+    /// Max jobs per [`JobQueue::enqueue_many`] call (config: `jobs.enqueue_batch_size`).
+    enqueue_batch_size: usize,
 }
 
 impl MemoryQueue {
@@ -47,11 +49,21 @@ impl MemoryQueue {
             running: Mutex::new(HashMap::new()),
             visibility_timeout: VISIBILITY_TIMEOUT,
             notify: Notify::new(),
+            enqueue_batch_size: DEFAULT_ENQUEUE_BATCH_SIZE,
         }
     }
 
     pub fn with_visibility_timeout(mut self, timeout: Duration) -> Self {
         self.visibility_timeout = timeout;
+        self
+    }
+
+    pub fn with_enqueue_batch_size(mut self, size: usize) -> Self {
+        self.enqueue_batch_size = if size == 0 {
+            DEFAULT_ENQUEUE_BATCH_SIZE
+        } else {
+            size
+        };
         self
     }
 
@@ -69,13 +81,12 @@ impl MemoryQueue {
         QueueStats { pending, dead }
     }
 
-    async fn push(&self, job: JobPayload) {
-        self.queues
-            .lock()
-            .await
-            .entry(job.queue.clone())
-            .or_default()
-            .push(job);
+    async fn push_many(&self, jobs: impl IntoIterator<Item = JobPayload>) {
+        let mut qs = self.queues.lock().await;
+        for job in jobs {
+            qs.entry(job.queue.clone()).or_default().push(job);
+        }
+        drop(qs);
         self.notify.notify_waiters();
     }
 
@@ -120,19 +131,37 @@ impl Default for MemoryQueue {
 
 #[async_trait::async_trait]
 impl JobQueue for MemoryQueue {
-    async fn enqueue(&self, mut job: JobPayload) -> Result<JobId> {
-        job.status = JobStatus::Pending;
-        let id = job.id.clone();
-        self.push(job).await;
-        Ok(id)
+    async fn enqueue_many(&self, jobs: Vec<JobPayload>) -> Result<Vec<JobId>> {
+        let mut ids = Vec::with_capacity(jobs.len());
+        let mut pending = Vec::with_capacity(jobs.len().min(self.enqueue_batch_size));
+        for mut job in jobs {
+            job.status = JobStatus::Pending;
+            ids.push(job.id.clone());
+            pending.push(job);
+            if pending.len() >= self.enqueue_batch_size {
+                self.push_many(pending.drain(..)).await;
+            }
+        }
+        if !pending.is_empty() {
+            self.push_many(pending).await;
+        }
+        Ok(ids)
     }
 
-    async fn enqueue_at(&self, mut job: JobPayload, at: DateTime<Utc>) -> Result<JobId> {
-        job.status = JobStatus::Pending;
-        job.run_at = at;
-        let id = job.id.clone();
-        self.push(job).await;
-        Ok(id)
+    async fn enqueue_many_at(
+        &self,
+        jobs: Vec<JobPayload>,
+        at: DateTime<Utc>,
+    ) -> Result<Vec<JobId>> {
+        let jobs = jobs
+            .into_iter()
+            .map(|mut job| {
+                job.status = JobStatus::Pending;
+                job.run_at = at;
+                job
+            })
+            .collect();
+        self.enqueue_many(jobs).await
     }
 
     async fn reserve(&self, queues: &[&str], wait: Duration) -> Result<Option<Reserved>> {
@@ -179,7 +208,7 @@ impl JobQueue for MemoryQueue {
             job.error = Some(error.to_string());
             job.status = JobStatus::Failed;
             job.run_at = retry_at.unwrap_or_else(Utc::now);
-            self.push(job).await;
+            self.push_many(std::iter::once(job)).await;
         }
         Ok(())
     }
@@ -203,7 +232,7 @@ impl JobQueue for MemoryQueue {
         }
         let count = reclaimed.len() as u64;
         for job in reclaimed {
-            self.push(job).await;
+            self.push_many(std::iter::once(job)).await;
         }
         Ok(count)
     }
@@ -322,6 +351,21 @@ impl JobQueue for MemoryQueue {
         };
         list.remove(idx);
         Ok(true)
+    }
+
+    async fn cancel_job(&self, queue: &str, job_id: &str) -> Result<bool> {
+        {
+            let mut qs = self.queues.lock().await;
+            if let Some(list) = qs.get_mut(queue) {
+                if let Some(idx) = list.iter().position(|j| j.id == job_id) {
+                    list.remove(idx);
+                    self.notify.notify_waiters();
+                    return Ok(true);
+                }
+            }
+        }
+        let removed = self.running.lock().await.remove(job_id).is_some();
+        Ok(removed)
     }
 }
 
