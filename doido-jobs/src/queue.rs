@@ -173,13 +173,32 @@ pub struct Reserved {
     pub lease_until: DateTime<Utc>,
 }
 
+/// Default chunk size for bulk enqueue (`jobs.enqueue_batch_size` in config).
+pub const DEFAULT_ENQUEUE_BATCH_SIZE: usize = 500;
+
 #[async_trait::async_trait]
 pub trait JobQueue: Send + Sync {
     /// Enqueue for immediate eligibility.
-    async fn enqueue(&self, job: JobPayload) -> Result<JobId>;
+    async fn enqueue(&self, job: JobPayload) -> Result<JobId> {
+        let id = job.id.clone();
+        self.enqueue_many(vec![job]).await?;
+        Ok(id)
+    }
 
     /// Enqueue, eligible no earlier than `at`.
-    async fn enqueue_at(&self, job: JobPayload, at: DateTime<Utc>) -> Result<JobId>;
+    async fn enqueue_at(&self, job: JobPayload, at: DateTime<Utc>) -> Result<JobId> {
+        let id = job.id.clone();
+        self.enqueue_many_at(vec![job], at).await?;
+        Ok(id)
+    }
+
+    /// Enqueue many jobs in as few backend round-trips as possible (one SQL
+    /// `INSERT` for the db driver, one Redis pipeline, one lock for memory).
+    async fn enqueue_many(&self, jobs: Vec<JobPayload>) -> Result<Vec<JobId>>;
+
+    /// Schedule many jobs, all eligible no earlier than `at`.
+    async fn enqueue_many_at(&self, jobs: Vec<JobPayload>, at: DateTime<Utc>)
+        -> Result<Vec<JobId>>;
 
     /// Atomically lease the next eligible job across `queues` (priority order),
     /// honoring `run_at`. `wait` is an upper bound for how long the backend may

@@ -13,11 +13,11 @@ pub async fn enqueue_jobs(
     queue: &dyn JobQueue,
     jobs: impl IntoIterator<Item = JobPayload>,
 ) -> Result<Vec<JobId>> {
-    let mut ids = Vec::new();
-    for job in jobs {
-        ids.push(queue.enqueue(job).await?);
+    let jobs: Vec<_> = jobs.into_iter().collect();
+    if jobs.is_empty() {
+        return Ok(Vec::new());
     }
-    Ok(ids)
+    queue.enqueue_many(jobs).await
 }
 
 /// Schedule multiple jobs, all eligible no earlier than `at`.
@@ -26,11 +26,11 @@ pub async fn enqueue_jobs_at(
     jobs: impl IntoIterator<Item = JobPayload>,
     at: DateTime<Utc>,
 ) -> Result<Vec<JobId>> {
-    let mut ids = Vec::new();
-    for job in jobs {
-        ids.push(queue.enqueue_at(job, at).await?);
+    let jobs: Vec<_> = jobs.into_iter().collect();
+    if jobs.is_empty() {
+        return Ok(Vec::new());
     }
-    Ok(ids)
+    queue.enqueue_many_at(jobs, at).await
 }
 
 /// Run multiple handlers in this process (`perform_now`), sequentially. Stops on
