@@ -307,7 +307,13 @@ async fn run_inner(
             doido_model::commands::db::run(command, verbose, without_entities, migrator, seeder)
                 .await
         }
-        Commands::Jobs { action } => doido_jobs::commands::jobs::run(action).await,
+        Commands::Jobs { action } => {
+            crate::boot::install_runtime_globals(&boot).await;
+            let code = doido_jobs::commands::jobs::run(action).await;
+            if code != 0 {
+                std::process::exit(code);
+            }
+        }
         Commands::Credentials { action } => doido_core::commands::credentials::run(action),
         Commands::Config { action } => {
             if let Err(e) = crate::config_cmd::run(action) {

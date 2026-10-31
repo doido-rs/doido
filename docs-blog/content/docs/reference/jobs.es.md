@@ -82,6 +82,23 @@ jobs:
   redis_url: redis://127.0.0.1:6379
 ```
 
+## Cron periódico
+
+Con `cargo doido worker` (modo continuo), el worker lee `jobs.cron` en `config/<env>.yml` al
+arrancar, valida expresiones cron y nombres de `#[job]`, y encola en cada tick (**UTC**, seis
+campos: `sec min hour dom month dow`). Varios workers usan leader lock (Redis o advisory lock
+Postgres/MySQL) para no duplicar encolados. Cron desactivado en `test` por defecto;
+`worker --once` no inicia el planificador.
+
+```yaml
+jobs:
+  cron:
+    tasks:
+      - job_name: sync_catalog_daily
+        schedule: "0 0 3 * * *"
+        payload: {}
+```
+
 ## Ejecutar el worker
 
 El worker reserva jobs (con lease, de modo que los jobs de un worker caído se recuperen) y
@@ -110,12 +127,36 @@ cargo doido worker            # procesa jobs continuamente
 cargo doido worker --once     # vacía la cola y sale
 ```
 
+## Ejecutar jobs desde la CLI
+
+Lista handlers enlazados en el binario de la app, ejecuta uno en el proceso (Rails
+`perform_now`) o encola un job para el worker (`perform_later`).
+
+| Rails | Doido |
+|-------|-------|
+| `perform_later` | `cargo doido jobs run <nombre> --later` |
+| `perform_now` | `cargo doido jobs run <nombre>` |
+| Procesador | `cargo doido worker` / `cargo doido worker --once` |
+
+```bash
+cargo doido jobs list
+cargo doido jobs run send_welcome --payload '42'
+cargo doido jobs run send_welcome --payload '{"user_id":42}'
+cargo doido jobs run send_welcome --later
+```
+
+`--payload` es JSON (por defecto `{}`). Cola, timeout y max retries salen de
+`#[job(...)]` salvo `--queue`, `--timeout` o `--max-retries`. La ejecución in-process no
+escribe en `doido_jobs`; usa `--later` y `worker --once` para procesar de forma asíncrona.
+
 ## Reintentos y backoff
 
-Los jobs que fallan se reintentan hasta `max_retries` con la `BackoffStrategy` configurada
-(`Exponential`, `Linear` o `None`) y `backoff_base` segundos — todo definido en `#[job]`. El
-worker hace `nack` de un fallo con el `retry_at` calculado, y `reclaim_expired` reejecuta
-los leases perdidos por una caída.
+`attempts` sube en cada `reserve`; `max_retries` limita el total de **ejecuciones**
+(incluida la primera). Los jobs que fallan con reintentos restantes quedan en estado
+**`Failed`** en la misma cola, con `run_at` según la `BackoffStrategy` (`Exponential`,
+`Linear` o `None`) y `backoff_base` del `#[job]`. Cuando vence `run_at`, el worker reserva
+de nuevo. El engine hace `nack` con el `retry_at` calculado; `reclaim_expired` recupera
+leases perdidos por una caída.
 
 ```rust
 #[job(max_retries = 5, backoff = "exponential", backoff_base = 10)]
@@ -124,14 +165,24 @@ async fn charge_card(order_id: i64) -> doido::Result<()> { Ok(()) }
 
 ## Dead-letter queue
 
-Los jobs que agotan sus reintentos se mueven a un store de dead-letter, inspeccionable y
-reejecutable vía CLI.
+Los jobs que agotan `max_retries` pasan a **`Dead`** en el store de dead-letter,
+inspeccionable y reejecutable vía CLI. `jobs retry` reencola cada dead job con id nuevo,
+intentos reiniciados y **`job_name` preservado** (misma política de retry/timeout).
 
 ```bash
-cargo doido jobs:failed            # lista los jobs en dead-letter
-cargo doido jobs:retry <job_id>    # reencola uno
-cargo doido jobs:discard <job_id>  # descarta uno
+cargo doido jobs failed    # lista jobs en dead-letter (tracing)
+cargo doido jobs retry     # reencola todos los dead jobs
+cargo doido jobs discard   # elimina todos los dead jobs
 ```
+
+## Web UI
+
+Con `jobs.webui.enabled: true` en `config/<env>.yml` y `cargo doido server`, el framework
+monta un panel con pestañas (por defecto `/doido/jobs`) sobre el mismo backend de cola
+que el worker: conteos, cola, en ejecución, retry y dead letters. La pestaña **Dead**
+permite retry/discard (por job y en lote). En producción, configure
+`jobs.webui.username` y `password` (HTTP Basic Auth) o el panel no se montará. Feature
+`webui` en `doido-jobs` (activa en el crate `doido`).
 
 ## Prioridad y programación
 

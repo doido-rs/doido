@@ -2,9 +2,11 @@
 
 use chrono::{Duration as ChronoDuration, Utc};
 use doido_jobs::db::DbQueue;
+use doido_jobs::entity;
+use doido_jobs::perform::enqueue_jobs;
 use doido_jobs::queue::{JobPayload, JobQueue, JobStatus};
 use doido_jobs::{EngineConfig, WorkerEngine};
-use doido_model::sea_orm::Database;
+use doido_model::sea_orm::{ColumnTrait, Database, EntityTrait, QueryFilter};
 use serde_json::json;
 use std::sync::Arc;
 use std::time::Duration;
@@ -82,7 +84,9 @@ async fn test_db_enqueue_at_defers() {
 
 #[tokio::test]
 async fn test_db_nack_and_dead_letter() {
-    let q = fresh().await;
+    let conn = Database::connect("sqlite::memory:").await.unwrap();
+    let q = DbQueue::new(conn.clone());
+    q.migrate().await.unwrap();
     q.enqueue(JobPayload::new("default", json!({}), 3))
         .await
         .unwrap();
@@ -92,6 +96,16 @@ async fn test_db_nack_and_dead_letter() {
         .unwrap()
         .unwrap();
     q.nack(&r.job.id, None, "boom").await.unwrap();
+    let row = entity::Entity::find()
+        .filter(entity::Column::JobId.eq(&r.job.id))
+        .one(&conn)
+        .await
+        .unwrap()
+        .expect("row");
+    assert_eq!(row.status, "failed");
+    assert_eq!(row.last_error.as_deref(), Some("boom"));
+    let stored: JobPayload = serde_json::from_str(&row.data).unwrap();
+    assert_eq!(stored.status, JobStatus::Failed);
     let r2 = q
         .reserve(QUEUES, Duration::from_millis(100))
         .await
@@ -272,4 +286,19 @@ async fn test_db_reclaim_sets_lease_expired_error() {
         .unwrap()
         .unwrap();
     assert_eq!(r.job.error.as_deref(), Some("lease expired"));
+}
+
+#[tokio::test]
+async fn enqueue_jobs_inserts_all_rows_in_one_batch() {
+    let q = fresh().await;
+    let jobs: Vec<_> = (0..5)
+        .map(|i| JobPayload::new("default", json!({ "i": i }), 3))
+        .collect();
+    let ids = enqueue_jobs(&q, jobs).await.unwrap();
+    assert_eq!(ids.len(), 5);
+    let page = q
+        .list_jobs("default", doido_jobs::JobBucket::InQueue, 10, None, true)
+        .await
+        .unwrap();
+    assert_eq!(page.jobs.len(), 5);
 }

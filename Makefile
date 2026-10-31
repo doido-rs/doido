@@ -171,6 +171,9 @@ check: ## Deterministic code gate: rustfmt + clippy (mirrors CI lint job)
 	cargo fmt --check --all
 	cargo clippy --workspace -- -D warnings
 
+hooks-install: ## Install git pre-commit hook (fmt + clippy via .githooks/)
+	./scripts/install-git-hooks.sh
+
 # Supply-chain audit is deliberately kept OUT of `verify`: the RustSec advisory
 # database changes over time, so a newly published advisory in a transitive dep
 # could turn the harness gate red with no code change. Run it in CI and on demand.

@@ -1412,6 +1412,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "cron"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5877d3fbf742507b66bc2a1945106bd30dd8504019d596901ddd012a4dd01740"
+dependencies = [
+ "chrono",
+ "once_cell",
+ "winnow 0.6.26",
+]
+
+[[package]]
 name = "crossbeam-queue"
 version = "0.3.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1627,7 +1638,7 @@ dependencies = [
 
 [[package]]
 name = "doido"
-version = "0.0.9"
+version = "0.0.32-test5"
 dependencies = [
  "assert_cmd",
  "clap",
@@ -1654,7 +1665,7 @@ dependencies = [
 
 [[package]]
 name = "doido-auth"
-version = "0.0.9"
+version = "0.0.32-test5"
 dependencies = [
  "async-trait",
  "axum",
@@ -1684,7 +1695,7 @@ dependencies = [
 
 [[package]]
 name = "doido-auth-macros"
-version = "0.0.9"
+version = "0.0.32-test5"
 dependencies = [
  "doido-auth-route-dsl",
  "proc-macro2",
@@ -1694,7 +1705,7 @@ dependencies = [
 
 [[package]]
 name = "doido-auth-route-dsl"
-version = "0.0.9"
+version = "0.0.32-test5"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1703,7 +1714,7 @@ dependencies = [
 
 [[package]]
 name = "doido-cable"
-version = "0.0.9"
+version = "0.0.32-test5"
 dependencies = [
  "async-trait",
  "doido-cable-macros",
@@ -1721,7 +1732,7 @@ dependencies = [
 
 [[package]]
 name = "doido-cable-macros"
-version = "0.0.9"
+version = "0.0.32-test5"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1730,7 +1741,7 @@ dependencies = [
 
 [[package]]
 name = "doido-cache"
-version = "0.0.9"
+version = "0.0.32-test5"
 dependencies = [
  "async-trait",
  "doido-core",
@@ -1745,7 +1756,7 @@ dependencies = [
 
 [[package]]
 name = "doido-controller"
-version = "0.0.9"
+version = "0.0.32-test5"
 dependencies = [
  "async-trait",
  "axum",
@@ -1775,7 +1786,7 @@ dependencies = [
 
 [[package]]
 name = "doido-controller-macros"
-version = "0.0.9"
+version = "0.0.32-test5"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1784,7 +1795,7 @@ dependencies = [
 
 [[package]]
 name = "doido-core"
-version = "0.0.9"
+version = "0.0.32-test5"
 dependencies = [
  "aes-gcm",
  "anyhow",
@@ -1807,7 +1818,7 @@ dependencies = [
 
 [[package]]
 name = "doido-generators"
-version = "0.0.9"
+version = "0.0.32-test5"
 dependencies = [
  "assert_cmd",
  "chrono",
@@ -1825,27 +1836,36 @@ dependencies = [
 
 [[package]]
 name = "doido-jobs"
-version = "0.0.9"
+version = "0.0.32-test5"
 dependencies = [
  "async-trait",
+ "axum",
+ "base64 0.23.1",
  "chrono",
  "clap",
+ "cron",
  "doido-core",
  "doido-jobs-macros",
  "doido-model",
+ "doido-view",
+ "form_urlencoded",
+ "http 1.5.0",
+ "http-body-util",
  "inventory",
  "redis",
  "serde",
  "serde_json",
  "serde_norway",
+ "subtle",
  "tempfile",
  "tokio",
+ "tower",
  "uuid",
 ]
 
 [[package]]
 name = "doido-jobs-macros"
-version = "0.0.9"
+version = "0.0.32-test5"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1854,7 +1874,7 @@ dependencies = [
 
 [[package]]
 name = "doido-mailer"
-version = "0.0.9"
+version = "0.0.32-test5"
 dependencies = [
  "async-trait",
  "base64 0.23.1",
@@ -1874,7 +1894,7 @@ dependencies = [
 
 [[package]]
 name = "doido-mailer-macros"
-version = "0.0.9"
+version = "0.0.32-test5"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1883,7 +1903,7 @@ dependencies = [
 
 [[package]]
 name = "doido-model"
-version = "0.0.9"
+version = "0.0.32-test5"
 dependencies = [
  "bcrypt",
  "clap",
@@ -1904,7 +1924,7 @@ dependencies = [
 
 [[package]]
 name = "doido-storage"
-version = "0.0.9"
+version = "0.0.32-test5"
 dependencies = [
  "async-trait",
  "aws-sdk-s3",
@@ -1934,7 +1954,7 @@ dependencies = [
 
 [[package]]
 name = "doido-view"
-version = "0.0.9"
+version = "0.0.32-test5"
 dependencies = [
  "doido-cache",
  "doido-core",
@@ -5286,7 +5306,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd"
 dependencies = [
  "fastrand 2.5.0",
- "getrandom 0.3.4",
+ "getrandom 0.4.3",
  "once_cell",
  "rustix",
  "windows-sys 0.61.2",
@@ -6360,6 +6380,15 @@ name = "windows_x86_64_msvc"
 version = "0.52.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "589f6da84c646204747d1270a2a5661ea66ed1cced2631d546fdfb155959f9ec"
+
+[[package]]
+name = "winnow"
+version = "0.6.26"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1e90edd2ac1aa278a5c4599b1d89cf03074b610800f866d4026dc199d7929a28"
+dependencies = [
+ "memchr",
+]
 
 [[package]]
 name = "winnow"

@@ -58,4 +58,6 @@ emit() {
 
 notes="$(emit)"
 printf '%s\n' "$notes"
-[ -n "$OUT" ] && printf '%s\n' "$notes" >"$OUT"
+if [ -n "$OUT" ]; then
+	printf '%s\n' "$notes" >"$OUT"
+fi

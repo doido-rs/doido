@@ -180,7 +180,8 @@ fn render_jobs_section(jobs: JobsBackend, name: &str) -> String {
     match jobs {
         JobsBackend::Memory => "jobs:\n  type: memory\n".to_string(),
         JobsBackend::Db => {
-            "jobs:\n  type: db\n  queues: [default]\n  concurrency: 5\n".to_string()
+            "jobs:\n  type: db\n  queues: [default]\n  concurrency: 5\n  db:\n    sql_logging: false\n"
+                .to_string()
         }
         JobsBackend::Redis => format!(
             "jobs:\n  type: redis\n  queues: [default]\n  concurrency: 5\n  redis:\n    url: redis://127.0.0.1:6379\n    namespace: {name}:jobs\n"

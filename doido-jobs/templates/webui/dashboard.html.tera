@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Doido Jobs</title>
+  <style>
+    :root { --bg: #0f1419; --panel: #1a2332; --text: #e7ecf3; --muted: #8b9cb3; --accent: #3d8bfd; --border: #2a3544; --danger: #e5534b; --ok: #3fb950; }
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 1.5rem; line-height: 1.45; }
+    .page-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem; margin-bottom: 1rem; }
+    h1 { font-size: 1.35rem; margin: 0; font-weight: 600; }
+    .btn-live.active { border-color: var(--ok); color: var(--ok); }
+    .flash { background: #243044; border: 1px solid var(--border); padding: 0.5rem 0.75rem; border-radius: 6px; margin-bottom: 1rem; color: var(--ok); }
+    .flash-error { color: var(--danger); }
+    .enqueue-form { max-width: 36rem; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 1rem 1.25rem; }
+    .enqueue-form label { display: block; margin-bottom: 0.85rem; font-size: 0.9rem; }
+    .enqueue-form label.inline { display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.35rem; }
+    .enqueue-form input[type="text"], .enqueue-form input[type="number"], .enqueue-form input[type="datetime-local"], .enqueue-form textarea, .enqueue-form select { width: 100%; margin-top: 0.25rem; background: var(--bg); color: var(--text); border: 1px solid var(--border); padding: 0.4rem 0.5rem; border-radius: 6px; font: inherit; }
+    .enqueue-form textarea { min-height: 5rem; font-family: ui-monospace, monospace; font-size: 0.85rem; }
+    .enqueue-form .hint { color: var(--muted); font-size: 0.8rem; margin: 0 0 0.85rem; }
+    .enqueue-form .mode-group { margin-bottom: 0.85rem; }
+    .enqueue-form .run-at-field { margin-left: 1.25rem; margin-bottom: 0.85rem; }
+    nav.tabs { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 1rem; }
+    nav.tabs a { color: var(--muted); text-decoration: none; padding: 0.4rem 0.75rem; border-radius: 6px; border: 1px solid transparent; font-size: 0.9rem; }
+    nav.tabs a.active { color: var(--text); background: var(--panel); border-color: var(--border); }
+    nav.tabs a:hover { color: var(--text); }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; margin-bottom: 1rem; }
+    select, .btn { font: inherit; }
+    select { background: var(--panel); color: var(--text); border: 1px solid var(--border); padding: 0.35rem 0.5rem; border-radius: 6px; }
+    .btn { display: inline-block; padding: 0.35rem 0.65rem; border-radius: 6px; text-decoration: none; font-size: 0.85rem; border: 1px solid var(--border); color: var(--text); background: var(--panel); }
+    .btn-danger { border-color: var(--danger); color: var(--danger); }
+    .btn-primary { border-color: var(--accent); color: var(--accent); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; background: var(--panel); border-radius: 8px; overflow: hidden; }
+    th, td { padding: 0.5rem 0.65rem; text-align: left; border-bottom: 1px solid var(--border); vertical-align: top; }
+    th { color: var(--muted); font-weight: 500; }
+    tr:last-child td { border-bottom: none; }
+    .mono { font-family: ui-monospace, monospace; font-size: 0.8rem; word-break: break-all; }
+    pre.payload { margin: 0; max-width: 28rem; white-space: pre-wrap; color: var(--muted); font-size: 0.75rem; }
+    .meta { color: var(--muted); font-size: 0.8rem; margin-top: 1rem; }
+    .actions { display: flex; gap: 0.35rem; flex-wrap: wrap; }
+    .pager { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; margin: 0.75rem 0 0; font-size: 0.85rem; }
+    .pager .muted { color: var(--muted); }
+    .pager .btn.disabled { opacity: 0.4; cursor: default; pointer-events: none; border-style: dashed; }
+    th.col-select, td.col-select { width: 2.25rem; text-align: center; }
+    input.job-select { margin: 0; }
+    time.relative-time { cursor: help; }
+  </style>
+</head>
+<body>
+  <div class="page-header">
+    <h1>Doido Jobs</h1>
+    <button type="button" id="live-poll-btn" class="btn btn-live" aria-pressed="false" title="Reload this view every 10 seconds">Live poll</button>
+  </div>
+  {% if flash %}<p class="flash{% if flash_is_error %} flash-error{% endif %}">{{ flash }}</p>{% endif %}
+
+  <nav class="tabs">
+    <a href="{{ mount }}?tab=queues" class="{% if tab == 'queues' %}active{% endif %}">Queues</a>
+    <a href="{{ mount }}?tab=in_queue{% if selected_queue %}&amp;queue={{ selected_queue }}{% endif %}" class="{% if tab == 'in_queue' %}active{% endif %}">In queue</a>
+    <a href="{{ mount }}?tab=executing{% if selected_queue %}&amp;queue={{ selected_queue }}{% endif %}" class="{% if tab == 'executing' %}active{% endif %}">Executing</a>
+    <a href="{{ mount }}?tab=retry{% if selected_queue %}&amp;queue={{ selected_queue }}{% endif %}" class="{% if tab == 'retry' %}active{% endif %}">Retry</a>
+    <a href="{{ mount }}?tab=dead{% if selected_queue %}&amp;queue={{ selected_queue }}{% endif %}" class="{% if tab == 'dead' %}active{% endif %}">Dead</a>
+    <a href="{{ mount }}?tab=enqueue" class="{% if tab == 'enqueue' %}active{% endif %}">Enqueue</a>
+  </nav>
+
+  {% if tab != 'queues' and tab != 'enqueue' %}
+  <div class="toolbar">
+    <label>Queue
+      <select onchange="location.href='{{ mount }}?tab={{ tab }}&amp;queue='+this.value">
+        {% for q in queues %}
+        <option value="{{ q }}" {% if selected_queue == q %}selected{% endif %}>{{ q }}</option>
+        {% endfor %}
+      </select>
+    </label>
+  </div>
+  {% endif %}
+
+  {% if tab == 'enqueue' %}
+  <form class="enqueue-form" method="post" action="{{ mount }}/enqueue">
+    <p class="hint">Pick a registered <code>#[job]</code>, optional JSON payload, and how to run it. Scheduled times are <strong>UTC</strong> (see server time below). Enqueue modes need a worker; perform now runs in this web server process.</p>
+    <label>Job
+      <select name="job_name" required>
+        <option value="">— select —</option>
+        {% for j in registered_jobs %}
+        <option value="{{ j.name }}">{{ j.name }} (default queue: {{ j.default_queue }})</option>
+        {% endfor %}
+      </select>
+    </label>
+    {% if registered_jobs | length == 0 %}
+    <p class="hint">No registered jobs in this binary — link a crate that defines <code>#[job]</code> handlers.</p>
+    {% endif %}
+    <label>Payload (JSON)
+      <textarea name="payload" placeholder="{}">{{ default_payload }}</textarea>
+    </label>
+    <p class="hint">Use a JSON <strong>array</strong> (e.g. <code>[1, 2, 3]</code>) to enqueue, schedule, or perform multiple jobs in one submit.</p>
+    <label>Queue override (optional)
+      <select name="queue">
+        <option value="">— job default —</option>
+        {% for q in queues %}
+        <option value="{{ q }}">{{ q }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Timeout (seconds, optional)
+      <input type="number" name="timeout" min="0" step="1" placeholder="job default">
+    </label>
+    <label>Max retries (optional)
+      <input type="number" name="max_retries" min="0" step="1" placeholder="job default">
+    </label>
+    <div class="mode-group">
+      <p class="hint" style="margin-bottom: 0.35rem;">Execution</p>
+      <label class="inline"><input type="radio" name="mode" value="enqueue_now" checked> Enqueue now (worker runs ASAP)</label>
+      <label class="inline"><input type="radio" name="mode" value="enqueue_at"> Schedule enqueue (UTC)</label>
+      <label class="inline"><input type="radio" name="mode" value="perform_now"> Perform now (in this server process)</label>
+    </div>
+    <label class="run-at-field">Run at (UTC, for scheduled enqueue)
+      <input type="datetime-local" name="run_at" step="60">
+    </label>
+    <button type="submit" class="btn btn-primary">Submit</button>
+  </form>
+  {% elif tab == 'queues' %}
+  <table>
+    <thead>
+      <tr>
+        <th>Queue</th>
+        <th>Ready</th>
+        <th>Scheduled</th>
+        <th>Running</th>
+        <th>Retry wait</th>
+        <th>Failed ready</th>
+        <th>Dead</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in queue_counts %}
+      <tr>
+        <td class="mono">{{ row.name }}</td>
+        <td><a href="{{ mount }}?tab=in_queue&amp;queue={{ row.name }}">{{ row.pending_ready }}</a></td>
+        <td>{{ row.scheduled }}</td>
+        <td><a href="{{ mount }}?tab=executing&amp;queue={{ row.name }}">{{ row.running }}</a></td>
+        <td><a href="{{ mount }}?tab=retry&amp;queue={{ row.name }}">{{ row.retry }}</a></td>
+        <td>{{ row.failed_ready }}</td>
+        <td><a href="{{ mount }}?tab=dead&amp;queue={{ row.name }}">{{ row.dead }}</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <nav class="pager" aria-label="Queues pagination">
+    {% if queue_pagination.has_prev %}
+    <a class="btn" href="{{ mount }}?tab=queues&amp;queue_page_token={{ queue_pagination.prev_token }}">Previous</a>
+    {% else %}
+    <span class="btn disabled" aria-disabled="true">Previous</span>
+    {% endif %}
+    <span class="muted">
+      {% if queue_pagination.has_prev or queue_pagination.has_next %}
+      {{ queue_counts | length }} of {{ queue_total }} queues
+      {% else %}
+      Page 1 of 1 · {{ queue_total }} queue{% if queue_total != 1 %}s{% endif %}
+      {% endif %}
+    </span>
+    {% if queue_pagination.has_next %}
+    <a class="btn" href="{{ mount }}?tab=queues&amp;queue_page_token={{ queue_pagination.next_token }}">Next</a>
+    {% else %}
+    <span class="btn disabled" aria-disabled="true">Next</span>
+    {% endif %}
+  </nav>
+  {% else %}
+  {% if show_bulk_form %}
+  <form class="bulk-form" method="post" action="{{ mount }}/bulk">
+    <input type="hidden" name="tab" value="{{ tab }}">
+    <input type="hidden" name="queue" value="{{ selected_queue | default(value='default') }}">
+    {% if page_token %}<input type="hidden" name="page_token" value="{{ page_token }}">{% endif %}
+    {% if include_payload %}<input type="hidden" name="include_payload" value="1">{% endif %}
+    <div class="toolbar">
+      {% if tab == 'dead' %}
+      <button type="submit" class="btn btn-primary" name="action" value="retry_selected">Retry selected</button>
+      <button type="submit" class="btn btn-danger" name="action" value="discard_selected" onclick="return confirm('Discard selected dead jobs?')">Discard selected</button>
+      <button type="submit" class="btn btn-primary" name="action" value="retry_all">Retry all</button>
+      <button type="submit" class="btn btn-danger" name="action" value="discard_all" onclick="return confirm('Discard all dead jobs in this queue?')">Discard all</button>
+      {% else %}
+      <button type="submit" class="btn btn-danger" name="action" value="delete_selected" onclick="return confirm('Delete selected jobs from the queue?')">Delete selected</button>
+      {% endif %}
+    </div>
+  {% endif %}
+  <table>
+    <thead>
+      <tr>
+        {% if show_bulk_form %}<th class="col-select"><input type="checkbox" title="Select all on page" onclick="document.querySelectorAll('.job-select').forEach(function(c){ c.checked = this.checked; }.bind(this))"></th>{% endif %}
+        <th>ID</th>
+        <th>Job</th>
+        <th>Attempts</th>
+        <th>Run at</th>
+        <th>Error</th>
+        {% if include_payload %}<th>Payload</th>{% else %}<th></th>{% endif %}
+        {% if show_dead_actions %}<th></th>{% endif %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for job in jobs %}
+      <tr>
+        {% if show_bulk_form %}<td class="col-select"><input type="checkbox" class="job-select" name="job_ids" value="{{ job.id }}"></td>{% endif %}
+        <td class="mono">{{ job.id }}</td>
+        <td>{{ job.job_name | default(value="—") }}</td>
+        <td>{{ job.attempts }} / {{ job.max_retries }}</td>
+        <td><time class="relative-time mono" datetime="{{ job.run_at }}" title="{{ job.run_at_tooltip }}">{{ job.run_at_relative }}</time></td>
+        <td>{{ job.error }}</td>
+        <td>
+          {% if include_payload %}
+          <pre class="payload">{{ job.payload }}</pre>
+          {% else %}
+          <a class="btn" href="{{ mount }}?tab={{ tab }}{% if selected_queue %}&amp;queue={{ selected_queue }}{% endif %}&amp;include_payload=1{% if page_token %}&amp;page_token={{ page_token }}{% endif %}">Show payload</a>
+          {% endif %}
+        </td>
+        {% if show_dead_actions %}
+        <td class="actions">
+          <a class="btn btn-primary" href="{{ mount }}/retry/{{ job.queue }}/{{ job.id }}">Retry</a>
+          <a class="btn btn-danger" href="{{ mount }}/discard/{{ job.queue }}/{{ job.id }}" onclick="return confirm('Discard this job?')">Discard</a>
+        </td>
+        {% endif %}
+      </tr>
+      {% endfor %}
+      {% if jobs | length == 0 %}
+      <tr><td colspan="{% if show_bulk_form %}{% if show_dead_actions %}8{% else %}7{% endif %}{% elif show_dead_actions %}7{% else %}6{% endif %}">No jobs in this view.</td></tr>
+      {% endif %}
+    </tbody>
+  </table>
+  <nav class="pager" aria-label="Jobs pagination">
+    {% if job_pagination.has_prev %}
+    <a class="btn" href="{{ mount }}?tab={{ tab }}{% if selected_queue %}&amp;queue={{ selected_queue }}{% endif %}&amp;page_token={{ job_pagination.prev_token }}">Previous</a>
+    {% else %}
+    <span class="btn disabled" aria-disabled="true">Previous</span>
+    {% endif %}
+    <span class="muted">
+      {% if job_pagination.has_prev or job_pagination.has_next %}
+      {{ jobs | length }} jobs on this page (up to {{ page_size }})
+      {% else %}
+      Page 1 of 1 · {{ jobs | length }} job{% if jobs | length != 1 %}s{% endif %}
+      {% endif %}
+    </span>
+    {% if job_pagination.has_next %}
+    <a class="btn" href="{{ mount }}?tab={{ tab }}{% if selected_queue %}&amp;queue={{ selected_queue }}{% endif %}&amp;page_token={{ job_pagination.next_token }}">Next</a>
+    {% else %}
+    <span class="btn disabled" aria-disabled="true">Next</span>
+    {% endif %}
+  </nav>
+  {% if show_bulk_form %}
+  </form>
+  {% endif %}
+  {% endif %}
+
+  <p class="meta">Server time: <time class="relative-time" datetime="{{ now }}" title="{{ now_tooltip }}">{{ now_relative }}</time></p>
+  <script>
+  (function () {
+    function pad(n) { return n < 10 ? '0' + n : String(n); }
+    function tooltipFromDate(d) {
+      return pad(d.getUTCDate()) + '/' + pad(d.getUTCMonth() + 1) + '/' + d.getUTCFullYear()
+        + ' - ' + pad(d.getUTCHours()) + ':' + pad(d.getUTCMinutes()) + ':' + pad(d.getUTCSeconds());
+    }
+    function relativeFromDate(d, nowMs) {
+      var secs = Math.floor((nowMs - d.getTime()) / 1000);
+      if (secs === 0) return 'just now';
+      function ago(n, unit) { return n === 1 ? '1 ' + unit + ' ago' : n + ' ' + unit + 's ago'; }
+      function infut(n, unit) { return n === 1 ? 'in 1 ' + unit : 'in ' + n + ' ' + unit + 's'; }
+      if (secs > 0) {
+        if (secs < 60) return ago(secs, 'second');
+        var mins = Math.floor(secs / 60);
+        if (mins < 60) return ago(mins, 'minute');
+        var hours = Math.floor(mins / 60);
+        if (hours < 24) return ago(hours, 'hour');
+        return ago(Math.floor(hours / 24), 'day');
+      }
+      secs = -secs;
+      if (secs < 60) return infut(secs, 'second');
+      mins = Math.floor(secs / 60);
+      if (mins < 60) return infut(mins, 'minute');
+      hours = Math.floor(mins / 60);
+      if (hours < 24) return infut(hours, 'hour');
+      return infut(Math.floor(hours / 24), 'day');
+    }
+    function tick() {
+      var nowMs = Date.now();
+      document.querySelectorAll('time.relative-time[datetime]').forEach(function (el) {
+        var d = new Date(el.getAttribute('datetime'));
+        if (isNaN(d.getTime())) return;
+        el.textContent = relativeFromDate(d, nowMs);
+        if (!el.getAttribute('title')) el.setAttribute('title', tooltipFromDate(d));
+      });
+    }
+    tick();
+    setInterval(tick, 1000);
+  })();
+  (function () {
+    var POLL_KEY = 'doido-jobs-live-poll';
+    var POLL_MS = 10000;
+    var tab = '{{ tab }}';
+    var isEnqueue = tab === 'enqueue';
+    var btn = document.getElementById('live-poll-btn');
+    if (!btn) return;
+
+    function isEnabled() {
+      try { return localStorage.getItem(POLL_KEY) === '1'; } catch (e) { return false; }
+    }
+    function setStored(on) {
+      try { localStorage.setItem(POLL_KEY, on ? '1' : '0'); } catch (e) {}
+    }
+    function syncButton(on) {
+      btn.classList.toggle('active', on);
+      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    }
+
+    var pollTimer = null;
+    function stopPoll() {
+      if (pollTimer) clearInterval(pollTimer);
+      pollTimer = null;
+    }
+    function reloadView() {
+      var url = new URL(window.location.href);
+      url.searchParams.delete('flash');
+      window.location.href = url.toString();
+    }
+    function startPoll() {
+      stopPoll();
+      if (isEnqueue) return;
+      pollTimer = setInterval(reloadView, POLL_MS);
+    }
+
+    var enabled = isEnabled();
+    syncButton(enabled);
+    if (enabled && !isEnqueue) startPoll();
+
+    btn.addEventListener('click', function () {
+      var next = !isEnabled();
+      setStored(next);
+      syncButton(next);
+      if (next) startPoll(); else stopPoll();
+    });
+  })();
+  </script>
+</body>
+</html>

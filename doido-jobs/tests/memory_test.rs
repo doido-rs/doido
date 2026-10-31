@@ -60,7 +60,9 @@ async fn test_nack_re_enqueues_at_retry_at() {
     q.nack(&r.job.id, None, "transient error").await.unwrap();
     let r2 = q.reserve(QUEUES, Duration::from_millis(50)).await.unwrap();
     assert!(r2.is_some());
-    assert_eq!(r2.unwrap().job.attempts, 2);
+    let r2 = r2.unwrap();
+    assert_eq!(r2.job.attempts, 2);
+    assert_eq!(r2.job.status, JobStatus::Running);
 }
 
 #[tokio::test]

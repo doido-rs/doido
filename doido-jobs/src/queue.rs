@@ -143,6 +143,26 @@ impl JobPayload {
     pub fn is_ready(&self, now: DateTime<Utc>) -> bool {
         self.run_at <= now
     }
+
+    /// Build a fresh enqueue from a dead (or completed) job: new id, reset attempts,
+    /// preserve handler name and retry policy (used by `doido jobs retry`).
+    pub fn requeue_fresh(&self) -> Self {
+        Self {
+            id: uuid::Uuid::new_v4().to_string(),
+            queue: self.queue.clone(),
+            job_name: self.job_name.clone(),
+            payload: self.payload.clone(),
+            attempts: 0,
+            max_retries: self.max_retries,
+            status: JobStatus::Pending,
+            error: None,
+            priority: self.priority,
+            run_at: Utc::now(),
+            backoff: self.backoff,
+            backoff_base: self.backoff_base,
+            timeout: self.timeout,
+        }
+    }
 }
 
 /// A job leased from the queue. It stays invisible to other workers until the
@@ -153,13 +173,32 @@ pub struct Reserved {
     pub lease_until: DateTime<Utc>,
 }
 
+/// Default chunk size for bulk enqueue (`jobs.enqueue_batch_size` in config).
+pub const DEFAULT_ENQUEUE_BATCH_SIZE: usize = 500;
+
 #[async_trait::async_trait]
 pub trait JobQueue: Send + Sync {
     /// Enqueue for immediate eligibility.
-    async fn enqueue(&self, job: JobPayload) -> Result<JobId>;
+    async fn enqueue(&self, job: JobPayload) -> Result<JobId> {
+        let id = job.id.clone();
+        self.enqueue_many(vec![job]).await?;
+        Ok(id)
+    }
 
     /// Enqueue, eligible no earlier than `at`.
-    async fn enqueue_at(&self, job: JobPayload, at: DateTime<Utc>) -> Result<JobId>;
+    async fn enqueue_at(&self, job: JobPayload, at: DateTime<Utc>) -> Result<JobId> {
+        let id = job.id.clone();
+        self.enqueue_many_at(vec![job], at).await?;
+        Ok(id)
+    }
+
+    /// Enqueue many jobs in as few backend round-trips as possible (one SQL
+    /// `INSERT` for the db driver, one Redis pipeline, one lock for memory).
+    async fn enqueue_many(&self, jobs: Vec<JobPayload>) -> Result<Vec<JobId>>;
+
+    /// Schedule many jobs, all eligible no earlier than `at`.
+    async fn enqueue_many_at(&self, jobs: Vec<JobPayload>, at: DateTime<Utc>)
+        -> Result<Vec<JobId>>;
 
     /// Atomically lease the next eligible job across `queues` (priority order),
     /// honoring `run_at`. `wait` is an upper bound for how long the backend may
@@ -185,4 +224,32 @@ pub trait JobQueue: Send + Sync {
     /// Discard every dead-lettered job for a queue (Rails `jobs:discard`).
     /// Returns the number of jobs removed.
     async fn discard_dead(&self, queue: &str) -> Result<u64>;
+
+    /// Per-queue counts for the jobs dashboard.
+    async fn queue_counts(
+        &self,
+        queues: &[&str],
+    ) -> Result<Vec<(String, crate::inspect::QueueCounts)>>;
+
+    /// List jobs in a logical bucket (cursor-paginated).
+    ///
+    /// When `light` is true, omit heavy payload fields (dashboard list views).
+    async fn list_jobs(
+        &self,
+        queue: &str,
+        bucket: crate::inspect::JobBucket,
+        limit: u32,
+        page: Option<crate::inspect::JobPageAnchor>,
+        light: bool,
+    ) -> Result<crate::inspect::JobListPage>;
+
+    /// Re-enqueue one dead job with a fresh id, removing it from the dead store.
+    async fn retry_dead_job(&self, queue: &str, job_id: &str) -> Result<()>;
+
+    /// Remove one job from the dead-letter store. Returns whether a row was removed.
+    async fn discard_dead_job(&self, queue: &str, job_id: &str) -> Result<bool>;
+
+    /// Remove a non-dead job from the queue (pending, scheduled, failed, or running).
+    /// Returns whether a job was removed. Dead-letter jobs are unchanged; use `discard_dead_job`.
+    async fn cancel_job(&self, queue: &str, job_id: &str) -> Result<bool>;
 }
