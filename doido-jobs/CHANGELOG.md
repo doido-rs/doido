@@ -11,6 +11,10 @@ documented in `RELEASING.md` at the repository root.
 
 ## Unreleased
 
+_No user-facing changes yet._
+
+## 0.0.32-test5 - 2026-10-31
+
 ### Added
 
 - **`JobQueue::cancel_job`**: remove pending, running, or retry-scheduled jobs (not
