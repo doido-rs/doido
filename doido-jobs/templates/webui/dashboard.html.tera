@@ -8,7 +8,9 @@
     :root { --bg: #0f1419; --panel: #1a2332; --text: #e7ecf3; --muted: #8b9cb3; --accent: #3d8bfd; --border: #2a3544; --danger: #e5534b; --ok: #3fb950; }
     * { box-sizing: border-box; }
     body { font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 1.5rem; line-height: 1.45; }
-    h1 { font-size: 1.35rem; margin: 0 0 1rem; font-weight: 600; }
+    .page-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem; margin-bottom: 1rem; }
+    h1 { font-size: 1.35rem; margin: 0; font-weight: 600; }
+    .btn-live.active { border-color: var(--ok); color: var(--ok); }
     .flash { background: #243044; border: 1px solid var(--border); padding: 0.5rem 0.75rem; border-radius: 6px; margin-bottom: 1rem; color: var(--ok); }
     .flash-error { color: var(--danger); }
     .enqueue-form { max-width: 36rem; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 1rem 1.25rem; }
@@ -46,7 +48,10 @@
   </style>
 </head>
 <body>
-  <h1>Doido Jobs</h1>
+  <div class="page-header">
+    <h1>Doido Jobs</h1>
+    <button type="button" id="live-poll-btn" class="btn btn-live" aria-pressed="false" title="Reload this view every 10 seconds">Live poll</button>
+  </div>
   {% if flash %}<p class="flash{% if flash_is_error %} flash-error{% endif %}">{{ flash }}</p>{% endif %}
 
   <nav class="tabs">
@@ -283,6 +288,52 @@
     }
     tick();
     setInterval(tick, 1000);
+  })();
+  (function () {
+    var POLL_KEY = 'doido-jobs-live-poll';
+    var POLL_MS = 10000;
+    var tab = '{{ tab }}';
+    var isEnqueue = tab === 'enqueue';
+    var btn = document.getElementById('live-poll-btn');
+    if (!btn) return;
+
+    function isEnabled() {
+      try { return localStorage.getItem(POLL_KEY) === '1'; } catch (e) { return false; }
+    }
+    function setStored(on) {
+      try { localStorage.setItem(POLL_KEY, on ? '1' : '0'); } catch (e) {}
+    }
+    function syncButton(on) {
+      btn.classList.toggle('active', on);
+      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    }
+
+    var pollTimer = null;
+    function stopPoll() {
+      if (pollTimer) clearInterval(pollTimer);
+      pollTimer = null;
+    }
+    function reloadView() {
+      var url = new URL(window.location.href);
+      url.searchParams.delete('flash');
+      window.location.href = url.toString();
+    }
+    function startPoll() {
+      stopPoll();
+      if (isEnqueue) return;
+      pollTimer = setInterval(reloadView, POLL_MS);
+    }
+
+    var enabled = isEnabled();
+    syncButton(enabled);
+    if (enabled && !isEnqueue) startPoll();
+
+    btn.addEventListener('click', function () {
+      var next = !isEnabled();
+      setStored(next);
+      syncButton(next);
+      if (next) startPoll(); else stopPoll();
+    });
   })();
   </script>
 </body>

@@ -67,6 +67,8 @@ async fn webui_renders_queues_tab() {
     let body = response.into_body().collect().await.unwrap().to_bytes();
     let html = String::from_utf8(body.to_vec()).unwrap();
     assert!(html.contains("Doido Jobs"));
+    assert!(html.contains("id=\"live-poll-btn\""));
+    assert!(html.contains("Live poll"));
     assert!(html.contains("pending_ready") || html.contains("Ready"));
     assert!(html.contains("aria-label=\"Queues pagination\""));
     assert!(html.contains("Page 1 of 1"));
