@@ -229,4 +229,8 @@ pub trait JobQueue: Send + Sync {
 
     /// Remove one job from the dead-letter store. Returns whether a row was removed.
     async fn discard_dead_job(&self, queue: &str, job_id: &str) -> Result<bool>;
+
+    /// Remove a non-dead job from the queue (pending, scheduled, failed, or running).
+    /// Returns whether a job was removed. Dead-letter jobs are unchanged; use `discard_dead_job`.
+    async fn cancel_job(&self, queue: &str, job_id: &str) -> Result<bool>;
 }

@@ -667,4 +667,15 @@ impl JobQueue for DbQueue {
             .map_err(|e| anyhow!("discard_dead_job failed: {e}"))?;
         Ok(res.rows_affected > 0)
     }
+
+    async fn cancel_job(&self, queue: &str, job_id: &str) -> Result<bool> {
+        let res = entity::Entity::delete_many()
+            .filter(entity::Column::Queue.eq(queue))
+            .filter(entity::Column::JobId.eq(job_id))
+            .filter(entity::Column::Status.is_in([STATUS_PENDING, STATUS_RUNNING, STATUS_FAILED]))
+            .exec(&self.conn)
+            .await
+            .map_err(|e| anyhow!("cancel_job failed: {e}"))?;
+        Ok(res.rows_affected > 0)
+    }
 }

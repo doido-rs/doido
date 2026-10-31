@@ -466,4 +466,31 @@ impl JobQueue for RedisQueue {
             Ok(false)
         }
     }
+
+    async fn cancel_job(&self, queue: &str, job_id: &str) -> Result<bool> {
+        let Some(job) = self.load(job_id).await? else {
+            return Ok(false);
+        };
+        if job.queue != queue || job.status == JobStatus::Dead {
+            return Ok(false);
+        }
+        let mut conn = self.conn.clone();
+        let _: () = conn
+            .zrem(self.ready_key(queue), job_id)
+            .await
+            .map_err(|e| anyhow!("cancel_job zrem ready: {e}"))?;
+        let _: () = conn
+            .zrem(self.processing_key(), job_id)
+            .await
+            .map_err(|e| anyhow!("cancel_job zrem processing: {e}"))?;
+        let _: () = conn
+            .lrem(self.dead_key(queue), 0, job_id)
+            .await
+            .map_err(|e| anyhow!("cancel_job lrem dead: {e}"))?;
+        let deleted: i32 = conn
+            .del(self.job_key(job_id))
+            .await
+            .map_err(|e| anyhow!("cancel_job del: {e}"))?;
+        Ok(deleted > 0)
+    }
 }

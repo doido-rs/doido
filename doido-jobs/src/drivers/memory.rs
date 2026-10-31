@@ -323,6 +323,21 @@ impl JobQueue for MemoryQueue {
         list.remove(idx);
         Ok(true)
     }
+
+    async fn cancel_job(&self, queue: &str, job_id: &str) -> Result<bool> {
+        {
+            let mut qs = self.queues.lock().await;
+            if let Some(list) = qs.get_mut(queue) {
+                if let Some(idx) = list.iter().position(|j| j.id == job_id) {
+                    list.remove(idx);
+                    self.notify.notify_waiters();
+                    return Ok(true);
+                }
+            }
+        }
+        let removed = self.running.lock().await.remove(job_id).is_some();
+        Ok(removed)
+    }
 }
 
 impl MemoryQueue {

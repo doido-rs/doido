@@ -18,7 +18,7 @@ use serde::Deserialize;
 use serde_json::json;
 use std::time::{Duration, Instant};
 
-const PAGE_SIZE: u32 = 50;
+pub(crate) const PAGE_SIZE: u32 = 50;
 const QUEUE_PAGE_SIZE: usize = 25;
 
 #[derive(Debug, Deserialize, Default)]
@@ -233,6 +233,7 @@ pub async fn index(
         "queue_counts": queue_page.rows.iter().map(|(name, c)| queue_count_row(name, c)).collect::<Vec<_>>(),
         "jobs": jobs.iter().map(|j| job_row(j, include_payload)).collect::<Vec<_>>(),
         "show_dead_actions": tab == "dead",
+        "show_bulk_form": matches!(tab, "in_queue" | "executing" | "retry" | "dead"),
         "now": Utc::now().to_rfc3339(),
     });
 
@@ -254,16 +255,41 @@ fn queue_count_row(name: &str, c: &QueueCounts) -> serde_json::Value {
     })
 }
 
+/// Optional query params preserved when returning to a job tab after a mutation.
+#[derive(Clone, Debug, Default)]
+pub(crate) struct DashboardViewQuery {
+    pub page_token: Option<String>,
+    pub include_payload: bool,
+}
+
 pub(crate) fn redirect_dashboard(
     state: &JobsWebState,
     tab: &str,
     queue: Option<&str>,
     flash: &str,
 ) -> Redirect {
+    redirect_dashboard_view(state, tab, queue, flash, &DashboardViewQuery::default())
+}
+
+pub(crate) fn redirect_dashboard_view(
+    state: &JobsWebState,
+    tab: &str,
+    queue: Option<&str>,
+    flash: &str,
+    view: &DashboardViewQuery,
+) -> Redirect {
     let mount = state.config.webui.mount_path.trim_end_matches('/');
     let mut url = format!("{mount}?tab={tab}");
     if let Some(q) = queue {
         url.push_str(&format!("&queue={q}"));
+    }
+    if let Some(ref token) = view.page_token {
+        if !token.is_empty() {
+            url.push_str(&format!("&page_token={}", urlencoding_encode(token)));
+        }
+    }
+    if view.include_payload {
+        url.push_str("&include_payload=1");
     }
     if !flash.is_empty() {
         url.push_str(&format!("&flash={}", urlencoding_encode(flash)));
@@ -315,7 +341,7 @@ pub async fn discard_all(
     redirect_dashboard(&state, "dead", Some(queue), "Dead queue cleared")
 }
 
-async fn retry_failed_queue(queue: &dyn JobQueue, config: &JobsConfig, q: &str) {
+pub(crate) async fn retry_failed_queue(queue: &dyn JobQueue, config: &JobsConfig, q: &str) {
     let jobs = match queue.dead_jobs(q).await {
         Ok(j) => j,
         Err(e) => {

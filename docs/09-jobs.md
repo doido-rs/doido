@@ -245,11 +245,16 @@ Tabs:
 | Tab | Shows |
 |-----|--------|
 | **Queues** | Per-queue counts (ready, scheduled, running, retry wait, failed-ready, dead) |
-| **In queue** | Pending jobs ready now plus failed jobs ready to run again |
-| **Executing** | Leased / running jobs |
-| **Retry** | Failed jobs still waiting for backoff (`run_at` in the future) |
-| **Dead** | Dead-letter jobs with per-job and bulk **retry** / **discard** actions |
+| **In queue** | Pending jobs ready now plus failed jobs ready to run again; bulk **delete** (cancel) selected |
+| **Executing** | Leased / running jobs; bulk **delete** selected (drops queue state; does not stop an in-flight handler) |
+| **Retry** | Failed jobs still waiting for backoff (`run_at` in the future); bulk **delete** selected |
+| **Dead** | Dead-letter jobs with per-job and bulk **retry** / **discard** (selected + all) |
 | **Enqueue** | Form to pick a registered `#[job]`, optional JSON payload, and run it **enqueue now**, **schedule enqueue** (UTC `run_at`), or **perform now** in the web server process (CLI parity) |
+
+Job listing tabs POST bulk actions to `{mount}/bulk` (`delete_selected` on in-queue /
+executing / retry tabs; `retry_selected`, `discard_selected`, `retry_all`, and
+`discard_all` on the **Dead** tab). Use the row checkboxes and toolbar buttons; per-row
+**Retry** / **Discard** links on **Dead** remain available for single jobs.
 
 The **Enqueue** tab POSTs to `{mount}/enqueue`. Enqueue modes require a worker draining
 the configured backend; **perform now** runs the handler in the server process (same as

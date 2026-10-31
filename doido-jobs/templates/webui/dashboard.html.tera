@@ -40,6 +40,8 @@
     .pager { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; margin: 0.75rem 0 0; font-size: 0.85rem; }
     .pager .muted { color: var(--muted); }
     .pager .btn.disabled { opacity: 0.4; cursor: default; pointer-events: none; border-style: dashed; }
+    th.col-select, td.col-select { width: 2.25rem; text-align: center; }
+    input.job-select { margin: 0; }
   </style>
 </head>
 <body>
@@ -64,10 +66,6 @@
         {% endfor %}
       </select>
     </label>
-    {% if tab == 'dead' %}
-    <a class="btn btn-primary" href="{{ mount }}/retry_all?queue={{ selected_queue | default(value='default') }}">Retry all</a>
-    <a class="btn btn-danger" href="{{ mount }}/discard_all?queue={{ selected_queue | default(value='default') }}" onclick="return confirm('Discard all dead jobs in this queue?')">Discard all</a>
-    {% endif %}
   </div>
   {% endif %}
 
@@ -160,9 +158,27 @@
     {% endif %}
   </nav>
   {% else %}
+  {% if show_bulk_form %}
+  <form class="bulk-form" method="post" action="{{ mount }}/bulk">
+    <input type="hidden" name="tab" value="{{ tab }}">
+    <input type="hidden" name="queue" value="{{ selected_queue | default(value='default') }}">
+    {% if page_token %}<input type="hidden" name="page_token" value="{{ page_token }}">{% endif %}
+    {% if include_payload %}<input type="hidden" name="include_payload" value="1">{% endif %}
+    <div class="toolbar">
+      {% if tab == 'dead' %}
+      <button type="submit" class="btn btn-primary" name="action" value="retry_selected">Retry selected</button>
+      <button type="submit" class="btn btn-danger" name="action" value="discard_selected" onclick="return confirm('Discard selected dead jobs?')">Discard selected</button>
+      <button type="submit" class="btn btn-primary" name="action" value="retry_all">Retry all</button>
+      <button type="submit" class="btn btn-danger" name="action" value="discard_all" onclick="return confirm('Discard all dead jobs in this queue?')">Discard all</button>
+      {% else %}
+      <button type="submit" class="btn btn-danger" name="action" value="delete_selected" onclick="return confirm('Delete selected jobs from the queue?')">Delete selected</button>
+      {% endif %}
+    </div>
+  {% endif %}
   <table>
     <thead>
       <tr>
+        {% if show_bulk_form %}<th class="col-select"><input type="checkbox" title="Select all on page" onclick="document.querySelectorAll('.job-select').forEach(function(c){ c.checked = this.checked; }.bind(this))"></th>{% endif %}
         <th>ID</th>
         <th>Job</th>
         <th>Attempts</th>
@@ -175,6 +191,7 @@
     <tbody>
       {% for job in jobs %}
       <tr>
+        {% if show_bulk_form %}<td class="col-select"><input type="checkbox" class="job-select" name="job_ids" value="{{ job.id }}"></td>{% endif %}
         <td class="mono">{{ job.id }}</td>
         <td>{{ job.job_name | default(value="—") }}</td>
         <td>{{ job.attempts }} / {{ job.max_retries }}</td>
@@ -196,7 +213,7 @@
       </tr>
       {% endfor %}
       {% if jobs | length == 0 %}
-      <tr><td colspan="{% if show_dead_actions %}7{% else %}6{% endif %}">No jobs in this view.</td></tr>
+      <tr><td colspan="{% if show_bulk_form %}{% if show_dead_actions %}8{% else %}7{% endif %}{% elif show_dead_actions %}7{% else %}6{% endif %}">No jobs in this view.</td></tr>
       {% endif %}
     </tbody>
   </table>
@@ -219,6 +236,9 @@
     <span class="btn disabled" aria-disabled="true">Next</span>
     {% endif %}
   </nav>
+  {% if show_bulk_form %}
+  </form>
+  {% endif %}
   {% endif %}
 
   <p class="meta">Server time: {{ now }}</p>

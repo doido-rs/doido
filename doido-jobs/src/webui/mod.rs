@@ -1,6 +1,7 @@
 //! HTTP dashboard for inspecting and managing background job queues.
 
 mod auth;
+mod bulk;
 mod dashboard;
 mod enqueue;
 mod framework_views;
@@ -50,6 +51,7 @@ pub fn routes(state: JobsWebState) -> Router {
         .route("/discard/{queue}/{job_id}", get(dashboard::discard_one))
         .route("/retry_all", get(dashboard::retry_all))
         .route("/discard_all", get(dashboard::discard_all))
+        .route("/bulk", post(bulk::submit))
         .route("/enqueue", post(enqueue::submit))
         .with_state(state.clone());
 

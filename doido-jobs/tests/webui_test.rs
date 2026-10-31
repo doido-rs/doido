@@ -285,6 +285,148 @@ async fn webui_perform_now_runs_without_queue_row() {
 }
 
 #[tokio::test]
+async fn webui_in_queue_tab_has_bulk_form() {
+    doido_jobs::webui::register_views();
+    let _ = doido_view::init("app/views");
+
+    let queue = Arc::new(MemoryQueue::new()) as Arc<dyn JobQueue>;
+    queue
+        .enqueue(JobPayload::new("default", json!({}), 3))
+        .await
+        .unwrap();
+
+    let state = JobsWebState::new(queue, test_jobs_config());
+    let app = webui::routes(state);
+
+    let response = app
+        .oneshot(
+            http::Request::builder()
+                .uri("/doido/jobs?tab=in_queue&queue=default")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), http::StatusCode::OK);
+    let body = response.into_body().collect().await.unwrap().to_bytes();
+    let html = String::from_utf8(body.to_vec()).unwrap();
+    assert!(html.contains("action=\"/doido/jobs/bulk\""));
+    assert!(html.contains("name=\"job_ids\""));
+    assert!(html.contains("Delete selected"));
+}
+
+#[tokio::test]
+async fn webui_bulk_delete_selected() {
+    doido_jobs::webui::register_views();
+    let _ = doido_view::init("app/views");
+
+    let queue = Arc::new(MemoryQueue::new()) as Arc<dyn JobQueue>;
+    let id1 = queue
+        .enqueue(JobPayload::new("default", json!({}), 3))
+        .await
+        .unwrap();
+    let id2 = queue
+        .enqueue(JobPayload::new("default", json!({}), 3))
+        .await
+        .unwrap();
+
+    let state = JobsWebState::new(queue.clone(), test_jobs_config());
+    let app = webui::routes(state);
+
+    let response = app
+        .oneshot(form_post(
+            "/doido/jobs/bulk",
+            &format!("action=delete_selected&tab=in_queue&queue=default&job_ids={id1}"),
+        ))
+        .await
+        .unwrap();
+    assert_eq!(response.status(), http::StatusCode::SEE_OTHER);
+
+    let page = queue
+        .list_jobs("default", JobBucket::InQueue, 10, None, true)
+        .await
+        .unwrap();
+    assert_eq!(page.jobs.len(), 1);
+    assert_eq!(page.jobs[0].id, id2);
+}
+
+#[tokio::test]
+async fn webui_bulk_discard_selected_dead() {
+    doido_jobs::webui::register_views();
+    let _ = doido_view::init("app/views");
+
+    let queue = Arc::new(MemoryQueue::new()) as Arc<dyn JobQueue>;
+    let id1 = queue
+        .enqueue(JobPayload::new("default", json!({}), 0))
+        .await
+        .unwrap();
+    let id2 = queue
+        .enqueue(JobPayload::new("default", json!({}), 0))
+        .await
+        .unwrap();
+    for id in [&id1, &id2] {
+        let r = queue
+            .reserve(&["default"], std::time::Duration::ZERO)
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(r.job.id, *id);
+        queue.dead_letter(id, "fail").await.unwrap();
+    }
+
+    let state = JobsWebState::new(queue.clone(), test_jobs_config());
+    let app = webui::routes(state);
+
+    let response = app
+        .oneshot(form_post(
+            "/doido/jobs/bulk",
+            &format!("action=discard_selected&tab=dead&queue=default&job_ids={id1}"),
+        ))
+        .await
+        .unwrap();
+    assert_eq!(response.status(), http::StatusCode::SEE_OTHER);
+    assert_eq!(queue.dead_jobs("default").await.unwrap().len(), 1);
+    assert_eq!(queue.dead_jobs("default").await.unwrap()[0].id, id2);
+}
+
+#[tokio::test]
+async fn webui_bulk_retry_all_via_post() {
+    doido_jobs::webui::register_views();
+    let _ = doido_view::init("app/views");
+
+    let queue = Arc::new(MemoryQueue::new()) as Arc<dyn JobQueue>;
+    let id = queue
+        .enqueue(JobPayload::new("default", json!({}), 0))
+        .await
+        .unwrap();
+    let r = queue
+        .reserve(&["default"], std::time::Duration::ZERO)
+        .await
+        .unwrap()
+        .unwrap();
+    queue.dead_letter(&r.job.id, "fail").await.unwrap();
+
+    let state = JobsWebState::new(queue.clone(), test_jobs_config());
+    let app = webui::routes(state);
+
+    let response = app
+        .oneshot(form_post(
+            "/doido/jobs/bulk",
+            "action=retry_all&tab=dead&queue=default",
+        ))
+        .await
+        .unwrap();
+    assert_eq!(response.status(), http::StatusCode::SEE_OTHER);
+    assert!(queue.dead_jobs("default").await.unwrap().is_empty());
+    let pending = queue
+        .list_jobs("default", JobBucket::InQueue, 10, None, true)
+        .await
+        .unwrap();
+    assert!(!pending.jobs.is_empty());
+    let _ = id;
+}
+
+#[tokio::test]
 async fn webui_try_merge_respects_production_credentials() {
     use doido_core::Environment;
     let mut cfg = test_jobs_config();
