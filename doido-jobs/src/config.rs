@@ -2,7 +2,7 @@
 //! and CLI only ever see an `Arc<dyn JobQueue>`, never a concrete backend.
 
 use crate::cron::{CronConfig, CronSettings};
-use crate::queue::JobQueue;
+use crate::queue::{JobQueue, DEFAULT_ENQUEUE_BATCH_SIZE};
 use crate::worker::EngineConfig;
 use doido_core::{anyhow::anyhow, Environment, Result};
 use serde::Deserialize;
@@ -85,6 +85,8 @@ pub struct JobsConfig {
     pub redis_namespace: String,
     pub db_sql_logging: Option<bool>,
     pub db_visibility_timeout: Duration,
+    /// Max rows per bulk enqueue round-trip (all backends).
+    pub enqueue_batch_size: usize,
     pub cron: CronConfig,
     pub webui: WebUiConfig,
 }
@@ -101,6 +103,7 @@ impl Default for JobsConfig {
             redis_namespace: "doido:jobs".to_string(),
             db_sql_logging: None,
             db_visibility_timeout: Duration::from_secs(300),
+            enqueue_batch_size: DEFAULT_ENQUEUE_BATCH_SIZE,
             cron: CronConfig {
                 enabled: false,
                 tasks: Vec::new(),
@@ -126,7 +129,10 @@ impl JobsConfig {
 /// connection, so it is constructed via [`build_db_queue`] instead.
 pub async fn build_queue(config: &JobsConfig) -> Result<Arc<dyn JobQueue>> {
     match config.backend {
-        Backend::Memory => Ok(Arc::new(crate::drivers::memory::MemoryQueue::new())),
+        Backend::Memory => Ok(Arc::new(
+            crate::drivers::memory::MemoryQueue::new()
+                .with_enqueue_batch_size(config.enqueue_batch_size),
+        )),
         Backend::Redis => build_redis_queue(config).await,
         Backend::Db => Err(anyhow!(
             "the `db` jobs backend must be built with a database connection via build_db_queue()"
@@ -140,7 +146,9 @@ async fn build_redis_queue(config: &JobsConfig) -> Result<Arc<dyn JobQueue>> {
         .redis_url
         .as_deref()
         .ok_or_else(|| anyhow!("redis backend selected but [jobs.redis] url is not set"))?;
-    let q = crate::drivers::redis::RedisQueue::connect(url, config.redis_namespace.clone()).await?;
+    let q = crate::drivers::redis::RedisQueue::connect(url, config.redis_namespace.clone())
+        .await?
+        .with_enqueue_batch_size(config.enqueue_batch_size);
     Ok(Arc::new(q))
 }
 
@@ -224,6 +232,9 @@ pub struct JobsSettings {
     pub cron: Option<CronSettings>,
     #[serde(default)]
     pub webui: Option<WebUiSettings>,
+    /// Max jobs per bulk enqueue (db `INSERT`, redis pipeline). Default 500.
+    #[serde(default)]
+    pub enqueue_batch_size: Option<usize>,
 }
 
 impl JobsSettings {
@@ -264,6 +275,10 @@ impl JobsSettings {
                 .visibility_timeout_secs
                 .map(Duration::from_secs)
                 .unwrap_or(d.db_visibility_timeout),
+            enqueue_batch_size: self
+                .enqueue_batch_size
+                .filter(|&n| n > 0)
+                .unwrap_or(d.enqueue_batch_size),
             cron,
             webui,
         }
@@ -330,7 +345,8 @@ async fn build_db_backed_queue(config: &JobsConfig) -> Result<Arc<dyn JobQueue>>
         queue_conn
     };
     let queue = crate::drivers::db::DbQueue::new(queue_conn)
-        .with_visibility_timeout(config.db_visibility_timeout);
+        .with_visibility_timeout(config.db_visibility_timeout)
+        .with_enqueue_batch_size(config.enqueue_batch_size);
     queue.migrate().await?; // idempotent CREATE TABLE IF NOT EXISTS
     Ok(Arc::new(queue))
 }
@@ -392,6 +408,13 @@ async fn build_db_backed_queue(_config: &JobsConfig) -> Result<Arc<dyn JobQueue>
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn parses_enqueue_batch_size() {
+        let yaml = "jobs:\n  type: memory\n  enqueue_batch_size: 100\n";
+        let cfg = JobsFileConfig::from_yaml(yaml).unwrap().jobs.into_config();
+        assert_eq!(cfg.enqueue_batch_size, 100);
+    }
 
     #[test]
     fn parses_jobs_db_sql_logging() {

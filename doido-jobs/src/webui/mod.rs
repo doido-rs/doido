@@ -1,15 +1,22 @@
 //! HTTP dashboard for inspecting and managing background job queues.
 
 mod auth;
+mod bulk;
 mod dashboard;
+mod enqueue;
 mod framework_views;
+mod time_format;
 
 pub use framework_views::register_views;
 
 use crate::config::JobsConfig;
 use crate::inspect::QueueCounts;
 use crate::queue::JobQueue;
-use axum::{middleware, routing::get, Router};
+use axum::{
+    middleware,
+    routing::{get, post},
+    Router,
+};
 use doido_core::Environment;
 use std::sync::Arc;
 use std::time::Instant;
@@ -45,6 +52,8 @@ pub fn routes(state: JobsWebState) -> Router {
         .route("/discard/{queue}/{job_id}", get(dashboard::discard_one))
         .route("/retry_all", get(dashboard::retry_all))
         .route("/discard_all", get(dashboard::discard_all))
+        .route("/bulk", post(bulk::submit))
+        .route("/enqueue", post(enqueue::submit))
         .with_state(state.clone());
 
     if let (Some(user), Some(pass)) = (

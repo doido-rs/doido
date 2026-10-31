@@ -23,6 +23,7 @@ doido-model = { workspace = true, optional = true, default-features = false }
 doido-view = { workspace = true, optional = true }
 redis = { workspace = true, optional = true }
 axum = { workspace = true, optional = true }
+form_urlencoded = { version = "1", optional = true }
 http = { workspace = true, optional = true }
 tower = { workspace = true, optional = true }
 subtle = { version = "2", optional = true }
@@ -32,6 +33,7 @@ default = []
 webui = [
     "dep:doido-view",
     "dep:axum",
+    "dep:form_urlencoded",
     "dep:http",
     "dep:tower",
     "dep:subtle",

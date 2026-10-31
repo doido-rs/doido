@@ -1,5 +1,6 @@
 //! Dashboard HTTP handlers.
 
+use super::time_format::{format_relative, format_tooltip};
 use super::JobsWebState;
 use crate::config::JobsConfig;
 use crate::inspect::{
@@ -7,17 +8,18 @@ use crate::inspect::{
     QueueCounts,
 };
 use crate::queue::JobQueue;
+use crate::registry::JobRegistry;
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
     response::{Html, IntoResponse, Redirect},
 };
-use chrono::Utc;
+use chrono::{DateTime, Utc};
 use serde::Deserialize;
 use serde_json::json;
 use std::time::{Duration, Instant};
 
-const PAGE_SIZE: u32 = 50;
+pub(crate) const PAGE_SIZE: u32 = 50;
 const QUEUE_PAGE_SIZE: usize = 25;
 
 #[derive(Debug, Deserialize, Default)]
@@ -53,12 +55,17 @@ fn active_tab(query: &DashboardQuery) -> &str {
     query.tab.as_deref().unwrap_or("queues")
 }
 
-fn job_row(job: &crate::queue::JobPayload, include_payload: bool) -> serde_json::Value {
+fn job_row(
+    job: &crate::queue::JobPayload,
+    include_payload: bool,
+    now: DateTime<Utc>,
+) -> serde_json::Value {
     let payload = if include_payload {
         serde_json::to_string_pretty(&job.payload).unwrap_or_else(|_| "{}".into())
     } else {
         String::new()
     };
+    let run_at = job.run_at;
     json!({
         "id": job.id,
         "job_name": job.job_name,
@@ -66,7 +73,9 @@ fn job_row(job: &crate::queue::JobPayload, include_payload: bool) -> serde_json:
         "attempts": job.attempts,
         "max_retries": job.max_retries,
         "status": format!("{:?}", job.status),
-        "run_at": job.run_at.to_rfc3339(),
+        "run_at": run_at.to_rfc3339(),
+        "run_at_relative": format_relative(run_at, now),
+        "run_at_tooltip": format_tooltip(run_at),
         "error": job.error.as_deref().unwrap_or(""),
         "payload": payload,
     })
@@ -157,7 +166,7 @@ pub async fn index(
     let mut jobs = Vec::new();
     let light_list = !include_payload;
 
-    if tab != "queues" {
+    if tab != "queues" && tab != "enqueue" {
         if let Some(ref qname) = selected_queue {
             if let Some(bucket) = tab_bucket(tab) {
                 match state
@@ -190,10 +199,33 @@ pub async fn index(
         .mount_path
         .trim_end_matches('/')
         .to_string();
+
+    let registered_jobs: Vec<serde_json::Value> = if tab == "enqueue" {
+        let registry = JobRegistry::from_inventory();
+        registry
+            .names()
+            .into_iter()
+            .map(|name| {
+                let default_queue = registry
+                    .defaults_for(name)
+                    .map(|d| d.queue.to_string())
+                    .unwrap_or_else(|| "default".to_string());
+                json!({ "name": name, "default_queue": default_queue })
+            })
+            .collect()
+    } else {
+        Vec::new()
+    };
+
+    let flash = query.flash.as_deref().unwrap_or("");
+    let now = Utc::now();
     let ctx = json!({
         "mount": mount,
         "tab": tab,
-        "flash": query.flash.as_deref().unwrap_or(""),
+        "flash": flash,
+        "flash_is_error": flash.starts_with("Error:"),
+        "registered_jobs": registered_jobs,
+        "default_payload": "{}",
         "queues": queues,
         "selected_queue": selected_queue,
         "page_size": PAGE_SIZE,
@@ -208,9 +240,12 @@ pub async fn index(
             "has_prev": queue_page.prev_page_token.is_some(),
         },
         "queue_counts": queue_page.rows.iter().map(|(name, c)| queue_count_row(name, c)).collect::<Vec<_>>(),
-        "jobs": jobs.iter().map(|j| job_row(j, include_payload)).collect::<Vec<_>>(),
+        "jobs": jobs.iter().map(|j| job_row(j, include_payload, now)).collect::<Vec<_>>(),
         "show_dead_actions": tab == "dead",
-        "now": Utc::now().to_rfc3339(),
+        "show_bulk_form": matches!(tab, "in_queue" | "executing" | "retry" | "dead"),
+        "now": now.to_rfc3339(),
+        "now_relative": format_relative(now, now),
+        "now_tooltip": format_tooltip(now),
     });
 
     match doido_view::render("jobs/dashboard", &ctx) {
@@ -231,16 +266,41 @@ fn queue_count_row(name: &str, c: &QueueCounts) -> serde_json::Value {
     })
 }
 
-fn redirect_dashboard(
+/// Optional query params preserved when returning to a job tab after a mutation.
+#[derive(Clone, Debug, Default)]
+pub(crate) struct DashboardViewQuery {
+    pub page_token: Option<String>,
+    pub include_payload: bool,
+}
+
+pub(crate) fn redirect_dashboard(
     state: &JobsWebState,
     tab: &str,
     queue: Option<&str>,
     flash: &str,
 ) -> Redirect {
+    redirect_dashboard_view(state, tab, queue, flash, &DashboardViewQuery::default())
+}
+
+pub(crate) fn redirect_dashboard_view(
+    state: &JobsWebState,
+    tab: &str,
+    queue: Option<&str>,
+    flash: &str,
+    view: &DashboardViewQuery,
+) -> Redirect {
     let mount = state.config.webui.mount_path.trim_end_matches('/');
     let mut url = format!("{mount}?tab={tab}");
     if let Some(q) = queue {
         url.push_str(&format!("&queue={q}"));
+    }
+    if let Some(ref token) = view.page_token {
+        if !token.is_empty() {
+            url.push_str(&format!("&page_token={}", urlencoding_encode(token)));
+        }
+    }
+    if view.include_payload {
+        url.push_str("&include_payload=1");
     }
     if !flash.is_empty() {
         url.push_str(&format!("&flash={}", urlencoding_encode(flash)));
@@ -292,7 +352,7 @@ pub async fn discard_all(
     redirect_dashboard(&state, "dead", Some(queue), "Dead queue cleared")
 }
 
-async fn retry_failed_queue(queue: &dyn JobQueue, config: &JobsConfig, q: &str) {
+pub(crate) async fn retry_failed_queue(queue: &dyn JobQueue, config: &JobsConfig, q: &str) {
     let jobs = match queue.dead_jobs(q).await {
         Ok(j) => j,
         Err(e) => {

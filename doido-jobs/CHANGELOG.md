@@ -11,6 +11,29 @@ documented in `RELEASING.md` at the repository root.
 
 ## Unreleased
 
+### Added
+
+- **`JobQueue::cancel_job`**: remove pending, running, or retry-scheduled jobs (not
+  dead-letter) on memory, db, and redis backends.
+- Jobs Web UI **Enqueue** tab (`POST {mount}/enqueue`): pick a registered handler,
+  optional JSON payload (object or array to submit many jobs at once), queue /
+  timeout / max-retries overrides; enqueue now, schedule at UTC, or perform now
+  in-process.
+- Jobs Web UI **bulk actions** on listing tabs: delete selected on In queue /
+  Executing / Retry; retry or discard selected and discard all on **Dead**
+  (`POST {mount}/bulk`).
+- Jobs Web UI **Live poll** toggle: refresh the current tab every 10 seconds
+  (preference stored in `localStorage`).
+- Dashboard **relative timestamps** (e.g. “5 minutes ago”) with full datetime
+  tooltips.
+- **`JobQueue::enqueue_many` / `enqueue_many_at`** on all backends, chunked by
+  `jobs.enqueue_batch_size`; `JobContext::enqueue_jobs`, `{Name}_enqueue_many`
+  from `#[job]`, and batched `perform_jobs_now` for in-process runs.
+
+### Changed
+
+- **`cargo doido jobs run`**: clearer errors when enqueue or perform fails.
+
 ## 0.0.32-test4 - 2026-10-30
 
 ### Performance

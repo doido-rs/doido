@@ -25,6 +25,12 @@ pub fn job(attr: TokenStream, item: TokenStream) -> TokenStream {
     let func = parse_macro_input!(item as ItemFn);
     let fn_name = &func.sig.ident;
     let enqueue_fn_name = syn::Ident::new(&format!("{}_enqueue", fn_name), Span::call_site());
+    let enqueue_many_fn_name =
+        syn::Ident::new(&format!("{}_enqueue_many", fn_name), Span::call_site());
+    let payload_to_job_fn = syn::Ident::new(
+        &format!("__doido_{}_payload_to_job", fn_name),
+        Span::call_site(),
+    );
     let builder_name = syn::Ident::new(
         &format!("{}Job", to_pascal_case(&fn_name.to_string())),
         Span::call_site(),
@@ -178,18 +184,35 @@ pub fn job(attr: TokenStream, item: TokenStream) -> TokenStream {
             }
         }
 
+        fn #payload_to_job_fn(payload: #payload_ty) -> doido_core::Result<doido_jobs::JobPayload> {
+            let payload = serde_json::to_value(payload)
+                .map_err(|e| doido_core::anyhow::anyhow!("failed to serialize job payload: {e}"))?;
+            Ok(doido_jobs::JobPayload::new(#queue_lit, payload, #max_retries_lit)
+                .with_name(#job_name_lit)
+                .with_priority(#priority_lit)
+                .with_backoff(#backoff_variant, #backoff_base_lit)
+                .with_timeout(#timeout_lit))
+        }
+
+        /// Enqueue one job (`perform_later`).
         pub async fn #enqueue_fn_name(
             queue: &dyn doido_jobs::JobQueue,
             payload: #payload_ty,
         ) -> doido_core::Result<doido_jobs::JobId> {
-            let payload = serde_json::to_value(payload)
-                .map_err(|e| doido_core::anyhow::anyhow!("failed to serialize job payload: {e}"))?;
-            let job = doido_jobs::JobPayload::new(#queue_lit, payload, #max_retries_lit)
-                .with_name(#job_name_lit)
-                .with_priority(#priority_lit)
-                .with_backoff(#backoff_variant, #backoff_base_lit)
-                .with_timeout(#timeout_lit);
-            queue.enqueue(job).await
+            let ids = #enqueue_many_fn_name(queue, ::std::iter::once(payload)).await?;
+            Ok(ids.into_iter().next().expect("one job enqueued"))
+        }
+
+        /// Enqueue multiple jobs with the same `#[job]` defaults.
+        pub async fn #enqueue_many_fn_name(
+            queue: &dyn doido_jobs::JobQueue,
+            payloads: impl IntoIterator<Item = #payload_ty>,
+        ) -> doido_core::Result<Vec<doido_jobs::JobId>> {
+            let jobs: doido_core::Result<Vec<_>> = payloads
+                .into_iter()
+                .map(#payload_to_job_fn)
+                .collect();
+            doido_jobs::enqueue_jobs(queue, jobs?).await
         }
 
         /// Fluent per-instance enqueue builder for the `#fn_name` job (Rails
@@ -241,8 +264,23 @@ pub fn job(attr: TokenStream, item: TokenStream) -> TokenStream {
 
             /// Enqueue for immediate eligibility (unless `wait`/`at` was set).
             pub async fn enqueue(self, queue: &dyn doido_jobs::JobQueue) -> doido_core::Result<doido_jobs::JobId> {
+                self.perform_later(queue).await
+            }
+
+            /// Enqueue for the worker (`perform_later`).
+            pub async fn perform_later(self, queue: &dyn doido_jobs::JobQueue) -> doido_core::Result<doido_jobs::JobId> {
                 let job = self.into_payload()?;
                 queue.enqueue(job).await
+            }
+
+            /// Run in this process (`perform_now`); does not touch the queue.
+            pub async fn perform_now(
+                self,
+                registry: &doido_jobs::JobRegistry,
+                ctx: ::std::sync::Arc<doido_jobs::JobContext>,
+            ) -> doido_core::Result<()> {
+                let job = self.into_payload()?;
+                doido_jobs::perform_jobs_now(registry, [job], ctx).await
             }
 
             /// Enqueue, eligible no earlier than `at`.
