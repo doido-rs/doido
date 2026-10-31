@@ -23,6 +23,13 @@ cargo doido jobs run sync_municipio_cna_lote --payload '{"ibge_codes":["3304557"
 # Enqueue one job for the worker
 cargo doido jobs run sync_municipio_cna_coordinator --later
 
+### Bulk enqueue (one db `INSERT` per chunk)
+
+The db/redis/memory backends batch only when **many payloads are enqueued in one call**:
+`enqueue_jobs`, `{job}_enqueue_many`, or `ctx.enqueue_jobs(...)` from a handler (worker registers
+the queue on [`JobContext`](src/context.rs)). Calling `{job}_enqueue` / `.perform_later()` in a
+loop still produces **one SQL round-trip per job** (each call is a separate `enqueue_many` of size 1).
+
 # Drain ready jobs after enqueue
 cargo doido worker --once
 ```

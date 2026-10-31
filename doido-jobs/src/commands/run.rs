@@ -1,6 +1,6 @@
 //! `doido jobs run` / `perform` — in-process perform or enqueue for the worker.
 
-use crate::context::job_context_from_runtime;
+use crate::context::{job_context_from_runtime, job_context_with_queue};
 use crate::perform::{enqueue_jobs, perform_jobs_now};
 use crate::registry::{
     build_job_payloads, parse_job_payloads_json, suggest_job_names, JobRegistry,
@@ -106,6 +106,9 @@ async fn run_inner(args: RunArgs, queue: Option<Arc<dyn JobQueue>>) -> Result<()
         return Ok(());
     }
 
-    let ctx = Arc::new(job_context_from_runtime());
+    let ctx = Arc::new(match queue {
+        Some(q) => job_context_with_queue(q),
+        None => job_context_from_runtime(),
+    });
     perform_jobs_now(&registry, jobs, ctx).await
 }

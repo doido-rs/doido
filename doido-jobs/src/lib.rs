@@ -21,7 +21,7 @@ pub use chrono;
 // Re-exported so `#[job]`-generated code can call `doido_jobs::inventory::submit!`
 // without the app depending on inventory directly.
 pub use config::{build_queue, Backend, JobsConfig, WebUiConfig};
-pub use context::JobContext;
+pub use context::{job_context_with_queue, JobContext, JobQueueHandle};
 #[cfg(feature = "jobs-db")]
 pub use db::DbQueue;
 pub use doido_jobs_macros::job;
