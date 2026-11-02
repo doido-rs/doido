@@ -47,6 +47,7 @@ Set `E2E_KEEP=1` to preserve generated apps under `target/e2e/apps/` for debuggi
 | `model_validations` | `Validate`/`Errors` in extension stubs survive entity re-export on migrate |
 | `migration_add_remove` | `generate migration` add/remove |
 | `storage_install` | `storage:install` |
+| `storage_s3_upload` | `storage:install` + S3 direct upload/proxy via Floci |
 | `storage_adapter` | `storage:adapter` (in `smoke_generators`) |
 | `smoke_generators` | `job`, `mailer`, `locale`, `templates`, `generator`, `controller` |
 | `helper` | `generate helper` + HTTP call through controller |

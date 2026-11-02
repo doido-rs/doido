@@ -45,7 +45,10 @@ pub use handlers::{authenticate, register_user, sign_in, sign_in_with_session, s
 pub use i18n::register_locales;
 pub use identity::AuthIdentity;
 pub use jwt::{JwtClaims, JwtStrategy, TokenPair};
-pub use layer::{auth_layer, current_identity, current_user};
+pub use layer::{
+    assign_current_user, auth_layer, current_identity, current_user, current_user_id,
+    load_current_user,
+};
 pub use oauth::{OAuth2Provider, OAuthProvider, OAuthTokenResponse};
 pub use registry::{register_strategy, registered_strategies};
 pub use route_mount::mount;
