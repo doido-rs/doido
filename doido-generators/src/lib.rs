@@ -17,10 +17,10 @@ pub const DOIDO_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 pub use generator::{GeneratedFile, Generator};
 pub use generators::{
-    channel::ChannelGenerator, controller::ControllerGenerator, generator_gen::GeneratorGenerator,
-    helper::HelperGenerator, job::JobGenerator, mailer::MailerGenerator,
-    migration::MigrationGenerator, model::ModelGenerator, new::ProjectGenerator,
-    resource::ResourceGenerator, scaffold::ScaffoldGenerator,
+    channel::ChannelGenerator, controller::ControllerGenerator, extension::ExtensionGenerator,
+    generator_gen::GeneratorGenerator, helper::HelperGenerator, job::JobGenerator,
+    mailer::MailerGenerator, migration::MigrationGenerator, model::ModelGenerator,
+    new::ProjectGenerator, resource::ResourceGenerator, scaffold::ScaffoldGenerator,
     storage_adapter::StorageAdapterGenerator, storage_install::StorageInstallGenerator,
     templates_gen::TemplatesGenerator,
 };
