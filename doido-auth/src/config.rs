@@ -163,6 +163,43 @@ pub struct OAuthProviderConfig {
     pub token_url: Option<String>,
 }
 
+/// Argon2id parameters from `auth.password_hashing` (OWASP minimums by default).
+#[derive(Debug, Clone, Deserialize)]
+pub struct PasswordHashingConfig {
+    #[serde(default = "default_memory_kib")]
+    pub memory_kib: u32,
+    #[serde(default = "default_iterations")]
+    pub iterations: u32,
+    #[serde(default = "default_parallelism")]
+    pub parallelism: u32,
+    /// Optional application secret (prefer `credentials.yml.enc`); not a substitute for per-password salt.
+    #[serde(default)]
+    pub pepper: Option<String>,
+}
+
+fn default_memory_kib() -> u32 {
+    doido_model::password::DEFAULT_MEMORY_KIB
+}
+
+fn default_iterations() -> u32 {
+    doido_model::password::DEFAULT_ITERATIONS
+}
+
+fn default_parallelism() -> u32 {
+    doido_model::password::DEFAULT_PARALLELISM
+}
+
+impl Default for PasswordHashingConfig {
+    fn default() -> Self {
+        Self {
+            memory_kib: default_memory_kib(),
+            iterations: default_iterations(),
+            parallelism: default_parallelism(),
+            pepper: None,
+        }
+    }
+}
+
 /// Two-factor settings from `auth.two_factor`.
 #[derive(Debug, Clone, Default, Deserialize)]
 pub struct TwoFactorConfig {
@@ -259,9 +296,17 @@ pub struct AuthConfig {
     /// Idle-session timeout in seconds for the `timeoutable` module.
     #[serde(default = "default_timeout")]
     pub timeout: u64,
-    /// Minimum password length enforced by the `validatable` module.
+    /// Minimum password length enforced by the `validatable` module (see [`Self::effective_min_password_length`]).
     #[serde(default = "default_password_length")]
     pub password_length: usize,
+    /// Maximum password length (Unicode scalar count).
+    #[serde(default = "default_password_max_length")]
+    pub password_max_length: usize,
+    #[serde(default)]
+    pub password_hashing: PasswordHashingConfig,
+    /// Run a dummy password verify when the email is unknown (timing equalisation).
+    #[serde(default = "default_timing_attack_mitigation")]
+    pub timing_attack_mitigation: bool,
     /// Failed sign-in attempts before `lockable` locks an account.
     #[serde(default = "default_maximum_attempts")]
     pub maximum_attempts: u32,
@@ -298,11 +343,19 @@ fn default_timeout() -> u64 {
 }
 
 fn default_password_length() -> usize {
-    6
+    15
+}
+
+fn default_password_max_length() -> usize {
+    doido_model::password::DEFAULT_MAX_PASSWORD_LENGTH
+}
+
+fn default_timing_attack_mitigation() -> bool {
+    true
 }
 
 fn default_maximum_attempts() -> u32 {
-    20
+    10
 }
 
 fn default_unlock_in() -> i64 {
@@ -328,6 +381,9 @@ impl Default for AuthConfig {
             two_factor: TwoFactorConfig::default(),
             timeout: default_timeout(),
             password_length: default_password_length(),
+            password_max_length: default_password_max_length(),
+            password_hashing: PasswordHashingConfig::default(),
+            timing_attack_mitigation: default_timing_attack_mitigation(),
             maximum_attempts: default_maximum_attempts(),
             unlock_in: default_unlock_in(),
             reset_password_within: default_reset_within(),
@@ -361,6 +417,28 @@ impl AuthConfig {
             }
         }
         groups
+    }
+
+    /// NIST/OWASP floor: 15 characters without MFA, 8 with MFA (config may raise the bar).
+    pub fn effective_min_password_length(&self) -> usize {
+        let mfa = self.two_factor.enabled || self.has_module(AuthModule::TwoFactorAuthenticatable);
+        let policy_floor = if mfa { 8 } else { 15 };
+        self.password_length.max(policy_floor)
+    }
+
+    /// Push Argon2/pepper/max-length settings into `doido_model::password`.
+    pub fn apply_password_hashing(&self) {
+        let cfg = doido_model::password::PasswordHashConfig {
+            memory_kib: self.password_hashing.memory_kib,
+            iterations: self.password_hashing.iterations,
+            parallelism: self.password_hashing.parallelism,
+        };
+        let pepper = self
+            .password_hashing
+            .pepper
+            .as_ref()
+            .map(|s| s.as_bytes().to_vec());
+        doido_model::password::configure_password_hashing(cfg, pepper, self.password_max_length);
     }
 
     /// Validate required secrets, strategy-specific settings, and module coherence.

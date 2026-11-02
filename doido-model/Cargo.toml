@@ -27,7 +27,11 @@ serde.workspace = true
 serde_json.workspace = true
 serde_norway.workspace = true
 url = "2"
+argon2 = "0.5"
 bcrypt = "0.19"
+hmac = "0.12"
+password-hash = "0.5"
+sha2 = "0.10"
 uuid = { workspace = true }
 
 [features]

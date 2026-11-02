@@ -29,6 +29,7 @@ fn slot() -> &'static RwLock<Option<Arc<AuthState>>> {
 impl AuthState {
     pub(crate) fn build(db: DatabaseConnection, config: AuthConfig) -> Result<Self, AuthError> {
         config.validate()?;
+        config.apply_password_hashing();
         let mut strategies: Vec<Arc<dyn AuthStrategy>> = Vec::new();
         let mut jwt = None;
 

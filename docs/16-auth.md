@@ -12,7 +12,8 @@ filters.
 > `AuthUser`, cookie/JWT/OAuth strategies, optional 2FA (`auth-2fa`), axum extractors,
 > `routes::mount`, and generators (`auth:install` / `auth:controllers` / `auth:controller` /
 > `auth:scaffold`). Generators appear in `doido generate` only when `doido-auth` is a project
-> dependency. Password hashing lives in `doido-model::password`; auth builds on it.
+> dependency. Password hashing lives in `doido-model::password` (Argon2id by default,
+> bcrypt verify + transparent rehash on login); auth builds on it.
 >
 > **Devise-style modules.** `auth.modules` in `config/<env>.yml` selects which features are
 > active (`database_authenticatable`, `registerable`, `recoverable`, `rememberable`,
@@ -74,8 +75,10 @@ derives `AuthUser` from a SeaORM model with conventional column names.
 - **Pre-built routes** — session sign-in/out, registration, password reset, OAuth
   callbacks, and 2FA challenge endpoints ship as a mountable route group; apps only
   register `auth_routes!(User);` in `config/routes.rs`.
-- **Password hashing** — reuse `doido_model::password` (`HasSecurePassword`); auth
-  does not re-implement bcrypt.
+- **Password hashing** — reuse `doido_model::password` (`HasSecurePassword`): new
+  digests are **Argon2id** (OWASP minimum parameters by default); legacy **bcrypt**
+  `$2…` digests still verify and are **rehashed to Argon2id** on the next successful
+  sign-in. Optional pepper and tunable Argon2 cost live under `auth.password_hashing`.
 - **2FA is optional** — behind feature `auth-2fa`; disabled by default in generated apps.
 - **Generators live in this crate** — `auth:install`, `auth:controller`, and
   `auth:scaffold` are implemented under `doido-auth/src/generators/`, **not** in
@@ -186,9 +189,35 @@ auth:
     - rememberable               # remember-me cookie
     - validatable                # email/password validation
   timeout: 1800                  # timeoutable: idle seconds
-  password_length: 6             # validatable: minimum length
-  maximum_attempts: 20           # lockable: fails before lock
+  password_length: 15            # validatable: floor (15 without MFA, 8 with MFA)
+  password_max_length: 128       # validatable: Unicode scalar count
+  timing_attack_mitigation: true # dummy verify when email unknown
+  password_hashing:
+    memory_kib: 19456            # Argon2id m (19 MiB — OWASP minimum)
+    iterations: 2                # t
+    parallelism: 1               # p
+    pepper: "${AUTH_PEPPER}"     # optional; prefer credentials.yml.enc
+  maximum_attempts: 10           # lockable: fails before lock
 ```
+
+### Password storage (`doido_model::password`)
+
+| API | Role |
+|-----|------|
+| `hash_password` | New Argon2id PHC string (`$argon2id$…`) |
+| `verify_password` | Argon2id or legacy bcrypt |
+| `needs_rehash` | `true` for bcrypt or Argon2 params below configured minimum |
+| `configure_password_hashing` | Called from `doido_auth::init` via `AuthConfig::apply_password_hashing` |
+
+Boot applies `auth.password_hashing` and `auth.password_max_length` before any
+sign-in. Tune `memory_kib` / `iterations` on target hardware (aim ~50–250 ms per hash).
+
+**Recoverable tokens** are stored as **SHA-256 hex** of the emailed token (legacy plain
+UUID rows are accepted once, then rewritten).
+
+**Rate limiting:** complement `lockable` with HTTP throttling on `POST …/sign_in` and
+`POST …/password` using [`doido_controller::rate_limit::RateLimiter`](doido-controller/src/rate_limit.rs)
+(see [07-middleware.md](07-middleware.md)).
 
 Defaults to Devise's default set (`database_authenticatable`, `registerable`,
 `recoverable`, `rememberable`, `validatable`). `auth:install --modules=a,b,c` selects an
@@ -218,7 +247,8 @@ behavior is a tracked follow-up. Every module is selectable and behavioral today
 `auth-2fa`). All behaviors live in the built-in handlers and are gated on `auth.modules`,
 so they work whether you use the built-in controllers or eject with `auth:controllers`.
 
-**Config knobs.** `password_length` (validatable), `timeout` (timeoutable),
+**Config knobs.** `password_length` / `password_max_length` / `password_hashing` /
+`timing_attack_mitigation` (validatable + hashing), `timeout` (timeoutable),
 `maximum_attempts`/`unlock_in` (lockable), `reset_password_within` (recoverable),
 `remember_for` (rememberable).
 

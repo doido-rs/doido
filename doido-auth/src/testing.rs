@@ -109,29 +109,49 @@ pub fn reset_store() {
     store().lock().unwrap().clear();
 }
 
+/// When a test user exists in the in-memory store, keep its digest in sync with
+/// SQL updates (rehash-on-login uses the real `users` table in some tests).
+pub fn sync_test_user_digest(email: &str, digest: &str) {
+    let store = store();
+    let mut map = store.lock().unwrap();
+    for user in map.values_mut() {
+        if user.email == email {
+            user.password_digest = digest.to_string();
+            return;
+        }
+    }
+}
+
 /// Build a minimal auth config for tests: cookie strategy, only the
 /// `database_authenticatable` module. Kept minimal so module behaviors
 /// (validatable, trackable, …) don't implicitly affect unrelated tests — a test
 /// that exercises a module should enable it explicitly.
 pub fn test_auth_config() -> AuthConfig {
+    use crate::config::PasswordHashingConfig;
+    use doido_model::password::PasswordHashConfig;
     AuthConfig {
         modules: vec![crate::config::AuthModule::DatabaseAuthenticatable],
+        password_hashing: PasswordHashingConfig {
+            memory_kib: PasswordHashConfig::fast_test().memory_kib,
+            iterations: PasswordHashConfig::fast_test().iterations,
+            parallelism: PasswordHashConfig::fast_test().parallelism,
+            pepper: None,
+        },
         ..Default::default()
     }
 }
 
 /// Build auth config with JWT enabled.
 pub fn test_jwt_auth_config(secret: &str) -> AuthConfig {
-    AuthConfig {
-        strategies: vec!["cookie".into(), "jwt".into()],
-        jwt: Some(crate::config::JwtConfig {
-            secret: secret.into(),
-            access_ttl: 900,
-            refresh_ttl: 604_800,
-            issuer: Some("test".into()),
-        }),
-        ..Default::default()
-    }
+    let mut config = test_auth_config();
+    config.strategies = vec!["cookie".into(), "jwt".into()];
+    config.jwt = Some(crate::config::JwtConfig {
+        secret: secret.into(),
+        access_ttl: 900,
+        refresh_ttl: 604_800,
+        issuer: Some("test".into()),
+    });
+    config
 }
 
 /// Initialise in-memory auth state for tests.
@@ -142,9 +162,10 @@ pub async fn init_test_auth(
     db: DatabaseConnection,
     config: AuthConfig,
 ) -> Result<AuthTestGuard, AuthError> {
-    let guard = AUTH_TEST_LOCK.lock().expect("auth test lock");
+    let guard = AUTH_TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
     reset_store();
     crate::state::reset_state();
+    crate::password_store::set_digest_sync_hook(sync_test_user_digest);
     let _ = doido_model::pool::set_pool(db.clone());
     set_state(AuthState::build(db, config)?);
     Ok(AuthTestGuard { _lock: guard })

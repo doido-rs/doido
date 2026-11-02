@@ -39,7 +39,7 @@ pub fn authenticate_password<U: AuthUser + HasSecurePassword>(user: &U, password
     user.authenticate(password)
 }
 
-/// Persist a newly registered user from email + bcrypt digest.
+/// Persist a newly registered user from email + password digest (PHC Argon2id).
 ///
 /// Required by the default [`crate::controllers::AuthRegistrations`] controller
 /// when using `auth_routes!(User)` without a custom registrations controller.

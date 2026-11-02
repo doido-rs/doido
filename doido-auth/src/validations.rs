@@ -4,6 +4,7 @@
 use crate::config::AuthModule;
 use crate::error::AuthError;
 use crate::state::try_global;
+use doido_model::password::password_too_long;
 
 /// Validate an email/password pair for registration when the `validatable`
 /// module is enabled. A no-op when auth state isn't initialised (unit tests) or
@@ -17,7 +18,29 @@ pub fn validate_registration(email: &str, password: &str) -> Result<(), AuthErro
         return Ok(());
     }
     validate_email(email)?;
-    validate_password_length(password, state.config.password_length)?;
+    validate_password_policy(password, state.config.effective_min_password_length())?;
+    Ok(())
+}
+
+/// Password policy for reset / change-password flows (respects `validatable` gating).
+pub fn validate_password_change(password: &str) -> Result<(), AuthError> {
+    let state = match try_global() {
+        Some(state) => state,
+        None => return Ok(()),
+    };
+    if !state.config.has_module(AuthModule::Validatable) {
+        return Ok(());
+    }
+    validate_password_policy(password, state.config.effective_min_password_length())
+}
+
+fn validate_password_policy(password: &str, min: usize) -> Result<(), AuthError> {
+    validate_password_length(password, min)?;
+    if password_too_long(password) {
+        return Err(AuthError::Validation(
+            "password is too long (maximum length exceeded)".into(),
+        ));
+    }
     Ok(())
 }
 
@@ -78,7 +101,7 @@ mod tests {
 
     #[test]
     fn enforces_minimum_password_length() {
-        assert!(validate_password_length("secret", 6).is_ok());
-        assert!(validate_password_length("short", 6).is_err());
+        assert!(validate_password_length("secretpassword!", 15).is_ok());
+        assert!(validate_password_length("short", 15).is_err());
     }
 }

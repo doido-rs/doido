@@ -58,6 +58,11 @@ Enabled in `config/<env>.yml` under `middleware:` or registered manually:
 | Compression | `middleware.compression = true` | false |
 | Static files | `middleware.static_files = "public"` | disabled |
 | Timeout | `middleware.timeout = 30` (seconds) | disabled |
+| Rate limit | `doido_controller::rate_limit::RateLimiter` (app wiring) | disabled |
+
+For authentication hardening, throttle `POST /users/sign_in` and password-reset
+endpoints with `RateLimiter` (fixed window per IP and/or email) in addition to
+`doido-auth`’s optional `lockable` module — see [16-auth.md](16-auth.md#password-storage-doido_modelpassword).
 
 Example `config/<env>.yml`:
 

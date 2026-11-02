@@ -4,8 +4,11 @@ use doido_auth::handlers::{authenticate, register_user, sign_in, sign_out};
 use doido_auth::testing::{create_test_user, init_test_auth, test_auth_config, TestUser};
 use doido_controller::axum::body::Body;
 use doido_controller::Context;
+use doido_model::password::{hash_password_with_cost, needs_rehash, HasSecurePassword};
 use doido_model::testing::TestDb;
 use http::Request;
+
+const LEGACY_COST: u32 = 4;
 
 #[tokio::test]
 async fn authenticate_succeeds_with_valid_credentials() {
@@ -61,6 +64,28 @@ async fn register_user_rejects_duplicate_email() {
     .await
     .unwrap_err();
     assert!(matches!(err, doido_auth::AuthError::EmailTaken));
+}
+
+#[tokio::test]
+async fn authenticate_rehashes_legacy_bcrypt_digest() {
+    let db = TestDb::new().await.unwrap();
+    let _auth = init_test_auth(db.conn().clone(), test_auth_config())
+        .await
+        .unwrap();
+    let legacy = hash_password_with_cost("legacy-pass", LEGACY_COST).unwrap();
+    create_test_user(db.conn(), "legacy@example.com", "legacy-pass")
+        .await
+        .unwrap();
+    doido_auth::testing::sync_test_user_digest("legacy@example.com", &legacy);
+
+    let user: TestUser = authenticate(db.conn(), "legacy@example.com", "legacy-pass")
+        .await
+        .unwrap();
+
+    let stored = HasSecurePassword::password_digest(&user);
+    assert_ne!(stored, legacy.as_str());
+    assert!(stored.starts_with("$argon2id$"));
+    assert!(!needs_rehash(stored));
 }
 
 #[tokio::test]

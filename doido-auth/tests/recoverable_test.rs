@@ -2,6 +2,7 @@
 
 use doido_auth::config::AuthConfig;
 use doido_auth::testing::init_test_auth;
+use doido_auth::token_digest::hash_opaque_token;
 use doido_auth::{recoverable, AuthModule};
 use doido_mailer::TestDeliverer;
 use doido_model::sea_orm::{ConnectionTrait, DbBackend, Statement, Value};
@@ -68,7 +69,7 @@ async fn requests_then_resets_password() {
         .expect("token for known email");
     assert_eq!(
         column(&db, "reset_password_token").await.as_deref(),
-        Some(token.as_str())
+        Some(hash_opaque_token(&token).as_str())
     );
 
     let ok = recoverable::reset_password(db.conn(), &token, "brand-new-pass")

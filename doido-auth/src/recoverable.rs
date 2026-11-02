@@ -7,6 +7,8 @@
 use crate::config::AuthModule;
 use crate::error::AuthError;
 use crate::state::try_global;
+use crate::token_digest::{hash_opaque_token, token_matches_stored};
+use crate::validations::validate_password_change;
 use doido_mailer::Mail;
 use doido_model::password::hash_password;
 use doido_model::sea_orm::{ConnectionTrait, DatabaseConnection, DbBackend, Statement, Value};
@@ -17,6 +19,30 @@ fn enabled() -> bool {
 
 fn internal(e: impl std::fmt::Display) -> AuthError {
     AuthError::Internal(e.to_string())
+}
+
+async fn reset_sent_at_for_token(
+    db: &DatabaseConnection,
+    token: &str,
+) -> Result<Option<Option<String>>, AuthError> {
+    let rows = db
+        .query_all_raw(Statement::from_string(
+            DbBackend::Sqlite,
+            "SELECT reset_password_token, reset_password_sent_at FROM users \
+             WHERE reset_password_token IS NOT NULL",
+        ))
+        .await
+        .map_err(internal)?;
+    for row in rows {
+        let stored: String = row.try_get("", "reset_password_token").map_err(internal)?;
+        if token_matches_stored(&stored, token) {
+            let sent_at = row
+                .try_get::<Option<String>>("", "reset_password_sent_at")
+                .map_err(internal)?;
+            return Ok(Some(sent_at));
+        }
+    }
+    Ok(None)
 }
 
 /// Generate and store a reset token for `email` when the user exists. Returns the
@@ -43,11 +69,12 @@ pub async fn request_reset(
     }
 
     let token = uuid::Uuid::new_v4().to_string();
+    let stored = hash_opaque_token(&token);
     db.execute_raw(Statement::from_sql_and_values(
         DbBackend::Sqlite,
         "UPDATE users SET reset_password_token = ?, reset_password_sent_at = ? WHERE email = ?",
         [
-            Value::from(token.clone()),
+            Value::from(stored),
             Value::from(chrono::Utc::now().to_rfc3339()),
             Value::from(email.to_string()),
         ],
@@ -73,19 +100,10 @@ pub async fn reset_password(
         _ => return Ok(false),
     };
 
-    let row = db
-        .query_one_raw(Statement::from_sql_and_values(
-            DbBackend::Sqlite,
-            "SELECT reset_password_sent_at FROM users WHERE reset_password_token = ?",
-            [Value::from(token.to_string())],
-        ))
-        .await
-        .map_err(internal)?;
-    let sent_at = match row {
-        Some(row) => row
-            .try_get::<Option<String>>("", "reset_password_sent_at")
-            .map_err(internal)?,
-        None => return Ok(false),
+    validate_password_change(new_password)?;
+
+    let Some(sent_at) = reset_sent_at_for_token(db, token).await? else {
+        return Ok(false);
     };
     if let Some(sent_at) = sent_at {
         let sent = chrono::DateTime::parse_from_rfc3339(&sent_at)
@@ -97,15 +115,21 @@ pub async fn reset_password(
     }
 
     let digest = hash_password(new_password).map_err(internal)?;
-    db.execute_raw(Statement::from_sql_and_values(
-        DbBackend::Sqlite,
-        "UPDATE users SET password_digest = ?, reset_password_token = NULL, \
-         reset_password_sent_at = NULL WHERE reset_password_token = ?",
-        [Value::from(digest), Value::from(token.to_string())],
-    ))
-    .await
-    .map_err(internal)?;
-    Ok(true)
+    let hashed = hash_opaque_token(token);
+    let updated = db
+        .execute_raw(Statement::from_sql_and_values(
+            DbBackend::Sqlite,
+            "UPDATE users SET password_digest = ?, reset_password_token = NULL, \
+             reset_password_sent_at = NULL WHERE reset_password_token = ? OR reset_password_token = ?",
+            [
+                Value::from(digest),
+                Value::from(hashed),
+                Value::from(token.to_string()),
+            ],
+        ))
+        .await
+        .map_err(internal)?;
+    Ok(updated.rows_affected() > 0)
 }
 
 /// Deliver the reset-instructions email for `token` via the global deliverer.

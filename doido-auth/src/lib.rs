@@ -14,6 +14,7 @@ pub mod layer;
 pub mod lockable;
 pub mod messages;
 pub mod oauth;
+pub mod password_store;
 pub mod recoverable;
 pub mod registry;
 pub mod rememberable;
@@ -21,6 +22,7 @@ pub mod route_mount;
 pub mod session;
 pub mod state;
 pub mod strategy;
+pub mod token_digest;
 pub mod user;
 
 pub mod testing;
