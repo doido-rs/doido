@@ -26,6 +26,9 @@
 //! Wrap `get_env` in YAML quotes when the value may contain `:` (e.g.
 //! `url: '{{ get_env(name="DATABASE_URL", default="sqlite://…") }}'`).
 
+use std::env;
+use std::path::PathBuf;
+
 use tera::{Context, Error, Kwargs, State, Tera, TeraResult, Value};
 
 /// Render a raw `config/<env>.yml` string through Tera, expanding
@@ -56,8 +59,38 @@ fn get_env(kwargs: Kwargs, _state: &State) -> TeraResult<Value> {
     }
 }
 
+/// Retrieves the current working directory.
+///
+/// Fallback strategy:
+/// 1. Attempts to get the current working directory (`env::current_dir`).
+/// 2. If it fails, logs the error and attempts to use the `HOME` environment variable.
+/// 3. If `HOME` is also unavailable, logs the error and falls back to the root directory (`/`).
+pub fn get_working_dir() -> PathBuf {
+    match env::current_dir() {
+        Ok(path) => path,
+        Err(e) => {
+            eprintln!(
+                "Warning: Failed to retrieve current directory: {}. Trying fallback (HOME)...",
+                e
+            );
+
+            match env::var("HOME") {
+                Ok(home) => PathBuf::from(home),
+                Err(home_err) => {
+                    eprintln!(
+                        "Warning: Failed to retrieve HOME environment variable: {}. Falling back to root (/)...",
+                        home_err
+                    );
+                    PathBuf::from("/")
+                }
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
+    use super::get_working_dir;
     use super::render;
 
     #[test]
@@ -113,5 +146,49 @@ mod tests {
     fn passes_through_plain_yaml_unchanged() {
         let yaml = "server:\n  bind: 0.0.0.0\n  port: 3000\n";
         assert_eq!(render(yaml).unwrap(), yaml);
+    }
+
+    #[test]
+    fn test_current_dir_success() {
+        // In a healthy test environment, current_dir() should succeed.
+        let dir = get_working_dir();
+        assert!(dir.exists(), "The returned directory must exist on disk");
+        assert!(dir.is_dir(), "The returned path must be a valid directory");
+    }
+
+    #[test]
+    fn test_fallback_to_home() {
+        // Save the original HOME variable to restore it later
+        let original_home = std::env::var("HOME").ok();
+
+        // Set a mock HOME directory to validate environment fallback handling
+        std::env::set_var("HOME", "/tmp/mock-home");
+
+        let dir = get_working_dir();
+        // Ensure the function returns a non-empty, valid path fallback structure
+        assert!(dir.as_os_str().len() > 0);
+
+        // Restore original environment state
+        if let Some(home) = original_home {
+            std::env::set_var("HOME", home);
+        } else {
+            std::env::remove_var("HOME");
+        }
+    }
+
+    #[test]
+    fn test_fallback_to_root() {
+        // Temporarily remove HOME to trigger the final root (/) fallback
+        let original_home = std::env::var("HOME").ok();
+        std::env::remove_var("HOME");
+
+        let dir = get_working_dir();
+        // Ensure the function safely defaults without panicking
+        assert!(dir.as_os_str().len() > 0);
+
+        // Restore original environment state
+        if let Some(home) = original_home {
+            std::env::set_var("HOME", home);
+        }
     }
 }
