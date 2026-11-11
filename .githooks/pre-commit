@@ -11,4 +11,13 @@ cargo fmt --check --all
 echo "pre-commit: running clippy (cargo clippy --workspace -- -D warnings)..."
 cargo clippy --workspace -- -D warnings
 
+# The release branch already committed the bump (make release-prep), so
+# the tree is the source of truth — no in-CI mutation or manifest packing.
+committed="$(sed -nE 's/^version = "([^"]+)".*/\1/p' Cargo.toml | head -1)"
+if [ "$committed" != "$VERSION" ]; then
+    echo "::error::Committed workspace version ($committed) != requested ($VERSION). Run 'make release-prep VERSION=$VERSION' on the release branch and commit before releasing."
+    exit 1
+fi
+echo "==> release version: $VERSION (matches committed tree)"
+
 echo "pre-commit: ok"
