@@ -6,6 +6,8 @@ use crate::oauth::{providers_from_config, OAuthProvider};
 use crate::strategy::jwt::JwtStrategy;
 use crate::strategy::registry::{all_custom_strategies, get_strategy};
 use crate::strategy::AuthStrategy;
+use crate::user_model::store::build_user_store;
+use crate::user_model::UserStore;
 use doido_core::Result;
 use doido_model::sea_orm::DatabaseConnection;
 use std::collections::HashMap;
@@ -14,6 +16,7 @@ use std::sync::{Arc, OnceLock, RwLock};
 /// Boot-time auth state: DB handle, config, and enabled strategies.
 pub struct AuthState {
     pub db: DatabaseConnection,
+    pub store: Arc<dyn UserStore>,
     pub config: AuthConfig,
     pub strategies: Vec<Arc<dyn AuthStrategy>>,
     pub jwt: Option<Arc<JwtStrategy>>,
@@ -69,9 +72,11 @@ impl AuthState {
         }
 
         let oauth = providers_from_config(&config.oauth);
+        let store = build_user_store(&config.user_store, db.clone())?;
 
         Ok(Self {
             db,
+            store,
             config,
             strategies,
             jwt,

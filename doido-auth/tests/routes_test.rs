@@ -1,7 +1,9 @@
 //! Auth routes integration tests.
 
 use doido_auth::mount;
-use doido_auth::testing::{create_test_user, init_test_auth, send, test_auth_config, TestUser};
+use doido_auth::testing::{
+    create_test_user, ensure_users_table, init_test_auth, send, test_auth_config, TestUser,
+};
 use doido_model::testing::TestDb;
 use http::StatusCode;
 
@@ -37,6 +39,7 @@ async fn sign_up_registers_user() {
     let _auth = init_test_auth(db.conn().clone(), test_auth_config())
         .await
         .unwrap();
+    ensure_users_table(db.conn()).await.unwrap();
 
     let app = mount::<TestUser, _>(|_db, email, digest| {
         Box::pin(async move {

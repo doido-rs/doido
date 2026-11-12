@@ -11,7 +11,13 @@ documented in `RELEASING.md` at the repository root.
 
 ## Unreleased
 
-_No user-facing changes yet._
+### Changed
+
+- **Breaking:** `AuthUser` / `RegisterableAuthUser` replaced by [`UserModel`](src/user_model/mod.rs) / [`RegisterableUserModel`](src/user_model/mod.rs) with a storage-agnostic [`UserStore`](src/user_model/store.rs).
+- Devise modules (`lockable`, `confirmable`, `trackable`, `recoverable`, `rememberable`, `validatable`, `timeoutable`) moved under [`src/middleware/`](src/middleware/) and implement the registrable [`AuthMiddleware`](src/middleware/trait_.rs) pipeline ([`register_middleware`](src/middleware/registry.rs)).
+- Sign-in validation uses a composable [`FetchPlan`](src/user_model/plan.rs) so enabled middleware columns load in **one** `UserStore::fetch_by_email` call.
+- `auth.user_store` config (`sea_orm` default, optional `redis` with feature `auth-redis`).
+- `sign_out` is async and accepts an optional email (remember-me cleanup).
 
 ## 0.0.32-test2 - 2026-10-15
 

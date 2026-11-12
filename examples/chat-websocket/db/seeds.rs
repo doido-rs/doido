@@ -12,7 +12,7 @@ pub async fn run(db: &DatabaseConnection) -> doido::Result<()> {
         use doido::model::password::hash_password;
         use doido::model::sea_orm::{ColumnTrait, EntityTrait};
         use doido::model::QueryFilter;
-        use doido_auth::RegisterableAuthUser;
+        use doido_auth::RegisterableUserModel;
 
         if Entity::find().one(db).await?.is_none() {
             let digest = hash_password("password")?;

@@ -87,12 +87,13 @@ derives `AuthUser` from a SeaORM model with conventional column names.
   `auth:install`; for existing apps, `cargo add doido-auth` (or equivalent) must
   happen before auth generators become available.
 
-## `AuthUser` trait
+## `UserModel` trait
 
-Your User model implements this trait (manually or via `#[auth_user]`):
+Your User model implements this trait (manually or via generated `user.rs` from `auth:install`):
 
 ```rust
-use doido_auth::AuthUser;
+use doido_auth::{UserModel, RegisterableUserModel};
+use doido_auth::user_model::{FetchPlan, UserRow, UserStore};
 use doido_model::sea_orm::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
@@ -107,25 +108,37 @@ pub struct Model {
     pub two_factor_enabled: bool,
 }
 
-impl AuthUser for Model {
+impl UserModel for Model {
     type Id = i64;
 
     fn id(&self) -> Self::Id { self.id }
     fn email(&self) -> &str { &self.email }
     fn password_digest(&self) -> Option<&str> { Some(&self.password_digest) }
 
-    // Optional overrides (defaults use conventional column names above)
-    fn find_by_email(db: &DatabaseConnection, email: &str) -> impl Future<Output = Result<Option<Self>>> + Send {
-        Entity::find().filter(Column::Email.eq(email)).one(db)
-    }
-    fn find_by_id(db: &DatabaseConnection, id: Self::Id) -> impl Future<Output = Result<Option<Self>>> + Send {
-        Entity::find_by_id(id).one(db)
-    }
+    fn from_row(row: UserRow) -> Result<Self, AuthError> { /* map columns */ }
+    async fn find_by_email(store: &dyn UserStore, email: &str, plan: &FetchPlan) -> /* ... */ { }
+    async fn find_by_id(store: &dyn UserStore, id: Self::Id, plan: &FetchPlan) -> /* ... */ { }
+    async fn insert(store: &dyn UserStore, row: UserRow) -> /* ... */ { }
 }
 ```
 
-`AuthUser` requires `Clone + Send + Sync + 'static` and integrates with
+`UserModel` requires `Clone + Send + Sync + 'static` and integrates with
 `doido_model::password::HasSecurePassword` for credential verification.
+
+### Auth middleware pipeline
+
+Devise modules are [`AuthMiddleware`](doido-auth/src/middleware/trait_.rs) under `doido_auth::middleware`, registered with `register_middleware`. Sign-in uses one `FetchPlan` + `UserStore::fetch_by_email`.
+
+### User store
+
+```yaml
+auth:
+  user_store:
+    type: sea_orm
+    # type: redis  # requires doido-auth feature auth-redis
+```
+
+Module middleware must not use raw SQL or `DatabaseConnection`. Reads use `UserStore::fetch_by_email` / `fetch_by_field` with `UserRow` and `FetchPlan`. Each middleware module builds `UserPatchBuilder::by_email(…).set(UserField::…, …).build()` (or `UserStoreAction::RecordSuccessfulSignIn`) and calls `UserStore::apply`. `UserStoreAction` is keyed on `UserField`, not Devise module names; SQL and Redis backends live under `doido-auth/src/user_model/`.
 
 ## Configuration
 

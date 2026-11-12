@@ -1,12 +1,12 @@
-//! Direct coverage of the `doido_auth::testing` helpers themselves
-//! (`hash_test_password`, `jwt_for_user`, `session_for_user`, the store-backed
-//! `find_by_id`/`find_by_email`, and `send_with_headers`).
+//! Direct coverage of the `doido_auth::testing` helpers themselves.
 
 use doido_auth::testing::{
-    create_test_user, hash_test_password, init_test_auth, jwt_for_user, send_with_headers,
-    session_for_user, test_auth_config, test_jwt_auth_config, TestUser,
+    auth_store, create_test_user, ensure_users_table, hash_test_password, init_test_auth,
+    jwt_for_user, send_with_headers, session_for_user, test_auth_config, test_jwt_auth_config,
+    TestUser,
 };
-use doido_auth::AuthUser;
+use doido_auth::user_model::FetchPlan;
+use doido_auth::UserModel;
 use doido_model::testing::TestDb;
 use http::StatusCode;
 
@@ -20,7 +20,6 @@ fn pure_helpers_hash_jwt_and_session() {
     let jwt_cfg = config.jwt.as_ref().expect("jwt config present");
     let token = jwt_for_user(jwt_cfg, 7);
     assert!(!token.is_empty());
-    // A JWT is three dot-separated segments.
     assert_eq!(token.split('.').count(), 3);
 
     let user = TestUser {
@@ -28,7 +27,6 @@ fn pure_helpers_hash_jwt_and_session() {
         email: "sess@example.com".into(),
         password_digest: digest,
     };
-    // Signing into a fresh session must not panic and yields a usable session.
     let _session = session_for_user(&user);
 }
 
@@ -38,23 +36,28 @@ async fn store_backed_find_by_id_and_email() {
     let _auth = init_test_auth(db.conn().clone(), test_auth_config())
         .await
         .unwrap();
+    ensure_users_table(db.conn()).await.unwrap();
     create_test_user(db.conn(), "lookup@example.com", "secret123")
         .await
         .unwrap();
 
-    let by_email = TestUser::find_by_email(db.conn(), "lookup@example.com")
+    let store = auth_store();
+    let plan = FetchPlan::minimal();
+    let by_email = TestUser::find_by_email(store.as_ref(), "lookup@example.com", &plan)
         .await
         .unwrap()
         .expect("user found by email");
-    let by_id = TestUser::find_by_id(db.conn(), by_email.id)
+    let by_id = TestUser::find_by_id(store.as_ref(), by_email.id, &plan)
         .await
         .unwrap()
         .expect("user found by id");
     assert_eq!(by_id.email, "lookup@example.com");
-    assert!(TestUser::find_by_email(db.conn(), "absent@example.com")
-        .await
-        .unwrap()
-        .is_none());
+    assert!(
+        TestUser::find_by_email(store.as_ref(), "absent@example.com", &plan)
+            .await
+            .unwrap()
+            .is_none()
+    );
 }
 
 #[tokio::test]
@@ -63,6 +66,7 @@ async fn send_with_headers_forwards_extra_headers() {
     let _auth = init_test_auth(db.conn().clone(), test_auth_config())
         .await
         .unwrap();
+    ensure_users_table(db.conn()).await.unwrap();
     create_test_user(db.conn(), "hdr@example.com", "secret123")
         .await
         .unwrap();

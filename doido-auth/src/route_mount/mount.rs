@@ -5,7 +5,7 @@ use crate::handlers::{authenticate, register_user, sign_in_with_session};
 use crate::oauth::get_provider;
 use crate::state::global;
 use crate::strategy::session::{clear_session_cookie, encode_session_cookie, SESSION_COOKIE};
-use crate::user::AuthUser;
+use crate::user::{RegisterableUserModel, UserModel};
 use axum::extract::{Path, Query};
 use axum::http::{header, HeaderMap, StatusCode};
 use axum::response::{IntoResponse, Redirect, Response};
@@ -27,7 +27,7 @@ type BoxFuture<'a, T> = Pin<Box<dyn Future<Output = T> + Send + 'a>>;
 /// Apps pass a `create` closure that persists a newly registered user.
 pub fn mount<U, F>(create: F) -> Router
 where
-    U: AuthUser + HasSecurePassword + Send + Sync + 'static,
+    U: UserModel + HasSecurePassword + RegisterableUserModel + Send + Sync + 'static,
     U::Id: serde::Serialize + DeserializeOwned,
     F: Fn(DatabaseConnection, String, String) -> BoxFuture<'static, doido_core::Result<U>>
         + Clone
@@ -92,11 +92,11 @@ struct SignUpBody {
 
 async fn sign_in_handler<U>(headers: HeaderMap, body: SignInBody) -> Result<Response, AuthError>
 where
-    U: AuthUser + HasSecurePassword,
+    U: UserModel + HasSecurePassword,
     U::Id: serde::Serialize,
 {
     let state = global();
-    let user = authenticate::<U>(&state.db, &body.email, &body.password).await?;
+    let user = authenticate::<U>(&body.email, &body.password).await?;
     let user_id =
         serde_json::to_value(user.id()).map_err(|e| AuthError::Internal(e.to_string()))?;
 
@@ -131,12 +131,12 @@ async fn sign_out_handler(_headers: HeaderMap) -> Response {
 
 async fn sign_up_handler<U, F>(body: SignUpBody, create: F) -> Result<Response, AuthError>
 where
-    U: AuthUser + HasSecurePassword,
+    U: UserModel + HasSecurePassword + RegisterableUserModel,
     F: Fn(DatabaseConnection, String, String) -> BoxFuture<'static, doido_core::Result<U>> + Clone,
 {
     let state = global();
     let db = state.db.clone();
-    let user = register_user::<U, _, _>(&state.db, &body.email, &body.password, |email, digest| {
+    let user = register_user::<U, _, _>(&body.email, &body.password, |email, digest| {
         let create = create.clone();
         let db = db.clone();
         async move {

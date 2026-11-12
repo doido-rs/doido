@@ -58,24 +58,37 @@ async fn generate_then_confirm_flow() {
         .await
         .unwrap();
 
-    assert!(!confirmable::is_confirmed(db.conn(), "a@b.com")
-        .await
-        .unwrap());
+    assert!(
+        !confirmable::is_confirmed(doido_auth::testing::auth_store().as_ref(), "a@b.com")
+            .await
+            .unwrap()
+    );
 
-    let tok = confirmable::generate_confirmation(db.conn(), "a@b.com")
-        .await
-        .unwrap()
-        .expect("token");
+    let tok =
+        confirmable::generate_confirmation(doido_auth::testing::auth_store().as_ref(), "a@b.com")
+            .await
+            .unwrap()
+            .expect("token");
     assert_eq!(token(&db).await.as_deref(), Some(tok.as_str()));
 
-    assert!(confirmable::confirm(db.conn(), &tok).await.unwrap());
-    assert!(confirmable::is_confirmed(db.conn(), "a@b.com")
-        .await
-        .unwrap());
+    assert!(
+        confirmable::confirm(doido_auth::testing::auth_store().as_ref(), &tok)
+            .await
+            .unwrap()
+    );
+    assert!(
+        confirmable::is_confirmed(doido_auth::testing::auth_store().as_ref(), "a@b.com")
+            .await
+            .unwrap()
+    );
     assert!(token(&db).await.is_none(), "token cleared after confirm");
 
     // Unknown token is rejected.
-    assert!(!confirmable::confirm(db.conn(), "nope").await.unwrap());
+    assert!(
+        !confirmable::confirm(doido_auth::testing::auth_store().as_ref(), "nope")
+            .await
+            .unwrap()
+    );
 }
 
 #[tokio::test]
@@ -117,12 +130,21 @@ async fn disabled_treats_accounts_as_confirmed() {
     let _guard = init_test_auth(db.conn().clone(), cfg).await.unwrap();
 
     // No gating when disabled.
-    assert!(confirmable::is_confirmed(db.conn(), "a@b.com")
-        .await
-        .unwrap());
-    assert!(confirmable::generate_confirmation(db.conn(), "a@b.com")
-        .await
-        .unwrap()
-        .is_none());
-    assert!(!confirmable::confirm(db.conn(), "x").await.unwrap());
+    assert!(
+        confirmable::is_confirmed(doido_auth::testing::auth_store().as_ref(), "a@b.com")
+            .await
+            .unwrap()
+    );
+    assert!(confirmable::generate_confirmation(
+        doido_auth::testing::auth_store().as_ref(),
+        "a@b.com"
+    )
+    .await
+    .unwrap()
+    .is_none());
+    assert!(
+        !confirmable::confirm(doido_auth::testing::auth_store().as_ref(), "x")
+            .await
+            .unwrap()
+    );
 }

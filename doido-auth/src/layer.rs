@@ -36,13 +36,14 @@ pub fn current_identity(parts: &http::request::Parts) -> Option<AuthIdentity> {
 }
 
 /// Load the current user model from extensions + DB.
-pub async fn current_user<U: crate::user::AuthUser>(
+pub async fn current_user<U: crate::user::UserModel>(
     parts: &http::request::Parts,
 ) -> Result<U, AuthError> {
     let identity = crate::strategy::require_identity(parts)?;
     let id: U::Id = serde_json::from_value(identity.user_id.clone())
         .map_err(|e| AuthError::Internal(e.to_string()))?;
-    U::find_by_id(&global().db, id)
+    let plan = crate::user_model::FetchPlan::minimal();
+    U::find_by_id(global().store.as_ref(), id, &plan)
         .await
         .map_err(|e| AuthError::Internal(e.to_string()))?
         .ok_or(AuthError::Unauthorized)

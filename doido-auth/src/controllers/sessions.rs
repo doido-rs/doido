@@ -2,7 +2,9 @@
 
 use crate::handlers::{authenticate, sign_in, sign_out};
 use crate::messages::{json_error, t};
-use crate::user::AuthUser;
+use crate::middleware::{cookie_value, record_remember, REMEMBER_COOKIE};
+use crate::state::{global, try_global};
+use crate::user::UserModel;
 use doido_auth_macros::auth_controller;
 use doido_core::Result;
 use doido_model::password::HasSecurePassword;
@@ -17,7 +19,6 @@ pub struct AuthSessions<U>(PhantomData<U>);
 pub struct SignInForm {
     pub email: String,
     pub password: String,
-    /// `rememberable`: a truthy value issues a persistent remember cookie.
     #[serde(default)]
     pub remember: Option<String>,
 }
@@ -29,14 +30,12 @@ fn is_truthy(value: &Option<String>) -> bool {
 #[auth_controller]
 impl<U> AuthSessions<U>
 where
-    U: AuthUser + HasSecurePassword + Serialize + Send + Sync + 'static,
+    U: UserModel + HasSecurePassword + Serialize + Send + Sync + 'static,
 {
-    /// GET `{prefix}/sign_in` — sign-in form (HTML mode).
     pub async fn new(ctx: doido_controller::Context) -> doido_controller::Response {
         ctx.render("auth/sign_in", serde_json::json!({}))
     }
 
-    /// POST `{prefix}/sign_in` — authenticate and establish a session.
     pub async fn create(mut ctx: doido_controller::Context) -> Result<doido_controller::Response> {
         let json = ctx.wants_json();
         let form: SignInForm = if json {
@@ -45,23 +44,17 @@ where
             ctx.form().await?
         };
 
-        match authenticate::<U>(ctx.db(), &form.email, &form.password).await {
+        match authenticate::<U>(&form.email, &form.password).await {
             Ok(user) => {
-                // `trackable` module (best-effort — never blocks sign-in).
-                let _ = crate::trackable::record_sign_in(ctx.db(), &form.email, None).await;
-                // `rememberable` module: issue a persistent remember cookie.
                 if is_truthy(&form.remember) {
-                    let _ =
-                        crate::strategy::rememberable::record_remember(ctx.db(), &form.email).await;
-                    let max_age = crate::state::try_global()
+                    let store = global().store.clone();
+                    let _ = record_remember(store.as_ref(), &form.email).await;
+                    let max_age = try_global()
                         .map(|s| s.config.remember_for)
                         .unwrap_or(1_209_600);
-                    let value = crate::strategy::rememberable::cookie_value(&user.id());
-                    ctx.cookies().set_signed_permanent(
-                        crate::strategy::rememberable::REMEMBER_COOKIE,
-                        value,
-                        max_age,
-                    );
+                    let value = cookie_value(&user.id());
+                    ctx.cookies()
+                        .set_signed_permanent(REMEMBER_COOKIE, value, max_age);
                 }
                 sign_in(ctx, &user)?;
                 if json {
@@ -78,12 +71,9 @@ where
         }
     }
 
-    /// DELETE `{prefix}/sign_out` — clear the session and any remember cookie.
     pub async fn destroy(mut ctx: doido_controller::Context) -> Result<doido_controller::Response> {
-        // `rememberable`: expire the persistent cookie (Max-Age=0 deletes it).
-        ctx.cookies()
-            .set_signed_permanent(crate::strategy::rememberable::REMEMBER_COOKIE, "", 0);
-        sign_out(ctx)?;
+        ctx.cookies().set_signed_permanent(REMEMBER_COOKIE, "", 0);
+        sign_out(ctx, None).await?;
         if ctx.wants_json() {
             Ok(ctx.status(204))
         } else {

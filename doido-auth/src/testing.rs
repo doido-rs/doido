@@ -5,8 +5,10 @@ use crate::error::AuthError;
 use crate::handlers::{register_user, sign_in_with_session};
 use crate::state::{set_state, AuthState};
 use crate::strategy::jwt::JwtStrategy;
-use crate::user::AuthUser;
-use crate::RegisterableAuthUser;
+use crate::user::{RegisterableUserModel, UserModel};
+use crate::user_model::plan::FetchPlan;
+use crate::user_model::row::UserRow;
+use crate::user_model::UserStore;
 use doido_controller::axum::body::Body;
 use doido_controller::axum::Router;
 use doido_controller::session::Session;
@@ -22,12 +24,10 @@ const TEST_COST: u32 = 4;
 
 static AUTH_TEST_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
-/// Holds the auth test lock for the duration of a test (serialises global auth state).
 pub struct AuthTestGuard {
     _lock: std::sync::MutexGuard<'static, ()>,
 }
 
-/// Simple in-memory user for auth tests.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct TestUser {
     pub id: i64,
@@ -41,8 +41,16 @@ impl HasSecurePassword for TestUser {
     }
 }
 
-impl AuthUser for TestUser {
+impl UserModel for TestUser {
     type Id = i64;
+
+    fn from_row(row: UserRow) -> Result<Self, AuthError> {
+        Ok(Self {
+            id: row.id.and_then(|v| v.as_i64()).unwrap_or_default(),
+            email: row.email.unwrap_or_default(),
+            password_digest: row.password_digest.unwrap_or_default(),
+        })
+    }
 
     fn id(&self) -> Self::Id {
         self.id
@@ -57,33 +65,69 @@ impl AuthUser for TestUser {
     }
 
     async fn find_by_email(
-        _db: &DatabaseConnection,
+        store: &dyn UserStore,
         email: &str,
+        plan: &FetchPlan,
     ) -> doido_core::Result<Option<Self>> {
-        Ok(store()
-            .lock()
-            .unwrap()
-            .values()
-            .find(|u| u.email == email)
-            .cloned())
+        crate::user_model::find_by_email_mapped::<Self>(store, email, plan)
+            .await
+            .map_err(Into::into)
     }
 
     async fn find_by_id(
-        _db: &DatabaseConnection,
+        store: &dyn UserStore,
         id: Self::Id,
+        plan: &FetchPlan,
     ) -> doido_core::Result<Option<Self>> {
-        Ok(store().lock().unwrap().get(&id).cloned())
+        crate::user_model::find_by_id_mapped::<Self>(store, id, plan)
+            .await
+            .map_err(Into::into)
+    }
+
+    async fn insert(_store: &dyn UserStore, row: UserRow) -> doido_core::Result<Self> {
+        Self::from_row(row).map_err(Into::into)
     }
 }
 
-impl RegisterableAuthUser for TestUser {
+impl RegisterableUserModel for TestUser {
     async fn register(
-        _db: &DatabaseConnection,
+        store: &dyn UserStore,
         email: String,
         password_digest: String,
     ) -> doido_core::Result<Self> {
-        let store = store();
-        let mut map = store.lock().unwrap();
+        if let Some(db) = store.sea_orm() {
+            use doido_model::sea_orm::{ConnectionTrait, DbBackend, Statement, Value};
+            db.execute_raw(Statement::from_sql_and_values(
+                DbBackend::Sqlite,
+                "INSERT INTO users (email, password_digest) VALUES (?, ?)",
+                [
+                    Value::from(email.clone()),
+                    Value::from(password_digest.clone()),
+                ],
+            ))
+            .await
+            .map_err(|e| AuthError::Internal(e.to_string()))?;
+            let row = db
+                .query_one_raw(Statement::from_sql_and_values(
+                    DbBackend::Sqlite,
+                    "SELECT id FROM users WHERE email = ?",
+                    [Value::from(email.clone())],
+                ))
+                .await
+                .map_err(|e| AuthError::Internal(e.to_string()))?;
+            let id = row
+                .and_then(|r| r.try_get::<i64>("", "id").ok())
+                .unwrap_or(1);
+            let user = TestUser {
+                id,
+                email,
+                password_digest,
+            };
+            test_users_map().lock().unwrap().insert(id, user.clone());
+            return Ok(user);
+        }
+        let users = test_users_map();
+        let mut map = users.lock().unwrap();
         let id = (map.len() as i64) + 1;
         let user = TestUser {
             id,
@@ -98,21 +142,19 @@ impl RegisterableAuthUser for TestUser {
 static TEST_STORE: std::sync::OnceLock<Arc<Mutex<HashMap<i64, TestUser>>>> =
     std::sync::OnceLock::new();
 
-fn store() -> Arc<Mutex<HashMap<i64, TestUser>>> {
-    TEST_STORE
-        .get_or_init(|| Arc::new(Mutex::new(HashMap::new())))
-        .clone()
+fn test_users_map() -> Arc<Mutex<HashMap<i64, TestUser>>> {
+    Arc::clone(TEST_STORE.get_or_init(|| Arc::new(Mutex::new(HashMap::new()))))
 }
 
-/// Reset the in-memory user store between tests.
 pub fn reset_store() {
-    store().lock().unwrap().clear();
+    test_users_map().lock().unwrap().clear();
 }
 
-/// Build a minimal auth config for tests: cookie strategy, only the
-/// `database_authenticatable` module. Kept minimal so module behaviors
-/// (validatable, trackable, …) don't implicitly affect unrelated tests — a test
-/// that exercises a module should enable it explicitly.
+/// The process-global [`UserStore`] installed by [`init_test_auth`].
+pub fn auth_store() -> std::sync::Arc<dyn crate::user_model::UserStore> {
+    crate::state::global().store.clone()
+}
+
 pub fn test_auth_config() -> AuthConfig {
     AuthConfig {
         modules: vec![crate::config::AuthModule::DatabaseAuthenticatable],
@@ -120,7 +162,6 @@ pub fn test_auth_config() -> AuthConfig {
     }
 }
 
-/// Build auth config with JWT enabled.
 pub fn test_jwt_auth_config(secret: &str) -> AuthConfig {
     AuthConfig {
         strategies: vec!["cookie".into(), "jwt".into()],
@@ -134,15 +175,13 @@ pub fn test_jwt_auth_config(secret: &str) -> AuthConfig {
     }
 }
 
-/// Initialise in-memory auth state for tests.
-///
-/// Returns a guard that must be held for the whole test so parallel tests do not
-/// clobber process-global auth state.
 pub async fn init_test_auth(
     db: DatabaseConnection,
     config: AuthConfig,
 ) -> Result<AuthTestGuard, AuthError> {
-    let guard = AUTH_TEST_LOCK.lock().expect("auth test lock");
+    let guard = AUTH_TEST_LOCK
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
     reset_store();
     crate::state::reset_state();
     let _ = doido_model::pool::set_pool(db.clone());
@@ -150,28 +189,31 @@ pub async fn init_test_auth(
     Ok(AuthTestGuard { _lock: guard })
 }
 
-/// Create a user in the in-memory store.
+pub async fn ensure_users_table(db: &DatabaseConnection) -> Result<(), AuthError> {
+    use doido_model::sea_orm::{ConnectionTrait, DbBackend, Statement};
+    db.execute_raw(Statement::from_string::<String>(
+        DbBackend::Sqlite,
+        "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, email TEXT NOT NULL UNIQUE, password_digest TEXT NOT NULL)".into(),
+    ))
+    .await
+    .map_err(|e| AuthError::Internal(e.to_string()))?;
+    Ok(())
+}
+
 pub async fn create_test_user(
     db: &DatabaseConnection,
     email: &str,
     password: &str,
 ) -> Result<TestUser, AuthError> {
-    let users = store();
-    register_user(db, email, password, |email, digest| async move {
-        let mut map = users.lock().unwrap();
-        let id = (map.len() as i64) + 1;
-        let user = TestUser {
-            id,
-            email,
-            password_digest: digest,
-        };
-        map.insert(id, user.clone());
-        Ok(user)
+    ensure_users_table(db).await?;
+    use crate::state::global;
+    let store = global().store.clone();
+    register_user::<TestUser, _, _>(email, password, |email, digest| async move {
+        TestUser::register(store.as_ref(), email, digest).await
     })
     .await
 }
 
-/// Issue a signed JWT access token for a test user id.
 pub fn jwt_for_user(config: &crate::config::JwtConfig, user_id: i64) -> String {
     let strategy = JwtStrategy::new(config.clone()).expect("jwt config");
     strategy
@@ -180,19 +222,16 @@ pub fn jwt_for_user(config: &crate::config::JwtConfig, user_id: i64) -> String {
         .access_token
 }
 
-/// The status + body captured from a test request.
 pub struct TestResponse {
     pub status: StatusCode,
     pub body: String,
     pub set_cookie: Option<String>,
 }
 
-/// Send a request to `router` in-process and capture the response.
 pub async fn send(router: Router, method: &str, uri: &str, body: &str) -> TestResponse {
     send_with_headers(router, method, uri, body, &[]).await
 }
 
-/// Send a request with extra headers.
 pub async fn send_with_headers(
     router: Router,
     method: &str,
@@ -232,12 +271,10 @@ pub async fn send_with_headers(
     }
 }
 
-/// Hash a password at the low test cost.
 pub fn hash_test_password(password: &str) -> String {
     hash_password_with_cost(password, TEST_COST).expect("hash")
 }
 
-/// Sign a user into a fresh session (helper for session strategy tests).
 pub fn session_for_user(user: &TestUser) -> Session {
     let mut session = Session::new();
     sign_in_with_session(&mut session, user);

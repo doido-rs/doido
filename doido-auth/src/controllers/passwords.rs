@@ -2,6 +2,7 @@
 
 use crate::messages::{json_error, t};
 use crate::recoverable;
+use crate::state::global;
 use doido_auth_macros::auth_controller;
 use doido_core::Result;
 use serde::Deserialize;
@@ -49,7 +50,8 @@ where
             ctx.form().await?
         };
 
-        if let Some(token) = recoverable::request_reset(ctx.db(), &form.email).await? {
+        let store = global().store.clone();
+        if let Some(token) = recoverable::request_reset(store.as_ref(), &form.email).await? {
             let _ = recoverable::send_reset_email(&form.email, &token).await;
         }
 
@@ -91,9 +93,12 @@ where
             }
         }
 
-        let reset =
-            recoverable::reset_password(ctx.db(), &form.reset_password_token, &form.password)
-                .await?;
+        let reset = recoverable::reset_password(
+            global().store.as_ref(),
+            &form.reset_password_token,
+            &form.password,
+        )
+        .await?;
         if !reset {
             return password_error(ctx, json, &t("auth.reset_link_invalid"));
         }
