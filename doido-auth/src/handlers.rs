@@ -1,7 +1,7 @@
 //! Sign-in, sign-up, and sign-out helpers built on [`AuthUser`] and bcrypt.
 
 use crate::error::AuthError;
-use crate::session::{sign_in_session, sign_out_session};
+use crate::strategy::session::{sign_in_session, sign_out_session};
 use crate::user::{authenticate_password, AuthUser};
 use doido_controller::session::Session;
 use doido_controller::Context;

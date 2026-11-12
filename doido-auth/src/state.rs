@@ -2,9 +2,9 @@
 
 use crate::config::AuthConfig;
 use crate::error::AuthError;
-use crate::jwt::JwtStrategy;
 use crate::oauth::{providers_from_config, OAuthProvider};
 use crate::registry::{all_custom_strategies, get_strategy};
+use crate::strategy::jwt::JwtStrategy;
 use crate::strategy::AuthStrategy;
 use doido_core::Result;
 use doido_model::sea_orm::DatabaseConnection;
@@ -35,7 +35,7 @@ impl AuthState {
         for name in &config.strategies {
             match name.as_str() {
                 "cookie" => {
-                    strategies.push(Arc::new(crate::session::from_config(&config)));
+                    strategies.push(Arc::new(crate::strategy::session::from_config(&config)));
                 }
                 "jwt" => {
                     let jwt_cfg = config
@@ -65,7 +65,7 @@ impl AuthState {
         // `rememberable` module: resolve the signed remember cookie after the
         // configured strategies decline.
         if config.has_module(crate::config::AuthModule::Rememberable) {
-            strategies.push(Arc::new(crate::rememberable::RememberStrategy));
+            strategies.push(Arc::new(crate::strategy::rememberable::RememberStrategy));
         }
 
         let oauth = providers_from_config(&config.oauth);

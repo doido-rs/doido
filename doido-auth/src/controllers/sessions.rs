@@ -51,13 +51,14 @@ where
                 let _ = crate::trackable::record_sign_in(ctx.db(), &form.email, None).await;
                 // `rememberable` module: issue a persistent remember cookie.
                 if is_truthy(&form.remember) {
-                    let _ = crate::rememberable::record_remember(ctx.db(), &form.email).await;
+                    let _ =
+                        crate::strategy::rememberable::record_remember(ctx.db(), &form.email).await;
                     let max_age = crate::state::try_global()
                         .map(|s| s.config.remember_for)
                         .unwrap_or(1_209_600);
-                    let value = crate::rememberable::cookie_value(&user.id());
+                    let value = crate::strategy::rememberable::cookie_value(&user.id());
                     ctx.cookies().set_signed_permanent(
-                        crate::rememberable::REMEMBER_COOKIE,
+                        crate::strategy::rememberable::REMEMBER_COOKIE,
                         value,
                         max_age,
                     );
@@ -81,7 +82,7 @@ where
     pub async fn destroy(mut ctx: doido_controller::Context) -> Result<doido_controller::Response> {
         // `rememberable`: expire the persistent cookie (Max-Age=0 deletes it).
         ctx.cookies()
-            .set_signed_permanent(crate::rememberable::REMEMBER_COOKIE, "", 0);
+            .set_signed_permanent(crate::strategy::rememberable::REMEMBER_COOKIE, "", 0);
         sign_out(ctx)?;
         if ctx.wants_json() {
             Ok(ctx.status(204))

@@ -1,5 +1,9 @@
 //! Pluggable authentication strategies.
 
+pub mod jwt;
+pub mod rememberable;
+pub mod session;
+
 use crate::error::AuthError;
 use crate::identity::AuthIdentity;
 use async_trait::async_trait;

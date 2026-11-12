@@ -1,5 +1,5 @@
-use doido_auth::session::SessionStrategy;
 use doido_auth::state::global;
+use doido_auth::strategy::session::SessionStrategy;
 use doido_auth::strategy::AuthStrategy;
 use doido_auth::testing::{
     create_test_user, hash_test_password, init_test_auth, jwt_for_user, send, session_for_user,

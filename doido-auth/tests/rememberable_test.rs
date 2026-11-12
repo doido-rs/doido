@@ -1,7 +1,7 @@
-//! `rememberable` module — remember cookie + strategy.
+//! `rememberable` module— remember cookie + strategy.
 
 use doido_auth::config::AuthConfig;
-use doido_auth::rememberable::{self, RememberStrategy, REMEMBER_COOKIE};
+use doido_auth::strategy::rememberable::{self, RememberStrategy, REMEMBER_COOKIE};
 use doido_auth::strategy::AuthStrategy;
 use doido_auth::testing::init_test_auth;
 use doido_auth::AuthModule;

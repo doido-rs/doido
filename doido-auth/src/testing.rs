@@ -3,8 +3,8 @@
 use crate::config::AuthConfig;
 use crate::error::AuthError;
 use crate::handlers::{register_user, sign_in_with_session};
-use crate::jwt::JwtStrategy;
 use crate::state::{set_state, AuthState};
+use crate::strategy::jwt::JwtStrategy;
 use crate::user::AuthUser;
 use crate::RegisterableAuthUser;
 use doido_controller::axum::body::Body;
@@ -244,5 +244,5 @@ pub fn session_for_user(user: &TestUser) -> Session {
     session
 }
 
-pub use crate::jwt::JwtStrategy as TestJwtStrategy;
-pub use crate::session::SessionStrategy as TestSessionStrategy;
+pub use crate::strategy::jwt::JwtStrategy as TestJwtStrategy;
+pub use crate::strategy::session::SessionStrategy as TestSessionStrategy;

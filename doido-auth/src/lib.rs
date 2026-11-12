@@ -9,16 +9,13 @@ pub mod framework_views;
 pub mod handlers;
 pub mod i18n;
 pub mod identity;
-pub mod jwt;
 pub mod layer;
 pub mod lockable;
 pub mod messages;
 pub mod oauth;
 pub mod recoverable;
 pub mod registry;
-pub mod rememberable;
 pub mod route_mount;
-pub mod session;
 pub mod state;
 pub mod strategy;
 pub mod user;
@@ -44,15 +41,15 @@ pub use framework_views::register_views;
 pub use handlers::{authenticate, register_user, sign_in, sign_in_with_session, sign_out};
 pub use i18n::register_locales;
 pub use identity::AuthIdentity;
-pub use jwt::{JwtClaims, JwtStrategy, TokenPair};
 pub use layer::{auth_layer, current_identity, current_user};
 pub use oauth::{OAuth2Provider, OAuthProvider, OAuthTokenResponse};
 pub use registry::{register_strategy, registered_strategies};
 pub use route_mount::mount;
-pub use session::{
+pub use state::{global, init, set_state, try_global, AuthState};
+pub use strategy::jwt::{JwtClaims, JwtStrategy, TokenPair};
+pub use strategy::session::{
     SessionStrategy, SessionStrategy as CookieStrategy, SESSION_COOKIE, USER_ID_KEY,
 };
-pub use state::{global, init, set_state, try_global, AuthState};
 pub use strategy::AuthStrategy;
 pub use user::{authenticate_password, AuthUser, RegisterableAuthUser};
 

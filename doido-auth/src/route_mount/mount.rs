@@ -3,8 +3,8 @@
 use crate::error::AuthError;
 use crate::handlers::{authenticate, register_user, sign_in_with_session};
 use crate::oauth::get_provider;
-use crate::session::{clear_session_cookie, encode_session_cookie, SESSION_COOKIE};
 use crate::state::global;
+use crate::strategy::session::{clear_session_cookie, encode_session_cookie, SESSION_COOKIE};
 use crate::user::AuthUser;
 use axum::extract::{Path, Query};
 use axum::http::{header, HeaderMap, StatusCode};
