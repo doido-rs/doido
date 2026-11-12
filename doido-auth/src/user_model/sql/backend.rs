@@ -89,6 +89,14 @@ fn row_from_query(row: QueryResult, plan: &FetchPlan) -> UserRow {
             }
             continue;
         }
+        if field == &UserField::TwoFactorEnabled {
+            if let Ok(v) = row.try_get::<bool>("", col) {
+                out.set_from_column(*field, Some(v.to_string()));
+            } else if let Ok(v) = row.try_get::<i32>("", col) {
+                out.set_from_column(*field, Some((v != 0).to_string()));
+            }
+            continue;
+        }
         let value: Option<String> = row.try_get::<Option<String>>("", col).ok().flatten();
         if field == &UserField::Id {
             if let Ok(id) = row.try_get::<i64>("", col) {

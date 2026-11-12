@@ -10,6 +10,8 @@ pub mod rememberable;
 pub mod timeoutable;
 pub mod trackable;
 mod trait_;
+#[cfg(feature = "auth-2fa")]
+pub mod two_factorable;
 pub mod validatable;
 
 pub use confirmable::{
@@ -29,6 +31,11 @@ pub use rememberable::{
 pub use timeoutable::{is_session_expired, TimeoutableMiddleware};
 pub use trackable::{record_sign_in, TrackableMiddleware};
 pub use trait_::AuthMiddleware;
+#[cfg(feature = "auth-2fa")]
+pub use two_factorable::{
+    disable_for_user, enable_for_user, enroll, verify_code, verify_user_code, HasTwoFactor,
+    TwoFactor, TwoFactorEnrollment, TwoFactorableMiddleware,
+};
 pub use validatable::{
     validate_email, validate_password_length, validate_registration, ValidatableMiddleware,
 };

@@ -24,6 +24,8 @@ pub struct UserRow {
     pub reset_password_sent_at: Option<String>,
     pub unlock_token: Option<String>,
     pub unconfirmed_email: Option<String>,
+    pub two_factor_secret: Option<String>,
+    pub two_factor_enabled: Option<bool>,
 }
 
 impl UserRow {
@@ -54,12 +56,20 @@ impl UserRow {
             UserField::ResetPasswordSentAt => self.reset_password_sent_at = value,
             UserField::UnlockToken => self.unlock_token = value,
             UserField::UnconfirmedEmail => self.unconfirmed_email = value,
+            UserField::TwoFactorSecret => self.two_factor_secret = value,
+            UserField::TwoFactorEnabled => {
+                self.two_factor_enabled = value.as_deref().map(parse_bool);
+            }
         }
     }
 
     pub fn set_id_json(&mut self, id: Value) {
         self.id = Some(id);
     }
+}
+
+fn parse_bool(s: &str) -> bool {
+    matches!(s.trim(), "1" | "true" | "t" | "yes" | "on")
 }
 
 pub type SignInRow = UserRow;

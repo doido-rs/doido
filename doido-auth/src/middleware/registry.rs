@@ -51,5 +51,9 @@ pub fn built_in_middlewares(config: &AuthConfig) -> Vec<Arc<dyn AuthMiddleware>>
     if config.has_module(AuthModule::Timeoutable) {
         out.push(Arc::new(super::timeoutable::TimeoutableMiddleware));
     }
+    #[cfg(feature = "auth-2fa")]
+    if config.has_module(AuthModule::TwoFactorAuthenticatable) {
+        out.push(Arc::new(super::two_factorable::TwoFactorableMiddleware));
+    }
     out
 }

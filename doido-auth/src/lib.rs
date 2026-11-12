@@ -20,9 +20,6 @@ pub mod user_model;
 
 pub mod testing;
 
-#[cfg(feature = "auth-2fa")]
-pub mod two_factor;
-
 pub mod confirmable {
     pub use crate::middleware::confirmable::*;
 }
@@ -34,6 +31,10 @@ pub mod recoverable {
 }
 pub mod trackable {
     pub use crate::middleware::trackable::*;
+}
+#[cfg(feature = "auth-2fa")]
+pub mod two_factorable {
+    pub use crate::middleware::two_factorable::*;
 }
 pub mod validations {
     pub use crate::middleware::validatable::*;
@@ -74,8 +75,9 @@ pub use user_model::{
 };
 
 #[cfg(feature = "auth-2fa")]
-pub use two_factor::{
-    enroll as enroll_two_factor, verify_code as verify_two_factor_code, TwoFactorEnrollment,
+pub use two_factorable::{
+    enroll as enroll_two_factor, verify_code as verify_two_factor_code, HasTwoFactor, TwoFactor,
+    TwoFactorEnrollment, TwoFactorableMiddleware,
 };
 
 #[cfg(feature = "generators")]

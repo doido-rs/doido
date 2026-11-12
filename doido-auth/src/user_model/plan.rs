@@ -24,6 +24,8 @@ pub enum UserField {
     ResetPasswordSentAt,
     UnlockToken,
     UnconfirmedEmail,
+    TwoFactorSecret,
+    TwoFactorEnabled,
 }
 
 impl UserField {
@@ -47,6 +49,8 @@ impl UserField {
             UserField::ResetPasswordSentAt => "reset_password_sent_at",
             UserField::UnlockToken => "unlock_token",
             UserField::UnconfirmedEmail => "unconfirmed_email",
+            UserField::TwoFactorSecret => "two_factor_secret",
+            UserField::TwoFactorEnabled => "two_factor_enabled",
         }
     }
 }
@@ -87,6 +91,11 @@ impl FetchPlan {
         }
         if config.has_module(AuthModule::Confirmable) {
             plan.fields.insert(UserField::ConfirmedAt);
+        }
+        #[cfg(feature = "auth-2fa")]
+        if config.has_module(AuthModule::TwoFactorAuthenticatable) {
+            plan.fields.insert(UserField::TwoFactorSecret);
+            plan.fields.insert(UserField::TwoFactorEnabled);
         }
         plan
     }

@@ -2,7 +2,7 @@
 
 #![cfg(feature = "auth-2fa")]
 
-use doido_auth::two_factor::{enroll, verify_code};
+use doido_auth::two_factorable::{enroll, verify_code};
 
 #[test]
 fn enroll_produces_secret_and_uri() {
