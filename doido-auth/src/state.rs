@@ -3,8 +3,8 @@
 use crate::config::AuthConfig;
 use crate::error::AuthError;
 use crate::oauth::{providers_from_config, OAuthProvider};
-use crate::registry::{all_custom_strategies, get_strategy};
 use crate::strategy::jwt::JwtStrategy;
+use crate::strategy::registry::{all_custom_strategies, get_strategy};
 use crate::strategy::AuthStrategy;
 use doido_core::Result;
 use doido_model::sea_orm::DatabaseConnection;

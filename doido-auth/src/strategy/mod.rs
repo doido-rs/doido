@@ -1,6 +1,7 @@
 //! Pluggable authentication strategies.
 
 pub mod jwt;
+pub mod registry;
 pub mod rememberable;
 pub mod session;
 

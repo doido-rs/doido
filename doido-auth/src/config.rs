@@ -377,7 +377,7 @@ impl AuthConfig {
                     jwt.validate()?;
                 }
                 other => {
-                    if !crate::registry::has_strategy(other) {
+                    if !crate::strategy::registry::has_strategy(other) {
                         return Err(AuthError::UnknownStrategy(other.to_string()));
                     }
                 }
