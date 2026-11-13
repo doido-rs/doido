@@ -128,14 +128,14 @@ Three ways to add middleware:
 // 2. In the app router (programmatic)
 routes! {
     middleware!(CorsLayer::new().allow_origin(Any));
-    resources!(posts, PostsController);
+    resource!(posts, PostsController);
 }
 
 // 3. Scoped to a namespace
 routes! {
     namespace!(api, {
         middleware!(AuthLayer);
-        resources!(users, Api::UsersController);
+        resource!(users, Api::UsersController);
     });
 }
 ```

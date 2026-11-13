@@ -33,7 +33,7 @@ async fn auth_routes_default_controllers_sign_in() {
 async fn auth_routes_custom_controller_override() {
     mod auth {
         use doido_auth::testing::TestUser;
-        use doido_auth::{sign_in, AuthUser};
+        use doido_auth::{authenticate, sign_in, UserModel};
         use doido_controller::{controller, Response};
         use doido_core::Result;
         use serde::Deserialize;
@@ -50,15 +50,15 @@ async fn auth_routes_custom_controller_override() {
         impl SessionsController {
             pub async fn create(mut ctx: doido_controller::Context) -> Result<Response> {
                 let form: SignInForm = ctx.body_json().await?;
-                let user = TestUser::find_by_email(ctx.db(), &form.email)
-                    .await?
-                    .ok_or_else(|| doido_core::anyhow::anyhow!("missing user"))?;
+                let user = authenticate::<TestUser>(&form.email, &form.password)
+                    .await
+                    .map_err(|e| doido_core::anyhow::anyhow!(e.to_string()))?;
                 sign_in(ctx, &user)?;
                 Ok(ctx.json(serde_json::json!({ "custom": true })))
             }
 
             pub async fn destroy(mut ctx: doido_controller::Context) -> Result<Response> {
-                doido_auth::sign_out(ctx)?;
+                doido_auth::sign_out(ctx, None).await?;
                 Ok(ctx.status(204))
             }
         }

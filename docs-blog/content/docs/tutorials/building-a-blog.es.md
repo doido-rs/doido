@@ -73,7 +73,7 @@ Ese único comando escribió:
 - una migración para la tabla `posts`,
 - `app/controllers/posts_controller.rs` — un controlador CRUD completo,
 - `app/views/posts/{index,show,new,edit,_form}.html.tera`,
-- e **inyectó la ruta** `resources!(posts, PostsController);` en `config/routes.rs`.
+- e **inyectó la ruta** `resource!(posts, PostsController);` en `config/routes.rs`.
 
 Como el generador inyecta la ruta *junto* con el controlador, la ruta nunca apunta a un
 controlador que aún no existe. Ahora conviértelo en un blog personalizando lo que produjo el
@@ -388,7 +388,7 @@ pub fn router() -> axum::Router {
         root!(PostsController::index);                              // GET / — el blog
         get!("/hello", HelloController::index);                    // demo de Doido, movida a un lado
 
-        resources!(posts, PostsController);                        // CRUD de /posts (del scaffold)
+        resource!(posts, PostsController);                        // CRUD de /posts (del scaffold)
         get!("/comments", CommentsController::index);              // stub de `generate controller`
         post!("/posts/{post_id}/comments", CommentsController::create);
 

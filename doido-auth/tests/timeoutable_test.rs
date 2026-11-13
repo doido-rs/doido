@@ -1,7 +1,7 @@
 //! `timeoutable` module — expire sessions older than `auth.timeout`.
 
 use doido_auth::config::AuthConfig;
-use doido_auth::session::{is_session_expired, SIGNED_IN_AT_KEY, USER_ID_KEY};
+use doido_auth::strategy::session::{is_session_expired, SIGNED_IN_AT_KEY, USER_ID_KEY};
 use doido_auth::testing::init_test_auth;
 use doido_auth::AuthModule;
 use doido_controller::session::Session;

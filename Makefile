@@ -24,6 +24,10 @@ PUBLISH_INTERVAL ?= 62
 # out a 429, to absorb clock skew and index propagation.
 PUBLISH_RETRY_BUFFER ?= 15
 
+# When a dependent crate's `cargo publish` packages against crates.io before a
+# just-uploaded dependency is visible, retries (see scripts/wait-publish-deps.sh).
+PUBLISH_INDEX_RETRIES ?= 12
+
 # Isolated, always-wiped target dir for packaging + verification. Keeping it
 # separate from the normal `target/` guarantees cargo's verify step compiles the
 # freshly packaged crates instead of reusing stale build artifacts from an
@@ -92,7 +96,9 @@ publish: clean-package verify-publish-crates ## Upload the workspace to crates.i
 			echo "==> $$crate $(CRATE_VERSION): already published, skipping"; \
 			continue; \
 		fi; \
+		index_retries=0; \
 		while :; do \
+			"$(CURDIR)/scripts/wait-publish-deps.sh" "$(CRATE_VERSION)" "$$crate"; \
 			echo "==> publishing $$crate $(CRATE_VERSION)"; \
 			out=$$(CARGO_TARGET_DIR="$(PUBLISH_TARGET_DIR)" cargo publish --allow-dirty -p "$$crate" $(PUBLISH_FLAGS) 2>&1); \
 			code=$$?; \
@@ -113,6 +119,17 @@ publish: clean-package verify-publish-crates ## Upload the workspace to crates.i
 				if [ "$$delay" -lt "$(PUBLISH_RETRY_BUFFER)" ]; then delay=$(PUBLISH_RETRY_BUFFER); fi; \
 				echo "    crates.io rate limit hit; waiting $${delay}s (until $$retry) then retrying"; \
 				sleep "$$delay"; \
+				continue; \
+			fi; \
+			if printf '%s' "$$out" | grep -qiE 'failed to select a version for the requirement' \
+				&& printf '%s' "$$out" | grep -qi 'location searched: crates.io index'; then \
+				index_retries=$$(( index_retries + 1 )); \
+				if [ $$index_retries -gt $(PUBLISH_INDEX_RETRIES) ]; then \
+					echo "    error: crates.io index still missing a dependency after $(PUBLISH_INDEX_RETRIES) retries" >&2; \
+					exit 1; \
+				fi; \
+				echo "    dependency not visible on crates.io index yet (retry $$index_retries/$(PUBLISH_INDEX_RETRIES)); sleeping $(PUBLISH_INTERVAL)s"; \
+				sleep $(PUBLISH_INTERVAL); \
 				continue; \
 			fi; \
 			echo "    error: failed to publish $$crate" >&2; exit 1; \

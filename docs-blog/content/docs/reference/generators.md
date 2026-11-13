@@ -261,7 +261,7 @@ cargo doido generate model Post \
 ## Route auto-injection
 
 Generators that produce a controller (`scaffold`, `resource`, `controller`) parse
-`config/routes.rs`, insert the matching route (e.g. `resources!(posts, PostsController);`)
+`config/routes.rs`, insert the matching route (e.g. `resource!(posts, PostsController);`)
 into the `routes! { … }` block, and skip controllers already registered — so a generated
 resource is reachable without editing routes by hand.
 

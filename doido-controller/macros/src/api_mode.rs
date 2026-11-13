@@ -3,7 +3,7 @@
 //! A project generated with `doido new --api` carries an `api_only = true` marker
 //! under the `[app]` table of `config/application.toml`. The route macros read it
 //! at expansion time (via `CARGO_MANIFEST_DIR`, which points at the crate being
-//! compiled — i.e. the application) so that `resources!` can omit the HTML-form
+//! compiled — i.e. the application) so that `resource!` can omit the HTML-form
 //! routes (`new`/`edit`) that make no sense for a JSON API.
 //!
 //! Reads are best-effort: a missing/unreadable file means "not an API" so a plain

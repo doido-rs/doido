@@ -42,12 +42,14 @@ const AUTH_SEED_BODY: &str = r#"    // Seed an initial user so a fresh --auth ap
     {
         use doido::model::password::hash_password;
         use doido::model::sea_orm::EntityTrait;
-        use doido_auth::RegisterableAuthUser;
+        use doido_auth::user_model::SeaOrmUserStore;
+        use doido_auth::RegisterableUserModel;
         use crate::models::user::{Entity, Model};
 
         if Entity::find().one(db).await?.is_none() {
             let digest = hash_password("password")?;
-            Model::register(db, "admin@example.com".into(), digest).await?;
+            let store = SeaOrmUserStore::new(db.clone());
+            Model::register(store.as_ref(), "admin@example.com".into(), digest).await?;
             println!("seeded initial user: admin@example.com / password");
         }
     }"#;

@@ -36,18 +36,21 @@ pub fn router() -> axum::Router {
         get!("/about", PagesController::about);
         post!("/login", SessionsController::create);
 
-        resources!(posts, PostsController);        // all 7 REST routes
-        resources!(comments, CommentsController, only: [index, show]);
-        resources!(admin, AdminController, except: [destroy]);
-        resources!(posts, PostsController, member: [publish], collection: [search]);
+        resource!(posts, PostsController);        // all 7 REST routes
+        resource!(comments, CommentsController, only: [index, show]);
+        resource!(admin, AdminController, except: [destroy]);
+        resource!(posts, PostsController, {
+            get!(collection: "search", PostsController::search);
+            get!(member: "publish", PostsController::publish);
+        });
 
-        resource!(profile, ProfileController);     // singular (no :id)
+        resource!(profile, ProfileController, singular: true);
 
         namespace!(api, {                          // path AND module prefix
-            resources!(users, Api::UsersController);
+            resource!(users, Api::UsersController);
         });
         scope!("/v2", {                            // path prefix only
-            resources!(articles, V2::ArticlesController);
+            resource!(articles, V2::ArticlesController);
         });
 
         redirect!("/old", "/new");                 // permanent redirect
@@ -60,7 +63,7 @@ Supported verb macros: `get!`, `post!`, `put!`, `patch!`, `delete!`.
 
 ### The 7 REST routes
 
-`resources!(posts, PostsController)` generates all seven RESTful routes, each with a
+`resource!(posts, PostsController)` generates all seven RESTful routes, each with a
 compile-time URL helper:
 
 | Helper | Method | Path | Action |
@@ -73,8 +76,8 @@ compile-time URL helper:
 | `post_path(id)` | PATCH | `/posts/:id` | update |
 | `post_path(id)` | DELETE | `/posts/:id` | destroy |
 
-`only:` / `except:` restrict the generated set; `member:` / `collection:` add extra
-routes (member routes take an `:id`, collection routes don't).
+`only:` / `except:` restrict the generated set. Inside a `resource! { … }` block, use
+`get!(member: "action", …)` (with `:id`) or `get!(collection: "action", …)` (without).
 
 ## Controllers
 

@@ -258,7 +258,7 @@ cargo doido generate model Post \
 ## Injeção automática de rotas
 
 Geradores que produzem um controller (`scaffold`, `resource`, `controller`) fazem o parse
-de `config/routes.rs`, inserem a rota correspondente (ex.: `resources!(posts,
+de `config/routes.rs`, inserem a rota correspondente (ex.: `resource!(posts,
 PostsController);`) dentro do bloco `routes! { … }` e pulam controllers já registrados — de
 modo que um resource gerado fica acessível sem editar as rotas manualmente.
 

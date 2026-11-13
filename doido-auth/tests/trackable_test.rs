@@ -53,12 +53,20 @@ async fn records_stats_when_module_enabled() {
     };
     let _guard = init_test_auth(db.conn().clone(), config).await.unwrap();
 
-    trackable::record_sign_in(db.conn(), "a@b.com", Some("1.2.3.4"))
-        .await
-        .unwrap();
-    trackable::record_sign_in(db.conn(), "a@b.com", Some("5.6.7.8"))
-        .await
-        .unwrap();
+    trackable::record_sign_in(
+        doido_auth::testing::auth_store().as_ref(),
+        "a@b.com",
+        Some("1.2.3.4"),
+    )
+    .await
+    .unwrap();
+    trackable::record_sign_in(
+        doido_auth::testing::auth_store().as_ref(),
+        "a@b.com",
+        Some("5.6.7.8"),
+    )
+    .await
+    .unwrap();
 
     assert_eq!(sign_in_count(&db).await, 2);
 
@@ -106,9 +114,13 @@ async fn noop_when_module_disabled() {
     };
     let _guard = init_test_auth(db.conn().clone(), config).await.unwrap();
 
-    trackable::record_sign_in(db.conn(), "a@b.com", Some("1.2.3.4"))
-        .await
-        .unwrap();
+    trackable::record_sign_in(
+        doido_auth::testing::auth_store().as_ref(),
+        "a@b.com",
+        Some("1.2.3.4"),
+    )
+    .await
+    .unwrap();
 
     assert_eq!(sign_in_count(&db).await, 0);
 }

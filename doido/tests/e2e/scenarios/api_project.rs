@@ -1,6 +1,6 @@
 //! `doido new --api` marks the project `api_only` in `config/application.toml`.
 //! The route macros read that marker at compile time and drop the `new`/`edit`
-//! form routes from `resources!` — so a **plain** `resources!(posts, Controller)`
+//! form routes from `resource!` — so a **plain** `resource!(posts, Controller)`
 //! pointing at the JSON controller (which defines no `new`/`edit` methods) both
 //! compiles and serves no form routes. In a non-API project the same line would
 //! fail to compile (dangling `PostsController::new`/`::edit` references), so a
@@ -36,8 +36,8 @@ fn api_only_project_drops_form_routes() {
     let routes_path = h.app.join("config/routes.rs");
     let routes = fs::read_to_string(&routes_path).unwrap();
     let plain = routes.replace(
-        "resources!(posts, PostsController, except: [new, edit]);",
-        "resources!(posts, PostsController);",
+        "resource!(posts, PostsController, except: [new, edit]);",
+        "resource!(posts, PostsController);",
     );
     assert_ne!(
         routes, plain,

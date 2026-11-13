@@ -15,7 +15,7 @@ pub struct SessionsController;
 #[controller]
 impl SessionsController {
     /// POST /users/sign_in
-    pub async fn create(mut ctx: doido::controller::Context) -> doido::Result<Response> {
+    pub async fn create(ctx: &mut doido::controller::Context) -> doido::Result<Response> {
         let form: SignInForm = ctx.body_json().await?;
         if let Some(user) = User::find_by_email(ctx.db(), &form.email).await? {
             if user.authenticate(&form.password) {
@@ -30,8 +30,8 @@ impl SessionsController {
     }
 
     /// DELETE /users/sign_out
-    pub async fn destroy(mut ctx: doido::controller::Context) -> doido::Result<Response> {
-        sign_out(ctx)?;
+    pub async fn destroy(ctx: &mut doido::controller::Context) -> doido::Result<Response> {
+        sign_out(ctx, None).await?;
         Ok(ctx.status(204))
     }
 }

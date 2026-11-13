@@ -314,7 +314,7 @@ mod tests {
             .iter()
             .find(|f| f.path == "app/models/user.rs")
             .expect("user model");
-        assert!(user.content.contains("impl AuthUser for Model"));
+        assert!(user.content.contains("impl UserModel for Model"));
     }
 
     #[test]
