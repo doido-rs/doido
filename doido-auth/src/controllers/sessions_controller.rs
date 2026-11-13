@@ -6,7 +6,7 @@ use crate::middleware::{
     REMEMBER_COOKIE,
 };
 use crate::state::{global, try_global};
-use crate::user::UserModel;
+use crate::user_model::UserModel;
 use doido_auth_macros::auth_controller;
 use doido_core::Result;
 use doido_model::password::HasSecurePassword;

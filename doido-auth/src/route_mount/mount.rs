@@ -5,7 +5,7 @@ use crate::middleware::omniauthable;
 use crate::middleware::{complete_session_sign_in, pipeline_sign_in, pipeline_sign_up};
 use crate::state::global;
 use crate::strategy::session::{clear_session_cookie, encode_session_cookie, SESSION_COOKIE};
-use crate::user::{RegisterableUserModel, UserModel};
+use crate::user_model::{RegisterableUserModel, UserModel};
 use axum::extract::{Path, Query};
 use axum::http::{header, HeaderMap, StatusCode};
 use axum::response::{IntoResponse, Redirect, Response};

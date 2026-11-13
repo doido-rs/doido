@@ -8,7 +8,6 @@ pub mod i18n;
 pub mod middleware;
 pub mod route_mount;
 pub mod strategy;
-pub mod user;
 pub mod user_model;
 
 pub mod testing;
@@ -49,6 +48,13 @@ pub mod state {
         global, init, reset_state, set_state, try_global, AuthState,
     };
 }
+/// Back-compat re-exports — prefer [`user_model`].
+pub mod user {
+    pub use crate::user_model::{
+        authenticate_password, find_by_email_mapped, find_by_id_mapped, id_to_sea_value,
+        RegisterableUserModel, UserModel,
+    };
+}
 #[cfg(feature = "auth-2fa")]
 pub mod two_factorable {
     pub use crate::middleware::two_factorable::*;
@@ -87,11 +93,10 @@ pub use strategy::session::{
     SessionStrategy, SessionStrategy as CookieStrategy, SESSION_COOKIE, USER_ID_KEY,
 };
 pub use strategy::AuthStrategy;
-pub use user::{authenticate_password, RegisterableUserModel, UserModel};
 pub use user_model::{
-    build_user_store, find_by_email_mapped, find_by_id_mapped, AuthIdentity, FetchContribution,
-    FetchPlan, SeaOrmUserStore, SignInRow, UserField, UserPatchBuilder, UserRow, UserStore,
-    UserStoreAction,
+    authenticate_password, build_user_store, find_by_email_mapped, find_by_id_mapped, AuthIdentity,
+    FetchContribution, FetchPlan, RegisterableUserModel, SeaOrmUserStore, SignInRow, UserField,
+    UserModel, UserPatchBuilder, UserRow, UserStore, UserStoreAction,
 };
 
 #[cfg(feature = "auth-2fa")]

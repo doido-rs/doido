@@ -3,9 +3,9 @@
 use crate::error::AuthError;
 use crate::state::global;
 use crate::strategy::{identity_from_parts, require_identity};
-use crate::user::UserModel;
 use crate::user_model::AuthIdentity;
 use crate::user_model::FetchPlan;
+use crate::user_model::UserModel;
 use axum::extract::FromRequestParts;
 use axum::http::request::Parts;
 use axum::http::StatusCode;

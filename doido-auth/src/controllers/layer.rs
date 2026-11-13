@@ -36,7 +36,7 @@ pub fn current_identity(parts: &http::request::Parts) -> Option<AuthIdentity> {
 }
 
 /// Load the current user model from extensions + DB.
-pub async fn current_user<U: crate::user::UserModel>(
+pub async fn current_user<U: crate::user_model::UserModel>(
     parts: &http::request::Parts,
 ) -> Result<U, AuthError> {
     let identity = crate::strategy::require_identity(parts)?;

@@ -4,7 +4,7 @@ use super::messages::{json_error, t};
 use crate::confirmable;
 use crate::middleware::{complete_session_sign_in, pipeline_sign_up};
 use crate::state::global;
-use crate::user::{RegisterableUserModel, UserModel};
+use crate::user_model::{RegisterableUserModel, UserModel};
 use doido_auth_macros::auth_controller;
 use doido_core::Result;
 use doido_model::password::HasSecurePassword;
