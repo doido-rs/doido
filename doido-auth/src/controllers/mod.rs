@@ -6,6 +6,7 @@
 //! `app/controllers/auth/` that mirror these defaults and can be extended.
 
 pub mod confirmations_controller;
+pub mod extractors;
 pub mod layer;
 pub mod messages;
 pub mod oauth_controller;
@@ -17,6 +18,7 @@ pub mod sessions_controller;
 pub mod two_factor_controller;
 
 pub use confirmations_controller::AuthConfirmations;
+pub use extractors::{AuthToken, CurrentUser, MaybeUser, RequireAuth};
 pub use layer::{auth_layer, current_identity, current_user};
 pub use messages::{json_error, t};
 pub use oauth_controller::AuthOauth;

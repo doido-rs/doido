@@ -3,7 +3,6 @@
 pub mod config;
 pub mod controllers;
 pub mod error;
-pub mod extractors;
 pub mod framework_views;
 pub mod i18n;
 pub mod middleware;
@@ -41,6 +40,10 @@ pub mod oauth {
 pub mod layer {
     pub use crate::controllers::layer::{auth_layer, current_identity, current_user};
 }
+/// Back-compat re-exports — prefer [`controllers::extractors`].
+pub mod extractors {
+    pub use crate::controllers::extractors::{AuthToken, CurrentUser, MaybeUser, RequireAuth};
+}
 #[cfg(feature = "auth-2fa")]
 pub mod two_factorable {
     pub use crate::middleware::two_factorable::*;
@@ -56,12 +59,12 @@ pub use config::{
     load as load_config, AuthConfig, AuthModule, AuthRoutesConfig, JwtConfig, UserStoreConfig,
     UserStoreType, YamlConfig,
 };
+pub use controllers::extractors::{AuthToken, CurrentUser, MaybeUser, RequireAuth};
 pub use controllers::layer::{auth_layer, current_identity, current_user};
 pub use controllers::messages;
 pub use controllers::{AuthOauth, AuthPasswords, AuthRegistrations, AuthSessions};
 pub use doido_auth_macros::{__auth_routes_decl, auth_controller, auth_routes, routes};
 pub use error::AuthError;
-pub use extractors::{AuthToken, CurrentUser, MaybeUser, RequireAuth};
 pub use framework_views::register_views;
 pub use i18n::register_locales;
 pub use middleware::omniauthable::{OAuth2Provider, OAuthProvider, OAuthTokenResponse};
