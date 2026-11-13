@@ -1,6 +1,7 @@
 pub mod bootstrap_migrations;
 pub mod channel;
 pub mod controller;
+pub mod extension;
 pub mod field;
 pub mod generator_gen;
 pub mod helper;

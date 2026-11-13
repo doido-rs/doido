@@ -73,6 +73,11 @@ enum Commands {
         #[command(subcommand)]
         action: crate::config_cmd::ConfigCommand,
     },
+    /// Scaffold a new Doido extension crate (e.g. Payments → doido-payments)
+    Extension {
+        /// Extension name
+        name: String,
+    },
     /// Create a new Doido application
     New {
         /// Application name
@@ -322,6 +327,7 @@ async fn run_inner(
             }
         }
         Commands::Generate { args } => generator_commands::generate::run_with(&args, generators),
+        Commands::Extension { name } => generator_commands::extension::run_extension(&name),
         Commands::New {
             name,
             non_interactive,
