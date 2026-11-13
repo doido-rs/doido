@@ -2,7 +2,7 @@
 
 use crate::config::AuthConfig;
 use crate::error::AuthError;
-use crate::handlers::{register_user, sign_in_with_session};
+use crate::middleware::{complete_session_sign_in, pipeline_sign_up};
 use crate::state::{set_state, AuthState};
 use crate::strategy::jwt::JwtStrategy;
 use crate::user::{RegisterableUserModel, UserModel};
@@ -208,8 +208,9 @@ pub async fn create_test_user(
     ensure_users_table(db).await?;
     use crate::state::global;
     let store = global().store.clone();
-    register_user::<TestUser, _, _>(email, password, |email, digest| async move {
-        TestUser::register(store.as_ref(), email, digest).await
+    pipeline_sign_up::<TestUser, _, _>(store.as_ref(), email, password, |email, digest| {
+        let store = store.clone();
+        async move { TestUser::register(store.as_ref(), email, digest).await }
     })
     .await
 }
@@ -277,7 +278,7 @@ pub fn hash_test_password(password: &str) -> String {
 
 pub fn session_for_user(user: &TestUser) -> Session {
     let mut session = Session::new();
-    sign_in_with_session(&mut session, user);
+    complete_session_sign_in(&mut session, user);
     session
 }
 

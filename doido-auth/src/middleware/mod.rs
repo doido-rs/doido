@@ -20,7 +20,8 @@ pub use confirmable::{
 };
 pub use lockable::{ensure_not_locked, record_failure, reset_attempts, LockableMiddleware};
 pub use pipeline::{
-    complete_session_sign_in, sign_in as pipeline_sign_in, sign_out_pipeline,
+    authenticate_global, complete_session_sign_in, register_user_global,
+    sign_in as pipeline_sign_in, sign_in_context, sign_out_context, sign_out_pipeline,
     sign_up as pipeline_sign_up,
 };
 pub use recoverable::{request_reset, reset_password, send_reset_email, RecoverableMiddleware};

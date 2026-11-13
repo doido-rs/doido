@@ -2,8 +2,8 @@
 
 #![cfg(feature = "auth-redis")]
 
+use doido_auth::authenticate;
 use doido_auth::config::{AuthConfig, UserStoreConfig, UserStoreType};
-use doido_auth::handlers::authenticate;
 use doido_auth::state::global;
 use doido_auth::testing::{init_test_auth, TestUser};
 use doido_auth::user_model::store::RedisUserStore;

@@ -1,8 +1,8 @@
 //! Default registrations controller (`sign_up`).
 
 use crate::confirmable;
-use crate::handlers::{register_user, sign_in};
 use crate::messages::{json_error, t};
+use crate::middleware::{complete_session_sign_in, pipeline_sign_up};
 use crate::state::global;
 use crate::user::{RegisterableUserModel, UserModel};
 use doido_auth_macros::auth_controller;
@@ -31,7 +31,7 @@ where
         ctx.render("auth/sign_up", serde_json::json!({}))
     }
 
-    pub async fn create(mut ctx: doido_controller::Context) -> Result<doido_controller::Response> {
+    pub async fn create(ctx: &mut doido_controller::Context) -> Result<doido_controller::Response> {
         let json = ctx.wants_json();
         let form: SignUpForm = if json {
             ctx.body_json().await?
@@ -46,10 +46,15 @@ where
         }
 
         let store = global().store.clone();
-        let user = match register_user::<U, _, _>(&form.email, &form.password, |email, digest| {
-            let store = store.clone();
-            async move { U::register(store.as_ref(), email, digest).await }
-        })
+        let user = match pipeline_sign_up::<U, _, _>(
+            store.as_ref(),
+            &form.email,
+            &form.password,
+            |email, digest| {
+                let store = store.clone();
+                async move { U::register(store.as_ref(), email, digest).await }
+            },
+        )
         .await
         {
             Ok(user) => user,
@@ -78,7 +83,7 @@ where
             };
         }
 
-        sign_in(ctx, &user)?;
+        complete_session_sign_in(ctx.session(), &user);
         if json {
             Ok(ctx.json(user))
         } else {

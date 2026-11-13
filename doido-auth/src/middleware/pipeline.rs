@@ -13,6 +13,30 @@ use doido_model::password::hash_password;
 use doido_model::password::HasSecurePassword;
 use std::future::Future;
 
+/// Sign-in using the global [`crate::state::AuthState`] user store (apps/tests).
+pub async fn authenticate_global<U>(email: &str, password: &str) -> Result<U, AuthError>
+where
+    U: UserModel + HasSecurePassword,
+{
+    let store = crate::state::global().store.clone();
+    sign_in(store.as_ref(), email, password).await
+}
+
+/// Sign-up using the global user store (apps/tests).
+pub async fn register_user_global<U, F, Fut>(
+    email: &str,
+    password: &str,
+    create: F,
+) -> Result<U, AuthError>
+where
+    U: UserModel,
+    F: FnOnce(String, String) -> Fut,
+    Fut: Future<Output = Result<U>>,
+{
+    let store = crate::state::global().store.clone();
+    sign_up(store.as_ref(), email, password, create).await
+}
+
 fn sign_in_plan() -> FetchPlan {
     let Some(state) = try_global() else {
         return FetchPlan::minimal();
@@ -143,4 +167,22 @@ pub fn complete_session_sign_in<U: UserModel>(
     user: &U,
 ) {
     crate::strategy::session::sign_in_session(session, user.id());
+}
+
+/// Persist the authenticated user on the request [`doido_controller::Context`] session.
+pub fn sign_in_context(
+    ctx: &mut doido_controller::Context,
+    user: &impl UserModel,
+) -> Result<(), AuthError> {
+    complete_session_sign_in(ctx.session(), user);
+    Ok(())
+}
+
+/// Run sign-out middleware hooks and clear the session.
+pub async fn sign_out_context(
+    ctx: &mut doido_controller::Context,
+    email: Option<String>,
+) -> Result<(), AuthError> {
+    let store = crate::state::global().store.clone();
+    sign_out_pipeline(store.as_ref(), ctx, email).await
 }

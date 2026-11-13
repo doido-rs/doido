@@ -1,9 +1,9 @@
 //! Handler unit tests (authenticate, sign-in/out, register).
 
-use doido_auth::handlers::{authenticate, register_user, sign_in, sign_out};
 use doido_auth::testing::{
     create_test_user, ensure_users_table, init_test_auth, test_auth_config, TestUser,
 };
+use doido_auth::{authenticate, register_user, sign_in, sign_out};
 use doido_controller::axum::body::Body;
 use doido_controller::Context;
 use doido_model::testing::TestDb;

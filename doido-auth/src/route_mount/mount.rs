@@ -1,7 +1,7 @@
 //! Pre-built auth routes (sessions, registration, passwords, OAuth).
 
 use crate::error::AuthError;
-use crate::handlers::{authenticate, register_user, sign_in_with_session};
+use crate::middleware::{complete_session_sign_in, pipeline_sign_in, pipeline_sign_up};
 use crate::oauth::get_provider;
 use crate::state::global;
 use crate::strategy::session::{clear_session_cookie, encode_session_cookie, SESSION_COOKIE};
@@ -96,7 +96,8 @@ where
     U::Id: serde::Serialize,
 {
     let state = global();
-    let user = authenticate::<U>(&body.email, &body.password).await?;
+    let store = state.store.clone();
+    let user = pipeline_sign_in::<U>(store.as_ref(), &body.email, &body.password).await?;
     let user_id =
         serde_json::to_value(user.id()).map_err(|e| AuthError::Internal(e.to_string()))?;
 
@@ -108,7 +109,7 @@ where
     }
 
     let mut session = session_from_headers(&headers);
-    sign_in_with_session(&mut session, &user);
+    complete_session_sign_in(&mut session, &user);
     let store = EncryptedCookieSessionStore::new(doido_controller::secret::key_base());
     let cookie = encode_session_cookie(&store, &session);
     Ok((
@@ -136,15 +137,21 @@ where
 {
     let state = global();
     let db = state.db.clone();
-    let user = register_user::<U, _, _>(&body.email, &body.password, |email, digest| {
-        let create = create.clone();
-        let db = db.clone();
-        async move {
-            create(db, email, digest)
-                .await
-                .map_err(|e| doido_core::anyhow::anyhow!(e.to_string()))
-        }
-    })
+    let store = state.store.clone();
+    let user = pipeline_sign_up::<U, _, _>(
+        store.as_ref(),
+        &body.email,
+        &body.password,
+        |email, digest| {
+            let create = create.clone();
+            let db = db.clone();
+            async move {
+                create(db, email, digest)
+                    .await
+                    .map_err(|e| doido_core::anyhow::anyhow!(e.to_string()))
+            }
+        },
+    )
     .await?;
 
     Ok((

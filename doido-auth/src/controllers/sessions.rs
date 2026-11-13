@@ -1,8 +1,10 @@
 //! Default sessions controller (`sign_in` / `sign_out`).
 
-use crate::handlers::{authenticate, sign_in, sign_out};
 use crate::messages::{json_error, t};
-use crate::middleware::{cookie_value, record_remember, REMEMBER_COOKIE};
+use crate::middleware::{
+    complete_session_sign_in, cookie_value, pipeline_sign_in, record_remember, sign_out_context,
+    REMEMBER_COOKIE,
+};
 use crate::state::{global, try_global};
 use crate::user::UserModel;
 use doido_auth_macros::auth_controller;
@@ -36,7 +38,7 @@ where
         ctx.render("auth/sign_in", serde_json::json!({}))
     }
 
-    pub async fn create(mut ctx: doido_controller::Context) -> Result<doido_controller::Response> {
+    pub async fn create(ctx: &mut doido_controller::Context) -> Result<doido_controller::Response> {
         let json = ctx.wants_json();
         let form: SignInForm = if json {
             ctx.body_json().await?
@@ -44,10 +46,10 @@ where
             ctx.form().await?
         };
 
-        match authenticate::<U>(&form.email, &form.password).await {
+        let store = global().store.clone();
+        match pipeline_sign_in::<U>(store.as_ref(), &form.email, &form.password).await {
             Ok(user) => {
                 if is_truthy(&form.remember) {
-                    let store = global().store.clone();
                     let _ = record_remember(store.as_ref(), &form.email).await;
                     let max_age = try_global()
                         .map(|s| s.config.remember_for)
@@ -56,7 +58,7 @@ where
                     ctx.cookies()
                         .set_signed_permanent(REMEMBER_COOKIE, value, max_age);
                 }
-                sign_in(ctx, &user)?;
+                complete_session_sign_in(ctx.session(), &user);
                 if json {
                     Ok(ctx.json(user))
                 } else {
@@ -71,9 +73,11 @@ where
         }
     }
 
-    pub async fn destroy(mut ctx: doido_controller::Context) -> Result<doido_controller::Response> {
+    pub async fn destroy(
+        ctx: &mut doido_controller::Context,
+    ) -> Result<doido_controller::Response> {
         ctx.cookies().set_signed_permanent(REMEMBER_COOKIE, "", 0);
-        sign_out(ctx, None).await?;
+        sign_out_context(ctx, None).await?;
         if ctx.wants_json() {
             Ok(ctx.status(204))
         } else {

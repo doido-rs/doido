@@ -1,6 +1,6 @@
 //! Sign-in uses a single store fetch before password verification.
 
-use doido_auth::handlers::authenticate;
+use doido_auth::authenticate;
 use doido_auth::state::global;
 use doido_auth::testing::{
     create_test_user, ensure_users_table, init_test_auth, test_auth_config, TestUser,

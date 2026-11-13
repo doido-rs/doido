@@ -5,7 +5,6 @@ pub mod controllers;
 pub mod error;
 pub mod extractors;
 pub mod framework_views;
-pub mod handlers;
 pub mod i18n;
 pub mod identity;
 pub mod layer;
@@ -52,12 +51,13 @@ pub use doido_auth_macros::{__auth_routes_decl, auth_controller, auth_routes, ro
 pub use error::AuthError;
 pub use extractors::{AuthToken, CurrentUser, MaybeUser, RequireAuth};
 pub use framework_views::register_views;
-pub use handlers::{authenticate, register_user, sign_in, sign_in_with_session, sign_out};
 pub use i18n::register_locales;
 pub use identity::AuthIdentity;
 pub use layer::{auth_layer, current_identity, current_user};
 pub use middleware::{
-    register_middleware, AuthMiddleware, RememberableMiddleware, REMEMBER_COOKIE,
+    authenticate_global as authenticate, complete_session_sign_in as sign_in_with_session,
+    register_middleware, register_user_global as register_user, sign_in_context as sign_in,
+    sign_out_context as sign_out, AuthMiddleware, RememberableMiddleware, REMEMBER_COOKIE,
 };
 pub use oauth::{OAuth2Provider, OAuthProvider, OAuthTokenResponse};
 pub use route_mount::mount;
