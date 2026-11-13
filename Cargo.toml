@@ -45,8 +45,8 @@ doido-generators = 71.0
 debug = "line-tables-only"
 
 [workspace.dependencies]
-# First-party crates: every entry needs `path` *and* `version` so `cargo publish`
-# strips `path`, keeps the semver, and resolves from crates.io.
+# First-party crates: members inherit via `*.workspace = true`. Root `path` + exact
+# `version` is for local resolution and `cargo publish` (synced by scripts/sync-workspace-dep-versions.sh).
 doido = { path = "doido", version = "=0.0.32" }
 doido-cable = { path = "doido-cable", version = "=0.0.32" }
 doido-cable-macros = { path = "doido-cable/macros", version = "=0.0.32" }
@@ -62,7 +62,7 @@ doido-jobs = { path = "doido-jobs", version = "=0.0.32" }
 doido-jobs-macros = { path = "doido-jobs/macros", version = "=0.0.32" }
 doido-mailer = { path = "doido-mailer", version = "=0.0.32" }
 doido-mailer-macros = { path = "doido-mailer/macros", version = "=0.0.32" }
-doido-model = { path = "doido-model", version = "=0.0.32", default-features = false }
+doido-model = { path = "doido-model", default-features = false, version = "=0.0.32" }
 doido-storage = { path = "doido-storage", version = "=0.0.32" }
 doido-view = { path = "doido-view", version = "=0.0.32" }
 

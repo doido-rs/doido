@@ -29,5 +29,5 @@ assert_cmd = "2"
 predicates = "3"
 tempfile.workspace = true
 toml = "0.8"
-doido = { path = "../doido", default-features = true }
+doido = { workspace = true, default-features = true }
 doido-model = { workspace = true, features = ["sqlite", "cli"] }
