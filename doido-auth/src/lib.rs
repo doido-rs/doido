@@ -7,7 +7,6 @@ pub mod framework_views;
 pub mod i18n;
 pub mod middleware;
 pub mod route_mount;
-pub mod state;
 pub mod strategy;
 pub mod user;
 pub mod user_model;
@@ -44,6 +43,12 @@ pub mod layer {
 pub mod extractors {
     pub use crate::controllers::extractors::{AuthToken, CurrentUser, MaybeUser, RequireAuth};
 }
+/// Back-compat re-exports — prefer [`controllers::state`].
+pub mod state {
+    pub use crate::controllers::state::{
+        global, init, reset_state, set_state, try_global, AuthState,
+    };
+}
 #[cfg(feature = "auth-2fa")]
 pub mod two_factorable {
     pub use crate::middleware::two_factorable::*;
@@ -62,6 +67,7 @@ pub use config::{
 pub use controllers::extractors::{AuthToken, CurrentUser, MaybeUser, RequireAuth};
 pub use controllers::layer::{auth_layer, current_identity, current_user};
 pub use controllers::messages;
+pub use controllers::state::{global, init, set_state, try_global, AuthState};
 pub use controllers::{AuthOauth, AuthPasswords, AuthRegistrations, AuthSessions};
 pub use doido_auth_macros::{__auth_routes_decl, auth_controller, auth_routes, routes};
 pub use error::AuthError;
@@ -75,7 +81,6 @@ pub use middleware::{
     REMEMBER_COOKIE,
 };
 pub use route_mount::mount;
-pub use state::{global, init, set_state, try_global, AuthState};
 pub use strategy::jwt::{JwtClaims, JwtStrategy, TokenPair};
 pub use strategy::registry::{register_strategy, registered_strategies};
 pub use strategy::session::{

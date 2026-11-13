@@ -13,6 +13,7 @@ pub mod oauth_controller;
 pub mod passwords_controller;
 pub mod registrations_controller;
 pub mod sessions_controller;
+pub mod state;
 
 #[cfg(feature = "auth-2fa")]
 pub mod two_factor_controller;
@@ -25,6 +26,7 @@ pub use oauth_controller::AuthOauth;
 pub use passwords_controller::AuthPasswords;
 pub use registrations_controller::AuthRegistrations;
 pub use sessions_controller::AuthSessions;
+pub use state::{global, init, reset_state, set_state, try_global, AuthState};
 
 #[cfg(feature = "auth-2fa")]
 pub use two_factor_controller::AuthTwoFactor;
