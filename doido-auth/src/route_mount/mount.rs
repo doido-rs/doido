@@ -1,8 +1,8 @@
 //! Pre-built auth routes (sessions, registration, passwords, OAuth).
 
 use crate::error::AuthError;
+use crate::middleware::omniauthable;
 use crate::middleware::{complete_session_sign_in, pipeline_sign_in, pipeline_sign_up};
-use crate::oauth::get_provider;
 use crate::state::global;
 use crate::strategy::session::{clear_session_cookie, encode_session_cookie, SESSION_COOKIE};
 use crate::user::{RegisterableUserModel, UserModel};
@@ -169,14 +169,8 @@ struct OAuthCallbackQuery {
 }
 
 async fn oauth_redirect(Path(provider): Path<String>) -> Result<Response, AuthError> {
-    let state = global();
-    let oauth = state
-        .oauth
-        .get(&provider)
-        .cloned()
-        .or_else(|| get_provider(&provider))
-        .ok_or_else(|| AuthError::OAuth(format!("unknown provider {provider}")))?;
-    let url = oauth.authorize_url(&uuid::Uuid::new_v4().to_string())?;
+    let csrf = uuid::Uuid::new_v4().to_string();
+    let url = omniauthable::authorize_url(&provider, &csrf)?;
     Ok(Redirect::temporary(&url).into_response())
 }
 
@@ -184,14 +178,7 @@ async fn oauth_callback(
     Path(provider): Path<String>,
     Query(query): Query<OAuthCallbackQuery>,
 ) -> Result<Response, AuthError> {
-    let state = global();
-    let oauth = state
-        .oauth
-        .get(&provider)
-        .cloned()
-        .or_else(|| get_provider(&provider))
-        .ok_or_else(|| AuthError::OAuth(format!("unknown provider {provider}")))?;
-    let tokens = oauth.exchange_code(&query.code)?;
+    let tokens = omniauthable::exchange_code(&provider, &query.code)?;
     Ok((StatusCode::OK, Json(tokens)).into_response())
 }
 

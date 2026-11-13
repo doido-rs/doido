@@ -215,7 +215,7 @@ With no `--modules`, install keeps the permissive bare `auth_routes!(User)`.
 |---------------|--------------|-------------------|--------|--------|
 | database_authenticatable | `database_authenticatable` | `email`, `password_digest` | `sessions` | ✅ implemented |
 | registerable | `registerable` | — | `registrations` | ✅ implemented |
-| omniauthable | `omniauthable` | — | `oauth` | ✅ implemented (OAuth2) |
+| oauth | `omniauthable` | — | `oauth` | `OmniauthableMiddleware` (`omniauthable`); providers in `middleware::omniauthable` |
 | validatable | `validatable` | — | — | ✅ implemented (email + length) |
 | trackable | `trackable` | `sign_in_count`, `current/last_sign_in_at`, `current/last_sign_in_ip` | — | ✅ implemented (recorded on sign-in) |
 | two_factor | `two_factor_authenticatable` | `two_factor_secret`, `two_factor_enabled` | `two_factor` | `TwoFactorableMiddleware` (`two_factorable`); TOTP enroll/verify (`auth-2fa`) |

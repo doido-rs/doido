@@ -48,6 +48,9 @@ pub fn built_in_middlewares(config: &AuthConfig) -> Vec<Arc<dyn AuthMiddleware>>
     if config.has_module(AuthModule::Recoverable) {
         out.push(Arc::new(super::recoverable::RecoverableMiddleware));
     }
+    if config.has_module(AuthModule::Omniauthable) {
+        out.push(Arc::new(super::omniauthable::OmniauthableMiddleware));
+    }
     if config.has_module(AuthModule::Timeoutable) {
         out.push(Arc::new(super::timeoutable::TimeoutableMiddleware));
     }

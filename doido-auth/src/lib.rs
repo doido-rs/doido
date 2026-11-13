@@ -8,7 +8,6 @@ pub mod framework_views;
 pub mod i18n;
 pub mod layer;
 pub mod middleware;
-pub mod oauth;
 pub mod route_mount;
 pub mod state;
 pub mod strategy;
@@ -28,6 +27,16 @@ pub mod recoverable {
 }
 pub mod trackable {
     pub use crate::middleware::trackable::*;
+}
+pub mod omniauthable {
+    pub use crate::middleware::omniauthable::*;
+}
+/// Back-compat re-exports — prefer [`omniauthable`].
+pub mod oauth {
+    pub use crate::middleware::omniauthable::{
+        get_provider, providers_from_config, register_provider, OAuth2Provider, OAuthProvider,
+        OAuthTokenResponse,
+    };
 }
 #[cfg(feature = "auth-2fa")]
 pub mod two_factorable {
@@ -52,12 +61,13 @@ pub use extractors::{AuthToken, CurrentUser, MaybeUser, RequireAuth};
 pub use framework_views::register_views;
 pub use i18n::register_locales;
 pub use layer::{auth_layer, current_identity, current_user};
+pub use middleware::omniauthable::{OAuth2Provider, OAuthProvider, OAuthTokenResponse};
 pub use middleware::{
     authenticate_global as authenticate, complete_session_sign_in as sign_in_with_session,
     register_middleware, register_user_global as register_user, sign_in_context as sign_in,
-    sign_out_context as sign_out, AuthMiddleware, RememberableMiddleware, REMEMBER_COOKIE,
+    sign_out_context as sign_out, AuthMiddleware, OmniauthableMiddleware, RememberableMiddleware,
+    REMEMBER_COOKIE,
 };
-pub use oauth::{OAuth2Provider, OAuthProvider, OAuthTokenResponse};
 pub use route_mount::mount;
 pub use state::{global, init, set_state, try_global, AuthState};
 pub use strategy::jwt::{JwtClaims, JwtStrategy, TokenPair};

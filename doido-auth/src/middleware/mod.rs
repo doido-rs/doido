@@ -3,6 +3,7 @@
 pub mod confirmable;
 pub mod context;
 pub mod lockable;
+pub mod omniauthable;
 pub mod pipeline;
 pub mod recoverable;
 pub mod registry;
@@ -19,6 +20,11 @@ pub use confirmable::{
     ConfirmableMiddleware,
 };
 pub use lockable::{ensure_not_locked, record_failure, reset_attempts, LockableMiddleware};
+pub use omniauthable::{
+    authorize_url, exchange_code, get_provider, is_enabled as omniauthable_enabled,
+    providers_from_config, register_provider, resolve_provider, OAuth2Provider, OAuthProvider,
+    OAuthTokenResponse, OmniauthableMiddleware,
+};
 pub use pipeline::{
     authenticate_global, complete_session_sign_in, register_user_global,
     sign_in as pipeline_sign_in, sign_in_context, sign_out_context, sign_out_pipeline,
