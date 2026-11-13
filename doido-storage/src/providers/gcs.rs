@@ -29,16 +29,26 @@ fn backend_err(e: impl std::fmt::Display) -> StorageError {
 }
 
 impl GcsService {
-    /// Connect to the bucket in `cfg` using Application Default Credentials.
+    /// Connect to the bucket in `cfg`.
+    ///
+    /// Without `endpoint`, uses Application Default Credentials (`with_auth`).
+    /// With `endpoint`, connects to that base URL with anonymous auth — suitable
+    /// for local emulators such as fake-gcs-server.
     pub async fn connect(name: &str, cfg: &ServiceConfig) -> Result<Self> {
         let bucket = cfg
             .bucket
             .clone()
             .ok_or_else(|| StorageError::Config("gcs service requires `bucket`".into()))?;
-        let config = ClientConfig::default()
-            .with_auth()
-            .await
-            .map_err(|e| StorageError::Config(format!("gcs auth: {e}")))?;
+        let config = if let Some(endpoint) = &cfg.endpoint {
+            let mut config = ClientConfig::default().anonymous();
+            config.storage_endpoint = endpoint.clone();
+            config
+        } else {
+            ClientConfig::default()
+                .with_auth()
+                .await
+                .map_err(|e| StorageError::Config(format!("gcs auth: {e}")))?
+        };
         Ok(Self {
             name: name.to_string(),
             client: Client::new(config),

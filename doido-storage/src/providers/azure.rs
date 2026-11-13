@@ -9,6 +9,7 @@ use crate::config::ServiceConfig;
 use crate::error::StorageError;
 use crate::service::Service;
 use azure_storage::prelude::*;
+use azure_storage::CloudLocation;
 use azure_storage_blobs::prelude::*;
 use doido_core::Result;
 
@@ -23,32 +24,73 @@ fn backend_err(e: impl std::fmt::Display) -> StorageError {
     StorageError::Backend(e.to_string())
 }
 
+/// True when `endpoint` points at a local Azurite blob service (default port 10000).
+fn is_azurite_endpoint(endpoint: &str) -> bool {
+    endpoint.contains(":10000")
+}
+
 impl AzureBlobService {
     /// Connect to the container described by `cfg`. The access key comes from the
     /// config `access_key` or the `AZURE_STORAGE_ACCESS_KEY` environment variable.
+    ///
+    /// When `endpoint` is set, connects to that base URL instead of Azure public
+    /// cloud — use Azurite (`http://127.0.0.1:10000/devstoreaccount1`) for local
+    /// development and e2e tests.
     pub fn connect(name: &str, cfg: &ServiceConfig) -> Result<Self> {
-        let account = cfg
-            .account
-            .clone()
-            .ok_or_else(|| StorageError::Config("azure service requires `account`".into()))?;
-        let container = cfg
+        let container_name = cfg
             .container
             .clone()
             .ok_or_else(|| StorageError::Config("azure service requires `container`".into()))?;
-        let key = cfg
-            .access_key
-            .clone()
-            .or_else(|| std::env::var("AZURE_STORAGE_ACCESS_KEY").ok())
-            .ok_or_else(|| {
-                StorageError::Config(
-                    "azure service requires an access key (config `access_key` or \
-                     AZURE_STORAGE_ACCESS_KEY)"
-                        .into(),
-                )
-            })?;
 
-        let credentials = StorageCredentials::access_key(account.clone(), key);
-        let container = ClientBuilder::new(account, credentials).container_client(container);
+        let container = if let Some(endpoint) = &cfg.endpoint {
+            if is_azurite_endpoint(endpoint) {
+                ClientBuilder::emulator().container_client(container_name)
+            } else {
+                let account = cfg.account.clone().ok_or_else(|| {
+                    StorageError::Config(
+                        "azure service with a custom `endpoint` requires `account`".into(),
+                    )
+                })?;
+                let key = cfg
+                    .access_key
+                    .clone()
+                    .or_else(|| std::env::var("AZURE_STORAGE_ACCESS_KEY").ok())
+                    .ok_or_else(|| {
+                        StorageError::Config(
+                            "azure service requires an access key (config `access_key` or \
+                             AZURE_STORAGE_ACCESS_KEY)"
+                                .into(),
+                        )
+                    })?;
+                let credentials = StorageCredentials::access_key(account.clone(), key);
+                ClientBuilder::with_location(
+                    CloudLocation::Custom {
+                        account,
+                        uri: endpoint.clone(),
+                    },
+                    credentials,
+                )
+                .container_client(container_name)
+            }
+        } else {
+            let account = cfg
+                .account
+                .clone()
+                .ok_or_else(|| StorageError::Config("azure service requires `account`".into()))?;
+            let key = cfg
+                .access_key
+                .clone()
+                .or_else(|| std::env::var("AZURE_STORAGE_ACCESS_KEY").ok())
+                .ok_or_else(|| {
+                    StorageError::Config(
+                        "azure service requires an access key (config `access_key` or \
+                         AZURE_STORAGE_ACCESS_KEY)"
+                            .into(),
+                    )
+                })?;
+            let credentials = StorageCredentials::access_key(account.clone(), key);
+            ClientBuilder::new(account, credentials).container_client(container_name)
+        };
 
         Ok(Self {
             name: name.to_string(),

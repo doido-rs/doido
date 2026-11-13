@@ -60,6 +60,7 @@ storage-azure = ["dep:azure_storage", "dep:azure_storage_blobs"]
 storage-gcs = ["dep:gcloud-storage"]   # Google Cloud Storage
 storage-image = ["dep:imagesize"]      # image dimension analyzer
 storage-jobs = ["dep:doido-jobs"]      # purge_later / analyze_later via doido-jobs
+storage-e2e = ["storage-s3", "storage-azure", "storage-gcs"]
 
 [dev-dependencies]
 doido-model = { workspace = true, features = ["sqlite"] }
@@ -68,3 +69,4 @@ tempfile.workspace = true
 serde_json.workspace = true
 tower = { workspace = true }           # ServiceExt::oneshot for handler tests
 axum.workspace = true
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json"] }
