@@ -96,7 +96,7 @@ async fn current_user_loads_from_identity() {
         .0;
     parts
         .extensions
-        .insert(doido_auth::identity::AuthIdentity::new(user.id));
+        .insert(doido_auth::AuthIdentity::new(user.id));
 
     let loaded: TestUser = current_user(&parts).await.unwrap();
     assert_eq!(loaded.email, "load@example.com");

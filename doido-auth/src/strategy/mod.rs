@@ -6,7 +6,7 @@ pub mod rememberable;
 pub mod session;
 
 use crate::error::AuthError;
-use crate::identity::AuthIdentity;
+use crate::user_model::AuthIdentity;
 use async_trait::async_trait;
 use doido_core::Result;
 use doido_model::sea_orm::DatabaseConnection;

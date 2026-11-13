@@ -1,8 +1,8 @@
 //! Axum middleware that resolves auth identity via enabled strategies.
 
 use crate::error::AuthError;
-use crate::identity::AuthIdentity;
 use crate::state::global;
+use crate::user_model::AuthIdentity;
 use axum::body::Body;
 use axum::http::Request;
 use axum::middleware::Next;

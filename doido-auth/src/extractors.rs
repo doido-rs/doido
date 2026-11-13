@@ -1,10 +1,10 @@
 //! Axum extractors for authenticated requests.
 
 use crate::error::AuthError;
-use crate::identity::AuthIdentity;
 use crate::state::global;
 use crate::strategy::{identity_from_parts, require_identity};
 use crate::user::UserModel;
+use crate::user_model::AuthIdentity;
 use crate::user_model::FetchPlan;
 use axum::extract::FromRequestParts;
 use axum::http::request::Parts;

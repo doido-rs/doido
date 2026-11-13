@@ -1,6 +1,7 @@
 //! Generic user persistence contract — replaces the legacy [`AuthUser`] surface.
 
 pub mod action;
+pub mod identity;
 pub mod plan;
 pub mod row;
 pub mod sql;
@@ -10,6 +11,7 @@ pub mod store;
 pub mod redis_store;
 
 pub use action::{UserPatchBuilder, UserStoreAction};
+pub use identity::AuthIdentity;
 pub use plan::{FetchContribution, FetchPlan, UserField};
 pub use row::{SignInRow, UserRow};
 pub use store::{build_user_store, SeaOrmUserStore, UserStore};

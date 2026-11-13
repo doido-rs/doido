@@ -1,13 +1,13 @@
 //! Extractor tests.
 
 use doido_auth::extractors::{AuthToken, CurrentUser, MaybeUser, RequireAuth};
-use doido_auth::identity::AuthIdentity;
 use doido_auth::layer::auth_layer;
 use doido_auth::testing::{
     create_test_user, init_test_auth, jwt_for_user, send, send_with_headers, test_auth_config,
     test_jwt_auth_config, TestUser,
 };
 use doido_auth::AuthError;
+use doido_auth::AuthIdentity;
 use doido_controller::axum::response::IntoResponse;
 use doido_controller::axum::{routing::get, Router};
 use doido_model::testing::TestDb;

@@ -6,7 +6,6 @@ pub mod error;
 pub mod extractors;
 pub mod framework_views;
 pub mod i18n;
-pub mod identity;
 pub mod layer;
 pub mod middleware;
 pub mod oauth;
@@ -52,7 +51,6 @@ pub use error::AuthError;
 pub use extractors::{AuthToken, CurrentUser, MaybeUser, RequireAuth};
 pub use framework_views::register_views;
 pub use i18n::register_locales;
-pub use identity::AuthIdentity;
 pub use layer::{auth_layer, current_identity, current_user};
 pub use middleware::{
     authenticate_global as authenticate, complete_session_sign_in as sign_in_with_session,
@@ -70,8 +68,9 @@ pub use strategy::session::{
 pub use strategy::AuthStrategy;
 pub use user::{authenticate_password, RegisterableUserModel, UserModel};
 pub use user_model::{
-    build_user_store, find_by_email_mapped, find_by_id_mapped, FetchContribution, FetchPlan,
-    SeaOrmUserStore, SignInRow, UserField, UserPatchBuilder, UserRow, UserStore, UserStoreAction,
+    build_user_store, find_by_email_mapped, find_by_id_mapped, AuthIdentity, FetchContribution,
+    FetchPlan, SeaOrmUserStore, SignInRow, UserField, UserPatchBuilder, UserRow, UserStore,
+    UserStoreAction,
 };
 
 #[cfg(feature = "auth-2fa")]

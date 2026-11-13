@@ -1,8 +1,8 @@
 //! Cookie/session strategy — integrates with `doido_controller::session`.
 
 use crate::config::AuthConfig;
-use crate::identity::AuthIdentity;
 use crate::strategy::AuthStrategy;
+use crate::user_model::AuthIdentity;
 use async_trait::async_trait;
 use doido_controller::session::{EncryptedCookieSessionStore, Session};
 use doido_core::Result;

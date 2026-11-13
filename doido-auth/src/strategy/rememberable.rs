@@ -4,8 +4,8 @@ pub use crate::middleware::rememberable::{
     cookie_value, forget, record_remember, RememberableMiddleware, REMEMBER_COOKIE,
 };
 
-use crate::identity::AuthIdentity;
 use crate::strategy::AuthStrategy;
+use crate::user_model::AuthIdentity;
 use async_trait::async_trait;
 use doido_controller::CookieJar;
 use doido_core::Result;
