@@ -22,7 +22,7 @@ impl RegistrationsController {
     }
 
     /// POST /users/sign_up
-    pub async fn create(mut ctx: doido::controller::Context) -> doido::Result<Response> {
+    pub async fn create(ctx: &mut doido::controller::Context) -> doido::Result<Response> {
         let form: SignUpForm = ctx.form().await?;
         if form.password != form.password_confirmation {
             return Ok(ctx.render(

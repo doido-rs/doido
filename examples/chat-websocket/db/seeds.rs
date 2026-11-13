@@ -16,7 +16,8 @@ pub async fn run(db: &DatabaseConnection) -> doido::Result<()> {
 
         if Entity::find().one(db).await?.is_none() {
             let digest = hash_password("password")?;
-            Model::register(db, "admin@example.com".into(), digest).await?;
+            let store = doido_auth::user_model::SeaOrmUserStore::new(db.clone());
+            Model::register(store.as_ref(), "admin@example.com".into(), digest).await?;
             println!("seeded initial user: admin@example.com / password");
         }
 
@@ -27,7 +28,8 @@ pub async fn run(db: &DatabaseConnection) -> doido::Result<()> {
             .is_none()
         {
             let digest = hash_password("password")?;
-            Model::register(db, "user@example.com".into(), digest).await?;
+            let store = doido_auth::user_model::SeaOrmUserStore::new(db.clone());
+            Model::register(store.as_ref(), "user@example.com".into(), digest).await?;
             println!("seeded demo user: user@example.com / password");
         }
     }
