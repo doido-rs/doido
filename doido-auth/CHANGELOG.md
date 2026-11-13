@@ -18,6 +18,13 @@ documented in `RELEASING.md` at the repository root.
 - Sign-in validation uses a composable [`FetchPlan`](src/user_model/plan.rs) so enabled middleware columns load in **one** `UserStore::fetch_by_email` call.
 - `auth.user_store` config (`sea_orm` default, optional `redis` with feature `auth-redis`).
 - `sign_out` is async and accepts an optional email (remember-me cleanup).
+- Built-in HTTP surface moved under [`src/controllers/`](src/controllers/) (`*_controller.rs`, `layer`, `extractors`, `state`, `messages`). Crate-root `layer`, `extractors`, `state`, `user`, and `oauth` modules are compatibility shims.
+- OAuth providers and `OmniauthableMiddleware` live in [`middleware/omniauthable.rs`](src/middleware/omniauthable.rs); legacy `src/oauth.rs` and `src/handlers.rs` removed.
+- 2FA logic in `middleware/two_factorable.rs` (feature `auth-2fa`).
+
+### Added
+
+- [`register_middleware`](src/middleware/registry.rs) for app-defined [`AuthMiddleware`](src/middleware/trait_.rs) hooks; docs include custom strategy (`X-Api-Key`) and audit middleware examples.
 
 ## 0.0.32-test2 - 2026-10-15
 

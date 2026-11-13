@@ -1682,13 +1682,12 @@
       "notes": "Runtime CRUD e2e green via `make example`: `doido new blog --database=sqlite` + `generate scaffold Post title:string body:text --api`, build, `db create`/`db migrate` on temp sqlite, boot the app's own `server` on an ephemeral port, HTTP POST/GET/PATCH/DELETE /posts (204 on delete). Caught + fixed a real bug: --api scaffolds injected a full resources! referencing nonexistent new/edit actions -> now emits `except: [new, edit]`. e2e tempdir moved off the small /tmp tmpfs onto the workspace target/ (real disk) so the framework+app+migration build fits."
     },
     {
-      "title": "doido-auth crate scaffold + AuthUser trait + config",
-      "description": "As a Doido user, I want a doido-auth crate with a generic AuthUser trait and YAML config loading so apps can plug in any SeaORM user model, per docs/16-auth.md.",
+      "title": "doido-auth crate scaffold + UserModel + config",
+      "description": "As a Doido user, I want a doido-auth crate with UserModel/UserStore and YAML config loading so apps can plug in any SeaORM user model, per docs/16-auth.md.",
       "acceptanceCriteria": [
-        "Failing test written FIRST (TDD) under doido-auth/tests/ that encodes: AuthUser trait + AuthConfig::from_yaml parsing the auth: section",
-        "doido-auth crate added to workspace (Cargo.toml members + workspace.dependencies); doido-auth/src/{lib,user,config}.rs with AuthUser trait and config types",
-        "AuthUser integrates with doido_model::password::HasSecurePassword for credential checks",
-        "Tick the 'Generic AuthUser trait' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
+        "Failing test written FIRST (TDD) under doido-auth/tests/ that encodes: UserModel trait + AuthConfig::from_yaml parsing the auth: section",
+        "doido-auth crate added to workspace; user_model/ + config; UserModel integrates with HasSecurePassword",
+        "Tick the 'Generic UserModel trait + UserStore' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
         "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
       ],
       "tag": "core",
@@ -1696,7 +1695,7 @@
       "id": "US-105",
       "priority": 105,
       "passes": true,
-      "notes": "Foundation story: crate layout, AuthUser trait, auth: YAML config. No extractors or routes yet."
+      "notes": "Foundation: UserModel + auth YAML. Legacy AuthUser naming removed; crate-root user shim re-exports user_model."
     },
     {
       "title": "Cookie/session auth strategy + CurrentUser extractor",
@@ -1704,7 +1703,7 @@
       "acceptanceCriteria": [
         "Failing test written FIRST (TDD) under doido-auth/tests/ that encodes: sign-in stores user_id in session; CurrentUser returns user; MaybeUser returns None when absent; 401 when required",
         "session strategy implemented integrating doido_controller::session; extractors CurrentUser<U>, MaybeUser<U>, RequireAuth as FromRequestParts",
-        "doido_auth::init() registers the session strategy; doido_auth::layer() middleware installs request extensions",
+        "doido_auth::init() registers the session strategy; doido_auth::auth_layer (controllers/layer) installs request extensions",
         "Tick the 'Cookie/session auth strategy' and 'Axum extractors' lines in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
         "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
       ],
@@ -1720,7 +1719,7 @@
       "description": "As a Doido user, I want JWT access/refresh tokens so API clients can authenticate via Authorization: Bearer, per docs/16-auth.md.",
       "acceptanceCriteria": [
         "Failing test written FIRST (TDD) under doido-auth/tests/jwt_test.rs that encodes: issue/verify/refresh/expire; wrong secret rejected",
-        "JwtStrategy implements AuthStrategy; tokens carry AuthUser::Id; refresh rotation optional via refresh_tokens table",
+        "JwtStrategy implements AuthStrategy; tokens carry UserModel::Id; refresh rotation optional via refresh_tokens table",
         "CurrentUser extractor accepts JWT when jwt strategy is enabled in config (strategy priority order)",
         "Tick the 'JWT bearer strategy' line in docs/RAILS8-GAP-ANALYSIS.md from [ ] to [x]",
         "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
@@ -1854,6 +1853,24 @@
       "priority": 114,
       "passes": true,
       "notes": "Helper trait + #[helper] in doido-controller; generate helper + scaffold/controller/resource integration in doido-generators; e2e helper.rs + kitchen_sink; docs/02-controller.md, docs/06b-generators.md, ARCHITECTURE.md updated."
+    },
+    {
+      "title": "UserStore + auth middleware pipeline + controllers layout",
+      "description": "As a Doido user, I want Devise modules as AuthMiddleware on a UserStore pipeline, built-in controllers under controllers/, and register_middleware/register_strategy extension points, per docs/16-auth.md.",
+      "acceptanceCriteria": [
+        "UserModel + UserStore (SeaORM + optional Redis) with FetchPlan/UserPatchBuilder; no raw SQL in module middleware",
+        "src/middleware/* Devise modules + pipeline; OAuth in middleware/omniauthable; handlers removed in favor of pipeline helpers",
+        "controllers/{layer,extractors,state,*_controller.rs}; crate-root shims for layer/extractors/state/user/oauth",
+        "doido-auth/tests: middleware_pipeline_test, registry_test, user_model/fetch_plan tests green",
+        "docs/16-auth.md, docs-blog reference/auth.*, ARCHITECTURE.md, harness updated with custom strategy + custom middleware examples",
+        "make verify passes (fmt + clippy -D warnings + cargo test --workspace)"
+      ],
+      "tag": "core",
+      "crate": "doido-auth",
+      "id": "US-115",
+      "priority": 115,
+      "passes": true,
+      "notes": "Landed on branch feature_verify_the_auth_extractors. Replaces legacy src/user.rs, src/handlers.rs, flat module files. See CHANGELOG doido-auth."
     }
   ]
 }
