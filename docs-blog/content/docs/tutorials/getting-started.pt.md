@@ -91,7 +91,7 @@ use doido::controller::{axum, routes};
 pub fn router() -> axum::Router {
     routes! {
         get!("/", HelloController::index);
-        // resources!(PostsController);   // todas as 7 rotas REST
+        // resource!(posts, PostsController);   // todas as 7 rotas REST
     }
 }
 ```

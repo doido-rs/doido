@@ -206,7 +206,7 @@ fn render_view(
 }
 
 /// Injects `use crate::controllers::<Controller>;` and a
-/// `resources!(<plural>, <Controller>);` line into `config/routes.rs`,
+/// `resource!(<plural>, <Controller>);` line into `config/routes.rs`,
 /// preserving existing routes. Idempotent on the resources line.
 ///
 /// API scaffolds omit the `new`/`edit` form actions (their controller has no
@@ -214,9 +214,9 @@ fn render_view(
 /// an API-only resource routes to only index/create/show/update/destroy.
 fn inject_route(routes: &str, plural: &str, controller: &str, api: bool) -> String {
     let resources = if api {
-        format!("resources!({plural}, {controller}, except: [new, edit]);")
+        format!("resource!({plural}, {controller}, except: [new, edit]);")
     } else {
-        format!("resources!({plural}, {controller});")
+        format!("resource!({plural}, {controller});")
     };
     if routes.contains(&resources) {
         return routes.to_string();
@@ -236,7 +236,7 @@ fn inject_route(routes: &str, plural: &str, controller: &str, api: bool) -> Stri
         lines.insert(pos, use_line);
     }
 
-    // Insert the resources! call as the last statement inside `routes! { … }`.
+    // Insert the resource! call as the last statement inside `routes! { … }`.
     if let Some(open) = lines.iter().position(|l| l.contains("routes!")) {
         // Find the matching closing brace of the routes! block.
         if let Some(close_rel) = lines[open..].iter().position(|l| l.trim() == "}") {

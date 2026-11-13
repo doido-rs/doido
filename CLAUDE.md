@@ -49,7 +49,7 @@ doido/                  ← workspace root (Cargo.toml)
 
 ## Interview Status
 
-- [x] 01-router — **Macro DSL, `resources!` with all 7 REST routes, `only:`/`except:`, namespace/scope; axum via `doido_controller::axum`. API mode (`[app] api_only` in `config/application.toml`) drops `new`/`edit` form routes at compile time.**
+- [x] 01-router — **Macro DSL, `resource!` (plural REST default, `singular: true`, nested blocks), `only:`/`except:`, member/collection on verb routes inside resource blocks, namespace/scope; axum via `doido_controller::axum`. API mode drops `new`/`edit` at compile time.**
 - [x] 02-controller — **`#[controller]` macro + trait, `#[before_action]`/`#[after_action]` attrs, controller helpers (`#[helper]`, `app/helpers/`), Tower middleware layers; re-exports axum**
 - [x] 03-model — **Re-exports sea-orm + sea-orm-migration + sea-orm-cli (`cli` feature); connection pool + test helpers (SQLite in-memory). Import only via `doido_model::sea_orm*` — never direct upstream deps**
 - [x] 04-view — **Tera default engine, swappable via `TemplateEngine` trait, convention-based template resolution**

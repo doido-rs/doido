@@ -49,7 +49,7 @@ async fn call(
 #[tokio::test]
 async fn singular_resource_has_no_id_and_no_index() {
     let app = doido_controller::routes! {
-        resource!(profile, profile);
+        resource!(profile, profile, singular: true);
     };
 
     assert_eq!(
