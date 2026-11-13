@@ -450,7 +450,7 @@ fn test_scaffold_generator_produces_multiple_files() {
     let routes = files.iter().find(|f| f.path == "config/routes.rs").unwrap();
     assert!(routes
         .content
-        .contains("resources!(posts, PostsController);"));
+        .contains("resource!(posts, PostsController);"));
     assert!(routes
         .content
         .contains("use crate::controllers::PostsController;"));
@@ -556,11 +556,11 @@ fn test_scaffold_api_emits_json_controller_and_no_views() {
     assert!(!ctrl.content.contains("ctx.render("));
 
     // API controllers have no new/edit form actions, so the injected route must
-    // exclude them — otherwise `resources!` references methods that don't exist.
+    // exclude them — otherwise `resource!` references methods that don't exist.
     let routes = files.iter().find(|f| f.path == "config/routes.rs").unwrap();
     assert!(routes
         .content
-        .contains("resources!(posts, PostsController, except: [new, edit]);"));
+        .contains("resource!(posts, PostsController, except: [new, edit]);"));
 }
 
 #[test]

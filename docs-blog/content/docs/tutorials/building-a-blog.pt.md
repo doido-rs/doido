@@ -73,7 +73,7 @@ Esse único comando escreveu:
 - uma migration para a tabela `posts`,
 - `app/controllers/posts_controller.rs` — um controller CRUD completo,
 - `app/views/posts/{index,show,new,edit,_form}.html.tera`,
-- e **injetou a rota** `resources!(posts, PostsController);` em `config/routes.rs`.
+- e **injetou a rota** `resource!(posts, PostsController);` em `config/routes.rs`.
 
 Como o gerador injeta a rota *junto* com o controller, a rota nunca aponta para um controller que
 ainda não existe. Agora transforme isso num blog customizando o que o scaffold produziu.
@@ -387,7 +387,7 @@ pub fn router() -> axum::Router {
         root!(PostsController::index);                              // GET / — o blog
         get!("/hello", HelloController::index);                    // demo do Doido, movida para o lado
 
-        resources!(posts, PostsController);                        // CRUD de /posts (do scaffold)
+        resource!(posts, PostsController);                        // CRUD de /posts (do scaffold)
         get!("/comments", CommentsController::index);              // stub do `generate controller`
         post!("/posts/{post_id}/comments", CommentsController::create);
 

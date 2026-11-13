@@ -132,7 +132,7 @@ fn auth_scaffold_adds_user_reference_and_auth_guards() {
     let routes = files.iter().find(|f| f.path == "config/routes.rs").unwrap();
     assert!(routes
         .content
-        .contains("resources!(articles, ArticlesController);"));
+        .contains("resource!(articles, ArticlesController);"));
 }
 
 #[test]

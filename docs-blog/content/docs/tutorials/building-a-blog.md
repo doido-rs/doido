@@ -73,7 +73,7 @@ That single command wrote:
 - a migration for the `posts` table,
 - `app/controllers/posts_controller.rs` — a full CRUD controller,
 - `app/views/posts/{index,show,new,edit,_form}.html.tera`,
-- and it **injected the route** `resources!(posts, PostsController);` into `config/routes.rs`.
+- and it **injected the route** `resource!(posts, PostsController);` into `config/routes.rs`.
 
 Because the generator injects the route *with* the controller, the route never points at a
 controller that doesn't exist yet. Now make it a blog by customizing what the scaffold produced.
@@ -423,7 +423,7 @@ pub fn router() -> axum::Router {
         root!(PostsController::index);                              // GET / — the blog
         get!("/hello", HelloController::index);                    // Doido's demo, moved aside
 
-        resources!(posts, PostsController);                        // /posts CRUD (from the scaffold)
+        resource!(posts, PostsController);                        // /posts CRUD (from the scaffold)
         get!("/comments", CommentsController::index);              // stub from `generate controller`
         post!("/posts/{post_id}/comments", CommentsController::create);
 

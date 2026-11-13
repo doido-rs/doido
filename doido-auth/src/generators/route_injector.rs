@@ -151,12 +151,12 @@ fn insert_use(lines: &mut Vec<String>, import: &str) {
     lines.insert(pos, import.to_string());
 }
 
-/// Injects `resources!(…)` for a scaffold/resource. Idempotent.
+/// Injects `resource!(…)` for a scaffold/resource. Idempotent.
 pub fn inject_resources(routes: &str, plural: &str, controller: &str, api: bool) -> String {
     let resources = if api {
-        format!("resources!({plural}, {controller}, except: [new, edit]);")
+        format!("resource!({plural}, {controller}, except: [new, edit]);")
     } else {
-        format!("resources!({plural}, {controller});")
+        format!("resource!({plural}, {controller});")
     };
     if routes.contains(&resources) {
         return routes.to_string();

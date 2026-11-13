@@ -27,7 +27,6 @@ mod posts {
     pub async fn destroy(Path(_id): Path<u64>) -> &'static str {
         "destroy"
     }
-    // member + collection actions
     pub async fn preview(Path(_id): Path<u64>) -> &'static str {
         "preview"
     }
@@ -44,10 +43,12 @@ async fn body_of(resp: doido_controller::axum::response::Response) -> String {
 #[tokio::test]
 async fn member_and_collection_routes_are_added() {
     let app = doido_controller::routes! {
-        resources!(posts, posts, member: [preview], collection: [search]);
+        resource!(posts, posts, {
+            get!(collection: "search", posts::search);
+            get!(member: "preview", posts::preview);
+        });
     };
 
-    // collection: GET /posts/search
     let search = app
         .clone()
         .oneshot(
@@ -61,7 +62,6 @@ async fn member_and_collection_routes_are_added() {
     assert_eq!(search.status(), StatusCode::OK);
     assert_eq!(body_of(search).await, "search");
 
-    // member: GET /posts/1/preview
     let preview = app
         .clone()
         .oneshot(
@@ -75,7 +75,6 @@ async fn member_and_collection_routes_are_added() {
     assert_eq!(preview.status(), StatusCode::OK);
     assert_eq!(body_of(preview).await, "preview");
 
-    // the standard show route still works
     let show = app
         .oneshot(
             Request::builder()
