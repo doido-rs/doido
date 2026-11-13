@@ -6,6 +6,7 @@
 //! `app/controllers/auth/` that mirror these defaults and can be extended.
 
 pub mod confirmations;
+pub mod messages;
 pub mod oauth;
 pub mod passwords;
 pub mod registrations;
@@ -15,6 +16,7 @@ pub mod sessions;
 pub mod two_factor;
 
 pub use confirmations::AuthConfirmations;
+pub use messages::{json_error, t};
 pub use oauth::AuthOauth;
 pub use passwords::AuthPasswords;
 pub use registrations::AuthRegistrations;

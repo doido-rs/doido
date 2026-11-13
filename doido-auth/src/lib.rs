@@ -8,7 +8,6 @@ pub mod framework_views;
 pub mod i18n;
 pub mod identity;
 pub mod layer;
-pub mod messages;
 pub mod middleware;
 pub mod oauth;
 pub mod route_mount;
@@ -46,6 +45,7 @@ pub use config::{
     load as load_config, AuthConfig, AuthModule, AuthRoutesConfig, JwtConfig, UserStoreConfig,
     UserStoreType, YamlConfig,
 };
+pub use controllers::messages;
 pub use controllers::{AuthOauth, AuthPasswords, AuthRegistrations, AuthSessions};
 pub use doido_auth_macros::{__auth_routes_decl, auth_controller, auth_routes, routes};
 pub use error::AuthError;

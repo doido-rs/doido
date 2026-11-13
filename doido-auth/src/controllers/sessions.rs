@@ -1,6 +1,6 @@
 //! Default sessions controller (`sign_in` / `sign_out`).
 
-use crate::messages::{json_error, t};
+use super::messages::{json_error, t};
 use crate::middleware::{
     complete_session_sign_in, cookie_value, pipeline_sign_in, record_remember, sign_out_context,
     REMEMBER_COOKIE,

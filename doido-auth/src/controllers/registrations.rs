@@ -1,7 +1,7 @@
 //! Default registrations controller (`sign_up`).
 
+use super::messages::{json_error, t};
 use crate::confirmable;
-use crate::messages::{json_error, t};
 use crate::middleware::{complete_session_sign_in, pipeline_sign_up};
 use crate::state::global;
 use crate::user::{RegisterableUserModel, UserModel};

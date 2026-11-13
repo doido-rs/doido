@@ -1,6 +1,6 @@
 //! Default passwords controller (`recoverable` reset request + update).
 
-use crate::messages::{json_error, t};
+use super::messages::{json_error, t};
 use crate::recoverable;
 use crate::state::global;
 use doido_auth_macros::auth_controller;
