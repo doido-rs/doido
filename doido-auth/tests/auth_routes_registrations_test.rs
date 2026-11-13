@@ -2,7 +2,9 @@
 //! `auth_routes!(TestUser)` (JSON mode), covering sign-up success and the
 //! taken-email / confirmation-mismatch error branches (422).
 
-use doido_auth::testing::{create_test_user, init_test_auth, send, test_auth_config, TestUser};
+use doido_auth::testing::{
+    create_test_user, ensure_users_table, init_test_auth, send, test_auth_config, TestUser,
+};
 use doido_model::testing::TestDb;
 use http::StatusCode;
 
@@ -18,6 +20,7 @@ async fn sign_up_creates_account_and_signs_in() {
     let _auth = init_test_auth(db.conn().clone(), test_auth_config())
         .await
         .unwrap();
+    ensure_users_table(db.conn()).await.unwrap();
 
     let resp = send(
         app(),
@@ -37,6 +40,7 @@ async fn sign_up_rejects_taken_email_with_422() {
     let _auth = init_test_auth(db.conn().clone(), test_auth_config())
         .await
         .unwrap();
+    ensure_users_table(db.conn()).await.unwrap();
     create_test_user(db.conn(), "dup@example.com", "secret123")
         .await
         .unwrap();
@@ -57,6 +61,7 @@ async fn sign_up_rejects_password_confirmation_mismatch() {
     let _auth = init_test_auth(db.conn().clone(), test_auth_config())
         .await
         .unwrap();
+    ensure_users_table(db.conn()).await.unwrap();
 
     let resp = send(
         app(),

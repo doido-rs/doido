@@ -1,7 +1,10 @@
-//! OAuth provider registry — abstract interface + config-driven OAuth 2.0 impl.
+//! OAuth / social sign-in (`omniauthable` Devise module) — providers + middleware.
 
-use crate::config::{OAuthProviderConfig, OAuthProviderType};
+use super::trait_::AuthMiddleware;
+use crate::config::{AuthModule, OAuthProviderConfig, OAuthProviderType};
 use crate::error::AuthError;
+use crate::state::{global, try_global};
+use async_trait::async_trait;
 use doido_core::Result;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -188,4 +191,48 @@ fn url_encode(value: &str) -> String {
         }
     }
     out
+}
+
+// --- Middleware / HTTP flow ---
+
+pub struct OmniauthableMiddleware;
+
+pub fn is_enabled() -> bool {
+    matches!(
+        try_global(),
+        Some(state) if state.config.has_module(AuthModule::Omniauthable)
+    )
+}
+
+/// Resolve a provider from boot-time config or the runtime registry.
+pub fn resolve_provider(name: &str) -> Result<Arc<dyn OAuthProvider>, AuthError> {
+    if !is_enabled() {
+        return Err(AuthError::OAuth(
+            "omniauthable module is disabled in auth.modules".into(),
+        ));
+    }
+    let state = global();
+    state
+        .oauth
+        .get(name)
+        .cloned()
+        .or_else(|| get_provider(name))
+        .ok_or_else(|| AuthError::OAuth(format!("unknown provider {name}")))
+}
+
+/// Build the provider authorization redirect URL.
+pub fn authorize_url(provider: &str, state: &str) -> Result<String, AuthError> {
+    resolve_provider(provider)?.authorize_url(state)
+}
+
+/// Exchange an authorization code for tokens.
+pub fn exchange_code(provider: &str, code: &str) -> Result<OAuthTokenResponse, AuthError> {
+    resolve_provider(provider)?.exchange_code(code)
+}
+
+#[async_trait]
+impl AuthMiddleware for OmniauthableMiddleware {
+    fn name(&self) -> &'static str {
+        "omniauthable"
+    }
 }

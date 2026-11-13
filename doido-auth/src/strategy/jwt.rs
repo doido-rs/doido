@@ -2,8 +2,8 @@
 
 use crate::config::JwtConfig;
 use crate::error::AuthError;
-use crate::identity::AuthIdentity;
 use crate::strategy::AuthStrategy;
+use crate::user_model::AuthIdentity;
 use async_trait::async_trait;
 use chrono::{Duration, Utc};
 use doido_core::Result;

@@ -13,7 +13,7 @@ controlador.
 
 ## Qué incluye
 
-- **Trait `AuthUser`** — vincula la autenticación a cualquier modelo SeaORM; sin struct
+- **`UserModel` + `UserStore`** — vincula la autenticación a cualquier backend de usuario; sin struct
   User fija en el framework.
 - **Estrategias enchufables** — sesión por cookie (predeterminado), JWT bearer y backends
   personalizados vía `AuthStrategy`.

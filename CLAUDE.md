@@ -25,7 +25,7 @@ decisions (config), and the runtime boot sequence — see the authoritative
 | [docs/11-core.md](docs/11-core.md) | `doido-core` | Shared errors, inflector, utilities, Active Support analogue |
 | [docs/12-cable.md](docs/12-cable.md) | `doido-cable` | WebSocket channels, pub/sub, Action Cable analogue |
 | [docs/15-storage.md](docs/15-storage.md) | `doido-storage` | Attached-file storage: blobs, polymorphic attachments, pluggable services (disk/memory/S3/R2/Azure/GCS) + custom-adapter registry, Active Storage analogue |
-| [docs/16-auth.md](docs/16-auth.md) | `doido-auth` | Unified authentication: generic `AuthUser`, axum extractors, cookie/JWT/OAuth strategies, optional 2FA, pre-built session/registration routes, Devise analogue |
+| [docs/16-auth.md](docs/16-auth.md) | `doido-auth` | Unified authentication: `UserModel`/`UserStore`, middleware pipeline, axum extractors, cookie/JWT/OAuth strategies, optional 2FA, pre-built session/registration routes, Devise analogue |
 | [docs/17-release-process.md](docs/17-release-process.md) | _process_ | Release-driven branching (`develop`/`master`/`*-stable`/`release/*`), SemVer, per-crate changelogs, maintenance window — see [RELEASING.md](RELEASING.md) |
 
 ## Workspace Layout
@@ -63,7 +63,7 @@ doido/                  ← workspace root (Cargo.toml)
 - [x] 11-core — **`thiserror` per crate + `anyhow` at app level, all inflections + `config/inflections.rs` for custom rules**
 - [x] 12-cable — **`#[channel]` macro + trait, pluggable PubSub (memory/redis/db), middleware+`CableConnection` auth, ActionCable wire protocol, generator added**
 - [x] 15-storage — **Pluggable `Service` (disk default/memory/S3/R2/Azure/GCS + custom-adapter registry via `register_adapter`/`type:`), blobs+polymorphic attachments (raw SQL), HMAC signed ids/URLs, axum redirect+proxy+direct-upload serving, `storage:install`/`storage:adapter` generators; variants/previews deferred**
-- [x] 16-auth — **`AuthUser` trait, axum extractors (`CurrentUser`/`MaybeUser`/`RequireAuth`/`AuthToken`), pluggable strategies (cookie/JWT/OAuth2), optional 2FA (`auth-2fa`), pre-built `routes::mount`. Devise-style `auth.modules` config (module-aware `auth:install`: per-module migration columns + `only:` routes; validatable/trackable behaviors live). Built-in-by-default: `doido new --auth`/`auth:install` copy no controllers/views — auth runs on framework built-in controllers + overridable framework views (`doido-view` template registry); `auth:controllers` ejects them (devise:controllers/views analogue). Generators in `doido-auth` (CLI-visible when installed). Release e2e: `auth_generators` + `auth_install` (`#[ignore]`, `make release-e2e`).**
+- [x] 16-auth — **`UserModel`/`UserStore`, `AuthMiddleware` pipeline + `register_middleware`, axum extractors/layer/state under `controllers/`, pluggable strategies (`register_strategy`), OAuth in `middleware::omniauthable`, optional 2FA (`two_factorable`, `auth-2fa`), pre-built `routes::mount`. Devise-style `auth.modules` config (module-aware `auth:install`: per-module migration columns + `only:` routes). Built-in-by-default: `doido new --auth`/`auth:install` copy no controllers/views — auth runs on framework built-in `*_controller.rs` + overridable framework views; `auth:controllers` ejects them. Generators in `doido-auth` (CLI-visible when installed). Release e2e: `auth_generators` + `auth_install` (`#[ignore]`, `make release-e2e`).**
 
 ## Tutorial & docs standard (MUST follow)
 

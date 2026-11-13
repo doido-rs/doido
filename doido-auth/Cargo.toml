@@ -25,6 +25,7 @@ axum.workspace = true
 http.workspace = true
 tower.workspace = true
 tokio = { workspace = true, features = ["sync"] }
+redis = { workspace = true, optional = true }
 ureq.workspace = true
 totp-lite = { workspace = true, optional = true }
 tracing.workspace = true
@@ -32,6 +33,7 @@ tracing.workspace = true
 [features]
 default = ["generators"]
 generators = []
+auth-redis = ["dep:redis"]
 auth-2fa = ["dep:totp-lite", "doido-auth-macros/auth-2fa"]
 sqlite = ["doido-model/sqlite"]
 postgres = ["doido-model/postgres"]

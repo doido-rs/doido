@@ -1,8 +1,10 @@
 //! Default registrations controller (`sign_up`).
 
-use crate::handlers::{register_user, sign_in};
-use crate::messages::{json_error, t};
-use crate::user::{AuthUser, RegisterableAuthUser};
+use super::messages::{json_error, t};
+use crate::confirmable;
+use crate::middleware::{complete_session_sign_in, pipeline_sign_up};
+use crate::state::global;
+use crate::user_model::{RegisterableUserModel, UserModel};
 use doido_auth_macros::auth_controller;
 use doido_core::Result;
 use doido_model::password::HasSecurePassword;
@@ -10,7 +12,6 @@ use serde::Deserialize;
 use serde::Serialize;
 use std::marker::PhantomData;
 
-/// Default registrations controller for [`auth_routes!`](crate::auth_routes).
 pub struct AuthRegistrations<U>(PhantomData<U>);
 
 #[derive(Debug, Deserialize)]
@@ -24,15 +25,13 @@ pub struct SignUpForm {
 #[auth_controller]
 impl<U> AuthRegistrations<U>
 where
-    U: AuthUser + HasSecurePassword + RegisterableAuthUser + Serialize + Send + Sync + 'static,
+    U: UserModel + HasSecurePassword + RegisterableUserModel + Serialize + Send + Sync + 'static,
 {
-    /// GET `{prefix}/sign_up` — registration form (HTML mode).
     pub async fn new(ctx: doido_controller::Context) -> doido_controller::Response {
         ctx.render("auth/sign_up", serde_json::json!({}))
     }
 
-    /// POST `{prefix}/sign_up` — create an account and sign in.
-    pub async fn create(mut ctx: doido_controller::Context) -> Result<doido_controller::Response> {
+    pub async fn create(ctx: &mut doido_controller::Context) -> Result<doido_controller::Response> {
         let json = ctx.wants_json();
         let form: SignUpForm = if json {
             ctx.body_json().await?
@@ -46,32 +45,33 @@ where
             }
         }
 
-        let db = ctx.db().clone();
-        let user =
-            match register_user::<U, _, _>(&db, &form.email, &form.password, |email, digest| {
-                let db = db.clone();
-                async move { U::register(&db, email, digest).await }
-            })
-            .await
-            {
-                Ok(user) => user,
-                Err(crate::error::AuthError::EmailTaken) => {
-                    return registration_error(ctx, json, &t("auth.email_taken"));
-                }
-                // `validatable`: surface validation failures as 422, not 500.
-                Err(crate::error::AuthError::Validation(msg)) => {
-                    return registration_error(ctx, json, &msg);
-                }
-                Err(e) => return Err(doido_core::anyhow::anyhow!(e.to_string())),
-            };
+        let store = global().store.clone();
+        let user = match pipeline_sign_up::<U, _, _>(
+            store.as_ref(),
+            &form.email,
+            &form.password,
+            |email, digest| {
+                let store = store.clone();
+                async move { U::register(store.as_ref(), email, digest).await }
+            },
+        )
+        .await
+        {
+            Ok(user) => user,
+            Err(crate::error::AuthError::EmailTaken) => {
+                return registration_error(ctx, json, &t("auth.email_taken"));
+            }
+            Err(crate::error::AuthError::Validation(msg)) => {
+                return registration_error(ctx, json, &msg);
+            }
+            Err(e) => return Err(doido_core::anyhow::anyhow!(e.to_string())),
+        };
 
-        // `confirmable`: don't sign in yet — send a confirmation email and ask the
-        // user to confirm their address first.
-        if crate::confirmable::is_enabled() {
+        if confirmable::is_enabled() {
             if let Some(token) =
-                crate::confirmable::generate_confirmation(ctx.db(), &form.email).await?
+                confirmable::generate_confirmation(store.as_ref(), &form.email).await?
             {
-                let _ = crate::confirmable::send_confirmation_email(&form.email, &token).await;
+                let _ = confirmable::send_confirmation_email(&form.email, &token).await;
             }
             return if json {
                 Ok(ctx.json(serde_json::json!({ "status": "confirmation_sent" })))
@@ -83,7 +83,7 @@ where
             };
         }
 
-        sign_in(ctx, &user)?;
+        complete_session_sign_in(ctx.session(), &user);
         if json {
             Ok(ctx.json(user))
         } else {

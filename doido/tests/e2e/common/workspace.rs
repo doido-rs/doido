@@ -172,7 +172,11 @@ fn auth_base_is_valid(dir: &Path, _api: bool) -> bool {
             content.contains("pub use super::_entities::users::*")
                 && content.contains("impl ActiveModelBehavior for ActiveModel {}")
                 && content.contains(".map_err(Into::into)")
+                && content.contains("UserStore")
         })
+        .unwrap_or(false);
+    let entity_ok = fs::read_to_string(app.join("app/models/_entities/users.rs"))
+        .map(|content| content.contains("Default"))
         .unwrap_or(false);
     let cargo_ok = fs::read_to_string(app.join("Cargo.toml"))
         .map(|content| {
@@ -184,6 +188,9 @@ fn auth_base_is_valid(dir: &Path, _api: bool) -> bool {
     let seed_ok = app.join("db/seeds.rs").is_file()
         && fs::read_to_string(app.join("src/main.rs"))
             .map(|content| content.contains(".seeder(seed::run)"))
+            .unwrap_or(false)
+        && fs::read_to_string(app.join("db/seeds.rs"))
+            .map(|content| content.contains("SeaOrmUserStore"))
             .unwrap_or(false);
     // Module-aware install writes the Devise-style `modules:` list into the auth
     // config; a base predating that is stale and must be regenerated.
@@ -197,6 +204,7 @@ fn auth_base_is_valid(dir: &Path, _api: bool) -> bool {
         && routes_ok
         && no_copy_ok
         && user_ok
+        && entity_ok
         && main_ok
         && modules_ok
 }

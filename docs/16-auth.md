@@ -1,15 +1,15 @@
 # 16 — Auth (`doido-auth`)
 
 Unified authentication for Doido — the **Devise + OmniAuth + JWT** analogue. It
-provides a generic `AuthUser` trait bound to your SeaORM model, pluggable
+provides a generic [`UserModel`](doido-auth/src/user_model/mod.rs) trait bound to your SeaORM model, pluggable
 **strategies** (cookie session, JWT bearer, OAuth/OAuth2), optional **2FA** (TOTP),
 and **pre-built session/registration routes** that work after a single line in
 `config/routes.rs`. Axum **extractors** (`CurrentUser`, `MaybeUser`, `RequireAuth`)
 compose with the existing `doido-controller` session stack and `#[controller]`
 filters.
 
-> **Status (2026-08-14): implemented, built-in-by-default.** Crate `doido-auth` ships with
-> `AuthUser`, cookie/JWT/OAuth strategies, optional 2FA (`auth-2fa`), axum extractors,
+> **Status (2026-11-12): implemented, built-in-by-default.** Crate `doido-auth` ships with
+> `UserModel` + `UserStore`, cookie/JWT/OAuth strategies, optional 2FA (`auth-2fa`), axum extractors,
 > `routes::mount`, and generators (`auth:install` / `auth:controllers` / `auth:controller` /
 > `auth:scaffold`). Generators appear in `doido generate` only when `doido-auth` is a project
 > dependency. Password hashing lives in `doido-model::password`; auth builds on it.
@@ -30,22 +30,20 @@ filters.
 
 ## Crate map
 
-| Module | Responsibility |
-|--------|----------------|
-| `user` | `AuthUser` trait — the generic contract your User model implements |
-| `config` | `auth:` section of `config/<env>.yml` → `AuthConfig` (strategies, 2FA, OAuth clients) |
-| `session` | Cookie/session strategy — integrates with `doido_controller::session` |
-| `jwt` | JWT bearer strategy — sign/verify access + refresh tokens |
-| `oauth` | `OAuthProvider` trait, config-backed `OAuth2Provider`, provider registry |
-| `two_factor` | Optional TOTP 2FA — enroll, verify, backup codes (feature `auth-2fa`) |
-| `extractors` | Axum `FromRequestParts` impls: `CurrentUser`, `MaybeUser`, `RequireAuth` |
-| `routes` | Pre-built `AuthRoutes` controller + route table for sessions/registration/2FA |
-| `generators` | **`auth:install` / `auth:controller` / `auth:scaffold`** — owned by this crate; registered into the CLI only when the app depends on `doido-auth` |
-| `registry` | Custom strategy registration (`register_strategy`) |
+| Path | Responsibility |
+|------|----------------|
+| `user_model/` | [`UserModel`](doido-auth/src/user_model/mod.rs), [`UserStore`](doido-auth/src/user_model/store.rs), [`FetchPlan`](doido-auth/src/user_model/plan.rs), [`AuthIdentity`](doido-auth/src/user_model/identity.rs) |
+| `controllers/` | Built-in auth controllers (`*_controller.rs`), plus [`layer`](doido-auth/src/controllers/layer.rs), [`extractors`](doido-auth/src/controllers/extractors.rs), [`state`](doido-auth/src/controllers/state.rs), [`messages`](doido-auth/src/controllers/messages.rs) |
+| `middleware/` | Devise modules (`lockable`, `confirmable`, …) + [`pipeline`](doido-auth/src/middleware/pipeline.rs); OAuth lives in [`omniauthable`](doido-auth/src/middleware/omniauthable.rs) |
+| `strategy/` | Cookie session, JWT, remember cookie; [`register_strategy`](doido-auth/src/strategy/registry.rs) for custom backends |
+| `config` | `auth:` section of `config/<env>.yml` → `AuthConfig` |
+| `route_mount` | Programmatic `mount` router when not using generated routes |
+| `generators` | `auth:install` / `auth:controller` / `auth:scaffold` (CLI-visible when the dep is installed) |
 | `testing` | In-memory fakes, test helpers, signed-token fixtures |
 
-Proc-macro crate **`doido-auth/macros`** (optional v1 follow-up): `#[auth_user]`
-derives `AuthUser` from a SeaORM model with conventional column names.
+Crate-root `doido_auth::user`, `doido_auth::oauth`, `doido_auth::layer`, `doido_auth::extractors`, and `doido_auth::state` are thin re-export shims; prefer `user_model`, `controllers::*`, `middleware::omniauthable`, etc. in new code.
+
+Proc-macro crate **`doido-auth/macros`** (optional v1 follow-up): `#[auth_user]` derive for conventional SeaORM user columns (manual `UserModel` impl is v1).
 
 ## Rails analogue
 
@@ -65,7 +63,7 @@ derives `AuthUser` from a SeaORM model with conventional column names.
 - **Separate crate** — `doido-auth` is independently usable and testable; not merged
   into `doido-controller` (sessions stay in controller; auth *uses* them).
 - **Generic user model** — apps configure one SeaORM entity as the auth subject via
-  `AuthUser`; no hard-coded User struct in the framework.
+  `UserModel` + `UserStore`; no hard-coded User struct in the framework.
 - **Strategies are pluggable and composable** — cookie session is the default;
   JWT and OAuth are opt-in via config; multiple strategies can be active (e.g.
   session for HTML, JWT for API).
@@ -87,12 +85,13 @@ derives `AuthUser` from a SeaORM model with conventional column names.
   `auth:install`; for existing apps, `cargo add doido-auth` (or equivalent) must
   happen before auth generators become available.
 
-## `AuthUser` trait
+## `UserModel` trait
 
-Your User model implements this trait (manually or via `#[auth_user]`):
+Your User model implements this trait (manually or via generated `user.rs` from `auth:install`):
 
 ```rust
-use doido_auth::AuthUser;
+use doido_auth::{UserModel, RegisterableUserModel};
+use doido_auth::user_model::{FetchPlan, UserRow, UserStore};
 use doido_model::sea_orm::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
@@ -107,25 +106,37 @@ pub struct Model {
     pub two_factor_enabled: bool,
 }
 
-impl AuthUser for Model {
+impl UserModel for Model {
     type Id = i64;
 
     fn id(&self) -> Self::Id { self.id }
     fn email(&self) -> &str { &self.email }
     fn password_digest(&self) -> Option<&str> { Some(&self.password_digest) }
 
-    // Optional overrides (defaults use conventional column names above)
-    fn find_by_email(db: &DatabaseConnection, email: &str) -> impl Future<Output = Result<Option<Self>>> + Send {
-        Entity::find().filter(Column::Email.eq(email)).one(db)
-    }
-    fn find_by_id(db: &DatabaseConnection, id: Self::Id) -> impl Future<Output = Result<Option<Self>>> + Send {
-        Entity::find_by_id(id).one(db)
-    }
+    fn from_row(row: UserRow) -> Result<Self, AuthError> { /* map columns */ }
+    async fn find_by_email(store: &dyn UserStore, email: &str, plan: &FetchPlan) -> /* ... */ { }
+    async fn find_by_id(store: &dyn UserStore, id: Self::Id, plan: &FetchPlan) -> /* ... */ { }
+    async fn insert(store: &dyn UserStore, row: UserRow) -> /* ... */ { }
 }
 ```
 
-`AuthUser` requires `Clone + Send + Sync + 'static` and integrates with
+`UserModel` requires `Clone + Send + Sync + 'static` and integrates with
 `doido_model::password::HasSecurePassword` for credential verification.
+
+### Auth middleware pipeline
+
+Devise modules are [`AuthMiddleware`](doido-auth/src/middleware/trait_.rs) under `doido_auth::middleware`, wired from `auth.modules` at boot and extended with [`register_middleware`](doido-auth/src/middleware/registry.rs). Sign-in runs [`pipeline_sign_in`](doido-auth/src/middleware/pipeline.rs): one merged `FetchPlan` + `UserStore::fetch_by_email`, then middleware callbacks.
+
+### User store
+
+```yaml
+auth:
+  user_store:
+    type: sea_orm
+    # type: redis  # requires doido-auth feature auth-redis
+```
+
+Module middleware must not use raw SQL or `DatabaseConnection`. Reads use `UserStore::fetch_by_email` / `fetch_by_field` with `UserRow` and `FetchPlan`. Each middleware module builds `UserPatchBuilder::by_email(…).set(UserField::…, …).build()` (or `UserStoreAction::RecordSuccessfulSignIn`) and calls `UserStore::apply`. `UserStoreAction` is keyed on `UserField`, not Devise module names; SQL and Redis backends live under `doido-auth/src/user_model/`.
 
 ## Configuration
 
@@ -202,10 +213,10 @@ With no `--modules`, install keeps the permissive bare `auth_routes!(User)`.
 |---------------|--------------|-------------------|--------|--------|
 | database_authenticatable | `database_authenticatable` | `email`, `password_digest` | `sessions` | ✅ implemented |
 | registerable | `registerable` | — | `registrations` | ✅ implemented |
-| omniauthable | `omniauthable` | — | `oauth` | ✅ implemented (OAuth2) |
+| oauth | `omniauthable` | — | `oauth` | `OmniauthableMiddleware` (`omniauthable`); providers in `middleware::omniauthable` |
 | validatable | `validatable` | — | — | ✅ implemented (email + length) |
 | trackable | `trackable` | `sign_in_count`, `current/last_sign_in_at`, `current/last_sign_in_ip` | — | ✅ implemented (recorded on sign-in) |
-| two_factor | `two_factor_authenticatable` | `two_factor_secret`, `two_factor_enabled` | `two_factor` | ⚙️ TOTP core; enroll/challenge stubs (`auth-2fa`) |
+| two_factor | `two_factor_authenticatable` | `two_factor_secret`, `two_factor_enabled` | `two_factor` | `TwoFactorableMiddleware` (`two_factorable`); TOTP enroll/verify (`auth-2fa`) |
 | recoverable | `recoverable` | `reset_password_token`, `reset_password_sent_at` | `passwords` (`new`/`create`/`edit`/`update`) | ✅ token reset + email via doido-mailer (`reset_password_within`) |
 | rememberable | `rememberable` | `remember_created_at` | — | ✅ persistent signed remember cookie + `RememberStrategy` auto-login (`remember_for`) |
 | timeoutable | `timeoutable` | — | — | ✅ absolute session-age expiry (`auth.timeout`); idle-reset pending |
@@ -213,9 +224,8 @@ With no `--modules`, install keeps the permissive bare `auth_routes!(User)`.
 | lockable | `lockable` | `failed_attempts`, `unlock_token`, `locked_at` | `unlock` | ✅ lock after `maximum_attempts`, time-based auto-unlock (`unlock_in`); email unlock pending |
 
 Legend: ✅ full runtime behavior · ⚙️ config + schema + routing recognized; some runtime
-behavior is a tracked follow-up. Every module is selectable and behavioral today except
-`two_factor_authenticatable`, whose TOTP enroll/challenge handlers remain stubs (feature
-`auth-2fa`). All behaviors live in the built-in handlers and are gated on `auth.modules`,
+behavior is a tracked follow-up. Built-in `AuthTwoFactor` routes are still stubs; TOTP
+logic lives in `two_factorable` middleware (feature `auth-2fa`). All behaviors are gated on `auth.modules`,
 so they work whether you use the built-in controllers or eject with `auth:controllers`.
 
 **Config knobs.** `password_length` (validatable), `timeout` (timeoutable),
@@ -227,8 +237,8 @@ so they work whether you use the built-in controllers or eject with `auth:contro
 ### Cookie / session (default)
 
 Uses the existing `doido_controller::session` stack. On successful sign-in, auth
-stores `user_id` (typed via `AuthUser::Id`) in the session. The `CurrentUser`
-extractor loads the user from the DB on each request.
+stores `user_id` (typed via `UserModel::Id`) in the session. The `CurrentUser`
+extractor loads the user from the store on each request.
 
 ```rust
 // Boot (generated by auth:install)
@@ -251,9 +261,9 @@ async fn profile(CurrentUser(user): CurrentUser<User>) -> impl IntoResponse {
 
 ### OAuth
 
-Providers implement the [`OAuthProvider`](doido-auth/src/oauth.rs) trait. Config
-entries with `type: oauth2` become [`OAuth2Provider`](doido-auth/src/oauth.rs)
-instances at boot; custom providers register via `register_provider`:
+Providers implement the [`OAuthProvider`](doido-auth/src/middleware/omniauthable.rs) trait. Config
+entries with `type: oauth2` become [`OAuth2Provider`](doido-auth/src/middleware/omniauthable.rs)
+instances at boot; custom providers register via `register_provider` (also re-exported from `doido_auth::oauth`):
 
 ```rust
 use doido_auth::oauth::{OAuthProvider, OAuthTokenResponse, register_provider};
@@ -274,7 +284,7 @@ Callback routes are part of `AuthRoutes` (`GET /auth/:provider/callback`).
 
 ## Axum extractors
 
-All extractors live in `doido_auth::extractors` and work with `doido_controller::axum`:
+Extractors are implemented under [`controllers/extractors.rs`](doido-auth/src/controllers/extractors.rs); import `doido_auth::extractors` (shim) or `doido_auth::controllers::extractors`. They work with `doido_controller::axum`:
 
 | Extractor | Behaviour | HTTP status on failure |
 |-----------|-----------|------------------------|
@@ -303,8 +313,8 @@ async fn home(MaybeUser(user): MaybeUser<User>) -> impl IntoResponse {
 ```
 
 Inside `#[controller]` actions, use the same types as handler parameters or call
-`doido_auth::current_user::<User>(&ctx)` which reads from request extensions set
-by the auth middleware layer.
+`doido_auth::current_user::<User>(&ctx.parts())` (from `controllers::layer`) which reads
+from request extensions set by [`auth_layer`](doido-auth/src/controllers/layer.rs).
 
 ## Optional 2FA (feature `auth-2fa`)
 
@@ -374,7 +384,7 @@ doido_auth::init(
 ```
 
 `init` registers enabled strategies, loads OAuth provider configs, and installs
-the auth middleware layer on the axum router (via `doido_auth::layer()`).
+the auth middleware layer on the axum router (via `doido_auth::auth_layer` / `doido_auth::layer::auth_layer`).
 
 ## Generators (crate-owned, conditionally visible)
 
@@ -486,7 +496,7 @@ Produces:
 - Migration: `users` table (`email`, `password_digest`, `created_at`, `updated_at`) plus
   the columns of each enabled [module](#modules) (e.g. `reset_password_token`,
   `confirmation_token`, `failed_attempts`, `sign_in_count`, …).
-- `app/models/user.rs` implementing `AuthUser` + `HasSecurePassword` (+ `RegisterableAuthUser`)
+- `app/models/user.rs` implementing `UserModel` + `HasSecurePassword` (+ `RegisterableUserModel`)
   and `app/models/_entities/users.rs` with the module fields.
 - Appends an `auth:` block (with the `modules:` list) to `config/development.yml` /
   `config/test.yml`.
@@ -557,23 +567,108 @@ by `doido generate auth:install`.
 
 ## Custom strategies
 
-Third-party auth backends (LDAP, SAML, magic link) implement `AuthStrategy`:
+Third-party request authentication (API keys, LDAP, magic-link headers) implements
+[`AuthStrategy`](doido-auth/src/strategy/mod.rs). Register **before** `doido_auth::init`,
+then list the strategy name in `auth.strategies` (consulted in order by
+[`auth_layer`](doido-auth/src/controllers/layer.rs) and extractors):
 
 ```rust
-pub trait AuthStrategy: Send + Sync {
-    fn name(&self) -> &str;
-    async fn authenticate(&self, parts: &Parts, db: &DatabaseConnection)
-        -> Result<Option<AuthIdentity>>;
+use async_trait::async_trait;
+use doido_auth::{register_strategy, AuthIdentity, AuthStrategy};
+use doido_core::Result;
+use doido_model::sea_orm::DatabaseConnection;
+use http::header;
+use http::request::Parts;
+use std::sync::Arc;
+
+struct ApiKeyStrategy {
+    expected: String,
 }
 
-doido_auth::register_strategy("ldap", Arc::new(LdapStrategy::new(config)));
+#[async_trait]
+impl AuthStrategy for ApiKeyStrategy {
+    fn name(&self) -> &str {
+        "api_key"
+    }
+
+    async fn authenticate(
+        &self,
+        parts: &Parts,
+        _db: &DatabaseConnection,
+    ) -> Result<Option<AuthIdentity>> {
+        let key = parts
+            .headers
+            .get("X-Api-Key")
+            .and_then(|v| v.to_str().ok());
+        Ok(match key {
+            Some(k) if k == self.expected => Some(AuthIdentity::new("service-account")),
+            _ => None,
+        })
+    }
+}
+
+register_strategy(
+    "api_key",
+    Arc::new(ApiKeyStrategy {
+        expected: std::env::var("API_KEY").expect("API_KEY"),
+    }),
+);
 ```
 
-Enable in config: `strategies: [cookie, ldap]`.
+```yaml
+auth:
+  strategies:
+    - cookie
+    - api_key
+```
+
+See also `doido-auth/tests/registry_test.rs` (`FixedIdentityStrategy`) for a minimal test double.
+
+## Custom middleware
+
+App-specific sign-in/sign-up hooks implement [`AuthMiddleware`](doido-auth/src/middleware/trait_.rs)
+and register with [`register_middleware`](doido-auth/src/middleware/registry.rs) **before**
+`init` (custom middleware runs after built-ins selected by `auth.modules`):
+
+```rust
+use async_trait::async_trait;
+use doido_auth::{
+    register_middleware, AuthError, AuthMiddleware,
+    middleware::context::{SignInContext, SignUpContext},
+};
+use std::sync::Arc;
+
+struct AuditSignIn;
+
+#[async_trait]
+impl AuthMiddleware for AuditSignIn {
+    fn name(&self) -> &str {
+        "audit_sign_in"
+    }
+
+    async fn after_sign_in_success(&self, ctx: &SignInContext<'_>) -> Result<(), AuthError> {
+        tracing::info!(email = %ctx.email, user_id = ?ctx.user_id, "signed in");
+        Ok(())
+    }
+
+    async fn before_sign_up(&self, ctx: &SignUpContext<'_>) -> Result<(), AuthError> {
+        if ctx.email.ends_with("@blocked.example") {
+            return Err(AuthError::Validation("domain not allowed".into()));
+        }
+        Ok(())
+    }
+}
+
+register_middleware(Arc::new(AuditSignIn));
+```
+
+Use `sign_in_fetch_plan()` to request extra columns via `FetchContribution` when your
+middleware needs fields beyond the default sign-in row. Mutations go through
+`UserPatchBuilder` + `UserStore::apply` — never raw SQL inside middleware.
 
 ## TDD surface
 
-- `user_test` — `AuthUser` trait object safety, default `find_by_*` helpers.
+- `user_model_test` / `fetch_plan_test` — `UserModel` mapping, `FetchPlan` merging, store fetches.
 - `session_test` — sign-in stores session, sign-out clears, tampered cookie rejected.
 - `jwt_test` — issue/verify/refresh/expire/revoke; wrong secret fails.
 - `oauth_test` — OAuth2 authorization URL + callback token exchange (mock HTTP).
@@ -601,8 +696,8 @@ Enable in config: `strategies: [cookie, ldap]`.
 
 ## Deferred (backlog)
 
-- `#[auth_user]` proc-macro derive (manual `AuthUser` impl is v1).
+- `#[auth_user]` proc-macro derive (manual `UserModel` impl is v1).
 - Magic-link / passwordless email sign-in.
 - SAML / WebAuthn strategies.
-- Multi-tenant / account scoping (`AuthUser` belongs to `Account`).
+- Multi-tenant / account scoping (`UserModel` belongs to `Account`).
 - Doorkeeper-style OAuth *provider* (issue tokens *to* third-party apps).

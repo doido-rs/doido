@@ -179,7 +179,7 @@ Each line reads: `- [ ] `[tag]` **Feature** — note. *(state)*`
 > Password hashing exists in `doido-model::password`; the items below are the unified
 > auth layer on top. Harness US-105→US-112 done; release e2e US-113 scaffolded.
 
-- [x] `[core]` **Generic `AuthUser` trait** — configurable SeaORM user model.
+- [x] `[core]` **Generic `UserModel` trait + `UserStore`** — configurable SeaORM (or Redis) user persistence.
 - [x] `[core]` **Axum extractors** (`CurrentUser`, `MaybeUser`, `RequireAuth`, `AuthToken`)
 - [x] `[core]` **Cookie/session auth strategy** — integrates with controller sessions.
 - [x] `[core]` **JWT bearer strategy** — access + refresh tokens.

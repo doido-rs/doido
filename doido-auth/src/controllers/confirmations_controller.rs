@@ -1,6 +1,7 @@
 //! Default confirmations controller (`confirmable` — confirm + resend).
 
 use crate::confirmable;
+use crate::state::global;
 use doido_auth_macros::auth_controller;
 use doido_core::Result;
 use serde::Deserialize;
@@ -33,7 +34,7 @@ where
             .map(|q| q.confirmation_token)
             .unwrap_or_default();
 
-        let confirmed = confirmable::confirm(ctx.db(), &token).await?;
+        let confirmed = confirmable::confirm(global().store.as_ref(), &token).await?;
         if !confirmed {
             return if json {
                 Ok(ctx.status(422))
@@ -61,7 +62,9 @@ where
             ctx.form().await?
         };
 
-        if let Some(token) = confirmable::generate_confirmation(ctx.db(), &form.email).await? {
+        if let Some(token) =
+            confirmable::generate_confirmation(global().store.as_ref(), &form.email).await?
+        {
             let _ = confirmable::send_confirmation_email(&form.email, &token).await;
         }
 

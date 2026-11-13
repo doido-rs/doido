@@ -1,16 +1,17 @@
 //! Axum extractors for authenticated requests.
 
 use crate::error::AuthError;
-use crate::identity::AuthIdentity;
 use crate::state::global;
 use crate::strategy::{identity_from_parts, require_identity};
-use crate::user::AuthUser;
+use crate::user_model::AuthIdentity;
+use crate::user_model::FetchPlan;
+use crate::user_model::UserModel;
 use axum::extract::FromRequestParts;
 use axum::http::request::Parts;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use http::header;
-use std::future::{ready, Future, Ready};
+use std::future::{ready, Future};
 
 /// Requires an authenticated user loaded from the database.
 pub struct CurrentUser<U>(pub U);
@@ -41,7 +42,7 @@ impl IntoResponse for AuthError {
 impl<S, U> FromRequestParts<S> for CurrentUser<U>
 where
     S: Send + Sync,
-    U: AuthUser,
+    U: UserModel,
 {
     type Rejection = AuthError;
 
@@ -50,12 +51,13 @@ where
         _state: &S,
     ) -> impl Future<Output = Result<Self, Self::Rejection>> + Send {
         let identity_result = require_identity(parts);
-        let db = global().db.clone();
+        let store = global().store.clone();
+        let plan = FetchPlan::minimal();
         async move {
             let identity = identity_result?;
             let id: U::Id = serde_json::from_value(identity.user_id)
                 .map_err(|e| AuthError::Internal(e.to_string()))?;
-            U::find_by_id(&db, id)
+            U::find_by_id(store.as_ref(), id, &plan)
                 .await
                 .map_err(|e| AuthError::Internal(e.to_string()))?
                 .ok_or(AuthError::Unauthorized)
@@ -67,7 +69,7 @@ where
 impl<S, U> FromRequestParts<S> for MaybeUser<U>
 where
     S: Send + Sync,
-    U: AuthUser,
+    U: UserModel,
 {
     type Rejection = std::convert::Infallible;
 
@@ -76,17 +78,21 @@ where
         _state: &S,
     ) -> impl Future<Output = Result<Self, Self::Rejection>> + Send {
         let identity = identity_from_parts(parts);
-        let db = global().db.clone();
+        let store = global().store.clone();
+        let plan = FetchPlan::minimal();
         async move {
             let user = match identity {
-                Some(identity) => {
-                    let id: U::Id = match serde_json::from_value(identity.user_id) {
-                        Ok(id) => id,
+                None => None,
+                Some(id) => {
+                    let typed: U::Id = match serde_json::from_value(id.user_id) {
+                        Ok(v) => v,
                         Err(_) => return Ok(MaybeUser(None)),
                     };
-                    U::find_by_id(&db, id).await.ok().flatten()
+                    U::find_by_id(store.as_ref(), typed, &plan)
+                        .await
+                        .ok()
+                        .flatten()
                 }
-                None => None,
             };
             Ok(MaybeUser(user))
         }
@@ -117,25 +123,13 @@ where
         parts: &mut Parts,
         _state: &S,
     ) -> impl Future<Output = Result<Self, Self::Rejection>> + Send {
-        let token = parts
+        let header = parts
             .headers
             .get(header::AUTHORIZATION)
-            .and_then(|v| v.to_str().ok())
-            .ok_or(AuthError::InvalidToken)
-            .and_then(|value| {
-                value
-                    .strip_prefix("Bearer ")
-                    .map(str::trim)
-                    .filter(|t| !t.is_empty())
-                    .map(str::to_string)
-                    .ok_or(AuthError::InvalidToken)
-            });
-        ready(token.map(AuthToken))
+            .and_then(|v| v.to_str().ok());
+        ready(match header {
+            Some(h) if h.starts_with("Bearer ") => Ok(AuthToken(h[7..].to_string())),
+            _ => Err(AuthError::Unauthorized),
+        })
     }
 }
-
-// Re-export axum for generated apps (mirrors doido-controller pattern).
-pub use axum;
-
-// Silence unused import when compiling with minimal features.
-type _ReadyCheck = Ready<Result<(), AuthError>>;

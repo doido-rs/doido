@@ -1,7 +1,7 @@
-//! `rememberable` module — remember cookie + strategy.
+//! `rememberable` module— remember cookie + strategy.
 
 use doido_auth::config::AuthConfig;
-use doido_auth::rememberable::{self, RememberStrategy, REMEMBER_COOKIE};
+use doido_auth::strategy::rememberable::{self, RememberStrategy, REMEMBER_COOKIE};
 use doido_auth::strategy::AuthStrategy;
 use doido_auth::testing::init_test_auth;
 use doido_auth::AuthModule;
@@ -55,12 +55,14 @@ async fn records_and_forgets_remember_timestamp() {
     };
     let _guard = init_test_auth(db.conn().clone(), cfg).await.unwrap();
 
-    rememberable::record_remember(db.conn(), "a@b.com")
+    rememberable::record_remember(doido_auth::testing::auth_store().as_ref(), "a@b.com")
         .await
         .unwrap();
     assert!(remember_created_at(&db).await.is_some());
 
-    rememberable::forget(db.conn(), "a@b.com").await.unwrap();
+    rememberable::forget(doido_auth::testing::auth_store().as_ref(), "a@b.com")
+        .await
+        .unwrap();
     assert!(remember_created_at(&db).await.is_none());
 }
 
@@ -112,7 +114,7 @@ async fn record_remember_noop_when_disabled() {
     };
     let _guard = init_test_auth(db.conn().clone(), cfg).await.unwrap();
 
-    rememberable::record_remember(db.conn(), "a@b.com")
+    rememberable::record_remember(doido_auth::testing::auth_store().as_ref(), "a@b.com")
         .await
         .unwrap();
     assert!(remember_created_at(&db).await.is_none());
