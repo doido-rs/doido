@@ -307,7 +307,7 @@ fn blog_tutorial_scaffold_controller_and_serve() {
     let h = AppHarness::new("blog_tutorial", BaseProfile::WithAuthHtml);
 
     // 1. Scaffold the Post resource (model + migration + controller + views +
-    //    `resources!(posts, PostsController)`), then the Comment model, then the
+    //    `resource!(posts, PostsController)`), then the Comment model, then the
     //    Comments controller (which injects `get!("/comments", ...)`).
     h.generate(&[
         "generate",
@@ -356,7 +356,7 @@ fn blog_tutorial_scaffold_controller_and_serve() {
     fs::write(&layout_path, layout).expect("write layout");
 
     // 3. Adjust routes *after* the controllers exist. The scaffold already injected
-    //    `resources!(posts, PostsController)` and the controller generator injected
+    //    `resource!(posts, PostsController)` and the controller generator injected
     //    `get!("/comments", ...)`, so every controller a route names is already
     //    present. Point the homepage at the blog (moving Doido's demo to /hello) and
     //    add the RESTful nested comment route.

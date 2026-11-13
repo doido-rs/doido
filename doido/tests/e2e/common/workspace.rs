@@ -40,7 +40,7 @@ pub fn e2e_lock() -> MutexGuard<'static, ()> {
 pub enum BaseProfile {
     Default,
     /// `doido new --api`: project marked `api_only` (no auth). Used to prove the
-    /// route macros drop `new`/`edit` from a plain `resources!` at compile time.
+    /// route macros drop `new`/`edit` from a plain `resource!` at compile time.
     ApiOnly,
     WithCable,
     WithJobsDb,

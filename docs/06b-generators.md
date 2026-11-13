@@ -181,8 +181,8 @@ in [16-auth.md](16-auth.md). See that doc for bootstrap via `doido new --auth` o
 | `controller` | `controllers/<name>_controller.rs`, matching `app/helpers/{plural}_helper.rs`, view stubs | Yes |
 | `helper` | `app/helpers/{snake}_helper.rs` (registry update) | No |
 | `migration` | `db/migrations/<timestamp>_<name>.rs` | No |
-| `scaffold` | model + migration + controller + helper + all views | Yes — `resources!(...)` |
-| `resource` | model + migration + controller + helper (no views) | Yes — `resources!(...)` |
+| `scaffold` | model + migration + controller + helper + all views | Yes — `resource!(...)` |
+| `resource` | model + migration + controller + helper (no views) | Yes — `resource!(...)` |
 | `mailer` | `mailers/<name>_mailer.rs`, view templates | No |
 | `job` | `jobs/<name>_job.rs` | No |
 | `channel` | `channels/<name>_channel.rs` | No (prints hint to add `cable!(...)` manually) |
@@ -287,7 +287,7 @@ Produces:
 - HTML mode: `app/views/posts/{index,show,new,edit,_form}.html.tera`, with table
   columns and form inputs derived from the fields. `--api` skips views and the
   actions return `ctx.json(...)`.
-- `resources!(posts, PostsController);` injected into `config/routes.rs`
+- `resource!(posts, PostsController);` injected into `config/routes.rs`
   (existing routes preserved).
 
 Controller actions return `doido::Result<Response>`, so they use `?` for
@@ -309,7 +309,7 @@ Bootstrap for new apps: `doido new --auth` adds the dependency and runs
 
 `doido new --api` marks the **whole project** as API-only (not just auth): it
 writes `api_only = true` under `[app]` in `config/application.toml`. That marker
-makes `resources!` drop the `new`/`edit` form routes at compile time and makes the
+makes `resource!` drop the `new`/`edit` form routes at compile time and makes the
 server boot skip HTML-only middleware (e.g. CSRF). When combined with `--auth`, it
 also selects the JSON auth controllers instead of the HTML sign-in/up views. See
 [01-router.md](01-router.md) and [07-middleware.md](07-middleware.md).
@@ -325,7 +325,7 @@ routes! {
 // After `doido generate scaffold Post title:String`
 routes! {
     get!("/", HomeController::index);
-    resources!(posts, PostsController);   // ← injected
+    resource!(posts, PostsController);   // ← injected
 }
 ```
 
@@ -384,7 +384,7 @@ release e2e scenario that reproduces the tutorial:
    generated files are hand-edited. (`scaffold` also regenerates the model, so do not
    pair `generate model X` with `generate scaffold X` for the same `X`.)
 2. **Routes come after the controller they point at.** Generators inject the route
-   at generation time (`scaffold` → `resources!(…)`, `controller` → `get!(…)`), so the
+   at generation time (`scaffold` → `resource!(…)`, `controller` → `get!(…)`), so the
    route always references a controller that already exists. Any *manual* route edit
    (a nested route, `root!`, a namespace) is shown only after its controller has been
    generated — a reader following top-to-bottom never declares a route to a

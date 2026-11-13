@@ -338,7 +338,7 @@ Mount with one line in `config/routes.rs`:
 routes! {
     get!("/", HomeController::index);
     auth_routes!(User);   // ← sessions, registration, OAuth callbacks, 2FA
-    resources!(posts, PostsController);
+    resource!(posts, PostsController);
 }
 ```
 
@@ -459,7 +459,7 @@ with an error that tells the user to add the dependency or run `doido new --auth
 | `auth:install` | User migration + model + `auth:` config; **no** controllers/views (uses built-ins) | Yes — bare `auth_routes!(User);` (or `only:` with `--modules=`) |
 | `auth:controllers` | Ejects `app/controllers/auth/**` + `app/views/auth/**`, rewires routes to local controllers (`--api`/`--two-factor`/`--controllers-only`/`--views-only`) | Rewrites `auth_routes!(User, controllers: { … })` |
 | `auth:controller <Name>` | Controller with `CurrentUser` / `before_action` auth guards | Yes — REST or custom |
-| `auth:scaffold <Name> fields…` | `auth:install` (if missing) + model + migration + auth-aware scaffold | Yes — `resources!(...)` + auth |
+| `auth:scaffold <Name> fields…` | `auth:install` (if missing) + model + migration + auth-aware scaffold | Yes — `resource!(...)` + auth |
 
 Module layout:
 
@@ -551,7 +551,7 @@ doido generate auth:scaffold Post title:string --api
 - Scaffolds the resource with `#[before_action(require_user)]` on all actions.
 - Associates records with `user_id` when a `references` field is omitted (adds
   `user:references` automatically).
-- Injects `resources!(posts, PostsController);` into `config/routes.rs`.
+- Injects `resource!(posts, PostsController);` into `config/routes.rs`.
 
 ### `doido new --auth`
 

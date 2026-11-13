@@ -7,8 +7,12 @@ mod parser;
 use proc_macro::TokenStream;
 use syn::parse_macro_input;
 
-/// Expands the `routes!` DSL (verbs, `resources!`, `namespace!`, `scope!`)
-/// into an `axum::Router`. Merged in from the former `doido-router` crate.
+/// Expands the `routes!` DSL (verbs, plural/singular `resource!` with optional
+/// nested block, `namespace!`, `scope!`). Member/collection routes use
+/// `get!(member: "action", …)` / `get!(collection: "action", …)` inside a
+/// `resource! { … }` block.
+///
+/// Into an `axum::Router`. Merged in from the former `doido-router` crate.
 #[proc_macro]
 pub fn routes(input: TokenStream) -> TokenStream {
     let parsed = parse_macro_input!(input as parser::RoutesInput);

@@ -259,7 +259,7 @@ cargo doido generate model Post \
 ## Inyección automática de rutas
 
 Los generadores que producen un controlador (`scaffold`, `resource`, `controller`) parsean
-`config/routes.rs`, insertan la ruta correspondiente (p. ej. `resources!(posts,
+`config/routes.rs`, insertan la ruta correspondiente (p. ej. `resource!(posts,
 PostsController);`) dentro del bloque `routes! { … }` y omiten los controladores ya
 registrados — de modo que un resource generado queda accesible sin editar las rutas a mano.
 
