@@ -1680,6 +1680,7 @@ dependencies = [
  "http 1.5.0",
  "http-body-util",
  "jsonwebtoken",
+ "redis",
  "serde",
  "serde_json",
  "serde_norway",

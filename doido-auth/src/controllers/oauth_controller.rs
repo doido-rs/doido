@@ -1,8 +1,7 @@
 //! Default OAuth redirect/callback controller.
 
-use crate::error::AuthError;
-use crate::oauth::get_provider;
-use crate::state::global;
+use crate::middleware::omniauthable;
+use crate::middleware::omniauthable::OAuthTokenResponse;
 use doido_auth_macros::auth_controller;
 use doido_controller::axum::http::StatusCode;
 use doido_controller::axum::response::{IntoResponse, Redirect, Response};
@@ -24,29 +23,16 @@ impl AuthOauth {
     /// GET `/auth/{provider}` — start the OAuth authorization flow.
     pub async fn authorize(ctx: doido_controller::Context) -> Result<Response> {
         let provider = ctx.param("provider").unwrap_or("unknown");
-        let state = global();
-        let oauth = state
-            .oauth
-            .get(provider)
-            .cloned()
-            .or_else(|| get_provider(provider))
-            .ok_or_else(|| AuthError::OAuth(format!("unknown provider {provider}")))?;
-        let url = oauth.authorize_url(&uuid::Uuid::new_v4().to_string())?;
+        let state = uuid::Uuid::new_v4().to_string();
+        let url = omniauthable::authorize_url(provider, &state)?;
         Ok(Redirect::temporary(&url).into_response())
     }
 
     /// GET `/auth/{provider}/callback` — OAuth provider callback.
     pub async fn callback(ctx: doido_controller::Context) -> Result<Response> {
-        let provider = ctx.param("provider").unwrap_or("unknown").to_string();
+        let provider = ctx.param("provider").unwrap_or("unknown");
         let query: OAuthCallbackQuery = ctx.params()?;
-        let state = global();
-        let oauth = state
-            .oauth
-            .get(&provider)
-            .cloned()
-            .or_else(|| get_provider(&provider))
-            .ok_or_else(|| AuthError::OAuth(format!("unknown provider {provider}")))?;
-        let tokens = oauth.exchange_code(&query.code)?;
+        let tokens: OAuthTokenResponse = omniauthable::exchange_code(provider, &query.code)?;
         Ok((StatusCode::OK, doido_controller::axum::Json(tokens)).into_response())
     }
 }

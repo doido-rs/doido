@@ -1,6 +1,6 @@
 //! JWT strategy tests.
 
-use doido_auth::jwt::JwtStrategy;
+use doido_auth::strategy::jwt::JwtStrategy;
 use doido_auth::strategy::AuthStrategy;
 use doido_auth::testing::{init_test_auth, jwt_for_user, test_jwt_auth_config};
 use doido_model::testing::TestDb;

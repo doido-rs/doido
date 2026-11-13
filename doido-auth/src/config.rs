@@ -241,11 +241,51 @@ impl AuthRoutesConfig {
     }
 }
 
+/// Backing store for [`crate::user_model::UserStore`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum UserStoreType {
+    #[default]
+    SeaOrm,
+    Redis,
+}
+
+/// `auth.user_store` — where user rows are loaded/saved.
+#[derive(Debug, Clone, Deserialize)]
+pub struct UserStoreConfig {
+    #[serde(rename = "type", default)]
+    pub store_type: UserStoreType,
+    #[serde(default = "default_redis_endpoint")]
+    pub endpoint: String,
+    #[serde(default = "default_redis_prefix")]
+    pub key_prefix: String,
+}
+
+fn default_redis_endpoint() -> String {
+    "redis://127.0.0.1:6379".into()
+}
+
+fn default_redis_prefix() -> String {
+    "auth".into()
+}
+
+impl Default for UserStoreConfig {
+    fn default() -> Self {
+        Self {
+            store_type: UserStoreType::SeaOrm,
+            endpoint: default_redis_endpoint(),
+            key_prefix: default_redis_prefix(),
+        }
+    }
+}
+
 /// Full auth configuration deserialized from the `auth` section.
 #[derive(Debug, Clone, Deserialize)]
 pub struct AuthConfig {
     #[serde(default)]
     pub user_model: Option<String>,
+    #[serde(default)]
+    pub user_store: UserStoreConfig,
     #[serde(default = "default_modules")]
     pub modules: Vec<AuthModule>,
     #[serde(default = "default_strategies")]
@@ -321,6 +361,7 @@ impl Default for AuthConfig {
     fn default() -> Self {
         Self {
             user_model: None,
+            user_store: UserStoreConfig::default(),
             modules: default_modules(),
             strategies: default_strategies(),
             jwt: None,
@@ -377,7 +418,7 @@ impl AuthConfig {
                     jwt.validate()?;
                 }
                 other => {
-                    if !crate::registry::has_strategy(other) {
+                    if !crate::strategy::registry::has_strategy(other) {
                         return Err(AuthError::UnknownStrategy(other.to_string()));
                     }
                 }

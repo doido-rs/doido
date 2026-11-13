@@ -206,6 +206,9 @@ async fn oauth_redirect_and_callback_via_routes() {
     let db = TestDb::new().await.unwrap();
     let mut config = test_auth_config();
     config
+        .modules
+        .push(doido_auth::config::AuthModule::Omniauthable);
+    config
         .oauth
         .insert("mock".into(), oauth2_config(&token_url));
     let _auth = init_test_auth(db.conn().clone(), config).await.unwrap();

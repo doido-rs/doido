@@ -81,7 +81,7 @@ Ralph stops when an iteration emits `<promise>COMPLETE</promise>`.
 
 ## Guardrails
 
-- One story per iteration; branch `creating_doido_auth` (auth backlog US-105→US-113); one commit per story.
+- One story per iteration; auth backlog US-105→US-115 (`UserModel`/`UserStore` + middleware pipeline, US-115); one commit per story.
 - Never end an iteration with `make verify` red.
 - Blocked stories (e.g. the config YAML-vs-TOML decision) stop and ask — they are not
   guessed. See `LOOP.md`.
