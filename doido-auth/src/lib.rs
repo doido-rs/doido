@@ -6,7 +6,6 @@ pub mod error;
 pub mod extractors;
 pub mod framework_views;
 pub mod i18n;
-pub mod layer;
 pub mod middleware;
 pub mod route_mount;
 pub mod state;
@@ -38,6 +37,10 @@ pub mod oauth {
         OAuthTokenResponse,
     };
 }
+/// Back-compat re-exports — prefer [`controllers::layer`].
+pub mod layer {
+    pub use crate::controllers::layer::{auth_layer, current_identity, current_user};
+}
 #[cfg(feature = "auth-2fa")]
 pub mod two_factorable {
     pub use crate::middleware::two_factorable::*;
@@ -53,6 +56,7 @@ pub use config::{
     load as load_config, AuthConfig, AuthModule, AuthRoutesConfig, JwtConfig, UserStoreConfig,
     UserStoreType, YamlConfig,
 };
+pub use controllers::layer::{auth_layer, current_identity, current_user};
 pub use controllers::messages;
 pub use controllers::{AuthOauth, AuthPasswords, AuthRegistrations, AuthSessions};
 pub use doido_auth_macros::{__auth_routes_decl, auth_controller, auth_routes, routes};
@@ -60,7 +64,6 @@ pub use error::AuthError;
 pub use extractors::{AuthToken, CurrentUser, MaybeUser, RequireAuth};
 pub use framework_views::register_views;
 pub use i18n::register_locales;
-pub use layer::{auth_layer, current_identity, current_user};
 pub use middleware::omniauthable::{OAuth2Provider, OAuthProvider, OAuthTokenResponse};
 pub use middleware::{
     authenticate_global as authenticate, complete_session_sign_in as sign_in_with_session,
