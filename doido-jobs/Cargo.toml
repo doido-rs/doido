@@ -26,7 +26,6 @@ axum = { workspace = true, optional = true }
 form_urlencoded = { version = "1", optional = true }
 http = { workspace = true, optional = true }
 tower = { workspace = true, optional = true }
-subtle = { version = "2", optional = true }
 
 [features]
 default = []
@@ -36,7 +35,6 @@ webui = [
     "dep:form_urlencoded",
     "dep:http",
     "dep:tower",
-    "dep:subtle",
 ]
 sqlite = ["doido-model?/sqlite"]
 postgres = ["doido-model?/postgres"]

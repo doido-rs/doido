@@ -1,6 +1,5 @@
 //! HTTP dashboard for inspecting and managing background job queues.
 
-mod auth;
 mod bulk;
 mod dashboard;
 mod enqueue;
@@ -13,11 +12,9 @@ use crate::config::JobsConfig;
 use crate::inspect::QueueCounts;
 use crate::queue::JobQueue;
 use axum::{
-    middleware,
     routing::{get, post},
     Router,
 };
-use doido_core::Environment;
 use std::sync::Arc;
 use std::time::Instant;
 use tokio::sync::Mutex;
@@ -41,12 +38,26 @@ impl JobsWebState {
             stats_cache: Arc::new(Mutex::new(None)),
         }
     }
+
+    /// Construct dashboard state with default configuration for the given queue backend.
+    pub fn from_queue(queue: Arc<dyn JobQueue>) -> Self {
+        Self::new(queue, crate::config::load())
+    }
+
+    /// Set a custom mount path for the dashboard (used for URL helpers, form actions, and redirects).
+    pub fn with_mount_path(mut self, mount_path: impl Into<String>) -> Self {
+        self.config.webui.mount_path = normalize_mount(&mount_path.into());
+        self
+    }
 }
 
-/// Build the jobs dashboard router (not merged into the app yet).
-pub fn routes(state: JobsWebState) -> Router {
-    let mount = normalize_mount(&state.config.webui.mount_path);
-    let mut router = Router::new()
+/// Build the jobs dashboard inner router (un-nested, routes at `/`, `/retry/...`, `/bulk`, etc.).
+///
+/// Use this if you are mounting under a custom path via `Router::nest` or `mount!`, but ensure
+/// `state.config.webui.mount_path` is configured to match the mount endpoint so links and redirects work.
+pub fn router(state: JobsWebState) -> Router {
+    register_views();
+    Router::new()
         .route("/", get(dashboard::index))
         .route("/retry/{queue}/{job_id}", get(dashboard::retry_one))
         .route("/discard/{queue}/{job_id}", get(dashboard::discard_one))
@@ -54,46 +65,29 @@ pub fn routes(state: JobsWebState) -> Router {
         .route("/discard_all", get(dashboard::discard_all))
         .route("/bulk", post(bulk::submit))
         .route("/enqueue", post(enqueue::submit))
-        .with_state(state.clone());
-
-    if let (Some(user), Some(pass)) = (
-        state.config.webui.username.clone(),
-        state.config.webui.password.clone(),
-    ) {
-        if auth::credentials_configured(&state.config.webui) {
-            let creds = Arc::new(auth::BasicAuthCredentials {
-                username: user,
-                password: pass,
-            });
-            router = router.layer(middleware::from_fn_with_state(
-                creds,
-                auth::basic_auth_middleware,
-            ));
-        }
-    }
-
-    Router::new().nest(&mount, router)
+        .with_state(state)
 }
 
-/// Mount the dashboard when [`WebUiConfig::safe_to_mount`] allows it.
-pub fn try_merge_routes(router: Router, state: JobsWebState) -> Router {
-    let env = Environment::get_env();
-    if state.config.webui.safe_to_mount(env) {
-        router.merge(routes(state))
-    } else if state.config.webui.enabled {
-        if state.config.webui.requires_credentials(env) {
-            doido_core::tracing::warn!(
-                "jobs.webui.enabled is true but username/password are required in production; \
-                 dashboard not mounted"
-            );
-        }
-        router
-    } else {
-        router
-    }
+/// Build the jobs dashboard router nested under `state.config.webui.mount_path` (default `/doido/jobs`).
+///
+/// Ready to be merged into your application router via `app.merge(routes(state))`.
+pub fn routes(state: JobsWebState) -> Router {
+    let mount = normalize_mount(&state.config.webui.mount_path);
+    Router::new().nest(&mount, router(state))
 }
 
-fn normalize_mount(path: &str) -> String {
+/// Build the jobs dashboard router nested under the specified mount path.
+///
+/// Updates `mount_path` in `state` to ensure internal links, forms, and redirects match the endpoint.
+/// Ready to be merged into your application router via `app.merge(routes_at("/custom/path", state))`.
+pub fn routes_at(mount_path: &str, mut state: JobsWebState) -> Router {
+    let mount = normalize_mount(mount_path);
+    state.config.webui.mount_path = mount.clone();
+    Router::new().nest(&mount, router(state))
+}
+
+/// Normalize mount path to have a leading slash and no trailing slash.
+pub fn normalize_mount(path: &str) -> String {
     let trimmed = path.trim();
     if trimmed.is_empty() {
         return "/doido/jobs".to_string();

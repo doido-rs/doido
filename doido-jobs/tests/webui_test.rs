@@ -32,8 +32,6 @@ fn test_jobs_config() -> JobsConfig {
         webui: WebUiConfig {
             enabled: true,
             mount_path: "/doido/jobs".to_string(),
-            username: None,
-            password: None,
             stats_ttl_secs: None,
         },
         ..JobsConfig::default()
@@ -55,6 +53,7 @@ async fn webui_renders_queues_tab() {
     let app = webui::routes(state);
 
     let response = app
+        .clone()
         .oneshot(
             http::Request::builder()
                 .uri("/doido/jobs?tab=queues")
@@ -92,6 +91,7 @@ async fn webui_job_tab_exposes_cursor_pagination() {
     let app = webui::routes(state);
 
     let response = app
+        .clone()
         .oneshot(
             http::Request::builder()
                 .uri("/doido/jobs?tab=in_queue&queue=default")
@@ -130,6 +130,7 @@ async fn webui_include_payload_renders_pre() {
     let app = webui::routes(state);
 
     let response = app
+        .clone()
         .oneshot(
             http::Request::builder()
                 .uri("/doido/jobs?tab=in_queue&queue=default&include_payload=1")
@@ -166,6 +167,7 @@ async fn webui_retry_dead_job_via_http() {
     let app = webui::routes(state);
 
     let response = app
+        .clone()
         .oneshot(
             http::Request::builder()
                 .uri(format!("/doido/jobs/retry/default/{id}"))
@@ -199,6 +201,7 @@ async fn webui_enqueue_tab_lists_registered_job() {
     let app = webui::routes(state);
 
     let response = app
+        .clone()
         .oneshot(
             http::Request::builder()
                 .uri("/doido/jobs?tab=enqueue")
@@ -224,6 +227,7 @@ async fn webui_enqueue_now_inserts_job() {
     let app = webui::routes(state);
 
     let response = app
+        .clone()
         .oneshot(form_post(
             "/doido/jobs/enqueue",
             "job_name=webui_enqueue_probe&payload=1&mode=enqueue_now",
@@ -250,6 +254,7 @@ async fn webui_enqueue_payload_array_inserts_multiple_jobs() {
     let app = webui::routes(state);
 
     let response = app
+        .clone()
         .oneshot(form_post(
             "/doido/jobs/enqueue",
             "job_name=webui_enqueue_probe&payload=%5B1%2C2%2C3%5D&mode=enqueue_now",
@@ -279,6 +284,7 @@ async fn webui_enqueue_at_schedules_job() {
     let body = format!("job_name=webui_enqueue_probe&payload=1&mode=enqueue_at&run_at={run_at}");
 
     let response = app
+        .clone()
         .oneshot(form_post("/doido/jobs/enqueue", &body))
         .await
         .unwrap();
@@ -299,6 +305,7 @@ async fn webui_perform_now_runs_without_queue_row() {
     let app = webui::routes(state);
 
     let response = app
+        .clone()
         .oneshot(form_post(
             "/doido/jobs/enqueue",
             "job_name=webui_perform_ping&mode=perform_now",
@@ -330,6 +337,7 @@ async fn webui_in_queue_tab_has_bulk_form() {
     let app = webui::routes(state);
 
     let response = app
+        .clone()
         .oneshot(
             http::Request::builder()
                 .uri("/doido/jobs?tab=in_queue&queue=default")
@@ -365,6 +373,7 @@ async fn webui_bulk_delete_selected() {
     let app = webui::routes(state);
 
     let response = app
+        .clone()
         .oneshot(form_post(
             "/doido/jobs/bulk",
             &format!("action=delete_selected&tab=in_queue&queue=default&job_ids={id1}"),
@@ -409,6 +418,7 @@ async fn webui_bulk_discard_selected_dead() {
     let app = webui::routes(state);
 
     let response = app
+        .clone()
         .oneshot(form_post(
             "/doido/jobs/bulk",
             &format!("action=discard_selected&tab=dead&queue=default&job_ids={id1}"),
@@ -441,6 +451,7 @@ async fn webui_bulk_retry_all_via_post() {
     let app = webui::routes(state);
 
     let response = app
+        .clone()
         .oneshot(form_post(
             "/doido/jobs/bulk",
             "action=retry_all&tab=dead&queue=default",
@@ -458,16 +469,18 @@ async fn webui_bulk_retry_all_via_post() {
 }
 
 #[tokio::test]
-async fn webui_try_merge_respects_production_credentials() {
-    use doido_core::Environment;
-    let mut cfg = test_jobs_config();
-    cfg.webui.username = None;
-    cfg.webui.password = None;
-    let state = JobsWebState::new(Arc::new(MemoryQueue::new()) as Arc<dyn JobQueue>, cfg);
-    std::env::set_var("DOIDO_ENV", "production");
-    let merged = webui::try_merge_routes(Router::new(), state);
-    std::env::set_var("DOIDO_ENV", Environment::Development.as_str());
-    let response = merged
+async fn webui_routes_can_be_merged_into_app() {
+    doido_jobs::webui::register_views();
+    let _ = doido_view::init("app/views");
+
+    let queue = Arc::new(MemoryQueue::new()) as Arc<dyn JobQueue>;
+    let state = JobsWebState::new(queue, test_jobs_config());
+
+    // Developer merges the webui router into their application router
+    let app = Router::new().merge(webui::routes(state));
+
+    let response = app
+        .clone()
         .oneshot(
             http::Request::builder()
                 .uri("/doido/jobs?tab=queues")
@@ -476,5 +489,100 @@ async fn webui_try_merge_respects_production_credentials() {
         )
         .await
         .unwrap();
-    assert_eq!(response.status(), http::StatusCode::NOT_FOUND);
+    assert_eq!(response.status(), http::StatusCode::OK);
+}
+
+#[tokio::test]
+async fn webui_routes_at_directs_custom_endpoint() {
+    doido_jobs::webui::register_views();
+    let _ = doido_view::init("app/views");
+
+    let queue = Arc::new(MemoryQueue::new()) as Arc<dyn JobQueue>;
+    let state = JobsWebState::new(queue, test_jobs_config());
+
+    // Developer directs the endpoint to a custom path (e.g. /admin/queues)
+    let app = Router::new().merge(webui::routes_at("/admin/queues", state));
+
+    let response = app
+        .clone()
+        .oneshot(
+            http::Request::builder()
+                .uri("/admin/queues?tab=queues")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), http::StatusCode::OK);
+
+    let body = response.into_body().collect().await.unwrap().to_bytes();
+    let html = String::from_utf8(body.to_vec()).unwrap();
+    // Links inside the page now direct to the custom endpoint
+    assert!(html.contains("href=\"/admin/queues?tab=queues\""));
+    assert!(html.contains("href=\"/admin/queues?tab=enqueue\""));
+
+    let enqueue_resp = app
+        .oneshot(
+            http::Request::builder()
+                .uri("/admin/queues?tab=enqueue")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(enqueue_resp.status(), http::StatusCode::OK);
+    let enqueue_body = enqueue_resp.into_body().collect().await.unwrap().to_bytes();
+    let enqueue_html = String::from_utf8(enqueue_body.to_vec()).unwrap();
+    assert!(enqueue_html.contains("action=\"/admin/queues/enqueue\""));
+}
+
+#[tokio::test]
+async fn webui_developer_can_attach_custom_auth_layer() {
+    use axum::http::StatusCode;
+    use axum::middleware::{self, Next};
+    use axum::response::Response;
+
+    async fn custom_auth(req: http::Request<Body>, next: Next) -> Result<Response, StatusCode> {
+        if req.headers().contains_key("x-admin-token") {
+            Ok(next.run(req).await)
+        } else {
+            Err(StatusCode::UNAUTHORIZED)
+        }
+    }
+
+    doido_jobs::webui::register_views();
+    let _ = doido_view::init("app/views");
+
+    let queue = Arc::new(MemoryQueue::new()) as Arc<dyn JobQueue>;
+    let state = JobsWebState::new(queue, test_jobs_config());
+
+    // Developer adds their own auth layer to the jobs dashboard router
+    let jobs_router = webui::routes(state).layer(middleware::from_fn(custom_auth));
+    let app = Router::new().merge(jobs_router);
+
+    // Request without auth is rejected by developer's middleware
+    let unauth_resp = app
+        .clone()
+        .oneshot(
+            http::Request::builder()
+                .uri("/doido/jobs?tab=queues")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(unauth_resp.status(), StatusCode::UNAUTHORIZED);
+
+    // Request with auth passes through to the dashboard
+    let auth_resp = app
+        .oneshot(
+            http::Request::builder()
+                .uri("/doido/jobs?tab=queues")
+                .header("x-admin-token", "secret123")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(auth_resp.status(), StatusCode::OK);
 }
