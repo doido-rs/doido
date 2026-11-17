@@ -42,4 +42,6 @@ if ((${#missing[@]} > 0 || ${#extra[@]} > 0)); then
 	exit 1
 fi
 
+"${ROOT}/scripts/sync-workspace-dep-versions.sh" --check
+
 echo "==> publish order: ${#PUBLISH[@]} crates (matches workspace members)"
