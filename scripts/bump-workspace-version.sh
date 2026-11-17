@@ -35,7 +35,7 @@ case "${UNSTABLE:-}" in
 	;;
 esac
 
-cargo workspaces version --no-git-commit --exact --yes custom "${VERSION}"
+cargo workspaces version --no-git-commit --exact --force '*' --yes custom "${VERSION}"
 "${ROOT}/scripts/sync-workspace-dep-versions.sh"
 
 echo "==> release version: ${VERSION}"
