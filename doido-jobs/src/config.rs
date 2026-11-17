@@ -35,8 +35,6 @@ pub struct WebUiConfig {
     pub enabled: bool,
     /// Router prefix (default `/doido/jobs`).
     pub mount_path: String,
-    pub username: Option<String>,
-    pub password: Option<String>,
     /// Cache `queue_counts` in-process for this many seconds (dashboard **Queues** tab).
     pub stats_ttl_secs: Option<u64>,
 }
@@ -46,30 +44,8 @@ impl Default for WebUiConfig {
         Self {
             enabled: false,
             mount_path: "/doido/jobs".to_string(),
-            username: None,
-            password: None,
             stats_ttl_secs: None,
         }
-    }
-}
-
-impl WebUiConfig {
-    /// Whether routes may be mounted for `env` (production requires credentials).
-    pub fn safe_to_mount(&self, env: Environment) -> bool {
-        if !self.enabled {
-            return false;
-        }
-        match env {
-            Environment::Development | Environment::Test => true,
-            Environment::Production => {
-                self.username.as_ref().is_some_and(|u| !u.is_empty())
-                    && self.password.as_ref().is_some_and(|p| !p.is_empty())
-            }
-        }
-    }
-
-    pub fn requires_credentials(&self, env: Environment) -> bool {
-        self.enabled && matches!(env, Environment::Production)
     }
 }
 
@@ -188,10 +164,6 @@ pub struct WebUiSettings {
     #[serde(default)]
     pub mount_path: Option<String>,
     #[serde(default)]
-    pub username: Option<String>,
-    #[serde(default)]
-    pub password: Option<String>,
-    #[serde(default)]
     pub stats_ttl_secs: Option<u64>,
 }
 
@@ -258,8 +230,6 @@ impl JobsSettings {
                 .mount_path
                 .filter(|p| !p.is_empty())
                 .unwrap_or_else(|| d.webui.mount_path.clone()),
-            username: webui_raw.username.filter(|u| !u.is_empty()),
-            password: webui_raw.password.filter(|p| !p.is_empty()),
             stats_ttl_secs: webui_raw.stats_ttl_secs.filter(|&s| s > 0),
         };
         JobsConfig {
@@ -469,12 +439,10 @@ mod tests {
 
     #[test]
     fn parses_jobs_webui_section() {
-        let yaml = "jobs:\n  webui:\n    enabled: true\n    mount_path: /jobs\n    username: admin\n    password: secret\n";
+        let yaml = "jobs:\n  webui:\n    enabled: true\n    mount_path: /jobs\n";
         let cfg = JobsFileConfig::from_yaml(yaml).unwrap().jobs.into_config();
         assert!(cfg.webui.enabled);
         assert_eq!(cfg.webui.mount_path, "/jobs");
-        assert_eq!(cfg.webui.username.as_deref(), Some("admin"));
-        assert!(cfg.webui.safe_to_mount(Environment::Production));
     }
 
     #[tokio::test]

@@ -48,10 +48,10 @@ Dead-letter admin: `cargo doido jobs failed`, `retry`, `discard`.
 
 ## Web UI
 
-Enable in `config/<env>.yml` (`jobs.webui.enabled: true`) to mount a tabbed dashboard
-at `/doido/jobs` when you run `cargo doido server`. Inspect queues, running jobs,
-retry backlog, and dead letters; retry or discard from the **Dead** tab. Set
-`username` / `password` in production (HTTP Basic Auth). Requires the `webui` feature
+Merge `doido_jobs::webui::routes(state)` (or `routes_at("/custom/path", state)`) into your
+Axum application router to provide a Mission Control–style dashboard for queues, running jobs,
+retry backlog, and dead letters (retry or discard from the **Dead** tab). Authentication and
+endpoint prefix are fully directed by the application developer. Requires the `webui` feature
 on `doido-jobs` (on by default in the `doido` crate).
 
 ### DB backend: quieter logs & failure errors
