@@ -2,9 +2,9 @@
 # Set the workspace to an exact version with cargo-workspaces and print it.
 #
 # The release publishes exactly the version supplied here — there is no keyword
-# bumping. `cargo workspaces version --exact custom` rewrites both
-# [workspace.package].version and every first-party [workspace.dependencies]
-# entry, which is what `make publish` reads back as CRATE_VERSION.
+# bumping. `cargo workspaces version --exact custom` rewrites
+# [workspace.package].version (and `version.workspace = true` crate versions).
+# scripts/sync-workspace-dep-versions.sh stamps `[workspace.dependencies]` path versions.
 #
 # Environment:
 #   VERSION   Required. Exact semver to publish (no leading v), e.g. 0.1.0
@@ -36,6 +36,7 @@ case "${UNSTABLE:-}" in
 esac
 
 cargo workspaces version --no-git-commit --exact --yes custom "${VERSION}"
+"${ROOT}/scripts/sync-workspace-dep-versions.sh"
 
 echo "==> release version: ${VERSION}"
 if [ -n "${GITHUB_OUTPUT:-}" ]; then
