@@ -1824,7 +1824,6 @@ dependencies = [
  "assert_cmd",
  "chrono",
  "clap",
- "doido",
  "doido-auth",
  "doido-core",
  "doido-model",
