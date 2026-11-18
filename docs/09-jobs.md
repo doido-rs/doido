@@ -272,19 +272,49 @@ Optional **`stats_ttl_secs`** caches queue counts in-process on the Queues tab.
 ### Mounting into the application router
 
 The developer merges the dashboard router into their app's router and is responsible
-for any desired authentication layer (such as middleware, session auth, or token auth):
+for any desired authentication layer (such as middleware, session auth, or token auth).
+
+#### Recommended: Encapsulated Router Builder
+
+[`doido_jobs::webui::build_jobs_webui_router`] encapsulates loading configuration, resolving
+the queue backend (memory or database pool), normalizing the mount path, and optionally applying an authentication layer:
+
+```rust
+use axum::middleware::from_fn;
+
+pub fn build_jobs_webui_router() -> axum::Router {
+    // Optional auth layer (e.g. active in production, skipped in dev/test)
+    let auth_layer = (!crate::settings::dev_or_test_runtime())
+        .then(|| from_fn(crate::auth::jobs_webui_auth_layer));
+
+    // Mount at custom path (e.g. "/admin/jobs")
+    doido_jobs::webui::build_jobs_webui_router("/admin/jobs", auth_layer)
+}
+```
+
+If no authentication layer is needed, [`doido_jobs::webui::build_unprotected_jobs_webui_router`]
+can be called directly without type annotations:
+
+```rust
+let jobs_router = doido_jobs::webui::build_unprotected_jobs_webui_router("/admin/jobs");
+let app = app.merge(jobs_router);
+```
+
+#### Manual / Lower-Level Router Setup
+
+For custom queue instances or manual control:
 
 ```rust
 use doido_jobs::webui::{self, JobsWebState};
 
 let queue = doido_jobs::build_queue(&jobs_config).await?;
-let state = JobsWebState::new(queue, jobs_config);
+let state = JobsWebState::new(queue, jobs_config, "/admin/jobs");
 
-// Option 1: Mount at the default path (/doido/jobs)
+// Option 1: Mount at the state's mount path
 let app = app.merge(webui::routes(state));
 
-// Option 2: Direct the endpoint to a custom path (e.g. /admin/jobs)
-let app = app.merge(webui::routes_at("/admin/jobs", state));
+// Option 2: Direct the endpoint to a custom path (e.g. /custom/jobs)
+let app = app.merge(webui::routes_at("/custom/jobs", state));
 
 // Option 3: Protect with custom authentication middleware
 let protected_jobs = webui::routes_at("/admin/jobs", state)
@@ -299,7 +329,6 @@ jobs:
   type: db
   queues: [default, mailers]
   webui:
-    mount_path: /admin/jobs
     stats_ttl_secs: 30
 ```
 

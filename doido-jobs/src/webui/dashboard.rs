@@ -193,12 +193,7 @@ pub async fn index(
         }
     }
 
-    let mount = state
-        .config
-        .webui
-        .mount_path
-        .trim_end_matches('/')
-        .to_string();
+    let mount = state.mount_path.trim_end_matches('/').to_string();
 
     let registered_jobs: Vec<serde_json::Value> = if tab == "enqueue" {
         let registry = JobRegistry::from_inventory();
@@ -289,7 +284,7 @@ pub(crate) fn redirect_dashboard_view(
     flash: &str,
     view: &DashboardViewQuery,
 ) -> Redirect {
-    let mount = state.config.webui.mount_path.trim_end_matches('/');
+    let mount = state.mount_path.trim_end_matches('/');
     let mut url = format!("{mount}?tab={tab}");
     if let Some(q) = queue {
         url.push_str(&format!("&queue={q}"));
