@@ -6,7 +6,7 @@ Documento de referência para diagnóstico e melhorias de performance do painel 
 
 - O painel **não faz parte do frontend** (React/Vite). É servido pelo **servidor Doido** no mesmo processo da API.
 - Dependência: `doido-jobs` **0.0.32-test3** com feature `webui` (`backend/Cargo.toml`).
-- Configuração: `jobs.webui` em `backend/config/production.yml` — `enabled: true`, `mount_path: /doido/jobs`, credenciais via `JOBS_WEBUI_USERNAME` / `JOBS_WEBUI_PASSWORD` (HTTP Basic Auth).
+- Configuração: `jobs.webui` em `backend/config/environments/production.yml` — `enabled: true`, `mount_path: /doido/jobs`, credenciais via `JOBS_WEBUI_USERNAME` / `JOBS_WEBUI_PASSWORD` (HTTP Basic Auth).
 - Filas configuradas: `default`, `catalog`, `mailers`.
 - Montagem: crate `doido` chama `doido_jobs::webui::try_merge_routes` ao subir `cargo doido server`.
 
@@ -126,7 +126,7 @@ Use o texto abaixo ao pedir implementação no crate **doido-jobs** ou ao abrir 
 
 ## Referências no repositório
 
-- `backend/config/production.yml` — `jobs.webui`
+- `backend/config/environments/production.yml` — `jobs.webui`
 - `backend/Cargo.toml` — `doido-jobs` + feature `webui`
 - `docs/nfse/catalog-sync.md` — volume e fila `catalog`
 - `scripts/doido_jobs_prune_non_rj.sql` — exemplo de limpeza em fila inchada

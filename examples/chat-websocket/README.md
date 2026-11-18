@@ -85,7 +85,7 @@ When using `docker compose`, the `web` service overrides `DATABASE__URL` (and
 cache/jobs endpoints when applicable) to reach backends by Docker service name.
 Outbound mail uses SMTP to the bundled Mailpit service (`MAILER__SMTP__ADDRESS`);
 open the inbox at <http://localhost:8025>. With `cargo doido server` on the host,
-`config/development.yml` points SMTP at `localhost:1025` — start Mailpit via
+`config/environments/development.yml` points SMTP at `localhost:1025` — start Mailpit via
 `docker compose up mailpit` (or the full stack).
 Run migrations first if needed: `cargo doido db create && cargo doido db migrate`.
 

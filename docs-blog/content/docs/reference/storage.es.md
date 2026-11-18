@@ -28,7 +28,7 @@ nube. Elige el driver activo en la config `storage`; registra los personalizados
 `register_adapter`.
 
 ```yaml
-# config/production.yml
+# config/environments/production.yml
 storage:
   driver: amazon
   prefix: /files          # opcional, predeterminado /doido/storage

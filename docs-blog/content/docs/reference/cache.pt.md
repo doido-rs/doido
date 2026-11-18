@@ -44,7 +44,7 @@ Escolha um backend na seção `cache` da config: `memory` (padrão), `redis` (fe
 um a partir de `CacheConfig`, ou construa-o diretamente.
 
 ```yaml
-# config/production.yml
+# config/environments/production.yml
 cache:
   type: redis            # memory | redis | memcache | db
   endpoint: redis://127.0.0.1:6379

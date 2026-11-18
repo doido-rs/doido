@@ -27,7 +27,7 @@ reconhecidas são `server`, `logger` e `middleware`; outros subsistemas (cache, 
 storage, …) leem suas próprias seções do mesmo arquivo.
 
 ```yaml
-# config/development.yml
+# config/environments/development.yml
 server:
   bind: 0.0.0.0
   port: 3000
@@ -53,7 +53,7 @@ diretamente com `from_yaml()`. Acesse as seções pelo trait `Config`: `server()
 ```rust
 use doido::controller::{Config, YamlConfig};
 
-// Carrega config/<env-atual>.yml (ex.: config/development.yml).
+// Carrega config/environments/<env-atual>.yml (ex.: config/environments/development.yml).
 let config = YamlConfig::load()?;
 
 let addr = format!("{}:{}", config.server().bind, config.server().port); // "0.0.0.0:3000"
@@ -70,7 +70,7 @@ menos que habilitados.
 
 ## Variáveis de ambiente
 
-Cada `config/<env>.yml` é **renderizado com Tera na carga**. Referencie variáveis com
+Cada `config/environments/<env>.yml` é **renderizado com Tera na carga**. Referencie variáveis com
 `get_env`:
 
 ```yaml
@@ -80,19 +80,19 @@ database:
 
 | Variável | Propósito |
 |----------|-----------|
-| `DOIDO_ENV` | Seleciona `config/<env>.yml` (`development`, `test`, `production`) |
+| `DOIDO_ENV` | Seleciona `config/environments/<env>.yml` (`development`, `test`, `production`) |
 | `RUST_LOG` | Sobrescreve o nível do logger |
 | `DOIDO_MASTER_KEY` | Descriptografa `config/credentials.yml.enc` |
 | `DOIDO_LOCALE` | Locale padrão do backend |
 
 Segredos de deploy (`DATABASE_URL`, SMTP, storage, …) entram no YAML via `get_env`.
 Desenvolvimento: `.env` + `startup::prepare()`; produção: injete env para o render
-substituir. Opcional: `doido config render --env production -o config/production.yml`.
+substituir. Opcional: `doido config render --env production -o config/environments/production.yml`.
 
 ## Configuração dos subsistemas
 
 As seções `server`/`logger`/`middleware` são tipadas por `YamlConfig`, mas cada
-subsistema plugável lê sua própria seção do mesmo `config/<env>.yml`. Veja o guia
+subsistema plugável lê sua própria seção do mesmo `config/environments/<env>.yml`. Veja o guia
 correspondente para as chaves exatas:
 
 ```yaml

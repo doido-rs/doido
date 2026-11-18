@@ -3,7 +3,9 @@
 //! The single, canonical [`Environment`] for the whole framework. Every crate
 //! that needs to resolve `config/<env>.yml` uses `doido_core::Environment`.
 
-/// The application environment. Selects which `config/<env>.yml` file is read.
+use std::path::{Path, PathBuf};
+
+/// The application environment. Selects which `config/environments/<env>.yml` file is read.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Environment {
     Development,
@@ -24,13 +26,26 @@ impl Environment {
         }
     }
 
-    /// Lowercase name used for the `config/<env>.yml` file and for display.
+    /// Lowercase name used for the environment config file and for display.
     pub fn as_str(&self) -> &'static str {
         match self {
             Environment::Development => "development",
             Environment::Test => "test",
             Environment::Production => "production",
         }
+    }
+
+    /// Path to the per-environment configuration file relative to `root`.
+    pub fn config_path_in<P: AsRef<Path>>(&self, root: P) -> PathBuf {
+        root.as_ref()
+            .join("config")
+            .join("environments")
+            .join(format!("{}.yml", self.as_str()))
+    }
+
+    /// Path to the per-environment configuration file relative to the current working directory.
+    pub fn config_path(&self) -> PathBuf {
+        self.config_path_in("")
     }
 }
 
@@ -54,5 +69,19 @@ mod tests {
     #[test]
     fn display_matches_as_str() {
         assert_eq!(Environment::Production.to_string(), "production");
+    }
+
+    #[test]
+    fn config_path_strictly_targets_environments_dir() {
+        let dir = tempfile::tempdir().unwrap();
+        // Even if legacy config/development.yml exists, environments/ is strictly returned
+        let legacy_file = dir.path().join("config/development.yml");
+        std::fs::create_dir_all(dir.path().join("config")).unwrap();
+        std::fs::write(&legacy_file, "server:\n  port: 4000\n").unwrap();
+
+        assert_eq!(
+            Environment::Development.config_path_in(dir.path()),
+            dir.path().join("config/environments/development.yml")
+        );
     }
 }

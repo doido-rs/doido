@@ -7,9 +7,9 @@ use doido_auth::config::load;
 fn load_reads_env_file_and_defaults_when_missing() {
     let original = std::env::current_dir().unwrap();
     let dir = tempfile::TempDir::new().unwrap();
-    std::fs::create_dir_all(dir.path().join("config")).unwrap();
+    std::fs::create_dir_all(dir.path().join("config/environments")).unwrap();
     std::fs::write(
-        dir.path().join("config/test.yml"),
+        dir.path().join("config/environments/test.yml"),
         "auth:\n  user_model: Account\n  modules:\n    - database_authenticatable\n    - lockable\n",
     )
     .unwrap();

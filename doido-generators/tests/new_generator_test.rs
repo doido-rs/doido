@@ -11,9 +11,9 @@ fn test_new_generates_all_expected_files() {
     assert!(paths.contains(&"my-app/src/main.rs"));
     assert!(paths.contains(&"my-app/config/application.toml"));
     assert!(paths.contains(&"my-app/config/routes.rs"));
-    assert!(paths.contains(&"my-app/config/development.yml"));
-    assert!(paths.contains(&"my-app/config/test.yml"));
-    assert!(paths.contains(&"my-app/config/production.yml"));
+    assert!(paths.contains(&"my-app/config/environments/development.yml"));
+    assert!(paths.contains(&"my-app/config/environments/test.yml"));
+    assert!(paths.contains(&"my-app/config/environments/production.yml"));
     assert!(paths.contains(&"my-app/app/controllers/hello_controller.rs"));
     assert!(paths.contains(&"my-app/app/controllers/mod.rs"));
     assert!(paths.contains(&"my-app/app/helpers/mod.rs"));
@@ -370,12 +370,12 @@ fn test_new_env_yml_files_carry_per_env_database_url() {
             .clone()
     };
     // Dev/test carry working local credentials, host and port.
-    assert!(find("blog/config/development.yml")
+    assert!(find("blog/config/environments/development.yml")
         .contains("postgres://postgres:postgres@localhost:5432/blog_development"));
-    assert!(find("blog/config/test.yml")
+    assert!(find("blog/config/environments/test.yml")
         .contains("postgres://postgres:postgres@localhost:5432/blog_test"));
     // Production keeps the same shape but never ships a real password.
-    let prod = find("blog/config/production.yml");
+    let prod = find("blog/config/environments/production.yml");
     assert!(prod.contains("postgres://postgres:CHANGE_ME@localhost:5432/blog_production"));
     assert!(!prod.contains(":postgres@"));
     assert!(prod.contains("get_env(name=\"DATABASE_URL\""));
@@ -522,7 +522,7 @@ fn test_new_includes_storage_bootstrap_migration() {
     assert!(migration.content.contains("storage_blobs"));
     let dev = files
         .iter()
-        .find(|f| f.path == "my-app/config/development.yml")
+        .find(|f| f.path == "my-app/config/environments/development.yml")
         .unwrap();
     assert!(dev.content.contains("storage:"));
     assert!(dev.content.contains("driver: local"));

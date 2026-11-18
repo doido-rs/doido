@@ -110,9 +110,9 @@ fn db_schema_dump_and_load() {
 #[test]
 fn db_create_sqlite_file() {
     let dir = tempfile::tempdir().unwrap();
-    fs::create_dir_all(dir.path().join("config")).unwrap();
+    fs::create_dir_all(dir.path().join("config/environments")).unwrap();
     fs::write(
-        dir.path().join("config/development.yml"),
+        dir.path().join("config/environments/development.yml"),
         "database:\n  url: '{{ get_env(name=\"DATABASE_URL\", default=\"sqlite://db/development.db\") }}'\n",
     )
     .unwrap();
@@ -131,9 +131,9 @@ fn db_create_sqlite_file() {
 #[test]
 fn db_prepare_seeds_database_url_from_config_yaml() {
     let dir = tempfile::tempdir().unwrap();
-    fs::create_dir_all(dir.path().join("config")).unwrap();
+    fs::create_dir_all(dir.path().join("config/environments")).unwrap();
     fs::write(
-        dir.path().join("config/development.yml"),
+        dir.path().join("config/environments/development.yml"),
         "database:\n  url: '{{ get_env(name=\"DATABASE_URL\", default=\"sqlite::memory:\") }}'\n",
     )
     .unwrap();
@@ -156,9 +156,9 @@ fn db_prepare_seeds_database_url_from_config_yaml() {
 #[test]
 fn db_missing_schema_file_logs_error() {
     let dir = tempfile::tempdir().unwrap();
-    fs::create_dir_all(dir.path().join("config")).unwrap();
+    fs::create_dir_all(dir.path().join("config/environments")).unwrap();
     fs::write(
-        dir.path().join("config/development.yml"),
+        dir.path().join("config/environments/development.yml"),
         "database:\n  url: '{{ get_env(name=\"DATABASE_URL\", default=\"sqlite::memory:\") }}'\n",
     )
     .unwrap();

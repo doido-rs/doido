@@ -269,9 +269,9 @@ impl JobsFileConfig {
         Self::load_env(Environment::get_env())
     }
 
-    /// Loads `config/<env>.yml` for a specific environment.
+    /// Loads environment configuration for a specific environment.
     pub fn load_env(env: Environment) -> std::io::Result<Self> {
-        let path = format!("config/{}.yml", env.as_str());
+        let path = env.config_path();
         let contents = std::fs::read_to_string(&path)?;
         Self::from_yaml(&contents)
     }

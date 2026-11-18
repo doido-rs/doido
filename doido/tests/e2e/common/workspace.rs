@@ -194,7 +194,7 @@ fn auth_base_is_valid(dir: &Path, _api: bool) -> bool {
             .unwrap_or(false);
     // Module-aware install writes the Devise-style `modules:` list into the auth
     // config; a base predating that is stale and must be regenerated.
-    let modules_ok = fs::read_to_string(app.join("config/development.yml"))
+    let modules_ok = fs::read_to_string(app.join("config/environments/development.yml"))
         .map(|content| content.contains("modules:"))
         .unwrap_or(false);
 
