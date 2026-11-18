@@ -117,6 +117,7 @@ pub async fn run(routes: Option<axum::Router>) {
         None,
         crate::boot::BootOptions::new(),
         None,
+        None,
     )
     .await;
 }
@@ -147,6 +148,7 @@ pub struct Doido {
     seeder: Option<SeederFn>,
     boot: crate::boot::BootOptions,
     before_run: Option<BeforeRunHook>,
+    initializers: Option<doido_controller::initializers::Initializers>,
 }
 
 impl Doido {
@@ -159,7 +161,14 @@ impl Doido {
             seeder: None,
             boot: crate::boot::BootOptions::new(),
             before_run: None,
+            initializers: None,
         }
+    }
+
+    /// Register boot-time initializers to run before CLI subcommands.
+    pub fn initializers(mut self, inits: doido_controller::initializers::Initializers) -> Self {
+        self.initializers = Some(inits);
+        self
     }
 
     /// App hook run once after the logger is installed and before the CLI subcommand
@@ -243,6 +252,7 @@ impl Doido {
             self.seeder,
             self.boot,
             self.before_run,
+            self.initializers,
         )
         .await;
     }
@@ -261,6 +271,7 @@ async fn run_inner(
     seeder: Option<SeederFn>,
     boot: crate::boot::BootOptions,
     before_run: Option<BeforeRunHook>,
+    initializers: Option<doido_controller::initializers::Initializers>,
 ) {
     let mode = std::env::args()
         .skip(1)
@@ -280,6 +291,12 @@ async fn run_inner(
     }
     if let Some(hook) = before_run.as_ref() {
         hook();
+    }
+    if let Some(inits) = initializers {
+        if let Err(e) = inits.run_all() {
+            doido_core::tracing::error!("initializers failed: {e}");
+            std::process::exit(1);
+        }
     }
     let cli = Cli::parse();
     match cli.command {

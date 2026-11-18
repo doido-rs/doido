@@ -28,7 +28,7 @@ use doido::storage::{Storage, DiskService, MemoryService, Signer, Blob, Disposit
 the active driver in the `storage` config; register custom ones with `register_adapter`.
 
 ```yaml
-# config/production.yml
+# config/environments/production.yml
 storage:
   driver: amazon
   prefix: /files          # optional, default /doido/storage

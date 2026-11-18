@@ -37,7 +37,7 @@ Authentication is handled by **doido-auth**. Identity (`User`) is global; tenant
 
 ### Configuration
 
-Auth settings live under the `auth:` section in `config/<env>.yml` (see `config/development.yml`):
+Auth settings live under the `auth:` section in `config/environments/<env>.yml` (see `config/environments/development.yml`):
 
 | Key | Purpose |
 |-----|---------|

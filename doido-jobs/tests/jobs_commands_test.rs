@@ -17,9 +17,9 @@ async fn cli_run_smoke_job() -> doido_core::Result<()> {
 async fn jobs_failed_with_empty_dead_store() {
     let _guard = CWD_LOCK.lock().unwrap();
     let dir = TempDir::new().unwrap();
-    fs::create_dir_all(dir.path().join("config")).unwrap();
+    fs::create_dir_all(dir.path().join("config/environments")).unwrap();
     fs::write(
-        dir.path().join("config/test.yml"),
+        dir.path().join("config/environments/test.yml"),
         "jobs:\n  type: memory\n  queues: [default]\n",
     )
     .unwrap();
@@ -43,9 +43,9 @@ async fn jobs_failed_with_empty_dead_store() {
 async fn jobs_retry_and_discard_on_empty_store() {
     let _guard = CWD_LOCK.lock().unwrap();
     let dir = TempDir::new().unwrap();
-    fs::create_dir_all(dir.path().join("config")).unwrap();
+    fs::create_dir_all(dir.path().join("config/environments")).unwrap();
     fs::write(
-        dir.path().join("config/test.yml"),
+        dir.path().join("config/environments/test.yml"),
         "jobs:\n  type: memory\n  queues: [default]\n",
     )
     .unwrap();
@@ -70,9 +70,9 @@ async fn jobs_retry_and_discard_on_empty_store() {
 async fn jobs_exits_when_backend_cannot_be_built() {
     let _guard = CWD_LOCK.lock().unwrap();
     let dir = TempDir::new().unwrap();
-    fs::create_dir_all(dir.path().join("config")).unwrap();
+    fs::create_dir_all(dir.path().join("config/environments")).unwrap();
     fs::write(
-        dir.path().join("config/test.yml"),
+        dir.path().join("config/environments/test.yml"),
         "jobs:\n  type: db\n  queues: [default]\n",
     )
     .unwrap();
@@ -102,9 +102,9 @@ async fn jobs_retry_preserves_job_name_on_reenqueue() {
     let _guard = CWD_LOCK.lock().unwrap();
     let _pool = doido_model::pool::test_lock();
     let dir = TempDir::new().unwrap();
-    fs::create_dir_all(dir.path().join("config")).unwrap();
+    fs::create_dir_all(dir.path().join("config/environments")).unwrap();
     fs::write(
-        dir.path().join("config/test.yml"),
+        dir.path().join("config/environments/test.yml"),
         "database:\n  url: \"sqlite::memory:\"\njobs:\n  type: db\n  queues: [default]\n",
     )
     .unwrap();
@@ -159,9 +159,9 @@ async fn jobs_retry_requeues_dead_lettered_job_in_db_backend() {
     let _guard = CWD_LOCK.lock().unwrap();
     let _pool = doido_model::pool::test_lock();
     let dir = TempDir::new().unwrap();
-    fs::create_dir_all(dir.path().join("config")).unwrap();
+    fs::create_dir_all(dir.path().join("config/environments")).unwrap();
     fs::write(
-        dir.path().join("config/test.yml"),
+        dir.path().join("config/environments/test.yml"),
         "database:\n  url: \"sqlite::memory:\"\njobs:\n  type: db\n  queues: [default]\n",
     )
     .unwrap();
@@ -203,9 +203,9 @@ async fn jobs_failed_lists_dead_lettered_jobs_in_db_backend() {
     let _guard = CWD_LOCK.lock().unwrap();
     let _pool = doido_model::pool::test_lock();
     let dir = TempDir::new().unwrap();
-    fs::create_dir_all(dir.path().join("config")).unwrap();
+    fs::create_dir_all(dir.path().join("config/environments")).unwrap();
     fs::write(
-        dir.path().join("config/test.yml"),
+        dir.path().join("config/environments/test.yml"),
         "database:\n  url: \"sqlite::memory:\"\njobs:\n  type: db\n  queues: [default]\n",
     )
     .unwrap();
@@ -248,9 +248,9 @@ async fn jobs_list_prints_registered_handlers() {
 async fn jobs_run_unknown_name_exits_with_error() {
     let _guard = CWD_LOCK.lock().unwrap();
     let dir = TempDir::new().unwrap();
-    fs::create_dir_all(dir.path().join("config")).unwrap();
+    fs::create_dir_all(dir.path().join("config/environments")).unwrap();
     fs::write(
-        dir.path().join("config/test.yml"),
+        dir.path().join("config/environments/test.yml"),
         "jobs:\n  type: memory\n  queues: [default]\n",
     )
     .unwrap();
@@ -285,9 +285,9 @@ async fn jobs_run_perform_now_does_not_insert_db_rows() {
     let _guard = CWD_LOCK.lock().unwrap();
     let _pool = doido_model::pool::test_lock();
     let dir = TempDir::new().unwrap();
-    fs::create_dir_all(dir.path().join("config")).unwrap();
+    fs::create_dir_all(dir.path().join("config/environments")).unwrap();
     fs::write(
-        dir.path().join("config/test.yml"),
+        dir.path().join("config/environments/test.yml"),
         "database:\n  url: \"sqlite::memory:\"\njobs:\n  type: db\n  queues: [default]\n",
     )
     .unwrap();

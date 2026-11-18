@@ -23,13 +23,13 @@ use doido::controller::{Config, YamlConfig, ServerConfig};
 
 ## Per-environment YAML
 
-Each environment has its own file under `config/`, selected by `Environment::get_env()`
+Each environment has its own file under `config/environments/`, selected by `Environment::get_env()`
 (`development`, `test`, `production`). The recognized top-level sections are `server`,
 `logger`, and `middleware`; other subsystems (cache, jobs, storage, …) read their own
 sections from the same file.
 
 ```yaml
-# config/development.yml
+# config/environments/development.yml
 server:
   bind: 0.0.0.0
   port: 3000
@@ -54,7 +54,7 @@ Access sections through the `Config` trait: `server()`, `logger()`, `middleware(
 ```rust
 use doido::controller::{Config, YamlConfig};
 
-// Load config/<current-env>.yml (e.g. config/development.yml).
+// Load config/environments/<current-env>.yml (e.g. config/environments/development.yml).
 let config = YamlConfig::load()?;
 
 let addr = format!("{}:{}", config.server().bind, config.server().port); // "0.0.0.0:3000"
@@ -71,7 +71,7 @@ enabled.
 
 ## Environment variables
 
-Each `config/<env>.yml` is **Tera-rendered on load**. Reference environment variables
+Each `config/environments/<env>.yml` is **Tera-rendered on load**. Reference environment variables
 with `get_env`:
 
 ```yaml
@@ -81,7 +81,7 @@ database:
 
 | Variable | Purpose |
 |----------|---------|
-| `DOIDO_ENV` | Selects `config/<env>.yml` (`development`, `test`, `production`) |
+| `DOIDO_ENV` | Selects `config/environments/<env>.yml` (`development`, `test`, `production`) |
 | `RUST_LOG` | Overrides logger verbosity from `logger.level` / `logger.directives` |
 | `DOIDO_MASTER_KEY` | Decrypts `config/credentials.yml.enc` |
 | `DOIDO_LOCALE` | Process-default backend locale (`en`, `pt`, `pt-BR`, `pt_BR` → catalog `pt_BR`) |
@@ -90,10 +90,45 @@ Deployment secrets (`DATABASE_URL`, SMTP, storage endpoints, …) belong in YAML
 `get_env`, not as implicit framework overrides. Use `.env` in development
 (`startup::prepare()`); inject env in production so render sees the values.
 
-Optional bake-at-deploy: `doido config render --env production -o config/production.yml`.
+Optional bake-at-deploy: `doido config render --env production -o config/environments/production.yml`.
 
 App `settings:` and `Doido::before_run(|| Settings::init())`; tests:
 `doido::install_test_runtime_globals(conn)`.
+
+## Initializers (config/initializers/)
+
+Rails analogue: `config/initializers/*`.
+
+Doido applications generated with `doido new` include `config/initializers/mod.rs`
+and register boot hooks via `.initializers(initializers::registry())` on `doido::Doido::new()`.
+
+Initializers run synchronously in registration order right after the logger and inflections
+are initialized, before server or worker subcommands run. If any initializer returns an `Err`,
+application boot halts immediately with exit code 1.
+
+```rust
+// config/initializers/mod.rs
+use doido::controller::initializers::Initializers;
+use doido::Result;
+
+pub fn init() -> Result<()> {
+    registry().run_all()
+}
+
+pub fn registry() -> Initializers {
+    let mut inits = Initializers::new();
+    register_initializers(&mut inits);
+    inits
+}
+
+#[allow(unused_variables)]
+fn register_initializers(inits: &mut Initializers) {
+    // Registered boot hooks
+}
+```
+
+Use `cargo doido generate initializer <name>` to scaffold individual initializers under
+`config/initializers/<name>.rs` and auto-register them in `config/initializers/mod.rs`.
 
 ## Subsystem configuration
 

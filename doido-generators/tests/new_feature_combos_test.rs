@@ -33,7 +33,7 @@ fn kitchen_sink_wires_auth_redis_and_cable() {
     assert!(cargo.contains("doido-auth"), "auth dependency");
     assert!(cargo.contains("doido-cable"), "cable dependency");
 
-    let dev = file(&files, "blog/config/development.yml");
+    let dev = file(&files, "blog/config/environments/development.yml");
     assert!(dev.contains("type: redis"), "redis cache/jobs config");
 
     let compose = file(&files, "blog/docker-compose.yml");
@@ -49,7 +49,7 @@ fn memcache_cache_wires_memcache_service_and_feature() {
     let cargo = file(&files, "shop/Cargo.toml");
     assert!(cargo.contains("cache-memcache"), "cache-memcache feature");
 
-    let dev = file(&files, "shop/config/development.yml");
+    let dev = file(&files, "shop/config/environments/development.yml");
     assert!(dev.contains("memcache"), "memcache cache config");
 
     let compose = file(&files, "shop/docker-compose.yml");
@@ -63,6 +63,6 @@ fn jobs_db_backend_shares_database_feature() {
         .unwrap();
     let cargo = file(&files, "site/Cargo.toml");
     assert!(cargo.contains("jobs-db"), "jobs-db feature");
-    let dev = file(&files, "site/config/development.yml");
+    let dev = file(&files, "site/config/environments/development.yml");
     assert!(dev.contains("jobs:"), "jobs config section");
 }

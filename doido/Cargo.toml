@@ -15,7 +15,7 @@ path = "src/main.rs"
 
 [dependencies]
 doido-core.workspace = true
-doido-controller = { workspace = true, default-features = false, features = ["sqlite"] }
+doido-controller = { workspace = true, features = ["sqlite"] }
 doido-model = { workspace = true, default-features = false, features = [
     "cli",
     "sqlite",
@@ -25,7 +25,7 @@ doido-model = { workspace = true, default-features = false, features = [
 doido-view.workspace = true
 doido-cache.workspace = true
 doido-storage.workspace = true
-doido-jobs = { workspace = true, default-features = false, features = [
+doido-jobs = { workspace = true, features = [
     "cli",
     "jobs-db",
     "jobs-redis",

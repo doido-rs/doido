@@ -25,7 +25,7 @@ pub fn free_port() -> u16 {
 }
 
 pub fn configure_port(app: &Path, port: u16) {
-    let dev_yml = app.join("config/development.yml");
+    let dev_yml = app.join("config/environments/development.yml");
     let cfg = std::fs::read_to_string(&dev_yml).unwrap();
     let cfg = cfg
         .replace("bind: 0.0.0.0", "bind: 127.0.0.1")

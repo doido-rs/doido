@@ -10,9 +10,9 @@ static CWD_LOCK: Mutex<()> = Mutex::new(());
 async fn worker_run_once_with_memory_backend_exits() {
     let _guard = CWD_LOCK.lock().unwrap();
     let dir = TempDir::new().unwrap();
-    fs::create_dir_all(dir.path().join("config")).unwrap();
+    fs::create_dir_all(dir.path().join("config/environments")).unwrap();
     fs::write(
-        dir.path().join("config/test.yml"),
+        dir.path().join("config/environments/test.yml"),
         "jobs:\n  type: memory\n  concurrency: 1\n",
     )
     .unwrap();
@@ -36,9 +36,9 @@ async fn worker_run_once_with_memory_backend_exits() {
 async fn worker_exits_when_jobs_backend_cannot_be_built() {
     let _guard = CWD_LOCK.lock().unwrap();
     let dir = TempDir::new().unwrap();
-    fs::create_dir_all(dir.path().join("config")).unwrap();
+    fs::create_dir_all(dir.path().join("config/environments")).unwrap();
     fs::write(
-        dir.path().join("config/test.yml"),
+        dir.path().join("config/environments/test.yml"),
         "jobs:\n  type: db\n  concurrency: 1\n",
     )
     .unwrap();
@@ -65,9 +65,9 @@ async fn worker_run_once_with_db_backend_from_config() {
     let _pool_guard = doido_model::pool::test_lock();
 
     let dir = TempDir::new().unwrap();
-    fs::create_dir_all(dir.path().join("config")).unwrap();
+    fs::create_dir_all(dir.path().join("config/environments")).unwrap();
     fs::write(
-        dir.path().join("config/test.yml"),
+        dir.path().join("config/environments/test.yml"),
         "database:\n  url: \"sqlite::memory:\"\njobs:\n  type: db\n  concurrency: 1\n",
     )
     .unwrap();

@@ -202,7 +202,7 @@ Ensure **`perform_now` runs after** `install_runtime_globals` / DB pool init whe
 
 - Doido version in app: `0.0.32-test2` (`backend/Cargo.toml`).
 - Jobs defined under `backend/app/jobs/` (e.g. `sync_nfse_catalog_daily`, `sync_municipio_cna_lote`, `import_nfse_anexo_a`).
-- Queues in `config/development.yml`: `default`, `catalog`.
+- Queues in `config/environments/development.yml`: `default`, `catalog`.
 - Catalog sync docs: `docs/nfse/catalog-sync.md`.
 
 After this lands in **doido-jobs**, QuickNFe should only document the commands in `docs/nfse/catalog-sync.md` and remove workarounds (manual enqueue, bootstrap-only seed).

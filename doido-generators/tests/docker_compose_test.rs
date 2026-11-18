@@ -65,7 +65,7 @@ fn cache_redis_adds_redis_service_and_feature() {
     let cargo = find_content(&files, "app/Cargo.toml");
     assert!(cargo.contains("cache-redis"));
 
-    let dev = find_content(&files, "app/config/development.yml");
+    let dev = find_content(&files, "app/config/environments/development.yml");
     assert!(dev.contains("type: redis"));
     assert!(dev.contains("endpoint: redis://127.0.0.1:6379"));
 }
@@ -89,7 +89,7 @@ fn jobs_db_adds_feature_and_config() {
     let cargo = find_content(&files, "app/Cargo.toml");
     assert!(cargo.contains("jobs-db"));
 
-    let dev = find_content(&files, "app/config/development.yml");
+    let dev = find_content(&files, "app/config/environments/development.yml");
     assert!(dev.contains("type: db"));
 }
 
@@ -122,7 +122,7 @@ fn test_yml_always_uses_memory_backends() {
             "--jobs=redis",
         ])
         .unwrap();
-    let test = find_content(&files, "app/config/test.yml");
+    let test = find_content(&files, "app/config/environments/test.yml");
     assert!(test.contains("cache:\n  # Tests"));
     assert!(test.contains("type: memory"));
     assert!(test.contains("jobs:\n  type: memory"));
@@ -141,7 +141,7 @@ fn jobs_database_alias_is_accepted() {
     let files = ProjectGenerator
         .generate(&["app", "--database=sqlite", "--jobs=database"])
         .unwrap();
-    let dev = find_content(&files, "app/config/development.yml");
+    let dev = find_content(&files, "app/config/environments/development.yml");
     assert!(dev.contains("type: db"));
 }
 
@@ -150,7 +150,7 @@ fn development_yml_wires_mailer_to_local_mailpit() {
     let files = ProjectGenerator
         .generate(&["app", "--database=sqlite"])
         .unwrap();
-    let dev = find_content(&files, "app/config/development.yml");
+    let dev = find_content(&files, "app/config/environments/development.yml");
     assert!(dev.contains("mailer:"));
     assert!(dev.contains("type: smtp"));
     assert!(dev.contains("address: localhost:1025"));

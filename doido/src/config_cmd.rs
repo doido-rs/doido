@@ -5,15 +5,15 @@ use std::path::PathBuf;
 
 #[derive(Subcommand)]
 pub enum ConfigCommand {
-    /// Render `config/<env>.yml` through Tera (`get_env`) for deploy pipelines.
+    /// Render `config/environments/<env>.yml` through Tera (`get_env`) for deploy pipelines.
     ///
     /// Committed config should stay static; run this in CI or an entrypoint when you
     /// still author templates with `{{ get_env(...) }}` in a gitignored source file.
     Render {
-        /// Environment file to render (`config/<env>.yml`).
+        /// Environment file to render (`config/environments/<env>.yml`).
         #[arg(long, default_value = "production")]
         env: String,
-        /// Read from this path instead of `config/<env>.yml`.
+        /// Read from this path instead of `config/environments/<env>.yml`.
         #[arg(long)]
         input: Option<PathBuf>,
         /// Write rendered YAML here (default: stdout).
@@ -35,17 +35,19 @@ fn render_config(
     input: Option<&std::path::Path>,
     output: Option<&std::path::Path>,
 ) -> Result<(), String> {
-    match env {
-        "development" | "test" | "production" => {}
+    let environment = match env {
+        "development" => doido_core::Environment::Development,
+        "test" => doido_core::Environment::Test,
+        "production" => doido_core::Environment::Production,
         other => {
             return Err(format!(
                 "unknown environment {other:?}; expected development, test, or production"
             ));
         }
-    }
+    };
     let path = input
         .map(PathBuf::from)
-        .unwrap_or_else(|| PathBuf::from(format!("config/{env}.yml")));
+        .unwrap_or_else(|| environment.config_path());
     let raw = std::fs::read_to_string(&path)
         .map_err(|e| format!("failed to read {}: {e}", path.display()))?;
     let rendered = doido_core::config::render(&raw).map_err(|e| e.to_string())?;
