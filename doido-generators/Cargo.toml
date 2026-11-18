@@ -13,7 +13,7 @@ path = "src/lib.rs"
 [dependencies]
 doido-core.workspace = true
 doido-model = { workspace = true, default-features = false, features = ["sqlite"] }
-doido-auth = { workspace = true, optional = true, default-features = false, features = ["generators"] }
+doido-auth = { workspace = true, optional = true, features = ["generators"] }
 chrono.workspace = true
 clap.workspace = true
 tokio = { workspace = true, features = ["macros", "rt"] }

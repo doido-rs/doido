@@ -106,9 +106,10 @@ my-app/
 ├── src/main.rs              ← delegates to doido::run(routes)
 ├── config/
 │   ├── application.toml      ← base config
-│   ├── development.yml       ← per-environment overrides
-│   ├── test.yml
-│   ├── production.yml
+│   ├── environments/
+│   │   ├── development.yml   ← per-environment overrides
+│   │   ├── test.yml
+│   │   └── production.yml
 │   ├── routes.rs            ← routes! macro
 │   └── inflection.yaml      ← custom pluralization rules
 ├── app/
@@ -130,7 +131,7 @@ Configuration is layered: `config/application.toml` provides the base, then
 Encrypted credentials and `SECTION__KEY` environment variables override on top.
 
 ```yaml
-# config/development.yml
+# config/environments/development.yml
 server:
   bind: 0.0.0.0
   port: 3000

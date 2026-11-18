@@ -81,6 +81,7 @@ files (and some inject routes). The subsections below give a runnable example fo
 | `migration` | a standalone migration |
 | `controller` | a `#[controller]` with action stubs (+ route) |
 | `helper` | a controller helper in `app/helpers/` |
+| `initializer` | an application initializer in `config/initializers/` + test |
 | `scaffold` | model + migration + controller + views + route |
 | `resource` | model + migration + controller + route (no views) |
 | `mailer` | a mailer + templates |
@@ -122,6 +123,14 @@ A controller helper module in `app/helpers/`.
 
 ```bash
 cargo doido generate helper Posts
+```
+
+### initializer
+
+An application initializer module in `config/initializers/`, auto-registered in `config/initializers/mod.rs`.
+
+```bash
+cargo doido generate initializer cors
 ```
 
 ### scaffold

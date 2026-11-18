@@ -268,10 +268,10 @@ impl YamlConfig {
         Self::load_env(doido_core::Environment::get_env())
     }
 
-    /// Load `config/<env>.yml` for a specific environment. Missing files yield
+    /// Load environment configuration for a specific environment. Missing files yield
     /// the default config (disk driver).
     pub fn load_env(env: doido_core::Environment) -> std::io::Result<Self> {
-        let path = format!("config/{}.yml", env.as_str());
+        let path = env.config_path();
         match std::fs::read_to_string(&path) {
             Ok(contents) => Self::from_yaml(&contents),
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(Self::default()),

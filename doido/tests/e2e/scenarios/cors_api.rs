@@ -14,7 +14,7 @@ fn append_full_cors_config(
     methods: &[&str],
     headers: Option<&[&str]>,
 ) {
-    let path = app.join("config/development.yml");
+    let path = app.join("config/environments/development.yml");
     let mut yaml = fs::read_to_string(&path).unwrap();
     yaml.push_str("\nmiddleware:\n  cors:\n    enabled: true\n    allowed_origins:\n");
     for origin in origins {

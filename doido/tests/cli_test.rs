@@ -7,11 +7,11 @@ fn cmd() -> Command {
     Command::cargo_bin("doido").unwrap()
 }
 
-/// Minimal `config/development.yml` so `database.url` comes from `get_env`.
+/// Minimal `config/environments/development.yml` so `database.url` comes from `get_env`.
 fn write_db_config_via_get_env(dir: &Path) {
-    fs::create_dir_all(dir.join("config")).unwrap();
+    fs::create_dir_all(dir.join("config/environments")).unwrap();
     fs::write(
-        dir.join("config/development.yml"),
+        dir.join("config/environments/development.yml"),
         "database:\n  url: '{{ get_env(name=\"DATABASE_URL\", default=\"sqlite::memory:\") }}'\n",
     )
     .unwrap();
@@ -242,9 +242,9 @@ fn test_worker_command() {
 #[test]
 fn test_server_and_worker_run_runtime_boot_in_app_dir() {
     let dir = tempfile::tempdir().unwrap();
-    fs::create_dir_all(dir.path().join("config")).unwrap();
+    fs::create_dir_all(dir.path().join("config/environments")).unwrap();
     fs::write(
-        dir.path().join("config/test.yml"),
+        dir.path().join("config/environments/test.yml"),
         "database:\n  url: \"sqlite::memory:\"\njobs:\n  type: memory\n",
     )
     .unwrap();

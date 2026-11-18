@@ -79,6 +79,7 @@ están documentados en [La DSL de campos](#la-dsl-de-campos).
 | `migration` | una migración independiente |
 | `controller` | un `#[controller]` con stubs de action (+ ruta) |
 | `helper` | un helper de controlador en `app/helpers/` |
+| `initializer` | un initializer de la aplicación en `config/initializers/` + prueba |
 | `scaffold` | modelo + migración + controlador + vistas + ruta |
 | `resource` | modelo + migración + controlador + ruta (sin vistas) |
 | `mailer` | un mailer + plantillas |
@@ -120,6 +121,14 @@ Un módulo de helper de controlador en `app/helpers/`.
 
 ```bash
 cargo doido generate helper Posts
+```
+
+### initializer
+
+Un módulo initializer de la aplicación en `config/initializers/`, auto-registrado en `config/initializers/mod.rs`.
+
+```bash
+cargo doido generate initializer cors
 ```
 
 ### scaffold

@@ -31,6 +31,7 @@ registrados:
 |-----------|--------|
 | `controller` | Un controlador con actions |
 | `helper` | Un helper de controlador en `app/helpers/` |
+| `initializer` | Un initializer de aplicación en `config/initializers/` |
 | `model` | Un modelo + migración de SeaORM |
 | `migration` | Una migración independiente |
 | `scaffold` | Modelo, controlador, vistas, rutas — el CRUD completo |

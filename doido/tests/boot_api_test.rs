@@ -18,9 +18,9 @@ async fn install_runtime_globals_from_app_config_dir() {
     }
 
     let dir = TempDir::new().unwrap();
-    fs::create_dir_all(dir.path().join("config")).unwrap();
+    fs::create_dir_all(dir.path().join("config/environments")).unwrap();
     fs::write(
-        dir.path().join("config/test.yml"),
+        dir.path().join("config/environments/test.yml"),
         "database:\n  url: \"sqlite::memory:\"\nstorage:\n  driver: local\n  drivers:\n    local: { type: disk, root: tmp/storage }\n",
     )
     .unwrap();

@@ -74,7 +74,11 @@ fn test_doido_new_cargo_toml_has_cache_redis_feature() {
     let cargo_toml = fs::read_to_string(dir.path().join("cache-app/Cargo.toml")).unwrap();
     assert!(cargo_toml.contains("cache-redis"));
 
-    let dev_yml = fs::read_to_string(dir.path().join("cache-app/config/development.yml")).unwrap();
+    let dev_yml = fs::read_to_string(
+        dir.path()
+            .join("cache-app/config/environments/development.yml"),
+    )
+    .unwrap();
     assert!(dev_yml.contains("type: redis"));
 }
 

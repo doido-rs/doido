@@ -498,8 +498,8 @@ Produces:
   `confirmation_token`, `failed_attempts`, `sign_in_count`, …).
 - `app/models/user.rs` implementing `UserModel` + `HasSecurePassword` (+ `RegisterableUserModel`)
   and `app/models/_entities/users.rs` with the module fields.
-- Appends an `auth:` block (with the `modules:` list) to `config/development.yml` /
-  `config/test.yml`.
+- Appends an `auth:` block (with the `modules:` list) to `config/environments/development.yml` /
+  `config/environments/test.yml`.
 - Injects `use crate::models::user::Model as User;` and a bare `auth_routes!(User);` (or
   `auth_routes!(User, only: [...])` with `--modules=`) into `config/routes.rs`. Targets
   doido-auth's built-in controllers; does **not** modify `Cargo.toml`.

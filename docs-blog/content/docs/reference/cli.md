@@ -31,6 +31,7 @@ Run `cargo doido generate` with no arguments to list every registered generator:
 |-----------|-----------|
 | `controller` | A controller with actions |
 | `helper` | A controller helper in `app/helpers/` |
+| `initializer` | An application initializer in `config/initializers/` |
 | `model` | A model + SeaORM migration |
 | `migration` | A standalone migration |
 | `scaffold` | Model, controller, views, routes — the full CRUD stack |

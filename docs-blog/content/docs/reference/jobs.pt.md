@@ -73,7 +73,7 @@ let queue = build_queue(&JobsConfig::default()).await?; // Arc<dyn JobQueue>
 ```
 
 ```yaml
-# config/production.yml
+# config/environments/production.yml
 jobs:
   backend: redis            # memory | db | redis
   queues: [critical, default, emails]

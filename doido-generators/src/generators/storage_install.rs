@@ -3,7 +3,7 @@
 //! Emits a migration creating the `storage_blobs`, `storage_attachments` and
 //! `storage_variant_records` tables (via the `doido_model::migration` builders),
 //! registers it in `db/migration/mod.rs`, and appends a `storage:` section to
-//! `config/development.yml` and `config/test.yml` when those files exist.
+//! `config/environments/development.yml` and `config/environments/test.yml` when those files exist.
 
 use crate::generator::{GeneratedFile, Generator};
 use crate::generators::bootstrap_migrations::{
@@ -61,10 +61,10 @@ impl Generator for StorageInstallGenerator {
         }
 
         // Best-effort: wire the `storage` config section into existing env files.
-        if let Some(f) = config_file("config/development.yml", "local") {
+        if let Some(f) = config_file("config/environments/development.yml", "local") {
             files.push(f);
         }
-        if let Some(f) = config_file("config/test.yml", "test") {
+        if let Some(f) = config_file("config/environments/test.yml", "test") {
             files.push(f);
         }
 
