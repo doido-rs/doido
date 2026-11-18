@@ -55,7 +55,7 @@ pub fn build_jobs_webui_router() -> axum::Router {
 
 ## The solution: `build_jobs_webui_router`
 
-`doido-jobs` now provides `build_jobs_webui_router` (and `build_unprotected_jobs_webui_router`), handling the entire lifecycle:
+`doido-jobs` now provides `build_jobs_webui_router` (and `build_unprotected_jobs_webui_router`), handling the entire lifecycle. The mount path is specified explicitly when calling the builder, without requiring redundant `enabled` or `mount_path` keys in your configuration YAML:
 
 ```rust
 use axum::middleware::from_fn;
@@ -64,20 +64,15 @@ pub fn build_jobs_webui_router() -> axum::Router {
     let auth_layer = (!crate::settings::dev_or_test_runtime())
         .then(|| from_fn(crate::auth::jobs_webui_auth_layer));
 
-    doido_jobs::webui::build_jobs_webui_router(
-        Some(crate::settings::get().jobs.webui.mount_path()),
-        auth_layer,
-    )
+    doido_jobs::webui::build_jobs_webui_router("/admin/jobs", auth_layer)
 }
 ```
 
-If your endpoint path is already defined in `config/<env>.yml` under `jobs.webui.mount_path`, you can even pass `None` to use that path directly:
+And for unprotected environments or local prototypes, `build_unprotected_jobs_webui_router("/admin/jobs")` requires zero generic type annotations:
 
 ```rust
-let router = doido_jobs::webui::build_jobs_webui_router(None, auth_layer);
+let router = doido_jobs::webui::build_unprotected_jobs_webui_router("/admin/jobs");
 ```
-
-And for unprotected environments or local prototypes, `build_unprotected_jobs_webui_router(None)` requires zero generic type annotations.
 
 ## Synchronous queue resolution: `default_sync_queue`
 

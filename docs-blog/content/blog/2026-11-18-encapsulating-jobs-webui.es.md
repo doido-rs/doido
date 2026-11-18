@@ -55,7 +55,7 @@ pub fn build_jobs_webui_router() -> axum::Router {
 
 ## La solución: `build_jobs_webui_router`
 
-`doido-jobs` ahora proporciona `build_jobs_webui_router` (y `build_unprotected_jobs_webui_router`), gestionando todo el ciclo de vida:
+`doido-jobs` ahora proporciona `build_jobs_webui_router` (y `build_unprotected_jobs_webui_router`), gestionando todo el ciclo de vida. La ruta de montaje se especifica explícitamente al invocar el builder, sin requerir claves redundantes de `enabled` o `mount_path` en su archivo YAML de configuración:
 
 ```rust
 use axum::middleware::from_fn;
@@ -64,20 +64,15 @@ pub fn build_jobs_webui_router() -> axum::Router {
     let auth_layer = (!crate::settings::dev_or_test_runtime())
         .then(|| from_fn(crate::auth::jobs_webui_auth_layer));
 
-    doido_jobs::webui::build_jobs_webui_router(
-        Some(crate::settings::get().jobs.webui.mount_path()),
-        auth_layer,
-    )
+    doido_jobs::webui::build_jobs_webui_router("/admin/jobs", auth_layer)
 }
 ```
 
-Si la ruta del panel ya está definida en `config/<env>.yml` bajo `jobs.webui.mount_path`, puede pasar `None` para usar esa ruta directamente:
+Y para entornos no protegidos o prototipos locales, `build_unprotected_jobs_webui_router("/admin/jobs")` no requiere ninguna anotación genérica de tipos:
 
 ```rust
-let router = doido_jobs::webui::build_jobs_webui_router(None, auth_layer);
+let router = doido_jobs::webui::build_unprotected_jobs_webui_router("/admin/jobs");
 ```
-
-Y para entornos no protegidos o prototipos locales, `build_unprotected_jobs_webui_router(None)` no requiere ninguna anotación genérica de tipos.
 
 ## Resolución síncrona de colas: `default_sync_queue`
 

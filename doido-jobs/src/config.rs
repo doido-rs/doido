@@ -30,23 +30,10 @@ impl Backend {
 }
 
 /// HTTP dashboard settings (`jobs.webui` in YAML).
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct WebUiConfig {
-    pub enabled: bool,
-    /// Router prefix (default `/doido/jobs`).
-    pub mount_path: String,
     /// Cache `queue_counts` in-process for this many seconds (dashboard **Queues** tab).
     pub stats_ttl_secs: Option<u64>,
-}
-
-impl Default for WebUiConfig {
-    fn default() -> Self {
-        Self {
-            enabled: false,
-            mount_path: "/doido/jobs".to_string(),
-            stats_ttl_secs: None,
-        }
-    }
 }
 
 /// Runtime configuration for the jobs subsystem (typically loaded from `[jobs]`).
@@ -191,10 +178,6 @@ pub struct DbSettings {
 #[derive(Debug, Clone, Default, Deserialize)]
 pub struct WebUiSettings {
     #[serde(default)]
-    pub enabled: bool,
-    #[serde(default)]
-    pub mount_path: Option<String>,
-    #[serde(default)]
     pub stats_ttl_secs: Option<u64>,
 }
 
@@ -256,11 +239,6 @@ impl JobsSettings {
         let cron = self.cron.unwrap_or_default().into_config(env);
         let webui_raw = self.webui.unwrap_or_default();
         let webui = WebUiConfig {
-            enabled: webui_raw.enabled,
-            mount_path: webui_raw
-                .mount_path
-                .filter(|p| !p.is_empty())
-                .unwrap_or_else(|| d.webui.mount_path.clone()),
             stats_ttl_secs: webui_raw.stats_ttl_secs.filter(|&s| s > 0),
         };
         JobsConfig {
@@ -470,10 +448,9 @@ mod tests {
 
     #[test]
     fn parses_jobs_webui_section() {
-        let yaml = "jobs:\n  webui:\n    enabled: true\n    mount_path: /jobs\n";
+        let yaml = "jobs:\n  webui:\n    stats_ttl_secs: 30\n";
         let cfg = JobsFileConfig::from_yaml(yaml).unwrap().jobs.into_config();
-        assert!(cfg.webui.enabled);
-        assert_eq!(cfg.webui.mount_path, "/jobs");
+        assert_eq!(cfg.webui.stats_ttl_secs, Some(30));
     }
 
     #[tokio::test]

@@ -30,8 +30,6 @@ async fn webui_perform_ping() -> doido_core::Result<()> {
 fn test_jobs_config() -> JobsConfig {
     JobsConfig {
         webui: WebUiConfig {
-            enabled: true,
-            mount_path: "/doido/jobs".to_string(),
             stats_ttl_secs: None,
         },
         ..JobsConfig::default()
@@ -49,7 +47,7 @@ async fn webui_renders_queues_tab() {
         .await
         .unwrap();
 
-    let state = JobsWebState::new(queue, test_jobs_config());
+    let state = JobsWebState::new(queue, test_jobs_config(), "/doido/jobs");
     let app = webui::routes(state);
 
     let response = app
@@ -87,7 +85,7 @@ async fn webui_job_tab_exposes_cursor_pagination() {
             .unwrap();
     }
 
-    let state = JobsWebState::new(queue, test_jobs_config());
+    let state = JobsWebState::new(queue, test_jobs_config(), "/doido/jobs");
     let app = webui::routes(state);
 
     let response = app
@@ -126,7 +124,7 @@ async fn webui_include_payload_renders_pre() {
         .await
         .unwrap();
 
-    let state = JobsWebState::new(queue, test_jobs_config());
+    let state = JobsWebState::new(queue, test_jobs_config(), "/doido/jobs");
     let app = webui::routes(state);
 
     let response = app
@@ -163,7 +161,7 @@ async fn webui_retry_dead_job_via_http() {
     assert_eq!(r.job.id, id);
     queue.dead_letter(&id, "fail").await.unwrap();
 
-    let state = JobsWebState::new(queue.clone(), test_jobs_config());
+    let state = JobsWebState::new(queue.clone(), test_jobs_config(), "/doido/jobs");
     let app = webui::routes(state);
 
     let response = app
@@ -197,6 +195,7 @@ async fn webui_enqueue_tab_lists_registered_job() {
     let state = JobsWebState::new(
         Arc::new(MemoryQueue::new()) as Arc<dyn JobQueue>,
         test_jobs_config(),
+        "/doido/jobs",
     );
     let app = webui::routes(state);
 
@@ -223,7 +222,7 @@ async fn webui_enqueue_now_inserts_job() {
     let _ = doido_view::init("app/views");
 
     let queue = Arc::new(MemoryQueue::new()) as Arc<dyn JobQueue>;
-    let state = JobsWebState::new(queue.clone(), test_jobs_config());
+    let state = JobsWebState::new(queue.clone(), test_jobs_config(), "/doido/jobs");
     let app = webui::routes(state);
 
     let response = app
@@ -250,7 +249,7 @@ async fn webui_enqueue_payload_array_inserts_multiple_jobs() {
     let _ = doido_view::init("app/views");
 
     let queue = Arc::new(MemoryQueue::new()) as Arc<dyn JobQueue>;
-    let state = JobsWebState::new(queue.clone(), test_jobs_config());
+    let state = JobsWebState::new(queue.clone(), test_jobs_config(), "/doido/jobs");
     let app = webui::routes(state);
 
     let response = app
@@ -276,7 +275,7 @@ async fn webui_enqueue_at_schedules_job() {
     let _ = doido_view::init("app/views");
 
     let queue = Arc::new(MemoryQueue::new()) as Arc<dyn JobQueue>;
-    let state = JobsWebState::new(queue.clone(), test_jobs_config());
+    let state = JobsWebState::new(queue.clone(), test_jobs_config(), "/doido/jobs");
     let app = webui::routes(state);
 
     let at = Utc::now() + Duration::hours(2);
@@ -301,7 +300,7 @@ async fn webui_perform_now_runs_without_queue_row() {
 
     WEBUI_PROBE_RAN.store(0, Ordering::SeqCst);
     let queue = Arc::new(MemoryQueue::new()) as Arc<dyn JobQueue>;
-    let state = JobsWebState::new(queue.clone(), test_jobs_config());
+    let state = JobsWebState::new(queue.clone(), test_jobs_config(), "/doido/jobs");
     let app = webui::routes(state);
 
     let response = app
@@ -333,7 +332,7 @@ async fn webui_in_queue_tab_has_bulk_form() {
         .await
         .unwrap();
 
-    let state = JobsWebState::new(queue, test_jobs_config());
+    let state = JobsWebState::new(queue, test_jobs_config(), "/doido/jobs");
     let app = webui::routes(state);
 
     let response = app
@@ -369,7 +368,7 @@ async fn webui_bulk_delete_selected() {
         .await
         .unwrap();
 
-    let state = JobsWebState::new(queue.clone(), test_jobs_config());
+    let state = JobsWebState::new(queue.clone(), test_jobs_config(), "/doido/jobs");
     let app = webui::routes(state);
 
     let response = app
@@ -414,7 +413,7 @@ async fn webui_bulk_discard_selected_dead() {
         queue.dead_letter(id, "fail").await.unwrap();
     }
 
-    let state = JobsWebState::new(queue.clone(), test_jobs_config());
+    let state = JobsWebState::new(queue.clone(), test_jobs_config(), "/doido/jobs");
     let app = webui::routes(state);
 
     let response = app
@@ -447,7 +446,7 @@ async fn webui_bulk_retry_all_via_post() {
         .unwrap();
     queue.dead_letter(&r.job.id, "fail").await.unwrap();
 
-    let state = JobsWebState::new(queue.clone(), test_jobs_config());
+    let state = JobsWebState::new(queue.clone(), test_jobs_config(), "/doido/jobs");
     let app = webui::routes(state);
 
     let response = app
@@ -474,7 +473,7 @@ async fn webui_routes_can_be_merged_into_app() {
     let _ = doido_view::init("app/views");
 
     let queue = Arc::new(MemoryQueue::new()) as Arc<dyn JobQueue>;
-    let state = JobsWebState::new(queue, test_jobs_config());
+    let state = JobsWebState::new(queue, test_jobs_config(), "/doido/jobs");
 
     // Developer merges the webui router into their application router
     let app = Router::new().merge(webui::routes(state));
@@ -498,7 +497,7 @@ async fn webui_routes_at_directs_custom_endpoint() {
     let _ = doido_view::init("app/views");
 
     let queue = Arc::new(MemoryQueue::new()) as Arc<dyn JobQueue>;
-    let state = JobsWebState::new(queue, test_jobs_config());
+    let state = JobsWebState::new(queue, test_jobs_config(), "/doido/jobs");
 
     // Developer directs the endpoint to a custom path (e.g. /admin/queues)
     let app = Router::new().merge(webui::routes_at("/admin/queues", state));
@@ -554,7 +553,7 @@ async fn webui_developer_can_attach_custom_auth_layer() {
     let _ = doido_view::init("app/views");
 
     let queue = Arc::new(MemoryQueue::new()) as Arc<dyn JobQueue>;
-    let state = JobsWebState::new(queue, test_jobs_config());
+    let state = JobsWebState::new(queue, test_jobs_config(), "/doido/jobs");
 
     // Developer adds their own auth layer to the jobs dashboard router
     let jobs_router = webui::routes(state).layer(middleware::from_fn(custom_auth));
@@ -608,8 +607,7 @@ async fn build_jobs_webui_router_encapsulates_mount_and_auth_layer() {
     let auth_layer = (!is_dev).then(|| middleware::from_fn(custom_auth));
 
     let config = test_jobs_config();
-    let app =
-        webui::build_jobs_webui_router_with_config(config, Some("/custom/admin/jobs"), auth_layer);
+    let app = webui::build_jobs_webui_router_with_config(config, "/custom/admin/jobs", auth_layer);
 
     // Request without auth is rejected
     let unauth_resp = app
@@ -639,17 +637,17 @@ async fn build_jobs_webui_router_encapsulates_mount_and_auth_layer() {
 }
 
 #[tokio::test]
-async fn build_jobs_webui_router_defaults_mount_path_from_config() {
+async fn build_jobs_webui_router_mounts_at_given_path() {
     use axum::http::StatusCode;
 
     doido_jobs::webui::register_views();
     let _ = doido_view::init("app/views");
 
-    let mut config = test_jobs_config();
-    config.webui.mount_path = "/configured/jobs".to_string();
-
+    let config = test_jobs_config();
     let app = webui::build_jobs_webui_router_with_config::<tower::layer::util::Identity>(
-        config, None, None,
+        config,
+        "/configured/jobs",
+        None,
     );
 
     let resp = app
@@ -671,7 +669,7 @@ async fn build_unprotected_jobs_webui_router_serves_requests_without_type_annota
     doido_jobs::webui::register_views();
     let _ = doido_view::init("app/views");
 
-    let app = webui::build_unprotected_jobs_webui_router(Some("/unprotected/jobs"));
+    let app = webui::build_unprotected_jobs_webui_router("/unprotected/jobs");
 
     let resp = app
         .oneshot(

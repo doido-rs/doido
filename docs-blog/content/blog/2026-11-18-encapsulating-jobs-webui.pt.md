@@ -55,7 +55,7 @@ pub fn build_jobs_webui_router() -> axum::Router {
 
 ## A solução: `build_jobs_webui_router`
 
-O `doido-jobs` agora oferece `build_jobs_webui_router` (e `build_unprotected_jobs_webui_router`), gerenciando todo esse ciclo:
+O `doido-jobs` agora oferece `build_jobs_webui_router` (e `build_unprotected_jobs_webui_router`), gerenciando todo esse ciclo. O caminho de montagem é informado explicitamente na chamada do builder, sem necessitar de chaves redundantes de `enabled` ou `mount_path` no arquivo YAML de configuração:
 
 ```rust
 use axum::middleware::from_fn;
@@ -64,20 +64,15 @@ pub fn build_jobs_webui_router() -> axum::Router {
     let auth_layer = (!crate::settings::dev_or_test_runtime())
         .then(|| from_fn(crate::auth::jobs_webui_auth_layer));
 
-    doido_jobs::webui::build_jobs_webui_router(
-        Some(crate::settings::get().jobs.webui.mount_path()),
-        auth_layer,
-    )
+    doido_jobs::webui::build_jobs_webui_router("/admin/jobs", auth_layer)
 }
 ```
 
-Se o endpoint do seu dashboard já estiver definido no `config/<env>.yml` sob `jobs.webui.mount_path`, você pode passar `None` para usar esse caminho diretamente:
+E para ambientes sem autenticação ou protótipos locais, `build_unprotected_jobs_webui_router("/admin/jobs")` não requer nenhuma anotação de tipo genérico:
 
 ```rust
-let router = doido_jobs::webui::build_jobs_webui_router(None, auth_layer);
+let router = doido_jobs::webui::build_unprotected_jobs_webui_router("/admin/jobs");
 ```
-
-E para ambientes sem autenticação ou protótipos locais, `build_unprotected_jobs_webui_router(None)` não requer nenhuma anotação de tipo genérico.
 
 ## Resolução síncrona de fila: `default_sync_queue`
 

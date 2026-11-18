@@ -177,11 +177,10 @@ cargo doido jobs discard   # elimina todos los dead jobs
 
 ## Web UI
 
-Con `jobs.webui.enabled: true` en `config/<env>.yml`, el framework proporciona un panel con pestañas
-(por defecto `/doido/jobs`) sobre el mismo backend de cola que el worker: conteos, cola, en ejecución,
-retry y dead letters. **En cola**, **En ejecución** y **Retry** permiten eliminación masiva (cancelación)
-de jobs seleccionados; **Dead** permite retry/discard masivo (seleccionados y todos) mediante POST `{mount}/bulk`,
-además de enlaces individuales por fila.
+El framework proporciona un panel con pestañas sobre el mismo backend de cola que el worker:
+conteos, cola, en ejecución, retry y dead letters. **En cola**, **En ejecución** y **Retry**
+permiten eliminación masiva (cancelación) de jobs seleccionados; **Dead** permite retry/discard
+masivo (seleccionados y todos) mediante POST `{mount}/bulk`, además de enlaces individuales por fila.
 
 Habilite la feature `webui` en `doido-jobs` (activa por defecto en el crate `doido`).
 
@@ -197,18 +196,15 @@ pub fn build_jobs_webui_router() -> axum::Router {
     let auth_layer = (!crate::settings::dev_or_test_runtime())
         .then(|| from_fn(crate::auth::jobs_webui_auth_layer));
 
-    // Montar en ruta personalizada (o pasar `None` para usar `jobs.webui.mount_path` de la config YAML)
-    doido_jobs::webui::build_jobs_webui_router(
-        Some(crate::settings::get().jobs.webui.mount_path()),
-        auth_layer,
-    )
+    // Montar en ruta personalizada (por ejemplo, "/admin/jobs" o "/doido/jobs")
+    doido_jobs::webui::build_jobs_webui_router("/admin/jobs", auth_layer)
 }
 ```
 
 Si no se requiere autenticación:
 
 ```rust
-let jobs_router = doido_jobs::webui::build_unprotected_jobs_webui_router(None);
+let jobs_router = doido_jobs::webui::build_unprotected_jobs_webui_router("/admin/jobs");
 let app = app.merge(jobs_router);
 ```
 

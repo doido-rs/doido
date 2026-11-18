@@ -287,11 +287,8 @@ pub fn build_jobs_webui_router() -> axum::Router {
     let auth_layer = (!crate::settings::dev_or_test_runtime())
         .then(|| from_fn(crate::auth::jobs_webui_auth_layer));
 
-    // Mount at custom path (or pass `None` to use `jobs.webui.mount_path` from YAML config)
-    doido_jobs::webui::build_jobs_webui_router(
-        Some(crate::settings::get().jobs.webui.mount_path()),
-        auth_layer,
-    )
+    // Mount at custom path (e.g. "/admin/jobs")
+    doido_jobs::webui::build_jobs_webui_router("/admin/jobs", auth_layer)
 }
 ```
 
@@ -299,7 +296,7 @@ If no authentication layer is needed, [`doido_jobs::webui::build_unprotected_job
 can be called directly without type annotations:
 
 ```rust
-let jobs_router = doido_jobs::webui::build_unprotected_jobs_webui_router(None);
+let jobs_router = doido_jobs::webui::build_unprotected_jobs_webui_router("/admin/jobs");
 let app = app.merge(jobs_router);
 ```
 
@@ -311,13 +308,13 @@ For custom queue instances or manual control:
 use doido_jobs::webui::{self, JobsWebState};
 
 let queue = doido_jobs::build_queue(&jobs_config).await?;
-let state = JobsWebState::new(queue, jobs_config);
+let state = JobsWebState::new(queue, jobs_config, "/admin/jobs");
 
-// Option 1: Mount at the default path (/doido/jobs)
+// Option 1: Mount at the state's mount path
 let app = app.merge(webui::routes(state));
 
-// Option 2: Direct the endpoint to a custom path (e.g. /admin/jobs)
-let app = app.merge(webui::routes_at("/admin/jobs", state));
+// Option 2: Direct the endpoint to a custom path (e.g. /custom/jobs)
+let app = app.merge(webui::routes_at("/custom/jobs", state));
 
 // Option 3: Protect with custom authentication middleware
 let protected_jobs = webui::routes_at("/admin/jobs", state)
@@ -332,7 +329,6 @@ jobs:
   type: db
   queues: [default, mailers]
   webui:
-    mount_path: /admin/jobs
     stats_ttl_secs: 30
 ```
 
