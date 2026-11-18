@@ -33,7 +33,7 @@ async fn auth_routes_default_controllers_sign_in() {
 async fn auth_routes_custom_controller_override() {
     mod auth {
         use doido_auth::testing::TestUser;
-        use doido_auth::{authenticate, sign_in, UserModel};
+        use doido_auth::{authenticate, sign_in};
         use doido_controller::{controller, Response};
         use doido_core::Result;
         use serde::Deserialize;

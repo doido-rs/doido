@@ -30,3 +30,10 @@ fn mailer_deliverer_is_exported() {
     fn _accepts_deliverer<D: doido::Deliverer>() {}
     let _: doido::LogDeliverer = doido::LogDeliverer;
 }
+
+#[test]
+fn initializers_is_exported() {
+    let mut inits = doido::Initializers::new();
+    inits.register("check", || Ok(()));
+    assert_eq!(inits.names(), vec!["check"]);
+}

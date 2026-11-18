@@ -154,6 +154,7 @@ fn jobs_file_config_load_reads_disk() {
 
 #[cfg(feature = "jobs-db")]
 #[tokio::test]
+#[allow(clippy::await_holding_lock)]
 async fn build_configured_queue_installs_global_pool_from_config() {
     let _guard = CWD_LOCK.lock().unwrap_or_else(|e| e.into_inner());
     let _pool_guard = doido_model::pool::test_lock();

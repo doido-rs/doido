@@ -95,6 +95,40 @@ Optional bake-at-deploy: `doido config render --env production -o config/environ
 App `settings:` and `Doido::before_run(|| Settings::init())`; tests:
 `doido::install_test_runtime_globals(conn)`.
 
+## Initializers (config/initializers/)
+
+Rails analogue: `config/initializers/*`.
+
+Doido applications generated with `doido new` include `config/initializers/mod.rs`
+and register boot hooks via `.initializers(initializers::registry())` on `doido::Doido::new()`.
+
+Initializers run synchronously in registration order right after the logger and inflections
+are initialized, before server or worker subcommands run. If any initializer returns an `Err`,
+application boot halts immediately with exit code 1.
+
+```rust
+// config/initializers/mod.rs
+use doido::controller::initializers::Initializers;
+use doido::Result;
+
+pub fn init() -> Result<()> {
+    registry().run_all()
+}
+
+pub fn registry() -> Initializers {
+    let mut inits = Initializers::new();
+    register_initializers(&mut inits);
+    inits
+}
+
+fn register_initializers(inits: &mut Initializers) {
+    // Registered boot hooks
+}
+```
+
+Use `cargo doido generate initializer <name>` to scaffold individual initializers under
+`config/initializers/<name>.rs` and auto-register them in `config/initializers/mod.rs`.
+
 ## Subsystem configuration
 
 The `server`/`logger`/`middleware` sections are typed by `YamlConfig`, but each pluggable

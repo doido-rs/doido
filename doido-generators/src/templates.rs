@@ -16,6 +16,9 @@ const CONTROLLER: &str = include_str!("../templates/controller/controller.rs.tem
 const CONTROLLER_TEST: &str = include_str!("../templates/controller/controller_test.rs.template");
 const HELPER: &str = include_str!("../templates/helper/helper.rs.template");
 const HELPER_TEST: &str = include_str!("../templates/helper/helper_test.rs.template");
+const INITIALIZER: &str = include_str!("../templates/initializer/initializer.rs.template");
+const INITIALIZER_TEST: &str =
+    include_str!("../templates/initializer/initializer_test.rs.template");
 const JOB: &str = include_str!("../templates/job/job.rs.template");
 const JOB_TEST: &str = include_str!("../templates/job/job_test.rs.template");
 const MAILER: &str = include_str!("../templates/mailer/mailer.rs.template");
@@ -49,6 +52,8 @@ const BUILTIN: &[(&str, &str)] = &[
     ("controller/controller_test.rs.template", CONTROLLER_TEST),
     ("helper/helper.rs.template", HELPER),
     ("helper/helper_test.rs.template", HELPER_TEST),
+    ("initializer/initializer.rs.template", INITIALIZER),
+    ("initializer/initializer_test.rs.template", INITIALIZER_TEST),
     ("job/job.rs.template", JOB),
     ("job/job_test.rs.template", JOB_TEST),
     ("mailer/mailer.rs.template", MAILER),

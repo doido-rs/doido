@@ -11,6 +11,7 @@ fn test_new_generates_all_expected_files() {
     assert!(paths.contains(&"my-app/src/main.rs"));
     assert!(paths.contains(&"my-app/config/application.toml"));
     assert!(paths.contains(&"my-app/config/routes.rs"));
+    assert!(paths.contains(&"my-app/config/initializers/mod.rs"));
     assert!(paths.contains(&"my-app/config/environments/development.yml"));
     assert!(paths.contains(&"my-app/config/environments/test.yml"));
     assert!(paths.contains(&"my-app/config/environments/production.yml"));
@@ -36,9 +37,13 @@ fn test_new_generates_all_expected_files() {
         .find(|f| f.path == "my-app/src/main.rs")
         .unwrap();
     assert!(main_rs.content.contains("mod helpers;"));
+    assert!(main_rs.content.contains("mod initializers;"));
     // The app CLI is the Doido builder, with a marker for app generators.
     assert!(main_rs.content.contains("mod generators;"));
     assert!(main_rs.content.contains("doido::Doido::new()"));
+    assert!(main_rs
+        .content
+        .contains(".initializers(initializers::registry())"));
     assert!(main_rs.content.contains("@generated-generators"));
     assert!(paths.contains(&"my-app/.gitignore"));
     assert!(paths.contains(&"my-app/README.md"));

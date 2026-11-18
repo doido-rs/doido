@@ -89,6 +89,40 @@ Segredos de deploy (`DATABASE_URL`, SMTP, storage, …) entram no YAML via `get_
 Desenvolvimento: `.env` + `startup::prepare()`; produção: injete env para o render
 substituir. Opcional: `doido config render --env production -o config/environments/production.yml`.
 
+## Initializers (config/initializers/)
+
+Análogo no Rails: `config/initializers/*`.
+
+Aplicações Doido geradas com `doido new` incluem `config/initializers/mod.rs`
+e registram hooks de boot via `.initializers(initializers::registry())` em `doido::Doido::new()`.
+
+Os initializers rodam de forma síncrona na ordem de registro logo após o logger e as
+inflexões serem inicializados, antes dos subcomandos de servidor ou worker. Se qualquer
+initializer retornar um `Err`, o boot da aplicação para imediatamente com exit code 1.
+
+```rust
+// config/initializers/mod.rs
+use doido::controller::initializers::Initializers;
+use doido::Result;
+
+pub fn init() -> Result<()> {
+    registry().run_all()
+}
+
+pub fn registry() -> Initializers {
+    let mut inits = Initializers::new();
+    register_initializers(&mut inits);
+    inits
+}
+
+fn register_initializers(inits: &mut Initializers) {
+    // Hooks de boot registrados
+}
+```
+
+Use `cargo doido generate initializer <name>` para gerar initializers individuais em
+`config/initializers/<name>.rs` e registrá-los automaticamente em `config/initializers/mod.rs`.
+
 ## Configuração dos subsistemas
 
 As seções `server`/`logger`/`middleware` são tipadas por `YamlConfig`, mas cada

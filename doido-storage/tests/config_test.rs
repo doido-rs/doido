@@ -187,8 +187,12 @@ async fn into_storage_propagates_prefix_and_expiry() {
     let conn = doido_model::sea_orm::Database::connect("sqlite::memory:")
         .await
         .unwrap();
-    let mut cfg = StorageConfig::default();
-    cfg.driver = Some("local".to_string());
+    let mut cfg = StorageConfig {
+        driver: Some("local".to_string()),
+        prefix: Some("/custom".to_string()),
+        expires_in: Some(42),
+        ..Default::default()
+    };
     cfg.drivers.insert(
         "local".to_string(),
         doido_storage::ServiceConfig {
@@ -196,8 +200,6 @@ async fn into_storage_propagates_prefix_and_expiry() {
             ..Default::default()
         },
     );
-    cfg.prefix = Some("/custom".to_string());
-    cfg.expires_in = Some(42);
     let storage = cfg
         .into_storage(conn, Signer::new(b"secret".to_vec()))
         .await

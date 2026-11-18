@@ -1,0 +1,14 @@
+//! Application initializer `{snake}`.
+//!
+//! Rails analogue: `config/initializers/{snake}.rb`.
+//! Initializers run in order on application boot. Use this function to
+//! dynamically configure settings, register custom services, or validate
+//! environment state.
+
+use doido::Result;
+
+/// Boot-time initialization hook for `{snake}`.
+pub fn init() -> Result<()> {
+    // Custom dynamic setup logic goes here.
+    Ok(())
+}

@@ -183,7 +183,18 @@ pub struct MiddlewareConfig { pub cors: CorsConfig /* … */ }
 
 An initializers registry (`doido_controller::initializers`) runs named boot hooks in
 order after config load — the place to validate credentials, set up third-party clients,
-etc. The first error aborts boot.
+and dynamically configure runtime settings. The first error aborts boot.
+
+Applications generated with `doido new` include `config/initializers/mod.rs` wired to
+the application entry via `mod initializers;` and `Doido::new().initializers(initializers::registry())`.
+Individual initializers can be scaffolded with:
+
+```bash
+doido generate initializer <name>
+```
+
+This generates `config/initializers/<name>.rs`, registers `pub mod <name>;` and
+`inits.register("<name>", <name>::init)` in `config/initializers/mod.rs`, and provides a unit test.
 
 ## Known requirements
 

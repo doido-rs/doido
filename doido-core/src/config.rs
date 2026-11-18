@@ -166,7 +166,7 @@ mod tests {
 
         let dir = get_working_dir();
         // Ensure the function returns a non-empty, valid path fallback structure
-        assert!(dir.as_os_str().len() > 0);
+        assert!(!dir.as_os_str().is_empty());
 
         // Restore original environment state
         if let Some(home) = original_home {
@@ -184,7 +184,7 @@ mod tests {
 
         let dir = get_working_dir();
         // Ensure the function safely defaults without panicking
-        assert!(dir.as_os_str().len() > 0);
+        assert!(!dir.as_os_str().is_empty());
 
         // Restore original environment state
         if let Some(home) = original_home {

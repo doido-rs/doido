@@ -78,6 +78,7 @@ em [A DSL de campos](#a-dsl-de-campos).
 | `migration` | uma migration isolada |
 | `controller` | um `#[controller]` com stubs de action (+ rota) |
 | `helper` | um helper de controller em `app/helpers/` |
+| `initializer` | um initializer da aplicação em `config/initializers/` + teste |
 | `scaffold` | model + migration + controller + views + rota |
 | `resource` | model + migration + controller + rota (sem views) |
 | `mailer` | um mailer + templates |
@@ -119,6 +120,14 @@ Um módulo de helper de controller em `app/helpers/`.
 
 ```bash
 cargo doido generate helper Posts
+```
+
+### initializer
+
+Um módulo initializer da aplicação em `config/initializers/`, auto-registrado em `config/initializers/mod.rs`.
+
+```bash
+cargo doido generate initializer cors
 ```
 
 ### scaffold
