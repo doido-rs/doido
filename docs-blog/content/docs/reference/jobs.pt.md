@@ -177,12 +177,44 @@ cargo doido jobs discard   # remove todos os dead jobs
 
 ## Web UI
 
-Com `jobs.webui.enabled: true` em `config/<env>.yml` e `cargo doido server`, o framework
-monta um dashboard com abas (padrão `/doido/jobs`) no mesmo backend de fila do worker:
-contagens, fila, em execução, retry e dead letters. A aba **Dead** permite
-retry/discard (por job e em lote). Em produção, defina `jobs.webui.username` e
-`password` (HTTP Basic Auth) ou o dashboard não será montado. Feature `webui` em
-`doido-jobs` (ativa no crate `doido`).
+Com `jobs.webui.enabled: true` em `config/<env>.yml`, o framework disponibiliza um dashboard com abas
+(padrão `/doido/jobs`) no mesmo backend de fila do worker: contagens, fila, em execução, retry e dead letters.
+As abas **Na fila**, **Em execução** e **Retry** permitem exclusão em massa (cancelamento) de jobs selecionados;
+a aba **Dead** permite retry/discard em lote (selecionados e todos) via POST `{mount}/bulk`, além de links
+individuais por linha.
+
+Habilite a feature `webui` em `doido-jobs` (ativa por padrão no crate `doido`).
+
+### Montando o router do dashboard
+
+Monte o router do dashboard na sua aplicação usando `doido_jobs::webui::build_jobs_webui_router`:
+
+```rust
+use axum::middleware::from_fn;
+
+pub fn build_jobs_webui_router() -> axum::Router {
+    // Camada de autenticação opcional (ativa em produção, ignorada em dev/test)
+    let auth_layer = (!crate::settings::dev_or_test_runtime())
+        .then(|| from_fn(crate::auth::jobs_webui_auth_layer));
+
+    // Montar em caminho customizado (ou passar `None` para usar `jobs.webui.mount_path` do YAML)
+    doido_jobs::webui::build_jobs_webui_router(
+        Some(crate::settings::get().jobs.webui.mount_path()),
+        auth_layer,
+    )
+}
+```
+
+Se nenhuma camada de autenticação for necessária:
+
+```rust
+let jobs_router = doido_jobs::webui::build_unprotected_jobs_webui_router(None);
+let app = app.merge(jobs_router);
+```
+
+A função `build_jobs_webui_router` encapsula o carregamento da configuração, a resolução síncrona da fila ativa
+(com fallback seguro para fila em memória caso o pool do banco não esteja inicializado), a normalização do endpoint
+de montagem e a aplicação do seu middleware de autenticação.
 
 ## Prioridade & agendamento
 

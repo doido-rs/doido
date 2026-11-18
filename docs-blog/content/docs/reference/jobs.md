@@ -184,15 +184,44 @@ cargo doido jobs discard   # remove all dead jobs
 
 ## Web UI
 
-Set `jobs.webui.enabled: true` in `config/<env>.yml` and start the app with
-`cargo doido server`. The framework mounts a tabbed dashboard (default
-`/doido/jobs`) on the same queue backend as the worker: queue counts, jobs in
-queue, executing, retry backlog, and dead letters. **In queue**, **Executing**, and
-**Retry** support bulk delete (cancel) of selected jobs; **Dead** supports bulk
-retry/discard (selected and all) via POST `{mount}/bulk`, plus per-row retry/discard
-links. In production, set `jobs.webui.username` and
-`password` (HTTP Basic Auth) or the dashboard will not mount. Enable the
-`webui` feature on `doido-jobs` (default in the `doido` crate).
+Set `jobs.webui.enabled: true` in `config/<env>.yml`. The framework provides a tabbed dashboard
+(default `/doido/jobs`) matching the worker's queue backend: queue counts, jobs in queue,
+executing, retry backlog, and dead letters. **In queue**, **Executing**, and **Retry** support
+bulk delete (cancel) of selected jobs; **Dead** supports bulk retry/discard (selected and all)
+via POST `{mount}/bulk`, plus per-row retry/discard links.
+
+Enable the `webui` feature on `doido-jobs` (enabled by default when using the `doido` crate).
+
+### Mounting the dashboard router
+
+Mount the dashboard router into your application using `doido_jobs::webui::build_jobs_webui_router`:
+
+```rust
+use axum::middleware::from_fn;
+
+pub fn build_jobs_webui_router() -> axum::Router {
+    // Optional auth layer (e.g. active in production, skipped in dev/test)
+    let auth_layer = (!crate::settings::dev_or_test_runtime())
+        .then(|| from_fn(crate::auth::jobs_webui_auth_layer));
+
+    // Mount at custom path (or pass `None` to use `jobs.webui.mount_path` from YAML config)
+    doido_jobs::webui::build_jobs_webui_router(
+        Some(crate::settings::get().jobs.webui.mount_path()),
+        auth_layer,
+    )
+}
+```
+
+If no authentication layer is required:
+
+```rust
+let jobs_router = doido_jobs::webui::build_unprotected_jobs_webui_router(None);
+let app = app.merge(jobs_router);
+```
+
+`build_jobs_webui_router` encapsulates loading configuration, resolving the active queue synchronously
+(falling back safely to in-memory queue if database pool is uninitialized), normalizing the mount endpoint,
+and applying your authentication middleware layer.
 
 ## Priority & scheduling
 
