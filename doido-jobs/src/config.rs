@@ -141,6 +141,37 @@ pub fn build_db_queue(conn: doido_model::sea_orm::DatabaseConnection) -> Arc<dyn
     Arc::new(crate::drivers::db::DbQueue::new(conn))
 }
 
+/// Synchronously builds or resolves the default queue for the configured backend.
+///
+/// * Backend `Memory` -> [`MemoryQueue`] with configured `enqueue_batch_size`.
+/// * Backend `Db` -> if the database pool is initialized via `doido_model::pool::try_pool()`,
+///   constructs [`DbQueue`] via [`build_db_queue`]; otherwise falls back to [`MemoryQueue`].
+/// * Other backends (e.g. `Redis`, which requires an async connection) -> falls back to [`MemoryQueue`].
+pub fn default_sync_queue(config: &JobsConfig) -> Arc<dyn JobQueue> {
+    match config.backend {
+        Backend::Memory => Arc::new(
+            crate::drivers::memory::MemoryQueue::new()
+                .with_enqueue_batch_size(config.enqueue_batch_size),
+        ),
+        #[cfg(feature = "jobs-db")]
+        Backend::Db => {
+            if let Some(conn) = doido_model::pool::try_pool().cloned() {
+                build_db_queue(conn)
+            } else {
+                Arc::new(
+                    crate::drivers::memory::MemoryQueue::new()
+                        .with_enqueue_batch_size(config.enqueue_batch_size),
+                )
+            }
+        }
+        #[allow(unreachable_patterns)]
+        _ => Arc::new(
+            crate::drivers::memory::MemoryQueue::new()
+                .with_enqueue_batch_size(config.enqueue_batch_size),
+        ),
+    }
+}
+
 // ── Config-file loading (mirrors `doido-cache`'s `config`) ──────────────────
 
 /// Database backend settings (`jobs.db`).

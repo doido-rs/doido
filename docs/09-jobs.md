@@ -272,7 +272,40 @@ Optional **`stats_ttl_secs`** caches queue counts in-process on the Queues tab.
 ### Mounting into the application router
 
 The developer merges the dashboard router into their app's router and is responsible
-for any desired authentication layer (such as middleware, session auth, or token auth):
+for any desired authentication layer (such as middleware, session auth, or token auth).
+
+#### Recommended: Encapsulated Router Builder
+
+[`doido_jobs::webui::build_jobs_webui_router`] encapsulates loading configuration, resolving
+the queue backend (memory or database pool), normalizing the mount path, and optionally applying an authentication layer:
+
+```rust
+use axum::middleware::from_fn;
+
+pub fn build_jobs_webui_router() -> axum::Router {
+    // Optional auth layer (e.g. active in production, skipped in dev/test)
+    let auth_layer = (!crate::settings::dev_or_test_runtime())
+        .then(|| from_fn(crate::auth::jobs_webui_auth_layer));
+
+    // Mount at custom path (or pass `None` to use `jobs.webui.mount_path` from YAML config)
+    doido_jobs::webui::build_jobs_webui_router(
+        Some(crate::settings::get().jobs.webui.mount_path()),
+        auth_layer,
+    )
+}
+```
+
+If no authentication layer is needed, [`doido_jobs::webui::build_unprotected_jobs_webui_router`]
+can be called directly without type annotations:
+
+```rust
+let jobs_router = doido_jobs::webui::build_unprotected_jobs_webui_router(None);
+let app = app.merge(jobs_router);
+```
+
+#### Manual / Lower-Level Router Setup
+
+For custom queue instances or manual control:
 
 ```rust
 use doido_jobs::webui::{self, JobsWebState};

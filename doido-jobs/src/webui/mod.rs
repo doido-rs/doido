@@ -98,3 +98,98 @@ pub fn normalize_mount(path: &str) -> String {
         format!("/{}", trimmed.trim_end_matches('/'))
     }
 }
+
+/// Build the complete jobs dashboard router with an explicit [`JobsConfig`],
+/// synchronous queue resolution (memory or database pool), mount path normalization,
+/// state initialization, and optional authentication layer.
+///
+/// If `mount_path` is `Some(path)`, the dashboard will be nested at that path.
+/// If `mount_path` is `None`, the mount path configured in `jobs_config.webui.mount_path`
+/// (default `/doido/jobs`) is used.
+///
+/// If `auth_layer` is `Some(layer)`, the router is wrapped with that layer.
+pub fn build_jobs_webui_router_with_config<L>(
+    jobs_config: JobsConfig,
+    mount_path: Option<&str>,
+    auth_layer: Option<L>,
+) -> Router
+where
+    L: tower::Layer<axum::routing::Route> + Clone + Send + Sync + 'static,
+    L::Service: tower::Service<axum::extract::Request> + Clone + Send + Sync + 'static,
+    <L::Service as tower::Service<axum::extract::Request>>::Response:
+        axum::response::IntoResponse + 'static,
+    <L::Service as tower::Service<axum::extract::Request>>::Error:
+        Into<std::convert::Infallible> + 'static,
+    <L::Service as tower::Service<axum::extract::Request>>::Future: Send + 'static,
+{
+    let queue = crate::config::default_sync_queue(&jobs_config);
+    let mount = match mount_path {
+        Some(path) => normalize_mount(path),
+        None => normalize_mount(&jobs_config.webui.mount_path),
+    };
+    let state = JobsWebState::new(queue, jobs_config).with_mount_path(&mount);
+    let mut router = routes_at(&mount, state);
+    if let Some(layer) = auth_layer {
+        router = router.layer(layer);
+    }
+    router
+}
+
+/// Build the complete jobs dashboard router, encapsulating configuration loading,
+/// synchronous queue resolution (memory or database pool), mount path normalization,
+/// state initialization, and optional authentication layer.
+///
+/// If `mount_path` is `Some(path)`, the dashboard will be nested at that path.
+/// If `mount_path` is `None`, the mount path configured in `jobs_config.webui.mount_path`
+/// (default `/doido/jobs`) is used.
+///
+/// If `auth_layer` is `Some(layer)`, the router is wrapped with that layer.
+///
+/// # Example
+/// ```rust,no_run
+/// use axum::extract::Request;
+/// use axum::middleware::{self, Next};
+/// use axum::response::Response;
+///
+/// async fn auth_middleware(req: Request, next: Next) -> Response {
+///     next.run(req).await
+/// }
+///
+/// // Auth layer attached conditionally (e.g. only in non-dev/test):
+/// let is_dev = true;
+/// let auth_layer = (!is_dev).then(|| middleware::from_fn(auth_middleware));
+/// let router = doido_jobs::webui::build_jobs_webui_router(Some("/admin/jobs"), auth_layer);
+/// ```
+pub fn build_jobs_webui_router<L>(mount_path: Option<&str>, auth_layer: Option<L>) -> Router
+where
+    L: tower::Layer<axum::routing::Route> + Clone + Send + Sync + 'static,
+    L::Service: tower::Service<axum::extract::Request> + Clone + Send + Sync + 'static,
+    <L::Service as tower::Service<axum::extract::Request>>::Response:
+        axum::response::IntoResponse + 'static,
+    <L::Service as tower::Service<axum::extract::Request>>::Error:
+        Into<std::convert::Infallible> + 'static,
+    <L::Service as tower::Service<axum::extract::Request>>::Future: Send + 'static,
+{
+    build_jobs_webui_router_with_config(crate::config::load(), mount_path, auth_layer)
+}
+
+/// Convenience alias for [`build_jobs_webui_router`].
+pub fn build_router<L>(mount_path: Option<&str>, auth_layer: Option<L>) -> Router
+where
+    L: tower::Layer<axum::routing::Route> + Clone + Send + Sync + 'static,
+    L::Service: tower::Service<axum::extract::Request> + Clone + Send + Sync + 'static,
+    <L::Service as tower::Service<axum::extract::Request>>::Response:
+        axum::response::IntoResponse + 'static,
+    <L::Service as tower::Service<axum::extract::Request>>::Error:
+        Into<std::convert::Infallible> + 'static,
+    <L::Service as tower::Service<axum::extract::Request>>::Future: Send + 'static,
+{
+    build_jobs_webui_router(mount_path, auth_layer)
+}
+
+/// Build the jobs webui router without an authentication layer.
+///
+/// This convenience function avoids needing type annotations for `Option<L>` when no layer is applied.
+pub fn build_unprotected_jobs_webui_router(mount_path: Option<&str>) -> Router {
+    build_jobs_webui_router::<tower::layer::util::Identity>(mount_path, None)
+}

@@ -586,3 +586,145 @@ async fn webui_developer_can_attach_custom_auth_layer() {
         .unwrap();
     assert_eq!(auth_resp.status(), StatusCode::OK);
 }
+
+#[tokio::test]
+async fn build_jobs_webui_router_encapsulates_mount_and_auth_layer() {
+    use axum::http::StatusCode;
+    use axum::middleware::{self, Next};
+    use axum::response::Response;
+
+    async fn custom_auth(req: http::Request<Body>, next: Next) -> Result<Response, StatusCode> {
+        if req.headers().contains_key("x-admin-token") {
+            Ok(next.run(req).await)
+        } else {
+            Err(StatusCode::UNAUTHORIZED)
+        }
+    }
+
+    doido_jobs::webui::register_views();
+    let _ = doido_view::init("app/views");
+
+    let is_dev = false;
+    let auth_layer = (!is_dev).then(|| middleware::from_fn(custom_auth));
+
+    let config = test_jobs_config();
+    let app =
+        webui::build_jobs_webui_router_with_config(config, Some("/custom/admin/jobs"), auth_layer);
+
+    // Request without auth is rejected
+    let unauth_resp = app
+        .clone()
+        .oneshot(
+            http::Request::builder()
+                .uri("/custom/admin/jobs?tab=queues")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(unauth_resp.status(), StatusCode::UNAUTHORIZED);
+
+    // Request with auth passes through
+    let auth_resp = app
+        .oneshot(
+            http::Request::builder()
+                .uri("/custom/admin/jobs?tab=queues")
+                .header("x-admin-token", "valid")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(auth_resp.status(), StatusCode::OK);
+}
+
+#[tokio::test]
+async fn build_jobs_webui_router_defaults_mount_path_from_config() {
+    use axum::http::StatusCode;
+
+    doido_jobs::webui::register_views();
+    let _ = doido_view::init("app/views");
+
+    let mut config = test_jobs_config();
+    config.webui.mount_path = "/configured/jobs".to_string();
+
+    let app = webui::build_jobs_webui_router_with_config::<tower::layer::util::Identity>(
+        config, None, None,
+    );
+
+    let resp = app
+        .oneshot(
+            http::Request::builder()
+                .uri("/configured/jobs?tab=queues")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+}
+
+#[tokio::test]
+async fn build_unprotected_jobs_webui_router_serves_requests_without_type_annotations() {
+    use axum::http::StatusCode;
+
+    doido_jobs::webui::register_views();
+    let _ = doido_view::init("app/views");
+
+    let app = webui::build_unprotected_jobs_webui_router(Some("/unprotected/jobs"));
+
+    let resp = app
+        .oneshot(
+            http::Request::builder()
+                .uri("/unprotected/jobs?tab=queues")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+}
+
+#[tokio::test]
+async fn default_sync_queue_resolves_memory_and_db_pool() {
+    use doido_jobs::config::{default_sync_queue, Backend};
+
+    // 1. Memory backend returns an operational queue
+    let memory_config = JobsConfig {
+        backend: Backend::Memory,
+        enqueue_batch_size: 42,
+        ..JobsConfig::default()
+    };
+    let q_mem = default_sync_queue(&memory_config);
+    let job_id = q_mem
+        .enqueue(JobPayload::new("default", json!({}), 1))
+        .await
+        .unwrap();
+    assert!(!job_id.is_empty());
+
+    // 2. Db backend with pool initialized connects db queue
+    let _pool_guard = doido_model::pool::test_lock();
+    if doido_model::pool::try_pool().is_none() {
+        let conn = doido_model::connect_with_url("sqlite::memory:")
+            .await
+            .unwrap();
+        let _ = doido_model::pool::set_pool(conn);
+    }
+    if let Some(conn) = doido_model::pool::try_pool() {
+        doido_jobs::DbQueue::new(conn.clone())
+            .migrate()
+            .await
+            .unwrap();
+    }
+    let db_config = JobsConfig {
+        backend: Backend::Db,
+        enqueue_batch_size: 10,
+        ..JobsConfig::default()
+    };
+    let q_db = default_sync_queue(&db_config);
+    let db_job_id = q_db
+        .enqueue(JobPayload::new("default", json!({}), 1))
+        .await
+        .unwrap();
+    assert!(!db_job_id.is_empty());
+}
