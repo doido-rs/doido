@@ -12,11 +12,13 @@ use doido::Result;
 // @generated-modules
 
 /// Run all application initializers and set up dynamic configurations on startup.
+#[allow(dead_code)]
 pub fn init() -> Result<()> {
     registry().run_all()
 }
 
 /// Alias for [`init`].
+#[allow(dead_code)]
 pub fn run() -> Result<()> {
     init()
 }
@@ -29,6 +31,7 @@ pub fn registry() -> Initializers {
 }
 
 /// Register application initializers in order.
+#[allow(unused_variables)]
 fn register_initializers(inits: &mut Initializers) {
     // @generated-initializers
 }

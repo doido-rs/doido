@@ -208,6 +208,7 @@ pub fn assert_mod_registers_migration(app: &Path, module: &str) {
 }
 
 /// Backward-compatible alias for older scenarios.
+#[allow(dead_code)]
 pub fn assert_lib_registers_migration(app: &Path, module: &str) {
     assert_mod_registers_migration(app, module);
 }

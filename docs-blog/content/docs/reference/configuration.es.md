@@ -115,6 +115,7 @@ pub fn registry() -> Initializers {
     inits
 }
 
+#[allow(unused_variables)]
 fn register_initializers(inits: &mut Initializers) {
     // Hooks de boot registrados
 }
