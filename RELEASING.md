@@ -124,7 +124,7 @@ into the workflow) and push access.
    **from the `release/X.Y.Z` branch**, with `version = X.Y.Z`. Use `dry_run: true`
    once first, then `dry_run: false`. The workflow refuses any ref that is not
    `release/*` and refuses a `version` that does not match the committed tree. On
-   success it publishes crates.io, builds the binaries, tags `vX.Y.Z`, and creates
+   success it publishes to crates.io, tags `vX.Y.Z`, and creates
    the GitHub Release from the assembled per-crate notes.
 6. **Merge back** (PRs, so the version + changelog commit propagates):
    `release/X.Y.Z → master` (if top major) and/or the `*-stable` line, **then →

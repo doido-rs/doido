@@ -2,7 +2,7 @@ name: Release
 
 # Releases publish ONLY from a `release/X.Y.Z` branch whose tree already carries
 # the version bump + stamped changelogs (produced by `make release-prep`). The
-# workflow verifies that committed state, publishes crates.io + binaries, tags
+# workflow verifies that committed state, publishes to crates.io, tags
 # `vX.Y.Z`, and builds the GitHub Release body from the per-crate changelogs.
 # See RELEASING.md.
 on:
@@ -58,21 +58,6 @@ jobs:
           echo "version=$VERSION" >>"$GITHUB_OUTPUT"
           echo "==> release version: $VERSION (matches committed tree)"
 
-  test:
-    name: Test
-    needs: version
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@1.95.0
-      - uses: Swatinem/rust-cache@v2
-      - run: cargo test --workspace
-      - run: make install-check
-      - name: Generator release e2e
-        run: make release-e2e
-        env:
-          CARGO_TARGET_DIR: target/e2e-cargo
-
   publish:
     name: Publish to crates.io
     needs: version
@@ -86,67 +71,9 @@ jobs:
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
-  build:
-    name: Build — ${{ matrix.target }}
-    needs: version
-    strategy:
-      matrix:
-        include:
-          - runner: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
-            use_cross: false
-            ext: ""
-          - runner: ubuntu-latest
-            target: aarch64-unknown-linux-gnu
-            use_cross: true
-            ext: ""
-          - runner: macos-latest
-            target: x86_64-apple-darwin
-            use_cross: false
-            ext: ""
-          - runner: macos-latest
-            target: aarch64-apple-darwin
-            use_cross: false
-            ext: ""
-          - runner: windows-latest
-            target: x86_64-pc-windows-msvc
-            use_cross: false
-            ext: .exe
-    runs-on: ${{ matrix.runner }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@1.95.0
-        with:
-          targets: ${{ matrix.target }}
-      - uses: Swatinem/rust-cache@v2
-        with:
-          key: ${{ matrix.target }}
-      - name: Install cross (ARM Linux only)
-        if: ${{ matrix.use_cross }}
-        run: cargo install cross --locked
-      - name: Build (native)
-        if: ${{ !matrix.use_cross }}
-        run: cargo build --release --bin doido --target ${{ matrix.target }}
-      - name: Build (cross)
-        if: ${{ matrix.use_cross }}
-        run: cross build --release --bin doido --target ${{ matrix.target }}
-      - name: Stage release asset
-        shell: bash
-        run: |
-          mkdir -p dist
-          src="target/${{ matrix.target }}/release/doido${{ matrix.ext }}"
-          dest="dist/doido-${{ matrix.target }}${{ matrix.ext }}"
-          cp "$src" "$dest"
-          chmod +x "$dest"
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: doido-${{ matrix.target }}
-          path: dist/doido-${{ matrix.target }}${{ matrix.ext }}
-
   release:
     name: GitHub Release
-    needs: [version, publish, build]
+    needs: [version, publish]
     runs-on: ubuntu-latest
     if: ${{ inputs.dry_run == false }}
     permissions:
@@ -190,28 +117,11 @@ jobs:
           fi
           ./scripts/release-notes.sh "$VERSION" >> release-notes.md
           {
-            printf '\n## Install\n\n**Linux / macOS**\n\n```bash\n'
-            printf 'curl -fsSL https://github.com/doido-rs/doido/releases/download/v%s/install.sh | bash\n' "$VERSION"
-            printf '```\n\nPin a version:\n\n```bash\n'
-            printf 'curl -fsSL https://github.com/doido-rs/doido/releases/download/v%s/install.sh | DOIDO_VERSION=%s bash\n' "$VERSION" "$VERSION"
-            printf '```\n\n**Windows (PowerShell)**\n\n```powershell\n'
-            printf 'irm https://github.com/doido-rs/doido/releases/download/v%s/install.ps1 | iex\n' "$VERSION"
-            printf '```\n\nBinaries are also attached as `doido-<target>` for manual install.\n'
+            printf '\n## Install\n\n```bash\n'
+            printf 'cargo install doido --version %s --locked\n' "$VERSION"
+            printf '```\n'
           } >> release-notes.md
           echo "----- release-notes.md -----"; cat release-notes.md
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts
-      - name: Prepare release assets
-        run: |
-          mkdir -p release-assets
-          cp scripts/install.sh scripts/install.ps1 release-assets/
-          chmod +x release-assets/install.sh
-          find artifacts -type f -name 'doido-*' | while read -r f; do
-            cp "$f" "release-assets/$(basename "$f")"
-          done
-          ls -la release-assets
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -219,6 +129,5 @@ jobs:
           name: v${{ needs.version.outputs.version }}
           prerelease: ${{ inputs.unstable }}
           body_path: release-notes.md
-          files: release-assets/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

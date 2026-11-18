@@ -210,7 +210,7 @@ coverage-check: ## Fail if any workspace crate is below COVERAGE_THRESHOLD (defa
 
 # Release e2e gate: every generator flag validated with server boot, real HTTP
 # (or CLI/worker where HTTP does not apply), and clean SQLite migrations.
-# Kept OUT of `verify` — run before publishing (`release.yml`) and on demand.
+# Kept OUT of `verify` — run in CI (`ci.yml`) and on demand.
 release-e2e: ## Slow release e2e: generators + server + HTTP + migrations
 	CARGO_TARGET_DIR=target/e2e-cargo cargo test -p doido --test e2e -- --ignored --nocapture --test-threads=1
 
