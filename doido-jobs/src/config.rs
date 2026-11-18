@@ -30,23 +30,10 @@ impl Backend {
 }
 
 /// HTTP dashboard settings (`jobs.webui` in YAML).
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct WebUiConfig {
-    pub enabled: bool,
-    /// Router prefix (default `/doido/jobs`).
-    pub mount_path: String,
     /// Cache `queue_counts` in-process for this many seconds (dashboard **Queues** tab).
     pub stats_ttl_secs: Option<u64>,
-}
-
-impl Default for WebUiConfig {
-    fn default() -> Self {
-        Self {
-            enabled: false,
-            mount_path: "/doido/jobs".to_string(),
-            stats_ttl_secs: None,
-        }
-    }
 }
 
 /// Runtime configuration for the jobs subsystem (typically loaded from `[jobs]`).
@@ -141,6 +128,37 @@ pub fn build_db_queue(conn: doido_model::sea_orm::DatabaseConnection) -> Arc<dyn
     Arc::new(crate::drivers::db::DbQueue::new(conn))
 }
 
+/// Synchronously builds or resolves the default queue for the configured backend.
+///
+/// * Backend `Memory` -> [`MemoryQueue`] with configured `enqueue_batch_size`.
+/// * Backend `Db` -> if the database pool is initialized via `doido_model::pool::try_pool()`,
+///   constructs [`DbQueue`] via [`build_db_queue`]; otherwise falls back to [`MemoryQueue`].
+/// * Other backends (e.g. `Redis`, which requires an async connection) -> falls back to [`MemoryQueue`].
+pub fn default_sync_queue(config: &JobsConfig) -> Arc<dyn JobQueue> {
+    match config.backend {
+        Backend::Memory => Arc::new(
+            crate::drivers::memory::MemoryQueue::new()
+                .with_enqueue_batch_size(config.enqueue_batch_size),
+        ),
+        #[cfg(feature = "jobs-db")]
+        Backend::Db => {
+            if let Some(conn) = doido_model::pool::try_pool().cloned() {
+                build_db_queue(conn)
+            } else {
+                Arc::new(
+                    crate::drivers::memory::MemoryQueue::new()
+                        .with_enqueue_batch_size(config.enqueue_batch_size),
+                )
+            }
+        }
+        #[allow(unreachable_patterns)]
+        _ => Arc::new(
+            crate::drivers::memory::MemoryQueue::new()
+                .with_enqueue_batch_size(config.enqueue_batch_size),
+        ),
+    }
+}
+
 // ── Config-file loading (mirrors `doido-cache`'s `config`) ──────────────────
 
 /// Database backend settings (`jobs.db`).
@@ -159,10 +177,6 @@ pub struct DbSettings {
 /// Dashboard settings (`jobs.webui`).
 #[derive(Debug, Clone, Default, Deserialize)]
 pub struct WebUiSettings {
-    #[serde(default)]
-    pub enabled: bool,
-    #[serde(default)]
-    pub mount_path: Option<String>,
     #[serde(default)]
     pub stats_ttl_secs: Option<u64>,
 }
@@ -225,11 +239,6 @@ impl JobsSettings {
         let cron = self.cron.unwrap_or_default().into_config(env);
         let webui_raw = self.webui.unwrap_or_default();
         let webui = WebUiConfig {
-            enabled: webui_raw.enabled,
-            mount_path: webui_raw
-                .mount_path
-                .filter(|p| !p.is_empty())
-                .unwrap_or_else(|| d.webui.mount_path.clone()),
             stats_ttl_secs: webui_raw.stats_ttl_secs.filter(|&s| s > 0),
         };
         JobsConfig {
@@ -439,10 +448,9 @@ mod tests {
 
     #[test]
     fn parses_jobs_webui_section() {
-        let yaml = "jobs:\n  webui:\n    enabled: true\n    mount_path: /jobs\n";
+        let yaml = "jobs:\n  webui:\n    stats_ttl_secs: 30\n";
         let cfg = JobsFileConfig::from_yaml(yaml).unwrap().jobs.into_config();
-        assert!(cfg.webui.enabled);
-        assert_eq!(cfg.webui.mount_path, "/jobs");
+        assert_eq!(cfg.webui.stats_ttl_secs, Some(30));
     }
 
     #[tokio::test]

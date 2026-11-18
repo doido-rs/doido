@@ -177,12 +177,40 @@ cargo doido jobs discard   # elimina todos los dead jobs
 
 ## Web UI
 
-Con `jobs.webui.enabled: true` en `config/<env>.yml` y `cargo doido server`, el framework
-monta un panel con pestañas (por defecto `/doido/jobs`) sobre el mismo backend de cola
-que el worker: conteos, cola, en ejecución, retry y dead letters. La pestaña **Dead**
-permite retry/discard (por job y en lote). En producción, configure
-`jobs.webui.username` y `password` (HTTP Basic Auth) o el panel no se montará. Feature
-`webui` en `doido-jobs` (activa en el crate `doido`).
+El framework proporciona un panel con pestañas sobre el mismo backend de cola que el worker:
+conteos, cola, en ejecución, retry y dead letters. **En cola**, **En ejecución** y **Retry**
+permiten eliminación masiva (cancelación) de jobs seleccionados; **Dead** permite retry/discard
+masivo (seleccionados y todos) mediante POST `{mount}/bulk`, además de enlaces individuales por fila.
+
+Habilite la feature `webui` en `doido-jobs` (activa por defecto en el crate `doido`).
+
+### Montaje del router del dashboard
+
+Monte el router del panel en su aplicación usando `doido_jobs::webui::build_jobs_webui_router`:
+
+```rust
+use axum::middleware::from_fn;
+
+pub fn build_jobs_webui_router() -> axum::Router {
+    // Capa de autenticación opcional (activa en producción, omitida en dev/test)
+    let auth_layer = (!crate::settings::dev_or_test_runtime())
+        .then(|| from_fn(crate::auth::jobs_webui_auth_layer));
+
+    // Montar en ruta personalizada (por ejemplo, "/admin/jobs" o "/doido/jobs")
+    doido_jobs::webui::build_jobs_webui_router("/admin/jobs", auth_layer)
+}
+```
+
+Si no se requiere autenticación:
+
+```rust
+let jobs_router = doido_jobs::webui::build_unprotected_jobs_webui_router("/admin/jobs");
+let app = app.merge(jobs_router);
+```
+
+`build_jobs_webui_router` encapsula la carga de configuración, la resolución síncrona de la cola activa
+(con respaldo seguro a cola en memoria si el pool de base de datos no está inicializado), la normalización del endpoint
+de montaje y la aplicación de su capa middleware de autenticación.
 
 ## Prioridad y programación
 

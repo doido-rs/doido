@@ -20,7 +20,7 @@ pub mod worker;
 pub use chrono;
 // Re-exported so `#[job]`-generated code can call `doido_jobs::inventory::submit!`
 // without the app depending on inventory directly.
-pub use config::{build_queue, Backend, JobsConfig, WebUiConfig};
+pub use config::{build_queue, default_sync_queue, Backend, JobsConfig, WebUiConfig};
 pub use context::{job_context_with_queue, JobContext, JobQueueHandle};
 #[cfg(feature = "jobs-db")]
 pub use db::DbQueue;
@@ -47,4 +47,6 @@ pub use registry::{
     suggest_job_names, HandlerFn, HandlerFuture, JobDefaults, JobRegistration, JobRegistry,
 };
 pub use retry::{Decision, RetryPolicy};
+#[cfg(feature = "webui")]
+pub use webui::{build_jobs_webui_router, build_router, build_unprotected_jobs_webui_router};
 pub use worker::{perform_job_now, EngineConfig, Worker, WorkerEngine};
