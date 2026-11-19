@@ -36,4 +36,7 @@ fn initializers_is_exported() {
     let mut inits = doido::Initializers::new();
     inits.register("check", || Ok(()));
     assert_eq!(inits.names(), vec!["check"]);
+
+    let defaults = doido::Initializers::with_defaults();
+    assert_eq!(defaults.names(), vec!["core", "db"]);
 }

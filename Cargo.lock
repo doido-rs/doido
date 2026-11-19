@@ -1803,6 +1803,7 @@ dependencies = [
  "async-trait",
  "chrono",
  "clap",
+ "dotenvy",
  "regex",
  "serde",
  "serde_json",

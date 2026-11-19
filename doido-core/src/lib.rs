@@ -8,6 +8,7 @@ pub mod environment;
 pub mod error;
 pub mod i18n;
 pub mod inflector;
+pub mod initializers;
 pub mod logger;
 pub mod notifications;
 pub mod test_time;
@@ -30,5 +31,6 @@ pub use i18n::{
     translate, translate_for, DEFAULT_LOCALE, LOCALE_ENV_VAR,
 };
 pub use inflector::{init_inflections, load_inflections, InflectionConfig, Inflections, Inflector};
+pub use initializers::default_initializer;
 pub use logger::init as init_logger;
 pub use logger::{LogFormat, LoggerConfig};

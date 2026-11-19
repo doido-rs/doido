@@ -1,133 +1,132 @@
-# Otimização de latência — doido-jobs Web UI (`/doido/jobs`)
+# PROMPT: Implementação de `default_initializer` no Doido Framework (doido-core e doido-model)
 
-Documento de referência para diagnóstico e melhorias de performance do painel de filas em **produção** (carregamento observado ~7 s). Não prescreve alterações no QuickNFe além do que já está configurado; foco em entender o fluxo e priorizar alavancas.
+## Contexto e Motivação
 
-## Contexto no QuickNFe
+Atualmente, aplicações desenvolvidas com o framework **Doido** precisam implementar manualmente inicializadores de infraestrutura em `config/initializers/db.rs` para garantir que o pool de conexões com o banco de dados (`doido_model::pool`) esteja disponível durante o ciclo de boot dos initializers da aplicação (ex.: autenticação, agendamento de jobs, backfills).
 
-- O painel **não faz parte do frontend** (React/Vite). É servido pelo **servidor Doido** no mesmo processo da API.
-- Dependência: `doido-jobs` **0.0.32-test3** com feature `webui` (`backend/Cargo.toml`).
-- Configuração: `jobs.webui` em `backend/config/environments/production.yml` — `enabled: true`, `mount_path: /doido/jobs`, credenciais via `JOBS_WEBUI_USERNAME` / `JOBS_WEBUI_PASSWORD` (HTTP Basic Auth).
-- Filas configuradas: `default`, `catalog`, `mailers`.
-- Montagem: crate `doido` chama `doido_jobs::webui::try_merge_routes` ao subir `cargo doido server`.
+Isso introduz complexidade desnecessária e código duplicado em cada projeto:
+1. **Inspeção manual de CLI args:** A aplicação precisa inspecionar `std::env::args()` (ex.: `is_server_or_worker_cli()`) para evitar inicializar o pool durante comandos como `doido db migrate`, `doido generate` ou testes.
+2. **Diferenciação Server vs. Worker:** A aplicação precisa carregar configurações distintas manualmente (`doido_model::pool::pool_options` para worker vs `doido_model::pool::init()` para server).
+3. **Gambiarra de runtime assíncrono:** Como o registro de initializers roda em contexto síncrono no boot, a aplicação precisa implementar helpers como `block_on` com `tokio::task::block_in_place` ou criar runtimes temporários do Tokio.
 
-## O que acontece em cada carregamento
+## Objetivo
 
-1. **Uma requisição GET** (`/doido/jobs` ou com query `tab`, `queue`, `page_token`, etc.).
-2. **SSR**: template Tera embutido (`dashboard.html.tera`) + CSS inline — HTML completo, sem SPA pesada.
-3. Handler `index` (`doido-jobs` → `webui/dashboard.rs`):
-   - **Sempre** executa `queue_counts` para **cada fila** listada em `jobs.queues`.
-   - Aba padrão `tab=queues`: só contagens + render.
-   - Abas `in_queue`, `executing`, `retry`, `dead`: **mesmas contagens** + `list_jobs` (até **50** jobs por página).
-
-Conclusão: latência percebida ≈ **TTFB do backend + PostgreSQL**, não download de assets.
-
-## Gargalo principal: contagens SQL
-
-Implementação em `DbQueue::queue_counts` (`doido-jobs` → `db.rs`):
-
-- Para **cada fila**, **6 queries `COUNT(*)` em série**:
-  - pending ready, scheduled, running, retry wait, failed ready, dead.
-- Com 3 filas → **18 round-trips SQL por page view**, em **todas as abas** (inclusive quando o usuário só quer ver jobs na aba Dead).
-
-Índice criado pelo migrate do crate: `(queue, status, run_at)`. Ajuda, mas não elimina o custo de muitas queries sequenciais nem o volume de linhas.
-
-## Gargalo secundário: abas de jobs
-
-- `list_jobs` lê a coluna **`data` (TEXT)** inteira por linha (JSON do job).
-- O dashboard inclui **payload pretty-printed** no HTML (`serde_json::to_string_pretty` em `job_row`).
-- Jobs da fila **`catalog`** (sync ADN / NFS-e) tendem a ser **numerosos** e com payloads grandes — ver `docs/nfse/catalog-sync.md` e volume típico refletido em `scripts/doido_jobs_prune_non_rj.sql`.
-
-Paginação “Previous” pode executar **counts adicionais** (`list_jobs_before`).
-
-## O que provavelmente não explica ~7 s
-
-- Template HTML/CSS (pequeno, embutido).
-- Basic Auth.
-- Frontend QuickNFe.
-
-## Hipóteses para ~7 s em produção
-
-| Cenário | Mecanismo |
-|--------|-----------|
-| Aba **Queues** (default) | Tabela `doido_jobs` grande + **18 counts sequenciais** (~300–400 ms cada → ~6–7 s). |
-| Outras abas | 18 counts + até 50 leituras de `data` + HTML grande + CPU de pretty-print. |
-| Infra | Latência app ↔ PostgreSQL (região/pool); contenção I/O com **worker** processando `catalog`. |
-
-## Diagnóstico recomendado (sem mudar código)
-
-1. **Logs**: em produção, `logger.format: json_response` expõe `latency_ms` — filtrar `GET /doido/jobs` e query `tab`.
-2. **Browser**: Network → **Waiting (TTFB)** na primeira resposta; confirma se o gargalo é servidor/DB.
-3. **PostgreSQL**:
-   ```sql
-   SELECT queue, status, COUNT(*) FROM doido_jobs GROUP BY 1, 2 ORDER BY 3 DESC;
-   SELECT pg_size_pretty(pg_total_relation_size('doido_jobs'));
-   ```
-4. **`EXPLAIN (ANALYZE, BUFFERS)`** em um count equivalente (ex.: `queue = 'catalog'`, `status = 'pending'`, `run_at <= now()`).
-
-## Otimizações por camada
-
-### Operação / dados (QuickNFe prod — maior alavanca imediata)
-
-- Medir e reduzir volume em `doido_jobs` (retention, limpeza de `dead`, jobs obsoletos de sync).
-- Manter autovacuum / `VACUUM ANALYZE` saudável em tabela quente.
-- Colocar app e PostgreSQL na **mesma região**; revisar tamanho do pool sob carga worker + webui.
-
-### Upstream (`doido-jobs` / Doido — ganho estrutural)
-
-QuickNFe só se beneficia ao **atualizar a dependência**; hoje não há knobs em YAML além de mount e auth.
-
-| Melhoria | Benefício |
-|----------|-----------|
-| Agregar contagens em **1–2 SQL** (`GROUP BY queue, status`, buckets de `run_at`) | 18 queries → 1–2 |
-| **Paralelizar** counts por fila ou por bucket | Menor wall-clock |
-| Chamar `queue_counts` **somente na aba Queues** | Abas de jobs deixam de pagar 18 counts |
-| Listagem **sem payload** (detalhe sob demanda) | Menos I/O em `data`, HTML e CPU |
-| **Cache TTL** (5–15 s) de contagens no processo | Painel operacional tolera stale leve |
-| Evitar counts extras na paginação “Previous” | Menos queries por navegação |
-
-### Infra / produto
-
-- Restringir acesso ao painel (rede interna/VPN) — não reduz TTFB, reduz risco.
-- Alternativa operacional: CLI `cargo doido jobs list` / SQL direto quando o painel estiver lento por volume de dados.
-
-## Escopo de código
-
-| Onde | Papel |
-|------|--------|
-| QuickNFe | Habilita `jobs.webui` e filas; enqueue em `doido_jobs` (API/worker). |
-| `doido-jobs` | Dashboard, queries, template, paginação. |
-| PostgreSQL | Tamanho e saúde de `doido_jobs` dominam counts. |
-
-## Prompt útil para agente / PR upstream
-
-Use o texto abaixo ao pedir implementação no crate **doido-jobs** ou ao abrir issue no Doido:
+Implementar a **Opção B** no framework Doido: o próprio framework deve fornecer e cadastrar um `default_initializer` de forma nativa e modular, dividindo as responsabilidades entre **`doido-core`** e **`doido-model`**.
 
 ---
 
-**Objetivo:** reduzir latência do Jobs Web UI (`GET /doido/jobs`) em produção com tabela `doido_jobs` grande (centenas de milhares+ de linhas, fila `catalog`).
+## Requisitos Arquiteturais
 
-**Problema atual:**
+### 1. `doido-core`
 
-- `dashboard::index` chama `queue_counts` em **todo** request, para cada fila em `jobs.queues`.
-- `DbQueue::queue_counts` executa **6 `COUNT` sequenciais por fila** (18 queries com 3 filas).
-- Abas de jobs ainda pagam esses counts e em seguida `list_jobs` (50 linhas) lendo coluna `data` completa; HTML inclui payload pretty-printed.
+No crate **`doido-core`** (onde residem as abstrações base de boot, runtime e lifecycle):
 
-**Critérios de aceite sugeridos:**
+- **Função `default_initializer`:**
+  - Exportar uma função pública `pub fn default_initializer() -> doido_core::Result<()>` (ou integrada ao registro de initializers).
+  - Responsabilidade:
+    - Inicializar observabilidade/logs básicos (`tracing`/`logger`), caso ainda não configurados.
+    - Carregar/validar variáveis de ambiente essenciais (`.env` em modo desenvolvimento).
+    - Garantir idempotência através de controle atômico (`AtomicBool`).
+- **Registro Central de Initializers Padrão:**
+  - No módulo de initializers (`doido_controller::initializers` ou movido/re-exportado via `doido_core`), fornecer um construtor que já traga os initializers essenciais pré-registrados:
+    ```rust
+    impl Initializers {
+        /// Cria o registro já pré-populado com os initializers padrão do framework.
+        pub fn with_defaults() -> Self;
+    }
+    ```
 
-1. Aba `queues`: no máximo **1–2 queries** agregadas para todas as filas configuradas (ou counts paralelos documentados).
-2. Abas `in_queue` / `executing` / `retry` / `dead`: **não** executar `queue_counts` unless necessário para UI mínima.
-3. Lista de jobs: colunas leves por padrão; payload opcional (query param ou segunda rota).
-4. Testes de integração SQLite/Postgres com tabela sinteticamente grande ou mocks que provem número de queries.
-5. Opcional: cache in-process de counts com TTL configurável (`jobs.webui.stats_ttl_secs`).
+### 2. `doido-model`
 
-**Referência QuickNFe:** filas `default`, `catalog`, `mailers`; sync catalog documentado em `docs/nfse/catalog-sync.md`.
+No crate **`doido-model`** (onde reside a camada de banco de dados, SeaORM e pool):
+
+- **Função `default_initializer`:**
+  - Exportar uma função pública `pub fn default_initializer() -> doido_core::Result<()>` (compatível com a assinatura `FnOnce() -> Result<()>` esperada por `Initializers::register`).
+  - Responsabilidade:
+    1. **Identificação inteligente do contexto de execução:**
+       - Detectar automaticamente se o binário está executando em modo `server`, `worker`, ou em comandos que não necessitam do pool de aplicação (como `db migrate`, `db seed`, `generate`, ou suites de testes unitários).
+       - Abortar a inicialização antecipada de forma no-op (`Ok(())`) quando executado sob comandos de migração (`doido db migrate`), permitindo que o migrador gerencie sua própria conexão isolada.
+    2. **Resolução de runtime assíncrono:**
+       - Executar a conexão assíncrona com segurança dentro do contexto de boot (utilizando o runtime do Tokio ativo via `Handle::try_current` ou criando um bloco assíncrono seguro), sem exigir que a aplicação crie funções auxiliares de runtime.
+    3. **Diferenciação transparente Server vs. Worker:**
+       - Se for `worker`: carregar `doido_model::config`, extrair `db.pool`, timeout e instanciar `doido_model::pool::set_pool(conn)`.
+       - Se for `server`: invocar `doido_model::pool::init().await`.
+    4. **Idempotência:**
+       - Garantir que múltiplas chamadas sejam seguras e ignoradas caso o pool já esteja inicializado (`doido_model::pool::try_pool().is_some()`).
+
+### 3. Integração no `doido` (Crate Guarda-chuva)
+
+No crate principal **`doido`**:
+- Garantir que ao construir o builder:
+  ```rust
+  doido::Doido::new()
+      .initializers(initializers::registry())
+  ```
+  Ou ao invocar os initializers da aplicação, o framework permita compor facilmente os defaults:
+  ```rust
+  // Na aplicação:
+  pub fn registry() -> Initializers {
+      let mut inits = Initializers::with_defaults(); // Já inclui doido-core e doido-model
+      // ou:
+      inits.register("core", doido_core::default_initializer);
+      inits.register("db", doido_model::default_initializer);
+      
+      // Initializers específicos da regra de negócio da aplicação:
+      inits.register("storage", storage::init);
+      inits.register("auth", auth::init);
+      inits.register("jobs", jobs::init);
+      inits
+  }
+  ```
 
 ---
 
-## Referências no repositório
+## Comparativo: Antes vs. Depois na Aplicação
 
-- `backend/config/environments/production.yml` — `jobs.webui`
-- `backend/Cargo.toml` — `doido-jobs` + feature `webui`
-- `docs/nfse/catalog-sync.md` — volume e fila `catalog`
-- `scripts/doido_jobs_prune_non_rj.sql` — exemplo de limpeza em fila inchada
-- Upstream (crate local em build): `doido-jobs-0.0.32-test3` — `src/webui/dashboard.rs`, `src/db.rs` (`queue_counts`, `list_jobs`)
+### Antes (38 linhas de boilerplate na aplicação):
+```rust
+// backend/config/initializers/db.rs
+pub fn init() -> doido::Result<()> {
+    if !is_server_or_worker_cli() {
+        return Ok(());
+    }
+    block_on(async {
+        if is_worker_cli() {
+            let config = doido_model::config::load();
+            let opts = doido_model::pool::pool_options(...);
+            let conn = Database::connect(opts).await?;
+            doido_model::pool::set_pool(conn);
+        } else {
+            doido_model::pool::init().await;
+        }
+    });
+    Ok(())
+}
+```
+
+### Depois (apenas registrar o `default_initializer` do framework):
+```rust
+// backend/config/initializers/mod.rs
+fn register_initializers(inits: &mut Initializers) {
+    inits.register("core", doido_core::default_initializer);
+    inits.register("settings", settings::init);
+    inits.register("db", doido_model::default_initializer);
+    // ... demais initializers de negócio da aplicação
+}
+```
+
+---
+
+## Critérios de Aceite
+
+1. **Compilação e Modularidade:**
+   - `doido-core` compila independentemente sem depender de `doido-model`.
+   - `doido-model` exporta `pub fn default_initializer() -> doido_core::Result<()>`.
+2. **Segurança de CLI e Migrações:**
+   - Executar `doido db migrate` **não** inicializa o pool de aplicação via `default_initializer` e não gera pânico de conexão ou bloqueios.
+3. **Compatibilidade com Worker e Server:**
+   - Executar `doido server` inicializa o pool com as configurações padrão de web server.
+   - Executar `doido worker` inicializa o pool com as configurações dimensionadas de worker.
+4. **Testes Automatizados:**
+   - Teste unitário no `doido-model` garantindo que `default_initializer()` é idempotente.
+   - Teste de integração garantindo que `Initializers::with_defaults()` roda com sucesso.

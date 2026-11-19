@@ -17,6 +17,14 @@ impl Initializers {
         Self::default()
     }
 
+    /// Cria o registro já pré-populado com os initializers padrão do framework (`core` e `db`).
+    pub fn with_defaults() -> Self {
+        let mut inits = Self::new();
+        inits.register("core", doido_core::default_initializer);
+        inits.register("db", doido_model::default_initializer);
+        inits
+    }
+
     /// Register an initializer to run at boot.
     pub fn register(
         &mut self,
