@@ -22,6 +22,7 @@ regex = "1"
 aes-gcm = "0.10"
 sha2 = "0.10"
 dotenvy = { workspace = true }
+inventory = { workspace = true }
 
 [dev-dependencies]
 tracing-test = "0.2"

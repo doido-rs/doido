@@ -6,7 +6,7 @@
 //! register custom inflection rules, initialize third-party clients,
 //! set up external services, or validate runtime requirements.
 
-use doido::controller::initializers::Initializers;
+use doido::initializers::Initializers;
 use doido::Result;
 
 // @generated-modules

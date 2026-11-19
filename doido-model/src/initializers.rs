@@ -144,3 +144,11 @@ pub fn init_for_context(ctx: ExecutionContext) -> Result<()> {
 pub fn default_initializer() -> Result<()> {
     init_for_context(detect_execution_context())
 }
+
+inventory::submit! {
+    doido_core::initializers::FrameworkInitializer {
+        name: "db",
+        priority: 10,
+        init: default_initializer,
+    }
+}

@@ -46,6 +46,7 @@ async fn default_initializer_is_idempotent() {
 
 #[test]
 fn detect_execution_context_recognizes_server_and_worker() {
+    let _lock = pool::test_lock();
     std::env::set_var("DOIDO_COMMAND", "server");
     assert_eq!(detect_execution_context(), ExecutionContext::Server);
 

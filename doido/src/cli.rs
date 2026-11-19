@@ -148,7 +148,7 @@ pub struct Doido {
     seeder: Option<SeederFn>,
     boot: crate::boot::BootOptions,
     before_run: Option<BeforeRunHook>,
-    initializers: Option<doido_controller::initializers::Initializers>,
+    initializers: Option<doido_core::initializers::Initializers>,
 }
 
 impl Doido {
@@ -166,7 +166,7 @@ impl Doido {
     }
 
     /// Register boot-time initializers to run before CLI subcommands.
-    pub fn initializers(mut self, inits: doido_controller::initializers::Initializers) -> Self {
+    pub fn initializers(mut self, inits: doido_core::initializers::Initializers) -> Self {
         self.initializers = Some(inits);
         self
     }
@@ -271,7 +271,7 @@ async fn run_inner(
     seeder: Option<SeederFn>,
     boot: crate::boot::BootOptions,
     before_run: Option<BeforeRunHook>,
-    initializers: Option<doido_controller::initializers::Initializers>,
+    initializers: Option<doido_core::initializers::Initializers>,
 ) {
     let mode = std::env::args()
         .skip(1)
@@ -292,13 +292,13 @@ async fn run_inner(
     if let Some(hook) = before_run.as_ref() {
         hook();
     }
+    let cli = Cli::parse();
     if let Some(inits) = initializers {
         if let Err(e) = inits.run_all() {
             doido_core::tracing::error!("initializers failed: {e}");
             std::process::exit(1);
         }
     }
-    let cli = Cli::parse();
     match cli.command {
         Commands::Server { port, env } => {
             crate::boot::install_runtime_globals(&boot).await;
