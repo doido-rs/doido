@@ -31,6 +31,9 @@ pub use i18n::{
     translate, translate_for, DEFAULT_LOCALE, LOCALE_ENV_VAR,
 };
 pub use inflector::{init_inflections, load_inflections, InflectionConfig, Inflections, Inflector};
-pub use initializers::{default_initializer, FrameworkInitializer, Initializers};
+pub use initializers::{
+    default_initializer, detect_execution_context, is_test_runner, ExecutionContext,
+    FrameworkInitializer, Initializers,
+};
 pub use logger::init as init_logger;
 pub use logger::{LogFormat, LoggerConfig};

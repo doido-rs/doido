@@ -29,6 +29,63 @@ pub fn reset_for_test() {
     INITIALIZED.store(false, Ordering::SeqCst);
 }
 
+/// Execution contexts detected during application boot.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ExecutionContext {
+    /// Server mode (`doido server` or bare app binary): initializes web server defaults.
+    Server,
+    /// Worker mode (`doido worker`): initializes background worker defaults.
+    Worker,
+    /// Commands that manage their own connections or do not need an application pool
+    /// (e.g. `db migrate`, `db seed`, `generate`, test runners).
+    Skip,
+}
+
+/// Detects the execution context based on environment variables and CLI arguments.
+pub fn detect_execution_context() -> ExecutionContext {
+    // 1. Explicit environment variable override (useful for tests and containerized setups)
+    if let Ok(cmd) = std::env::var("DOIDO_COMMAND") {
+        match cmd.to_lowercase().as_str() {
+            "server" => return ExecutionContext::Server,
+            "worker" => return ExecutionContext::Worker,
+            _ => return ExecutionContext::Skip,
+        }
+    }
+
+    // 2. Test runner detection: if running under `cargo test` / test harness, skip by default
+    if is_test_runner() {
+        return ExecutionContext::Skip;
+    }
+
+    // 3. Inspect command-line arguments: find first non-flag argument after executable
+    let subcmd = std::env::args().skip(1).find(|arg| !arg.starts_with('-'));
+
+    match subcmd.as_deref() {
+        Some("worker") => ExecutionContext::Worker,
+        Some("server") | None => ExecutionContext::Server,
+        // Any other command (db, generate, routes, console, credentials, config, new, jobs...)
+        // does not need the application database pool installed at initializer time
+        _ => ExecutionContext::Skip,
+    }
+}
+
+/// Heuristic to detect if running under `cargo test` / test harness.
+pub fn is_test_runner() -> bool {
+    if crate::Environment::get_env().is_test() {
+        return true;
+    }
+    if std::env::args().any(|a| a == "--test" || a == "--bench") {
+        return true;
+    }
+    if let Ok(exe) = std::env::current_exe() {
+        let exe_str = exe.to_string_lossy();
+        if exe_str.contains("/deps/") || exe_str.contains(r"\deps\") {
+            return true;
+        }
+    }
+    false
+}
+
 /// A framework initializer registered at link-time via `inventory`.
 pub struct FrameworkInitializer {
     pub name: &'static str,
