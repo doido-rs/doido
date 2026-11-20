@@ -66,6 +66,6 @@ fn builder_accepts_initializers() {
 #[test]
 fn builder_accepts_initializers_with_defaults() {
     let inits = doido::Initializers::with_defaults();
-    assert_eq!(inits.names(), vec!["core", "db"]);
+    assert_eq!(inits.names(), vec!["core", "db", "storage"]);
     let _doido = Doido::new().initializers(inits);
 }

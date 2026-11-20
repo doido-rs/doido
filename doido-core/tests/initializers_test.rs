@@ -1,10 +1,40 @@
 use doido_core::initializers::{
-    detect_execution_context, is_test_runner, ExecutionContext, Initializers,
+    detect_execution_context, is_test_runner, run_async, ExecutionContext, Initializers,
 };
 use doido_core::Environment;
 use std::sync::{Arc, Mutex};
 
 static ENV_LOCK: Mutex<()> = Mutex::new(());
+
+#[test]
+fn execution_context_predicates() {
+    assert!(ExecutionContext::Server.is_server());
+    assert!(!ExecutionContext::Server.is_worker());
+    assert!(!ExecutionContext::Server.is_skip());
+    assert!(ExecutionContext::Server.is_server_or_worker());
+
+    assert!(ExecutionContext::Worker.is_worker());
+    assert!(!ExecutionContext::Worker.is_server());
+    assert!(!ExecutionContext::Worker.is_skip());
+    assert!(ExecutionContext::Worker.is_server_or_worker());
+
+    assert!(ExecutionContext::Skip.is_skip());
+    assert!(!ExecutionContext::Skip.is_server());
+    assert!(!ExecutionContext::Skip.is_worker());
+    assert!(!ExecutionContext::Skip.is_server_or_worker());
+}
+
+#[test]
+fn run_async_executes_outside_tokio_runtime() {
+    let res = run_async(async { Ok("success") });
+    assert_eq!(res.unwrap(), "success");
+}
+
+#[tokio::test]
+async fn run_async_executes_inside_tokio_runtime() {
+    let res = run_async(async { Ok(12345) });
+    assert_eq!(res.unwrap(), 12345);
+}
 
 #[test]
 fn test_runner_detected_via_environment() {

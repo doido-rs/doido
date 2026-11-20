@@ -41,6 +41,64 @@ pub enum ExecutionContext {
     Skip,
 }
 
+impl ExecutionContext {
+    /// Returns `true` if this is [`ExecutionContext::Server`].
+    pub fn is_server(&self) -> bool {
+        matches!(self, ExecutionContext::Server)
+    }
+
+    /// Returns `true` if this is [`ExecutionContext::Worker`].
+    pub fn is_worker(&self) -> bool {
+        matches!(self, ExecutionContext::Worker)
+    }
+
+    /// Returns `true` if this is [`ExecutionContext::Skip`].
+    pub fn is_skip(&self) -> bool {
+        matches!(self, ExecutionContext::Skip)
+    }
+
+    /// Returns `true` if this is [`ExecutionContext::Server`] or [`ExecutionContext::Worker`].
+    pub fn is_server_or_worker(&self) -> bool {
+        matches!(self, ExecutionContext::Server | ExecutionContext::Worker)
+    }
+}
+
+/// Runs a future synchronously and safely whether inside a multi-thread Tokio runtime,
+/// a single-thread Tokio runtime, or outside Tokio entirely.
+pub fn run_async<F, T>(future: F) -> crate::Result<T>
+where
+    F: std::future::Future<Output = crate::Result<T>> + Send + 'static,
+    T: Send + 'static,
+{
+    match tokio::runtime::Handle::try_current() {
+        Ok(handle) => match handle.runtime_flavor() {
+            tokio::runtime::RuntimeFlavor::MultiThread => {
+                tokio::task::block_in_place(|| handle.block_on(future))
+            }
+            _ => std::thread::scope(|s| {
+                s.spawn(|| {
+                    let rt = tokio::runtime::Builder::new_current_thread()
+                        .enable_all()
+                        .build()
+                        .map_err(|e| {
+                            crate::anyhow::anyhow!("failed to create tokio runtime: {e}")
+                        })?;
+                    rt.block_on(future)
+                })
+                .join()
+                .unwrap_or_else(|_| Err(crate::anyhow::anyhow!("runtime thread panicked")))
+            }),
+        },
+        Err(_) => {
+            let rt = tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build()
+                .map_err(|e| crate::anyhow::anyhow!("failed to create tokio runtime: {e}"))?;
+            rt.block_on(future)
+        }
+    }
+}
+
 /// Detects the execution context based on environment variables and CLI arguments.
 pub fn detect_execution_context() -> ExecutionContext {
     // 1. Explicit environment variable override (useful for tests and containerized setups)
