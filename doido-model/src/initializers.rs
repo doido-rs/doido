@@ -13,7 +13,7 @@ pub use doido_core::initializers::{
 pub fn init_for_context(ctx: ExecutionContext) -> Result<()> {
     match ctx {
         ExecutionContext::Skip => Ok(()),
-        ExecutionContext::Server => {
+        ExecutionContext::Server | ExecutionContext::Console => {
             if pool::try_pool().is_some() {
                 return Ok(());
             }

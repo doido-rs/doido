@@ -294,7 +294,7 @@ async fn run_inner(
     }
     let cli = Cli::parse();
     let inits = initializers.unwrap_or_else(|| {
-        if routes.is_none() {
+        if routes.is_none() && !matches!(cli.command, Commands::Console) {
             doido_core::initializers::Initializers::new()
         } else {
             doido_core::initializers::Initializers::with_defaults()
@@ -316,7 +316,10 @@ async fn run_inner(
                 doido_core::tracing::warn!("no routes configured");
             }
         }
-        Commands::Console => doido_controller::commands::console::run(),
+        Commands::Console => {
+            crate::boot::install_runtime_globals(&boot).await;
+            doido_controller::commands::console::run()
+        }
         Commands::Worker { once } => {
             crate::boot::install_runtime_globals(&boot).await;
             doido_jobs::commands::worker::run(once).await;
