@@ -144,4 +144,11 @@ mod tests {
         assert!(sql.contains("\"posts\""));
         assert!(sql.contains("\"users\""));
     }
+
+    #[test]
+    fn remove_foreign_key_renders_drop() {
+        let sql = remove_foreign_key_statement("posts", "user_id").to_string(PostgresQueryBuilder);
+        assert!(sql.contains("\"fk_posts_user_id\""));
+        assert!(sql.contains("\"posts\""));
+    }
 }
