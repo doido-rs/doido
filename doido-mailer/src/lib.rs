@@ -14,5 +14,8 @@ pub mod smtp;
 pub use config::{Backend, MailerConfig};
 pub use deliverer::{Deliverer, LogDeliverer, TestDeliverer};
 pub use doido_mailer_macros::mailer;
+pub use global::default_initializer;
+#[doc(hidden)]
+pub use global::reset_for_test;
 pub use mail::Mail;
 pub use mailer::Mailer;

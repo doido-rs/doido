@@ -7,9 +7,42 @@
 //! an explicit boot step. Call [`set_deliverer`] (e.g. in tests) to override.
 
 use crate::deliverer::Deliverer;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, OnceLock};
 
 static DELIVERER: OnceLock<Arc<dyn Deliverer>> = OnceLock::new();
+static INITIALIZED: AtomicBool = AtomicBool::new(false);
+
+/// Resets the default initializer state for testing.
+#[doc(hidden)]
+pub fn reset_for_test() {
+    INITIALIZED.store(false, Ordering::SeqCst);
+}
+
+/// Framework default initializer registered for `mailer` (priority 35).
+///
+/// Discovers execution context and eagerly installs the configured [`Deliverer`].
+pub fn default_initializer() -> doido_core::Result<()> {
+    if INITIALIZED.swap(true, Ordering::SeqCst) {
+        return Ok(());
+    }
+
+    let ctx = doido_core::initializers::detect_execution_context();
+    if ctx.is_skip() {
+        return Ok(());
+    }
+
+    let _ = deliverer();
+    Ok(())
+}
+
+inventory::submit! {
+    doido_core::initializers::FrameworkInitializer {
+        name: "mailer",
+        priority: 35,
+        init: default_initializer,
+    }
+}
 
 /// The global deliverer, lazily built from `[mailer]` config on first use.
 pub fn deliverer() -> Arc<dyn Deliverer> {

@@ -21,6 +21,22 @@ pub fn default_initializer() -> crate::Result<()> {
         let _ = dotenvy::dotenv();
     }
 
+    // 3. Load inflections if configuration file exists
+    if let Err(e) = crate::load_inflections(crate::inflector::DEFAULT_CONFIG_PATH) {
+        crate::tracing::warn!("{e}");
+    }
+
+    // 4. Load app locales if directory exists
+    let locales_path = std::path::Path::new(crate::boot::DEFAULT_LOCALES_DIR);
+    if locales_path.exists() {
+        if let Err(e) = crate::i18n::init(locales_path) {
+            crate::tracing::warn!(
+                "failed to initialize i18n from {}: {e}",
+                locales_path.display()
+            );
+        }
+    }
+
     Ok(())
 }
 

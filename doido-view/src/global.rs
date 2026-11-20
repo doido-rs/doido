@@ -8,9 +8,59 @@
 use crate::engine::TemplateEngine;
 use crate::tera_engine::TeraEngine;
 use doido_core::Result;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
 
 static ENGINE: OnceLock<Arc<dyn TemplateEngine>> = OnceLock::new();
+static INITIALIZED: AtomicBool = AtomicBool::new(false);
+
+/// Resets the default initializer state for testing.
+#[doc(hidden)]
+pub fn reset_for_test() {
+    INITIALIZED.store(false, Ordering::SeqCst);
+}
+
+/// Framework default initializer registered for `view` (priority 18).
+///
+/// Discovers and initializes the default [`TeraEngine`] over application view directories.
+pub fn default_initializer() -> Result<()> {
+    if try_engine().is_some() {
+        return Ok(());
+    }
+
+    if INITIALIZED.swap(true, Ordering::SeqCst) {
+        return Ok(());
+    }
+
+    let ctx = doido_core::initializers::detect_execution_context();
+    if ctx.is_skip() {
+        return Ok(());
+    }
+
+    let view_dir = if std::path::Path::new("views").exists() {
+        "views"
+    } else if std::path::Path::new("app/views").exists() {
+        "app/views"
+    } else if std::path::Path::new("backend/app/views").exists() {
+        "backend/app/views"
+    } else {
+        "app/views"
+    };
+
+    if let Err(e) = init(view_dir) {
+        doido_core::tracing::warn!("view default_initializer: {e}");
+    }
+
+    Ok(())
+}
+
+inventory::submit! {
+    doido_core::initializers::FrameworkInitializer {
+        name: "view",
+        priority: 18,
+        init: default_initializer,
+    }
+}
 
 /// Framework-provided, overridable templates (e.g. `doido-auth`'s built-in auth
 /// views). Populated by framework crates *before* [`init`]; the engine loads
@@ -35,6 +85,10 @@ pub fn register_framework_template(name: &str, content: &str) {
         return;
     }
     templates.push((name.to_string(), content.to_string()));
+    drop(templates);
+    if let Some(engine) = try_engine() {
+        let _ = engine.reload();
+    }
 }
 
 /// Snapshot of the registered framework templates as `(name, content)` pairs.

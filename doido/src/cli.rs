@@ -293,11 +293,16 @@ async fn run_inner(
         hook();
     }
     let cli = Cli::parse();
-    if let Some(inits) = initializers {
-        if let Err(e) = inits.run_all() {
-            doido_core::tracing::error!("initializers failed: {e}");
-            std::process::exit(1);
+    let inits = initializers.unwrap_or_else(|| {
+        if routes.is_none() {
+            doido_core::initializers::Initializers::new()
+        } else {
+            doido_core::initializers::Initializers::with_defaults()
         }
+    });
+    if let Err(e) = inits.run_all() {
+        doido_core::tracing::error!("initializers failed: {e}");
+        std::process::exit(1);
     }
     match cli.command {
         Commands::Server { port, env } => {

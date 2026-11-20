@@ -1,5 +1,3 @@
-use std::path::Path;
-
 use crate::axum;
 
 /// Boots the HTTP server with the application's `routes`.
@@ -10,25 +8,9 @@ pub async fn run(routes: Option<axum::Router>, env: Option<String>, port: Option
                 std::env::set_var("DOIDO_ENV", env);
             }
 
-            if let Err(e) = doido_core::i18n::init(Path::new("config/locales")) {
-                doido_core::tracing::warn!("failed to initialize i18n: {e}");
-            }
-
-            if let Err(e) = doido_model::pool::init().await {
-                doido_core::tracing::error!("failed to connect to the database: {e}");
-                return;
-            }
-
-            if let Err(e) = doido_view::init("app/views") {
-                doido_core::tracing::warn!("failed to load views from app/views: {e}");
-            }
-
-            if let Err(e) = doido_storage::init_storage().await {
-                doido_core::tracing::warn!("failed to initialize storage: {e}");
-            }
-
-            if let Err(e) = doido_cache::init_cache().await {
-                doido_core::tracing::warn!("failed to initialize cache: {e}");
+            // Ensure all default initializers run
+            if let Err(e) = doido_core::initializers::Initializers::with_defaults().run_all() {
+                doido_core::tracing::error!("initializers failed: {e}");
             }
 
             let router = doido_storage::serving::merge_routes(router);

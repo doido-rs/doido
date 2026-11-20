@@ -7,9 +7,64 @@
 
 use crate::store::CacheStore;
 use doido_core::Result;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, OnceLock};
 
 static CACHE: OnceLock<Arc<dyn CacheStore>> = OnceLock::new();
+static INITIALIZED: AtomicBool = AtomicBool::new(false);
+
+/// Resets the default initializer state for testing.
+#[doc(hidden)]
+pub fn reset_for_test() {
+    INITIALIZED.store(false, Ordering::SeqCst);
+}
+
+/// Framework default initializer registered for `cache` (priority 15).
+///
+/// Automatically configures the process-global cache store from `config/<env>.yml`.
+pub fn default_initializer() -> Result<()> {
+    if try_store().is_some() {
+        return Ok(());
+    }
+
+    if INITIALIZED.swap(true, Ordering::SeqCst) {
+        return Ok(());
+    }
+
+    let ctx = doido_core::initializers::detect_execution_context();
+    if ctx.is_skip() {
+        return Ok(());
+    }
+
+    let env = doido_core::Environment::get_env();
+
+    let init_result = doido_core::initializers::run_async(async {
+        let _ = init().await?;
+        Ok(())
+    });
+
+    match init_result {
+        Ok(()) => Ok(()),
+        Err(e) => {
+            if env.is_production() {
+                Err(doido_core::anyhow::anyhow!(
+                    "cache initialization failed in production: {e}"
+                ))
+            } else {
+                doido_core::tracing::warn!("cache default_initializer: {e}");
+                Ok(())
+            }
+        }
+    }
+}
+
+inventory::submit! {
+    doido_core::initializers::FrameworkInitializer {
+        name: "cache",
+        priority: 15,
+        init: default_initializer,
+    }
+}
 
 /// Builds the cache store from `config/<env>.yml` and installs it as the global
 /// default, returning a handle. Idempotent: if already initialised, the existing
