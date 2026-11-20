@@ -61,6 +61,17 @@ impl ExecutionContext {
     pub fn is_server_or_worker(&self) -> bool {
         matches!(self, ExecutionContext::Server | ExecutionContext::Worker)
     }
+
+    /// Returns `true` if this execution context is an administrative or migration command
+    /// that does not run background workers or web servers.
+    pub fn is_migration(&self) -> bool {
+        self.is_skip()
+    }
+}
+
+/// Canonical CLI execution context detection. Alias for [`detect_execution_context`].
+pub fn cli_context() -> ExecutionContext {
+    detect_execution_context()
 }
 
 /// Runs a future synchronously and safely whether inside a multi-thread Tokio runtime,

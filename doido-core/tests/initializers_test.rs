@@ -1,5 +1,6 @@
 use doido_core::initializers::{
-    detect_execution_context, is_test_runner, run_async, ExecutionContext, Initializers,
+    cli_context, detect_execution_context, is_test_runner, run_async, ExecutionContext,
+    Initializers,
 };
 use doido_core::Environment;
 use std::sync::{Arc, Mutex};
@@ -12,16 +13,24 @@ fn execution_context_predicates() {
     assert!(!ExecutionContext::Server.is_worker());
     assert!(!ExecutionContext::Server.is_skip());
     assert!(ExecutionContext::Server.is_server_or_worker());
+    assert!(!ExecutionContext::Server.is_migration());
 
     assert!(ExecutionContext::Worker.is_worker());
     assert!(!ExecutionContext::Worker.is_server());
     assert!(!ExecutionContext::Worker.is_skip());
     assert!(ExecutionContext::Worker.is_server_or_worker());
+    assert!(!ExecutionContext::Worker.is_migration());
 
     assert!(ExecutionContext::Skip.is_skip());
     assert!(!ExecutionContext::Skip.is_server());
     assert!(!ExecutionContext::Skip.is_worker());
     assert!(!ExecutionContext::Skip.is_server_or_worker());
+    assert!(ExecutionContext::Skip.is_migration());
+}
+
+#[test]
+fn cli_context_matches_detect_execution_context() {
+    assert_eq!(cli_context(), detect_execution_context());
 }
 
 #[test]

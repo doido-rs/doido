@@ -38,10 +38,12 @@ fn initializers_is_exported() {
     assert_eq!(inits.names(), vec!["check"]);
 
     let defaults = doido::Initializers::with_defaults();
-    assert_eq!(defaults.names(), vec!["core", "db", "storage"]);
+    assert_eq!(defaults.names(), vec!["core", "db", "storage", "jobs"]);
 
     let _ = doido::ExecutionContext::Server;
     let _ = doido::detect_execution_context();
+    let _ = doido::cli_context();
     let _ = doido::is_test_runner();
     let _ = doido::storage::default_initializer;
+    let _ = doido::jobs::default_initializer;
 }

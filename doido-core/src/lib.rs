@@ -32,8 +32,8 @@ pub use i18n::{
 };
 pub use inflector::{init_inflections, load_inflections, InflectionConfig, Inflections, Inflector};
 pub use initializers::{
-    default_initializer, detect_execution_context, is_test_runner, run_async, ExecutionContext,
-    FrameworkInitializer, Initializers,
+    cli_context, default_initializer, detect_execution_context, is_test_runner, run_async,
+    ExecutionContext, FrameworkInitializer, Initializers,
 };
 pub use logger::init as init_logger;
 pub use logger::{LogFormat, LoggerConfig};
