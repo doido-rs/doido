@@ -1679,6 +1679,7 @@ dependencies = [
  "doido-view",
  "http 1.5.0",
  "http-body-util",
+ "inventory",
  "jsonwebtoken",
  "redis",
  "serde",

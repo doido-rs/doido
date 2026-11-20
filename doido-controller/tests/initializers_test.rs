@@ -33,6 +33,6 @@ fn a_failing_initializer_stops_the_sequence() {
 #[test]
 fn initializers_with_defaults_registers_core_and_db_and_runs() {
     let inits = Initializers::with_defaults();
-    assert_eq!(inits.names(), vec!["core", "db"]);
+    assert_eq!(inits.names(), vec!["core", "db", "storage"]);
     assert!(inits.run_all().is_ok());
 }
