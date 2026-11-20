@@ -47,6 +47,21 @@ impl Environment {
     pub fn config_path(&self) -> PathBuf {
         self.config_path_in("")
     }
+
+    /// Returns `true` if this is [`Environment::Development`].
+    pub fn is_development(&self) -> bool {
+        matches!(self, Environment::Development)
+    }
+
+    /// Returns `true` if this is [`Environment::Test`].
+    pub fn is_test(&self) -> bool {
+        matches!(self, Environment::Test)
+    }
+
+    /// Returns `true` if this is [`Environment::Production`].
+    pub fn is_production(&self) -> bool {
+        matches!(self, Environment::Production)
+    }
 }
 
 impl std::fmt::Display for Environment {
@@ -69,6 +84,21 @@ mod tests {
     #[test]
     fn display_matches_as_str() {
         assert_eq!(Environment::Production.to_string(), "production");
+    }
+
+    #[test]
+    fn predicates_identify_environment() {
+        assert!(Environment::Development.is_development());
+        assert!(!Environment::Development.is_test());
+        assert!(!Environment::Development.is_production());
+
+        assert!(Environment::Test.is_test());
+        assert!(!Environment::Test.is_development());
+        assert!(!Environment::Test.is_production());
+
+        assert!(Environment::Production.is_production());
+        assert!(!Environment::Production.is_development());
+        assert!(!Environment::Production.is_test());
     }
 
     #[test]

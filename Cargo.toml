@@ -69,6 +69,7 @@ doido-view = { path = "doido-view", version = "=0.0.33-rc3" }
 jsonwebtoken = { version = "10", default-features = false, features = ["aws_lc_rs"] }
 totp-lite = "2"
 ureq = { version = "3", features = ["json"] }
+dotenvy = "0.15"
 
 # ORM (version pinned here; doido-model re-exports — import only via doido_model::sea_orm*)
 sea-orm = { version = "2.0.1", default-features = false, features = [

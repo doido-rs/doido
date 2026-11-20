@@ -49,7 +49,10 @@ pub use config::StorageConfigLoader;
 pub use config::{ServiceBackend, ServiceConfig, StorageConfig};
 pub use error::StorageError;
 pub use global::init as init_storage;
-pub use global::{init_from_config, init_with, service, set_storage, storage, try_storage};
+pub use global::{
+    default_initializer, init_from_config, init_with, reset_for_test, service, set_storage,
+    storage, try_storage,
+};
 pub use providers::disk::DiskService;
 pub use providers::memory::MemoryService;
 pub use registry::{register_adapter, registered_adapters, ServiceFactory};

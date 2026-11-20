@@ -21,6 +21,9 @@ tera = "2"
 regex = "1"
 aes-gcm = "0.10"
 sha2 = "0.10"
+dotenvy = { workspace = true }
+inventory = { workspace = true }
+tokio = { workspace = true, features = ["rt", "rt-multi-thread"] }
 
 [dev-dependencies]
 tracing-test = "0.2"
