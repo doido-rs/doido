@@ -7,6 +7,7 @@ edition = "2021"
 
 [dependencies]
 doido-core.workspace = true
+inventory = { workspace = true }
 # `with-*` value types expose the sea_orm prelude aliases the model generator
 # emits (Decimal/DateTime/Date/Json/Uuid). `with-json` also turns on
 # chrono/rust_decimal/uuid `serde`, so the generated model's derive(Serialize,

@@ -6,7 +6,7 @@
 //! register custom inflection rules, initialize third-party clients,
 //! set up external services, or validate runtime requirements.
 
-use doido::controller::initializers::Initializers;
+use doido::initializers::Initializers;
 use doido::Result;
 
 // @generated-modules
@@ -25,7 +25,7 @@ pub fn run() -> Result<()> {
 
 /// Builds and returns the [`Initializers`] registry for the application.
 pub fn registry() -> Initializers {
-    let mut inits = Initializers::new();
+    let mut inits = Initializers::with_defaults();
     register_initializers(&mut inits);
     inits
 }

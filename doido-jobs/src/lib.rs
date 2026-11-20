@@ -6,6 +6,7 @@ pub mod config;
 pub mod context;
 pub mod cron;
 pub mod drivers;
+pub mod initializer;
 pub mod inspect;
 pub mod perform;
 pub mod queue;
@@ -50,3 +51,31 @@ pub use retry::{Decision, RetryPolicy};
 #[cfg(feature = "webui")]
 pub use webui::{build_jobs_webui_router, build_router, build_unprotected_jobs_webui_router};
 pub use worker::{perform_job_now, EngineConfig, Worker, WorkerEngine};
+
+pub use initializer::{default_initializer, on_boot, reset_for_test};
+
+/// Retains job function symbols so the linker does not dead-code-strip their
+/// `inventory::submit!` job registrations when compiling libraries.
+#[macro_export]
+macro_rules! link_jobs {
+    ($($job:path),* $(,)?) => {
+        $crate::link_jobs_internal(&[
+            $(
+                $job as *const (),
+            )*
+        ]);
+    };
+}
+
+/// Alias for [`link_jobs!`].
+#[macro_export]
+macro_rules! retain_jobs {
+    ($($args:tt)*) => {
+        $crate::link_jobs!($($args)*);
+    };
+}
+
+#[doc(hidden)]
+pub fn link_jobs_internal(ptrs: &[*const ()]) {
+    std::hint::black_box(ptrs);
+}

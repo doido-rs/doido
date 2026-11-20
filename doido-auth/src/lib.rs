@@ -5,6 +5,7 @@ pub mod controllers;
 pub mod error;
 pub mod framework_views;
 pub mod i18n;
+pub mod initializer;
 pub mod middleware;
 pub mod route_mount;
 pub mod strategy;
@@ -79,6 +80,7 @@ pub use doido_auth_macros::{__auth_routes_decl, auth_controller, auth_routes, ro
 pub use error::AuthError;
 pub use framework_views::register_views;
 pub use i18n::register_locales;
+pub use initializer::{default_initializer, reset_for_test};
 pub use middleware::omniauthable::{OAuth2Provider, OAuthProvider, OAuthTokenResponse};
 pub use middleware::{
     authenticate_global as authenticate, complete_session_sign_in as sign_in_with_session,
