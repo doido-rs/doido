@@ -1638,7 +1638,7 @@ dependencies = [
 
 [[package]]
 name = "doido"
-version = "0.0.33-rc4"
+version = "0.0.33-rc5"
 dependencies = [
  "assert_cmd",
  "clap",
@@ -1665,7 +1665,7 @@ dependencies = [
 
 [[package]]
 name = "doido-auth"
-version = "0.0.33-rc4"
+version = "0.0.33-rc5"
 dependencies = [
  "async-trait",
  "axum",
@@ -1697,7 +1697,7 @@ dependencies = [
 
 [[package]]
 name = "doido-auth-macros"
-version = "0.0.33-rc4"
+version = "0.0.33-rc5"
 dependencies = [
  "doido-auth-route-dsl",
  "proc-macro2",
@@ -1707,7 +1707,7 @@ dependencies = [
 
 [[package]]
 name = "doido-auth-route-dsl"
-version = "0.0.33-rc4"
+version = "0.0.33-rc5"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1716,7 +1716,7 @@ dependencies = [
 
 [[package]]
 name = "doido-cable"
-version = "0.0.33-rc4"
+version = "0.0.33-rc5"
 dependencies = [
  "async-trait",
  "doido-cable-macros",
@@ -1734,7 +1734,7 @@ dependencies = [
 
 [[package]]
 name = "doido-cable-macros"
-version = "0.0.33-rc4"
+version = "0.0.33-rc5"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1743,7 +1743,7 @@ dependencies = [
 
 [[package]]
 name = "doido-cache"
-version = "0.0.33-rc4"
+version = "0.0.33-rc5"
 dependencies = [
  "async-trait",
  "doido-core",
@@ -1759,7 +1759,7 @@ dependencies = [
 
 [[package]]
 name = "doido-controller"
-version = "0.0.33-rc4"
+version = "0.0.33-rc5"
 dependencies = [
  "async-trait",
  "axum",
@@ -1789,7 +1789,7 @@ dependencies = [
 
 [[package]]
 name = "doido-controller-macros"
-version = "0.0.33-rc4"
+version = "0.0.33-rc5"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1798,7 +1798,7 @@ dependencies = [
 
 [[package]]
 name = "doido-core"
-version = "0.0.33-rc4"
+version = "0.0.33-rc5"
 dependencies = [
  "aes-gcm",
  "anyhow",
@@ -1824,7 +1824,7 @@ dependencies = [
 
 [[package]]
 name = "doido-generators"
-version = "0.0.33-rc4"
+version = "0.0.33-rc5"
 dependencies = [
  "assert_cmd",
  "chrono",
@@ -1841,7 +1841,7 @@ dependencies = [
 
 [[package]]
 name = "doido-jobs"
-version = "0.0.33-rc4"
+version = "0.0.33-rc5"
 dependencies = [
  "async-trait",
  "axum",
@@ -1869,7 +1869,7 @@ dependencies = [
 
 [[package]]
 name = "doido-jobs-macros"
-version = "0.0.33-rc4"
+version = "0.0.33-rc5"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1878,7 +1878,7 @@ dependencies = [
 
 [[package]]
 name = "doido-mailer"
-version = "0.0.33-rc4"
+version = "0.0.33-rc5"
 dependencies = [
  "async-trait",
  "base64 0.23.1",
@@ -1899,7 +1899,7 @@ dependencies = [
 
 [[package]]
 name = "doido-mailer-macros"
-version = "0.0.33-rc4"
+version = "0.0.33-rc5"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1908,7 +1908,7 @@ dependencies = [
 
 [[package]]
 name = "doido-model"
-version = "0.0.33-rc4"
+version = "0.0.33-rc5"
 dependencies = [
  "bcrypt",
  "clap",
@@ -1930,7 +1930,7 @@ dependencies = [
 
 [[package]]
 name = "doido-storage"
-version = "0.0.33-rc4"
+version = "0.0.33-rc5"
 dependencies = [
  "async-trait",
  "aws-sdk-s3",
@@ -1961,7 +1961,7 @@ dependencies = [
 
 [[package]]
 name = "doido-view"
-version = "0.0.33-rc4"
+version = "0.0.33-rc5"
 dependencies = [
  "doido-cache",
  "doido-core",
