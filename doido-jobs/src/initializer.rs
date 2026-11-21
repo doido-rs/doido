@@ -45,6 +45,10 @@ pub fn default_initializer() -> Result<()> {
         return Ok(());
     }
 
+    // 0. Register webui views if feature is active
+    #[cfg(feature = "webui")]
+    crate::webui::register_views();
+
     // 1. Discover and log handlers registered via inventory
     let registry = JobRegistry::from_inventory();
     let names = registry.names();

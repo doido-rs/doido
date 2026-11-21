@@ -53,7 +53,18 @@ fn detect_execution_context_recognizes_server_and_worker() {
     std::env::set_var("DOIDO_COMMAND", "worker");
     assert_eq!(detect_execution_context(), ExecutionContext::Worker);
 
+    std::env::set_var("DOIDO_COMMAND", "console");
+    assert_eq!(detect_execution_context(), ExecutionContext::Console);
+
     std::env::remove_var("DOIDO_COMMAND");
+}
+
+#[test]
+fn execution_context_console_predicates() {
+    let ctx = ExecutionContext::Console;
+    assert!(ctx.is_console());
+    assert!(!ctx.is_skip());
+    assert!(ctx.is_server_or_worker());
 }
 
 #[test]

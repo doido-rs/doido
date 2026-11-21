@@ -17,6 +17,7 @@ pub fn banner() -> String {
 }
 
 pub fn run() {
+    let _ = doido_core::initializers::Initializers::with_defaults().run_all();
     println!("{}", banner());
     // If evcxr is installed, drop into it; ignore failures (banner already shown).
     let _ = Command::new("evcxr").status();

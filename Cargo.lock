@@ -1748,6 +1748,7 @@ dependencies = [
  "async-trait",
  "doido-core",
  "flate2",
+ "inventory",
  "memcache",
  "redis",
  "serde",
@@ -1886,6 +1887,7 @@ dependencies = [
  "doido-jobs",
  "doido-mailer-macros",
  "doido-view",
+ "inventory",
  "rustls",
  "serde",
  "serde_json",
@@ -1964,6 +1966,7 @@ version = "0.0.32"
 dependencies = [
  "doido-cache",
  "doido-core",
+ "inventory",
  "serde_json",
  "serde_norway",
  "tempfile",

@@ -13,15 +13,25 @@ pub use doido_core::initializers::{
 pub fn init_for_context(ctx: ExecutionContext) -> Result<()> {
     match ctx {
         ExecutionContext::Skip => Ok(()),
-        ExecutionContext::Server => {
+        ExecutionContext::Server | ExecutionContext::Console => {
             if pool::try_pool().is_some() {
                 return Ok(());
             }
-            run_async(async {
-                pool::init().await.map_err(|e| {
-                    doido_core::anyhow::anyhow!("database pool initialization failed: {e}")
-                })?;
-                Ok(())
+            let env = doido_core::Environment::get_env();
+            run_async(async move {
+                match pool::init().await {
+                    Ok(_) => Ok(()),
+                    Err(e) => {
+                        if env.is_production() {
+                            Err(doido_core::anyhow::anyhow!(
+                                "database pool initialization failed in production: {e}"
+                            ))
+                        } else {
+                            doido_core::tracing::warn!("database pool initialization failed: {e}");
+                            Ok(())
+                        }
+                    }
+                }
             })
         }
         ExecutionContext::Worker => {

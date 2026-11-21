@@ -15,7 +15,11 @@ pub mod memcache_store;
 pub mod redis_store;
 
 pub use config::{CacheBackend, CacheConfig, MultiCacheConfig};
+pub use global::default_initializer;
 pub use global::init as init_cache;
+#[doc(hidden)]
+pub use global::reset_for_test;
+pub use global::{set_store, store, try_store};
 pub use memory::MemoryStore;
 pub use namespaced::NamespacedStore;
 pub use registry::CacheRegistry;

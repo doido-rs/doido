@@ -21,6 +21,22 @@ pub fn default_initializer() -> crate::Result<()> {
         let _ = dotenvy::dotenv();
     }
 
+    // 3. Load inflections if configuration file exists
+    if let Err(e) = crate::load_inflections(crate::inflector::DEFAULT_CONFIG_PATH) {
+        crate::tracing::warn!("{e}");
+    }
+
+    // 4. Load app locales if directory exists
+    let locales_path = std::path::Path::new(crate::boot::DEFAULT_LOCALES_DIR);
+    if locales_path.exists() {
+        if let Err(e) = crate::i18n::init(locales_path) {
+            crate::tracing::warn!(
+                "failed to initialize i18n from {}: {e}",
+                locales_path.display()
+            );
+        }
+    }
+
     Ok(())
 }
 
@@ -36,6 +52,8 @@ pub enum ExecutionContext {
     Server,
     /// Worker mode (`doido worker`): initializes background worker defaults.
     Worker,
+    /// Console mode (`doido console`): initializes full application environment for interactive REPL.
+    Console,
     /// Commands that manage their own connections or do not need an application pool
     /// (e.g. `db migrate`, `db seed`, `generate`, test runners).
     Skip,
@@ -52,14 +70,22 @@ impl ExecutionContext {
         matches!(self, ExecutionContext::Worker)
     }
 
+    /// Returns `true` if this is [`ExecutionContext::Console`].
+    pub fn is_console(&self) -> bool {
+        matches!(self, ExecutionContext::Console)
+    }
+
     /// Returns `true` if this is [`ExecutionContext::Skip`].
     pub fn is_skip(&self) -> bool {
         matches!(self, ExecutionContext::Skip)
     }
 
-    /// Returns `true` if this is [`ExecutionContext::Server`] or [`ExecutionContext::Worker`].
+    /// Returns `true` if this is [`ExecutionContext::Server`], [`ExecutionContext::Worker`], or [`ExecutionContext::Console`].
     pub fn is_server_or_worker(&self) -> bool {
-        matches!(self, ExecutionContext::Server | ExecutionContext::Worker)
+        matches!(
+            self,
+            ExecutionContext::Server | ExecutionContext::Worker | ExecutionContext::Console
+        )
     }
 
     /// Returns `true` if this execution context is an administrative or migration command
@@ -117,6 +143,7 @@ pub fn detect_execution_context() -> ExecutionContext {
         match cmd.to_lowercase().as_str() {
             "server" => return ExecutionContext::Server,
             "worker" => return ExecutionContext::Worker,
+            "console" => return ExecutionContext::Console,
             _ => return ExecutionContext::Skip,
         }
     }
@@ -131,8 +158,9 @@ pub fn detect_execution_context() -> ExecutionContext {
 
     match subcmd.as_deref() {
         Some("worker") => ExecutionContext::Worker,
+        Some("console") => ExecutionContext::Console,
         Some("server") | None => ExecutionContext::Server,
-        // Any other command (db, generate, routes, console, credentials, config, new, jobs...)
+        // Any other command (db, generate, routes, credentials, config, new, jobs...)
         // does not need the application database pool installed at initializer time
         _ => ExecutionContext::Skip,
     }
