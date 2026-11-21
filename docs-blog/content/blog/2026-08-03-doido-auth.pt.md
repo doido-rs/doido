@@ -13,7 +13,7 @@ controller.
 
 ## O que você ganha
 
-- **Trait `AuthUser`** — ligue autenticação a qualquer model SeaORM; sem struct User
+- **`UserModel` + `UserStore`** — ligue autenticação a qualquer backend de usuário; sem struct User fixa
   fixa no framework.
 - **Estratégias plugáveis** — sessão por cookie (padrão), JWT bearer e backends
   customizados via `AuthStrategy`.

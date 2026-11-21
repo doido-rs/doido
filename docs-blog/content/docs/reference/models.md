@@ -83,7 +83,7 @@ reach the same pool through [`ctx.db()`](@/docs/reference/controllers.md).
 
 ```rust
 // At boot:
-let conn = doido::model::connect().await?;   // reads config/<env>.yml → [database]
+let conn = doido::model::connect().await?;   // reads config/environments/<env>.yml → [database]
 doido::model::pool::set_pool(conn).ok();
 
 // Anywhere afterwards:
@@ -91,7 +91,7 @@ let db = doido::model::pool::pool();          // &'static DatabaseConnection
 ```
 
 ```yaml
-# config/development.yml
+# config/environments/development.yml
 database:
   url: sqlite://db/development.db
   # max_connections: 10

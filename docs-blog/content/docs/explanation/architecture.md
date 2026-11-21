@@ -18,7 +18,7 @@ wire them together into a conventional application layout.
 | `doido-core` | Active Support | Errors, inflector, shared utilities |
 | `doido-config` | — | Per-env YAML, encrypted credentials |
 | `doido-controller` | Action Dispatch + Controller | Routes, controllers, controller helpers, middleware |
-| `doido-auth` | Devise + OmniAuth + JWT | AuthUser trait, strategies, extractors, generators |
+| `doido-auth` | Devise + OmniAuth + JWT | UserModel, UserStore, middleware pipeline, strategies, extractors, generators |
 | `doido-model` | Active Record | sea-orm re-exports, pool, test helpers |
 | `doido-view` | Action View | Tera templates, layouts, helpers |
 | `doido-generators` | Rails generators + CLI | Scaffolds, `cargo doido server`, `cargo doido db` |

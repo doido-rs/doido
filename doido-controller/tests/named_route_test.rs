@@ -9,7 +9,7 @@ async fn handler() -> &'static str {
 #[tokio::test]
 async fn named_custom_routes_parse_and_serve() {
     // `as: name` gives a custom route a `{name}_path()` helper, matching what
-    // `resources!` already emits.
+    // `resource!` already emits.
     let app = doido_controller::routes! {
         get!("/login", handler, as: login);
         post!("/logout", handler, as: logout);

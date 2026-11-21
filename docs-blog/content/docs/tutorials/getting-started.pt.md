@@ -91,7 +91,7 @@ use doido::controller::{axum, routes};
 pub fn router() -> axum::Router {
     routes! {
         get!("/", HelloController::index);
-        // resources!(PostsController);   // todas as 7 rotas REST
+        // resource!(posts, PostsController);   // todas as 7 rotas REST
     }
 }
 ```
@@ -106,9 +106,10 @@ my-app/
 ├── src/main.rs              ← delega para doido::run(routes)
 ├── config/
 │   ├── application.toml      ← config base
-│   ├── development.yml       ← overrides por ambiente
-│   ├── test.yml
-│   ├── production.yml
+│   ├── environments/
+│   │   ├── development.yml   ← overrides por ambiente
+│   │   ├── test.yml
+│   │   └── production.yml
 │   ├── routes.rs            ← macro routes!
 │   └── inflection.yaml      ← regras de pluralização customizadas
 ├── app/
@@ -131,7 +132,7 @@ Credenciais criptografadas e variáveis de ambiente `SECTION__KEY` fazem overrid
 por cima.
 
 ```yaml
-# config/development.yml
+# config/environments/development.yml
 server:
   bind: 0.0.0.0
   port: 3000

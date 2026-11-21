@@ -34,7 +34,7 @@ async fn about_handler() -> &'static str {
 fn routes_macro_registers_full_table() {
     let _app: doido_controller::axum::Router = doido_controller::routes! {
         get!("/about", about_handler)
-        resources!(posts, posts_controller)
+        resource!(posts, posts_controller)
     };
 
     let routes = doido_controller::all_routes();
@@ -47,7 +47,7 @@ fn routes_macro_registers_full_table() {
     assert!(has("GET", "/posts/new"));
     assert!(has("GET", "/posts/{id}"));
     // The member update route accepts POST too, so HTML edit forms can submit a
-    // method override (see codegen `resources!` member router).
+    // method override (see codegen `resource!` member router).
     assert!(has("POST|PUT|PATCH", "/posts/{id}"));
     assert!(has("DELETE", "/posts/{id}"));
     assert!(has("GET", "/posts/{id}/edit"));

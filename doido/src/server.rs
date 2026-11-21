@@ -9,62 +9,12 @@ pub async fn run(routes: Option<axum::Router>, env: Option<String>, port: Option
                 std::env::set_var("DOIDO_ENV", env);
             }
 
-            #[cfg(feature = "auth")]
-            if doido_generators::commands::generate::project_has_doido_auth() {
-                if let Err(e) = doido_auth::register_locales() {
-                    doido_core::tracing::warn!("failed to register auth locales: {e}");
-                }
-            }
-
-            if doido_model::pool::try_pool().is_none() {
-                if let Err(e) = doido_model::pool::init().await {
-                    doido_core::tracing::error!("failed to connect to the database: {e}");
-                    return;
-                }
-            }
-
-            #[cfg(feature = "auth")]
-            if doido_generators::commands::generate::project_has_doido_auth() {
-                doido_auth::register_views();
-            }
-
-            doido_jobs::webui::register_views();
-
-            if let Err(e) = doido_view::init("app/views") {
-                doido_core::tracing::warn!("failed to load views from app/views: {e}");
-            }
-
-            #[cfg(feature = "auth")]
-            if doido_generators::commands::generate::project_has_doido_auth() {
-                let config = doido_auth::load_config();
-                if let Err(e) = doido_auth::init(doido_model::pool::pool().clone(), &config).await {
-                    doido_core::tracing::warn!("failed to initialise auth: {e}");
-                }
-            }
-
-            if let Err(e) = doido_cache::init_cache().await {
-                doido_core::tracing::warn!("failed to initialize cache: {e}");
+            // Ensure all registered initializers run at startup
+            if let Err(e) = doido_core::initializers::Initializers::with_defaults().run_all() {
+                doido_core::tracing::error!("initializers failed: {e}");
             }
 
             let router = doido_storage::serving::merge_routes(router);
-
-            let jobs_config = doido_jobs::config::load();
-            let router = if jobs_config.webui.enabled {
-                match doido_jobs::config::build_configured_queue(&jobs_config).await {
-                    Ok(queue) => {
-                        let state = doido_jobs::webui::JobsWebState::new(queue, jobs_config);
-                        doido_jobs::webui::try_merge_routes(router, state)
-                    }
-                    Err(e) => {
-                        doido_core::tracing::warn!(
-                            "jobs webui enabled but queue backend failed: {e:#}; dashboard not mounted"
-                        );
-                        router
-                    }
-                }
-            } else {
-                router
-            };
 
             if let Err(e) = doido_controller::start_server_with(router, None, port).await {
                 doido_core::tracing::error!("server error: {e}");

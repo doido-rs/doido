@@ -1,7 +1,9 @@
 //! Handler unit tests (authenticate, sign-in/out, register).
 
-use doido_auth::handlers::{authenticate, register_user, sign_in, sign_out};
-use doido_auth::testing::{create_test_user, init_test_auth, test_auth_config, TestUser};
+use doido_auth::testing::{
+    create_test_user, ensure_users_table, init_test_auth, test_auth_config, TestUser,
+};
+use doido_auth::{authenticate, register_user, sign_in, sign_out};
 use doido_controller::axum::body::Body;
 use doido_controller::Context;
 use doido_model::testing::TestDb;
@@ -10,6 +12,7 @@ use http::Request;
 #[tokio::test]
 async fn authenticate_succeeds_with_valid_credentials() {
     let db = TestDb::new().await.unwrap();
+    ensure_users_table(db.conn()).await.unwrap();
     let _auth = init_test_auth(db.conn().clone(), test_auth_config())
         .await
         .unwrap();
@@ -17,20 +20,19 @@ async fn authenticate_succeeds_with_valid_credentials() {
         .await
         .unwrap();
 
-    let user: TestUser = authenticate(db.conn(), "auth@example.com", "secret")
-        .await
-        .unwrap();
+    let user: TestUser = authenticate("auth@example.com", "secret").await.unwrap();
     assert_eq!(user.email, "auth@example.com");
 }
 
 #[tokio::test]
 async fn authenticate_rejects_unknown_email() {
     let db = TestDb::new().await.unwrap();
+    ensure_users_table(db.conn()).await.unwrap();
     let _auth = init_test_auth(db.conn().clone(), test_auth_config())
         .await
         .unwrap();
 
-    let err = authenticate::<TestUser>(db.conn(), "missing@example.com", "secret")
+    let err = authenticate::<TestUser>("missing@example.com", "secret")
         .await
         .unwrap_err();
     assert!(matches!(err, doido_auth::AuthError::InvalidCredentials));
@@ -39,6 +41,7 @@ async fn authenticate_rejects_unknown_email() {
 #[tokio::test]
 async fn register_user_rejects_duplicate_email() {
     let db = TestDb::new().await.unwrap();
+    ensure_users_table(db.conn()).await.unwrap();
     let _auth = init_test_auth(db.conn().clone(), test_auth_config())
         .await
         .unwrap();
@@ -46,18 +49,13 @@ async fn register_user_rejects_duplicate_email() {
         .await
         .unwrap();
 
-    let err = register_user(
-        db.conn(),
-        "dup@example.com",
-        "other",
-        |email, digest| async move {
-            Ok(TestUser {
-                id: 99,
-                email,
-                password_digest: digest,
-            })
-        },
-    )
+    let err = register_user("dup@example.com", "other", |email, digest| async move {
+        Ok(TestUser {
+            id: 99,
+            email,
+            password_digest: digest,
+        })
+    })
     .await
     .unwrap_err();
     assert!(matches!(err, doido_auth::AuthError::EmailTaken));
@@ -66,6 +64,7 @@ async fn register_user_rejects_duplicate_email() {
 #[tokio::test]
 async fn sign_in_and_sign_out_update_session() {
     let db = TestDb::new().await.unwrap();
+    ensure_users_table(db.conn()).await.unwrap();
     let _auth = init_test_auth(db.conn().clone(), test_auth_config())
         .await
         .unwrap();
@@ -79,6 +78,6 @@ async fn sign_in_and_sign_out_update_session() {
     sign_in(&mut ctx, &user).unwrap();
     assert_eq!(ctx.session().get::<i64>("user_id"), Some(user.id));
 
-    sign_out(&mut ctx).unwrap();
+    sign_out(&mut ctx, None).await.unwrap();
     assert!(ctx.session().get::<i64>("user_id").is_none());
 }

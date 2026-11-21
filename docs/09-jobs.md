@@ -236,9 +236,9 @@ doido jobs discard            ← permanently remove all dead jobs
 
 ## Web UI (dashboard)
 
-When `jobs.webui.enabled` is true, the HTTP server mounts a Mission Control–style
-dashboard (default **`/doido/jobs`**) on boot. It uses the same configured queue
-backend as the worker (`memory` / `db` / `redis`).
+`doido-jobs` provides a Mission Control–style dashboard under the `webui` feature.
+The dashboard router is exported by `doido_jobs::webui` and is merged explicitly by the
+application developer into the app's Axum router, giving full control over the mount path and authentication.
 
 Tabs:
 
@@ -269,26 +269,71 @@ Job tabs list jobs without calling `queue_counts`. Payload JSON is omitted by de
 add **`include_payload=1`** to show the payload column (or use **Show payload** on a row).
 Optional **`stats_ttl_secs`** caches queue counts in-process on the Queues tab.
 
-Queue backends live under `doido-jobs` **`drivers/`** (`memory`, `db`, `redis`); the
-public imports (`doido_jobs::db::DbQueue`, etc.) are unchanged.
+### Mounting into the application router
+
+The developer merges the dashboard router into their app's router and is responsible
+for any desired authentication layer (such as middleware, session auth, or token auth).
+
+#### Recommended: Encapsulated Router Builder
+
+[`doido_jobs::webui::build_jobs_webui_router`] encapsulates loading configuration, resolving
+the queue backend (memory or database pool), normalizing the mount path, and optionally applying an authentication layer:
+
+```rust
+use axum::middleware::from_fn;
+
+pub fn build_jobs_webui_router() -> axum::Router {
+    // Optional auth layer (e.g. active in production, skipped in dev/test)
+    let auth_layer = (!crate::settings::dev_or_test_runtime())
+        .then(|| from_fn(crate::auth::jobs_webui_auth_layer));
+
+    // Mount at custom path (e.g. "/admin/jobs")
+    doido_jobs::webui::build_jobs_webui_router("/admin/jobs", auth_layer)
+}
+```
+
+If no authentication layer is needed, [`doido_jobs::webui::build_unprotected_jobs_webui_router`]
+can be called directly without type annotations:
+
+```rust
+let jobs_router = doido_jobs::webui::build_unprotected_jobs_webui_router("/admin/jobs");
+let app = app.merge(jobs_router);
+```
+
+#### Manual / Lower-Level Router Setup
+
+For custom queue instances or manual control:
+
+```rust
+use doido_jobs::webui::{self, JobsWebState};
+
+let queue = doido_jobs::build_queue(&jobs_config).await?;
+let state = JobsWebState::new(queue, jobs_config, "/admin/jobs");
+
+// Option 1: Mount at the state's mount path
+let app = app.merge(webui::routes(state));
+
+// Option 2: Direct the endpoint to a custom path (e.g. /custom/jobs)
+let app = app.merge(webui::routes_at("/custom/jobs", state));
+
+// Option 3: Protect with custom authentication middleware
+let protected_jobs = webui::routes_at("/admin/jobs", state)
+    .layer(axum::middleware::from_fn(require_admin_session));
+let app = app.merge(protected_jobs);
+```
+
+Configuration in `config/<env>.yml`:
 
 ```yaml
 jobs:
   type: db
   queues: [default, mailers]
   webui:
-    enabled: true
-    mount_path: /doido/jobs
     stats_ttl_secs: 30
-    username: admin
-    password: "{{ get_env(name=JOBS_WEBUI_PASSWORD, default=change-me) }}"
 ```
 
-- **`webui.enabled`** defaults to `false` (no routes).
 - **`webui.stats_ttl_secs`** — optional in-process cache TTL for Queues-tab stats (omit to refresh every request).
-- In **production**, enabling the dashboard without **`username`** and **`password`**
-  logs a warning and **does not mount** routes.
-- When credentials are set, the dashboard is protected with **HTTP Basic Auth**.
+- Authentication and authorization are the responsibility of the application developer.
 - Build `doido-jobs` with the **`webui`** feature (enabled on the `doido` metacrate).
 
 ## Periodic cron (worker)

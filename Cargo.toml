@@ -22,7 +22,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.0.32"
+version = "0.0.33-rc5"
 license = "MIT"
 
 # Line-coverage gate (`make coverage-check`). Per-crate enforcement lives in
@@ -45,30 +45,31 @@ doido-generators = 71.0
 debug = "line-tables-only"
 
 [workspace.dependencies]
-# First-party crates: every entry needs `path` *and* `version` so `cargo publish`
-# strips `path`, keeps the semver, and resolves from crates.io.
-doido = { path = "doido", version = "=0.0.32" }
-doido-cable = { path = "doido-cable", version = "=0.0.32" }
-doido-cable-macros = { path = "doido-cable/macros", version = "=0.0.32" }
-doido-cache = { path = "doido-cache", version = "=0.0.32" }
-doido-controller = { path = "doido-controller", version = "=0.0.32" }
-doido-controller-macros = { path = "doido-controller/macros", version = "=0.0.32" }
-doido-core = { path = "doido-core", version = "=0.0.32" }
-doido-generators = { path = "doido-generators", version = "=0.0.32" }
-doido-auth = { path = "doido-auth", version = "=0.0.32" }
-doido-auth-macros = { path = "doido-auth/macros", version = "=0.0.32" }
-doido-auth-route-dsl = { path = "doido-auth/route-dsl", version = "=0.0.32" }
-doido-jobs = { path = "doido-jobs", version = "=0.0.32" }
-doido-jobs-macros = { path = "doido-jobs/macros", version = "=0.0.32" }
-doido-mailer = { path = "doido-mailer", version = "=0.0.32" }
-doido-mailer-macros = { path = "doido-mailer/macros", version = "=0.0.32" }
-doido-model = { path = "doido-model", version = "=0.0.32", default-features = false }
-doido-storage = { path = "doido-storage", version = "=0.0.32" }
-doido-view = { path = "doido-view", version = "=0.0.32" }
+# First-party crates: members inherit via `*.workspace = true`. Root `path` + exact
+# `version` is for local resolution and `cargo publish` (synced by scripts/sync-workspace-dep-versions.sh).
+doido = { path = "doido", version = "=0.0.33-rc5" }
+doido-cable = { path = "doido-cable", version = "=0.0.33-rc5" }
+doido-cable-macros = { path = "doido-cable/macros", version = "=0.0.33-rc5" }
+doido-cache = { path = "doido-cache", version = "=0.0.33-rc5" }
+doido-controller = { path = "doido-controller", version = "=0.0.33-rc5" }
+doido-controller-macros = { path = "doido-controller/macros", version = "=0.0.33-rc5" }
+doido-core = { path = "doido-core", version = "=0.0.33-rc5" }
+doido-generators = { path = "doido-generators", version = "=0.0.33-rc5" }
+doido-auth = { path = "doido-auth", version = "=0.0.33-rc5" }
+doido-auth-macros = { path = "doido-auth/macros", version = "=0.0.33-rc5" }
+doido-auth-route-dsl = { path = "doido-auth/route-dsl", version = "=0.0.33-rc5" }
+doido-jobs = { path = "doido-jobs", version = "=0.0.33-rc5" }
+doido-jobs-macros = { path = "doido-jobs/macros", version = "=0.0.33-rc5" }
+doido-mailer = { path = "doido-mailer", version = "=0.0.33-rc5" }
+doido-mailer-macros = { path = "doido-mailer/macros", version = "=0.0.33-rc5" }
+doido-model = { path = "doido-model", default-features = false, version = "=0.0.33-rc5" }
+doido-storage = { path = "doido-storage", version = "=0.0.33-rc5" }
+doido-view = { path = "doido-view", version = "=0.0.33-rc5" }
 
 jsonwebtoken = { version = "10", default-features = false, features = ["aws_lc_rs"] }
 totp-lite = "2"
 ureq = { version = "3", features = ["json"] }
+dotenvy = "0.15"
 
 # ORM (version pinned here; doido-model re-exports — import only via doido_model::sea_orm*)
 sea-orm = { version = "2.0.1", default-features = false, features = [

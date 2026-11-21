@@ -13,7 +13,7 @@ session stack.
 
 ## What you get
 
-- **`AuthUser` trait** — bind authentication to any SeaORM model; no hard-coded User
+- **`UserModel` + `UserStore`** — bind authentication to any SeaORM (or Redis) user backend; no hard-coded User
   struct in the framework.
 - **Pluggable strategies** — cookie session (default), JWT bearer, and custom
   backends via `AuthStrategy`.

@@ -30,47 +30,10 @@ impl Backend {
 }
 
 /// HTTP dashboard settings (`jobs.webui` in YAML).
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct WebUiConfig {
-    pub enabled: bool,
-    /// Router prefix (default `/doido/jobs`).
-    pub mount_path: String,
-    pub username: Option<String>,
-    pub password: Option<String>,
     /// Cache `queue_counts` in-process for this many seconds (dashboard **Queues** tab).
     pub stats_ttl_secs: Option<u64>,
-}
-
-impl Default for WebUiConfig {
-    fn default() -> Self {
-        Self {
-            enabled: false,
-            mount_path: "/doido/jobs".to_string(),
-            username: None,
-            password: None,
-            stats_ttl_secs: None,
-        }
-    }
-}
-
-impl WebUiConfig {
-    /// Whether routes may be mounted for `env` (production requires credentials).
-    pub fn safe_to_mount(&self, env: Environment) -> bool {
-        if !self.enabled {
-            return false;
-        }
-        match env {
-            Environment::Development | Environment::Test => true,
-            Environment::Production => {
-                self.username.as_ref().is_some_and(|u| !u.is_empty())
-                    && self.password.as_ref().is_some_and(|p| !p.is_empty())
-            }
-        }
-    }
-
-    pub fn requires_credentials(&self, env: Environment) -> bool {
-        self.enabled && matches!(env, Environment::Production)
-    }
 }
 
 /// Runtime configuration for the jobs subsystem (typically loaded from `[jobs]`).
@@ -165,6 +128,37 @@ pub fn build_db_queue(conn: doido_model::sea_orm::DatabaseConnection) -> Arc<dyn
     Arc::new(crate::drivers::db::DbQueue::new(conn))
 }
 
+/// Synchronously builds or resolves the default queue for the configured backend.
+///
+/// * Backend `Memory` -> [`MemoryQueue`] with configured `enqueue_batch_size`.
+/// * Backend `Db` -> if the database pool is initialized via `doido_model::pool::try_pool()`,
+///   constructs [`DbQueue`] via [`build_db_queue`]; otherwise falls back to [`MemoryQueue`].
+/// * Other backends (e.g. `Redis`, which requires an async connection) -> falls back to [`MemoryQueue`].
+pub fn default_sync_queue(config: &JobsConfig) -> Arc<dyn JobQueue> {
+    match config.backend {
+        Backend::Memory => Arc::new(
+            crate::drivers::memory::MemoryQueue::new()
+                .with_enqueue_batch_size(config.enqueue_batch_size),
+        ),
+        #[cfg(feature = "jobs-db")]
+        Backend::Db => {
+            if let Some(conn) = doido_model::pool::try_pool().cloned() {
+                build_db_queue(conn)
+            } else {
+                Arc::new(
+                    crate::drivers::memory::MemoryQueue::new()
+                        .with_enqueue_batch_size(config.enqueue_batch_size),
+                )
+            }
+        }
+        #[allow(unreachable_patterns)]
+        _ => Arc::new(
+            crate::drivers::memory::MemoryQueue::new()
+                .with_enqueue_batch_size(config.enqueue_batch_size),
+        ),
+    }
+}
+
 // ── Config-file loading (mirrors `doido-cache`'s `config`) ──────────────────
 
 /// Database backend settings (`jobs.db`).
@@ -183,14 +177,6 @@ pub struct DbSettings {
 /// Dashboard settings (`jobs.webui`).
 #[derive(Debug, Clone, Default, Deserialize)]
 pub struct WebUiSettings {
-    #[serde(default)]
-    pub enabled: bool,
-    #[serde(default)]
-    pub mount_path: Option<String>,
-    #[serde(default)]
-    pub username: Option<String>,
-    #[serde(default)]
-    pub password: Option<String>,
     #[serde(default)]
     pub stats_ttl_secs: Option<u64>,
 }
@@ -253,13 +239,6 @@ impl JobsSettings {
         let cron = self.cron.unwrap_or_default().into_config(env);
         let webui_raw = self.webui.unwrap_or_default();
         let webui = WebUiConfig {
-            enabled: webui_raw.enabled,
-            mount_path: webui_raw
-                .mount_path
-                .filter(|p| !p.is_empty())
-                .unwrap_or_else(|| d.webui.mount_path.clone()),
-            username: webui_raw.username.filter(|u| !u.is_empty()),
-            password: webui_raw.password.filter(|p| !p.is_empty()),
             stats_ttl_secs: webui_raw.stats_ttl_secs.filter(|&s| s > 0),
         };
         JobsConfig {
@@ -299,9 +278,9 @@ impl JobsFileConfig {
         Self::load_env(Environment::get_env())
     }
 
-    /// Loads `config/<env>.yml` for a specific environment.
+    /// Loads environment configuration for a specific environment.
     pub fn load_env(env: Environment) -> std::io::Result<Self> {
-        let path = format!("config/{}.yml", env.as_str());
+        let path = env.config_path();
         let contents = std::fs::read_to_string(&path)?;
         Self::from_yaml(&contents)
     }
@@ -469,12 +448,9 @@ mod tests {
 
     #[test]
     fn parses_jobs_webui_section() {
-        let yaml = "jobs:\n  webui:\n    enabled: true\n    mount_path: /jobs\n    username: admin\n    password: secret\n";
+        let yaml = "jobs:\n  webui:\n    stats_ttl_secs: 30\n";
         let cfg = JobsFileConfig::from_yaml(yaml).unwrap().jobs.into_config();
-        assert!(cfg.webui.enabled);
-        assert_eq!(cfg.webui.mount_path, "/jobs");
-        assert_eq!(cfg.webui.username.as_deref(), Some("admin"));
-        assert!(cfg.webui.safe_to_mount(Environment::Production));
+        assert_eq!(cfg.webui.stats_ttl_secs, Some(30));
     }
 
     #[tokio::test]

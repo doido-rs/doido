@@ -25,6 +25,9 @@ mod generators;
 #[path = "../config/routes.rs"]
 mod routes;
 
+#[path = "../config/initializers/mod.rs"]
+mod initializers;
+
 mod startup;
 
 #[tokio::main]
@@ -46,6 +49,7 @@ async fn main() {
     // `cargo doido generate <name>` can dispatch it alongside the built-ins.
     doido::Doido::new()
         .router(routes::router())
+        .initializers(initializers::registry())
         .migrator::<migration::Migrator>()
         .seeder(seed::run)
         // @generated-generators

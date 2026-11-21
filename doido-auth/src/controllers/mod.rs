@@ -5,20 +5,28 @@
 //! apps from `auth:install` emit project-local controllers under
 //! `app/controllers/auth/` that mirror these defaults and can be extended.
 
-pub mod confirmations;
-pub mod oauth;
-pub mod passwords;
-pub mod registrations;
-pub mod sessions;
+pub mod confirmations_controller;
+pub mod extractors;
+pub mod layer;
+pub mod messages;
+pub mod oauth_controller;
+pub mod passwords_controller;
+pub mod registrations_controller;
+pub mod sessions_controller;
+pub mod state;
 
 #[cfg(feature = "auth-2fa")]
-pub mod two_factor;
+pub mod two_factor_controller;
 
-pub use confirmations::AuthConfirmations;
-pub use oauth::AuthOauth;
-pub use passwords::AuthPasswords;
-pub use registrations::AuthRegistrations;
-pub use sessions::AuthSessions;
+pub use confirmations_controller::AuthConfirmations;
+pub use extractors::{AuthToken, CurrentUser, MaybeUser, RequireAuth};
+pub use layer::{auth_layer, current_identity, current_user};
+pub use messages::{json_error, t};
+pub use oauth_controller::AuthOauth;
+pub use passwords_controller::AuthPasswords;
+pub use registrations_controller::AuthRegistrations;
+pub use sessions_controller::AuthSessions;
+pub use state::{global, init, reset_state, set_state, try_global, AuthState};
 
 #[cfg(feature = "auth-2fa")]
-pub use two_factor::AuthTwoFactor;
+pub use two_factor_controller::AuthTwoFactor;

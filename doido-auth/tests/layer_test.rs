@@ -1,7 +1,7 @@
 //! Auth layer middleware tests.
 
 use doido_auth::layer::{auth_layer, current_identity, current_user};
-use doido_auth::session::{encode_session_cookie, sign_in_session, SESSION_COOKIE};
+use doido_auth::strategy::session::{encode_session_cookie, sign_in_session, SESSION_COOKIE};
 use doido_auth::testing::{
     create_test_user, init_test_auth, send, send_with_headers, test_auth_config, TestUser,
 };
@@ -96,7 +96,7 @@ async fn current_user_loads_from_identity() {
         .0;
     parts
         .extensions
-        .insert(doido_auth::identity::AuthIdentity::new(user.id));
+        .insert(doido_auth::AuthIdentity::new(user.id));
 
     let loaded: TestUser = current_user(&parts).await.unwrap();
     assert_eq!(loaded.email, "load@example.com");

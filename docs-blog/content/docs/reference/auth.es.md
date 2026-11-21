@@ -1,6 +1,6 @@
 +++
 title = "Auth"
-description = "Autenticación unificada — trait AuthUser, estrategias cookie/JWT/OAuth, extractors, 2FA y generadores de auth."
+description = "Autenticación unificada — UserModel + UserStore, estrategias, pipeline de middleware, extractors, 2FA y generadores."
 weight = 13
 +++
 
@@ -8,7 +8,7 @@ weight = 13
 > Esta guía documenta la API tal como está implementada en `doido-auth`.
 
 **Análogo en Rails: Devise + OmniAuth + JWT.** `doido-auth` ofrece la trait
-genérica `AuthUser` ligada a tu modelo SeaORM, **estrategias** enchufables (sesión
+genérica `UserModel` + `UserStore` ligada a tu modelo SeaORM, **estrategias** enchufables (sesión
 por cookie, JWT bearer, OAuth2), **2FA** opcional (TOTP), **extractors** axum y
 **generadores** que generan controladores de sesión, registro, contraseña y OAuth.
 El hash de contraseña reutiliza `doido_model::password::HasSecurePassword`.
@@ -41,8 +41,9 @@ rutas a los grupos seleccionados. Disponibles: `database_authenticatable`, `regi
 
 ```rust
 use doido::auth::{
-    init, auth_layer, AuthUser, CurrentUser, MaybeUser, RequireAuth, AuthToken,
-    mount, JwtStrategy, register_strategy,
+    init, auth_layer, UserModel, UserStore, FetchPlan,
+    CurrentUser, MaybeUser, RequireAuth, AuthToken,
+    mount, JwtStrategy, register_strategy, register_middleware,
 };
 ```
 
@@ -84,45 +85,13 @@ Los controllers built-in de auth traducen errores visibles al usuario vía
 `auth.email_taken`, …). Define el locale del proceso con `DOIDO_LOCALE=pt_BR` o usa
 `AuthError::localized(None)` en código personalizado.
 
-## La trait `AuthUser`
+## La trait `UserModel`
 
-Tu modelo User SeaORM implementa `AuthUser` — el contrato genérico del sujeto
-autenticado:
-
-```rust
-use doido::auth::AuthUser;
-use doido::model::sea_orm::prelude::*;
-
-#[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
-#[sea_orm(table_name = "users")]
-pub struct Model {
-    #[sea_orm(primary_key)]
-    pub id: i64,
-    pub email: String,
-    #[sea_orm(column_name = "password_digest")]
-    pub password_digest: String,
-    pub two_factor_secret: Option<String>,
-    pub two_factor_enabled: bool,
-}
-
-impl AuthUser for Model {
-    type Id = i64;
-
-    fn id(&self) -> Self::Id { self.id }
-    fn email(&self) -> &str { &self.email }
-    fn password_digest(&self) -> Option<&str> { Some(&self.password_digest) }
-
-    async fn find_by_email(db: &DatabaseConnection, email: &str) -> doido::Result<Option<Self>> {
-        Entity::find().filter(Column::Email.eq(email)).one(db).await
-    }
-
-    async fn find_by_id(db: &DatabaseConnection, id: Self::Id) -> doido::Result<Option<Self>> {
-        Entity::find_by_id(id).one(db).await
-    }
-}
-```
-
-Combínalo con `HasSecurePassword` para verificar credenciales. La v1 requiere impl
+Tu modelo User SeaORM implementa `UserModel` y carga filas vía `UserStore` +
+`FetchPlan` (`auth:install` genera un `app/models/user.rs` inicial). Usa
+`find_by_email_mapped` / `find_by_id_mapped` y mapea `UserRow` en `from_row`.
+Combínalo con `HasSecurePassword` y `RegisterableUserModel`. El módulo legado
+`doido_auth::user` reexporta los mismos tipos. La v1 requiere impl
 manual; un derive `#[auth_user]` está planificado para una release futura.
 
 ## Configuración
@@ -341,30 +310,13 @@ dispatch devuelve error apuntando a `doido new --auth` o `cargo add`.
 
 ## Estrategias personalizadas
 
-Backends de terceros (LDAP, SAML, magic link) implementan `AuthStrategy`:
+Registra `AuthStrategy` **antes** de `init` e incluye el nombre en `auth.strategies`.
+Ejemplo completo con cabecera `X-Api-Key`: [`docs/16-auth.md`](https://github.com/doido-rs/doido/blob/master/docs/16-auth.md) (*Custom strategies*).
 
-```rust
-use doido::auth::{AuthStrategy, AuthIdentity, register_strategy};
-use async_trait::async_trait;
-use std::sync::Arc;
+## Middleware personalizado
 
-struct LdapStrategy { /* … */ }
-
-#[async_trait]
-impl AuthStrategy for LdapStrategy {
-    fn name(&self) -> &str { "ldap" }
-
-    async fn authenticate(&self, parts: &http::request::Parts, db: &DatabaseConnection)
-        -> Result<Option<AuthIdentity>, doido::auth::AuthError>
-    {
-        Ok(None)
-    }
-}
-
-register_strategy("ldap", Arc::new(LdapStrategy { /* … */ }));
-```
-
-Activa en config: `strategies: [cookie, ldap]`.
+Registra `AuthMiddleware` con `register_middleware` antes de `init`. Ver
+[`docs/16-auth.md`](https://github.com/doido-rs/doido/blob/master/docs/16-auth.md) (*Custom middleware*).
 
 ## Pruebas
 

@@ -25,7 +25,7 @@ crate; the operational runbook and the copy-paste commands live in the repositor
   released state of the newest major is mirrored to `master`; older majors live on
   `<major>-stable` branches (post-1.0). This gives a **last-3-majors** support window.
 - **Releases are branches that become tags.** Publishing happens only from
-  `release/X.Y.Z`; after crates.io + binaries + the GitHub Release, the branch is
+  `release/X.Y.Z`; after crates.io publish + the GitHub Release, the branch is
   deleted and the immutable `vX.Y.Z` tag is the record.
 - **The tree never lies.** The version bump and changelog stamp are *committed on the
   release branch* (`scripts/release-prep.sh`) so the sources match the published tag —

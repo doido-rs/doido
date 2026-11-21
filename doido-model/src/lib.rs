@@ -17,6 +17,7 @@ pub mod databases;
 pub mod entities;
 pub mod enums;
 pub mod factory;
+pub mod initializers;
 pub mod migrate;
 pub mod migration;
 pub mod normalization;
@@ -35,6 +36,9 @@ pub mod validation;
 
 pub use config::{Config, DatabaseConfig, LoggerConfig, YamlConfig};
 pub use create::create_database;
+pub use initializers::{
+    default_initializer, detect_execution_context, init_for_context, ExecutionContext,
+};
 pub use pool::{connect, connect_with_url};
 
 #[cfg(feature = "cli")]

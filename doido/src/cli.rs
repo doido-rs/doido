@@ -117,6 +117,7 @@ pub async fn run(routes: Option<axum::Router>) {
         None,
         crate::boot::BootOptions::new(),
         None,
+        None,
     )
     .await;
 }
@@ -147,6 +148,7 @@ pub struct Doido {
     seeder: Option<SeederFn>,
     boot: crate::boot::BootOptions,
     before_run: Option<BeforeRunHook>,
+    initializers: Option<doido_core::initializers::Initializers>,
 }
 
 impl Doido {
@@ -159,7 +161,14 @@ impl Doido {
             seeder: None,
             boot: crate::boot::BootOptions::new(),
             before_run: None,
+            initializers: None,
         }
+    }
+
+    /// Register boot-time initializers to run before CLI subcommands.
+    pub fn initializers(mut self, inits: doido_core::initializers::Initializers) -> Self {
+        self.initializers = Some(inits);
+        self
     }
 
     /// App hook run once after the logger is installed and before the CLI subcommand
@@ -243,6 +252,7 @@ impl Doido {
             self.seeder,
             self.boot,
             self.before_run,
+            self.initializers,
         )
         .await;
     }
@@ -261,6 +271,7 @@ async fn run_inner(
     seeder: Option<SeederFn>,
     boot: crate::boot::BootOptions,
     before_run: Option<BeforeRunHook>,
+    initializers: Option<doido_core::initializers::Initializers>,
 ) {
     let mode = std::env::args()
         .skip(1)
@@ -282,6 +293,17 @@ async fn run_inner(
         hook();
     }
     let cli = Cli::parse();
+    let inits = initializers.unwrap_or_else(|| {
+        if routes.is_none() && !matches!(cli.command, Commands::Console) {
+            doido_core::initializers::Initializers::new()
+        } else {
+            doido_core::initializers::Initializers::with_defaults()
+        }
+    });
+    if let Err(e) = inits.run_all() {
+        doido_core::tracing::error!("initializers failed: {e}");
+        std::process::exit(1);
+    }
     match cli.command {
         Commands::Server { port, env } => {
             crate::boot::install_runtime_globals(&boot).await;
@@ -294,7 +316,10 @@ async fn run_inner(
                 doido_core::tracing::warn!("no routes configured");
             }
         }
-        Commands::Console => doido_controller::commands::console::run(),
+        Commands::Console => {
+            crate::boot::install_runtime_globals(&boot).await;
+            doido_controller::commands::console::run()
+        }
         Commands::Worker { once } => {
             crate::boot::install_runtime_globals(&boot).await;
             doido_jobs::commands::worker::run(once).await;

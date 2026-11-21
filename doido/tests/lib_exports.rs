@@ -30,3 +30,27 @@ fn mailer_deliverer_is_exported() {
     fn _accepts_deliverer<D: doido::Deliverer>() {}
     let _: doido::LogDeliverer = doido::LogDeliverer;
 }
+
+#[test]
+fn initializers_is_exported() {
+    let mut inits = doido::Initializers::new();
+    inits.register("check", || Ok(()));
+    assert_eq!(inits.names(), vec!["check"]);
+
+    let defaults = doido::Initializers::with_defaults();
+    assert_eq!(
+        defaults.names(),
+        vec!["core", "db", "cache", "view", "storage", "auth", "jobs", "mailer"]
+    );
+
+    let _ = doido::ExecutionContext::Server;
+    let _ = doido::detect_execution_context();
+    let _ = doido::cli_context();
+    let _ = doido::is_test_runner();
+    let _ = doido::cache::default_initializer;
+    let _ = doido::view::default_initializer;
+    let _ = doido::storage::default_initializer;
+    let _ = doido::auth::default_initializer;
+    let _ = doido::jobs::default_initializer;
+    let _ = doido::mailer::default_initializer;
+}

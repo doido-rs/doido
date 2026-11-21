@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 doido-core.workspace = true
 doido-model = { workspace = true, default-features = false }
+inventory = { workspace = true }
 axum.workspace = true
 thiserror.workspace = true
 async-trait.workspace = true

@@ -137,7 +137,7 @@ doido::core::logger::init_with_config(&cfg);
 ```
 
 ```yaml
-# config/development.yml
+# config/environments/development.yml
 logger:
   level: debug          # trace | debug | info | warn | error
   format: verbose       # compact (por defecto) | verbose | json_response

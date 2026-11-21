@@ -3,7 +3,7 @@
 Rails analogue: **Rails.application.config + credentials**
 
 > **Implementation status — reconciled.** The framework ships **per-env YAML**
-> (`config/<env>.yml`) loaded by `YamlConfig` (folded into `doido-controller` +
+> (`config/environments/<env>.yml`) loaded by `YamlConfig` (folded into `doido-controller` +
 > `doido-model`), **Tera-rendered `get_env` env-var references** inside those YAML
 > files (`doido_core::config::render`), an initializers boot registry, and
 > **AES-256-GCM encrypted credentials** (`config/credentials.yml.enc` +
@@ -12,10 +12,10 @@ Rails analogue: **Rails.application.config + credentials**
 
 ## Decisions (resolved)
 
-- **File format: per-env YAML** (`config/<env>.yml`). A base-then-env layered format
+- **File format: per-env YAML** (`config/environments/<env>.yml`). A base-then-env layered format
   (e.g. TOML) was considered and dropped (decision US-085) — per-env YAML is the path.
 - **Env vars enter typed config only via `get_env` in YAML** — every
-  `config/<env>.yml` is Tera-rendered before parse (`doido_core::config::render`).
+  `config/environments/<env>.yml` is Tera-rendered before parse (`doido_core::config::render`).
   Use `{{ get_env(name="VAR", default="…") }}` for secrets and deploy overrides.
 - **Secrets: encrypted credentials file** (`credentials.yml.enc`); bootstrap keys
   (`DOIDO_ENV`, `DOIDO_MASTER_KEY`) and `RUST_LOG` are read outside YAML.
@@ -25,18 +25,18 @@ Rails analogue: **Rails.application.config + credentials**
 ## Environment selection
 
 `DOIDO_ENV` selects the environment (default: `development`). It picks the config file
-`config/<env>.yml` and the app's runtime mode. (This is `Environment::get_env()` in
+`config/environments/<env>.yml` and the app's runtime mode. (This is `Environment::get_env()` in
 `doido-core` — the environment *mode* selector — not the YAML `get_env` function below.)
 
 ## Load order (lowest → highest priority)
 
 ```
-1. config/<env>.yml            ← per-environment config; env-var values are pulled in
+1. config/environments/<env>.yml ← per-environment config; env-var values are pulled in
                                   here via `{{ get_env(name="…") }}` (Tera-rendered)
 2. config/credentials.yml.enc  ← encrypted secrets (decrypted at boot)
 ```
 
-Configuration is centralized in `config/<env>.yml`. Environment variables referenced
+Configuration is centralized in `config/environments/<env>.yml`. Environment variables referenced
 with `get_env` are substituted at load time; there is no separate post-parse env
 override layer for YAML keys.
 
@@ -47,14 +47,15 @@ key, not a config value.
 
 ```
 config/
-  development.yml            # dev config
-  test.yml                  # test config
-  production.yml            # prod config
-  credentials.yml.enc       # encrypted secrets (committed to git)
-  master.key                # decryption key (NOT committed, in .gitignore)
+  environments/
+    development.yml          # dev config
+    test.yml                 # test config
+    production.yml           # prod config
+  credentials.yml.enc        # encrypted secrets (committed to git)
+  master.key                 # decryption key (NOT committed, in .gitignore)
 ```
 
-## Example `config/development.yml`
+## Example `config/environments/development.yml`
 
 ```yaml
 server:
@@ -76,7 +77,7 @@ middleware:
     allowed_methods: []
 ```
 
-## Example `config/production.yml`
+## Example `config/environments/production.yml`
 
 ```yaml
 server:
@@ -152,7 +153,7 @@ database:
 - A referenced variable that is **unset with no `default`** fails the config load with
   an error naming the variable.
 
-CLI: `doido config render --env production [-o config/production.yml]`.
+CLI: `doido config render --env production [-o config/environments/production.yml]`.
 
 Arguments are named (Tera functions take keyword arguments); positional
 `get_env("VAR")` is not valid. Rendering runs with autoescaping off, so values such as
@@ -182,7 +183,18 @@ pub struct MiddlewareConfig { pub cors: CorsConfig /* … */ }
 
 An initializers registry (`doido_controller::initializers`) runs named boot hooks in
 order after config load — the place to validate credentials, set up third-party clients,
-etc. The first error aborts boot.
+and dynamically configure runtime settings. The first error aborts boot.
+
+Applications generated with `doido new` include `config/initializers/mod.rs` wired to
+the application entry via `mod initializers;` and `Doido::new().initializers(initializers::registry())`.
+Individual initializers can be scaffolded with:
+
+```bash
+doido generate initializer <name>
+```
+
+This generates `config/initializers/<name>.rs`, registers `pub mod <name>;` and
+`inits.register("<name>", <name>::init)` in `config/initializers/mod.rs`, and provides a unit test.
 
 ## Known requirements
 

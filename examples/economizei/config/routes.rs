@@ -16,21 +16,33 @@ pub fn router() -> Router {
         get!("/members", MeController::company_users);
         patch!("/memberships/{id}/salary", MeController::update_salary);
 
-        resources!(bank_accounts, BankAccountsController, collection: [export]);
-        resources!(
+        resource!(bank_accounts, BankAccountsController, {
+            get!(collection: "export", BankAccountsController::export);
+        });
+        resource!(
             bank_statement_imports,
             BankStatementImportsController,
             except: [edit, update, destroy],
-            collection: [export]
+            {
+                get!(collection: "export", BankStatementImportsController::export);
+            }
         );
-        resources!(categories, CategoriesController, collection: [export]);
-        resources!(counterparties, CounterpartiesController, collection: [export]);
-        resources!(transactions, TransactionsController, collection: [export]);
-        resources!(
+        resource!(categories, CategoriesController, {
+            get!(collection: "export", CategoriesController::export);
+        });
+        resource!(counterparties, CounterpartiesController, {
+            get!(collection: "export", CounterpartiesController::export);
+        });
+        resource!(transactions, TransactionsController, {
+            get!(collection: "export", TransactionsController::export);
+        });
+        resource!(
             banks,
             BanksController,
             except: [new, edit, create, update, destroy],
-            collection: [export]
+            {
+                get!(collection: "export", BanksController::export);
+            }
         );
 
         get!("/reports", ReportsController::index);

@@ -79,6 +79,7 @@ están documentados en [La DSL de campos](#la-dsl-de-campos).
 | `migration` | una migración independiente |
 | `controller` | un `#[controller]` con stubs de action (+ ruta) |
 | `helper` | un helper de controlador en `app/helpers/` |
+| `initializer` | un initializer de la aplicación en `config/initializers/` + prueba |
 | `scaffold` | modelo + migración + controlador + vistas + ruta |
 | `resource` | modelo + migración + controlador + ruta (sin vistas) |
 | `mailer` | un mailer + plantillas |
@@ -120,6 +121,14 @@ Un módulo de helper de controlador en `app/helpers/`.
 
 ```bash
 cargo doido generate helper Posts
+```
+
+### initializer
+
+Un módulo initializer de la aplicación en `config/initializers/`, auto-registrado en `config/initializers/mod.rs`.
+
+```bash
+cargo doido generate initializer cors
 ```
 
 ### scaffold
@@ -259,7 +268,7 @@ cargo doido generate model Post \
 ## Inyección automática de rutas
 
 Los generadores que producen un controlador (`scaffold`, `resource`, `controller`) parsean
-`config/routes.rs`, insertan la ruta correspondiente (p. ej. `resources!(posts,
+`config/routes.rs`, insertan la ruta correspondiente (p. ej. `resource!(posts,
 PostsController);`) dentro del bloque `routes! { … }` y omiten los controladores ya
 registrados — de modo que un resource generado queda accesible sin editar las rutas a mano.
 

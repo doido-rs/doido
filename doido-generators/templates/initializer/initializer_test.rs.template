@@ -1,0 +1,8 @@
+//! Unit test for initializer `{snake}`.
+#[path = "../config/initializers/{snake}.rs"]
+mod {snake};
+
+#[test]
+fn test_{snake}_initializer() {
+    assert!({snake}::init().is_ok());
+}

@@ -62,7 +62,7 @@ async fn requests_then_resets_password() {
         .await
         .unwrap();
 
-    let token = recoverable::request_reset(db.conn(), "a@b.com")
+    let token = recoverable::request_reset(doido_auth::testing::auth_store().as_ref(), "a@b.com")
         .await
         .unwrap()
         .expect("token for known email");
@@ -71,9 +71,13 @@ async fn requests_then_resets_password() {
         Some(token.as_str())
     );
 
-    let ok = recoverable::reset_password(db.conn(), &token, "brand-new-pass")
-        .await
-        .unwrap();
+    let ok = recoverable::reset_password(
+        doido_auth::testing::auth_store().as_ref(),
+        &token,
+        "brand-new-pass",
+    )
+    .await
+    .unwrap();
     assert!(ok);
     // Digest changed and the token was consumed.
     assert_ne!(
@@ -91,10 +95,12 @@ async fn unknown_email_returns_no_token() {
         .await
         .unwrap();
 
-    assert!(recoverable::request_reset(db.conn(), "nobody@x.com")
-        .await
-        .unwrap()
-        .is_none());
+    assert!(
+        recoverable::request_reset(doido_auth::testing::auth_store().as_ref(), "nobody@x.com")
+            .await
+            .unwrap()
+            .is_none()
+    );
 }
 
 #[tokio::test]
@@ -107,17 +113,21 @@ async fn rejects_expired_or_unknown_token() {
         .unwrap();
 
     // Expired (older than reset_password_within default).
-    assert!(
-        !recoverable::reset_password(db.conn(), "expired-token", "x")
-            .await
-            .unwrap()
-    );
+    assert!(!recoverable::reset_password(
+        doido_auth::testing::auth_store().as_ref(),
+        "expired-token",
+        "x"
+    )
+    .await
+    .unwrap());
     // Unknown token.
-    assert!(
-        !recoverable::reset_password(db.conn(), "does-not-exist", "x")
-            .await
-            .unwrap()
-    );
+    assert!(!recoverable::reset_password(
+        doido_auth::testing::auth_store().as_ref(),
+        "does-not-exist",
+        "x"
+    )
+    .await
+    .unwrap());
 }
 
 #[tokio::test]
@@ -159,11 +169,17 @@ async fn noop_when_module_disabled() {
     };
     let _guard = init_test_auth(db.conn().clone(), cfg).await.unwrap();
 
-    assert!(recoverable::request_reset(db.conn(), "a@b.com")
-        .await
-        .unwrap()
-        .is_none());
-    assert!(!recoverable::reset_password(db.conn(), "whatever", "x")
-        .await
-        .unwrap());
+    assert!(
+        recoverable::request_reset(doido_auth::testing::auth_store().as_ref(), "a@b.com")
+            .await
+            .unwrap()
+            .is_none()
+    );
+    assert!(!recoverable::reset_password(
+        doido_auth::testing::auth_store().as_ref(),
+        "whatever",
+        "x"
+    )
+    .await
+    .unwrap());
 }

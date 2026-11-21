@@ -78,6 +78,7 @@ em [A DSL de campos](#a-dsl-de-campos).
 | `migration` | uma migration isolada |
 | `controller` | um `#[controller]` com stubs de action (+ rota) |
 | `helper` | um helper de controller em `app/helpers/` |
+| `initializer` | um initializer da aplicação em `config/initializers/` + teste |
 | `scaffold` | model + migration + controller + views + rota |
 | `resource` | model + migration + controller + rota (sem views) |
 | `mailer` | um mailer + templates |
@@ -119,6 +120,14 @@ Um módulo de helper de controller em `app/helpers/`.
 
 ```bash
 cargo doido generate helper Posts
+```
+
+### initializer
+
+Um módulo initializer da aplicação em `config/initializers/`, auto-registrado em `config/initializers/mod.rs`.
+
+```bash
+cargo doido generate initializer cors
 ```
 
 ### scaffold
@@ -258,7 +267,7 @@ cargo doido generate model Post \
 ## Injeção automática de rotas
 
 Geradores que produzem um controller (`scaffold`, `resource`, `controller`) fazem o parse
-de `config/routes.rs`, inserem a rota correspondente (ex.: `resources!(posts,
+de `config/routes.rs`, inserem a rota correspondente (ex.: `resource!(posts,
 PostsController);`) dentro do bloco `routes! { … }` e pulam controllers já registrados — de
 modo que um resource gerado fica acessível sem editar as rotas manualmente.
 

@@ -26,7 +26,7 @@ R2), `AzureBlobService` (`storage-azure`) e `GcsService` (`storage-gcs`) cobrem 
 Escolha o driver ativo na config `storage`; registre os customizados com `register_adapter`.
 
 ```yaml
-# config/production.yml
+# config/environments/production.yml
 storage:
   driver: amazon
   prefix: /files          # opcional, padrão /doido/storage

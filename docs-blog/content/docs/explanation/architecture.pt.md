@@ -18,7 +18,7 @@ layout convencional de aplicação.
 | `doido-core` | Active Support | Erros, inflector, utilitários |
 | `doido-config` | — | YAML por ambiente, credenciais criptografadas |
 | `doido-controller` | Action Dispatch + Controller | Rotas, controllers, helpers de controller, middleware |
-| `doido-auth` | Devise + OmniAuth + JWT | Trait AuthUser, estratégias, extractors, geradores |
+| `doido-auth` | Devise + OmniAuth + JWT | UserModel, UserStore, middleware, estratégias, extractors, geradores |
 | `doido-model` | Active Record | Re-exports sea-orm, pool, helpers de teste |
 | `doido-view` | Action View | Templates Tera, layouts, helpers |
 | `doido-generators` | Generators + CLI | Scaffolds, `cargo doido server`, `cargo doido db` |

@@ -29,3 +29,13 @@ fn a_failing_initializer_stops_the_sequence() {
     inits.register("never", || panic!("should not run"));
     assert!(inits.run_all().is_err());
 }
+
+#[test]
+fn initializers_with_defaults_registers_core_and_db_and_runs() {
+    let inits = Initializers::with_defaults();
+    assert_eq!(
+        inits.names(),
+        vec!["core", "db", "cache", "view", "storage"]
+    );
+    assert!(inits.run_all().is_ok());
+}

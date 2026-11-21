@@ -1,0 +1,97 @@
+//! Redis-backed user model when `auth.user_store.type: redis`.
+#![allow(dead_code)]
+
+use doido_auth::user_model::{FetchPlan, UserRow, UserStore};
+use doido_auth::{RegisterableUserModel, UserModel};
+
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct Model {
+    pub id: i64,
+    pub email: String,
+    pub password_digest: String,
+}
+
+impl doido_model::password::HasSecurePassword for Model {
+    fn password_digest(&self) -> &str {
+        &self.password_digest
+    }
+}
+
+impl UserModel for Model {
+    type Id = i64;
+
+    fn from_row(row: UserRow) -> Result<Self, doido_auth::AuthError> {
+        Ok(Self {
+            id: row.id.and_then(|v| v.as_i64()).unwrap_or_default(),
+            email: row.email.unwrap_or_default(),
+            password_digest: row.password_digest.unwrap_or_default(),
+        })
+    }
+
+    fn id(&self) -> Self::Id {
+        self.id
+    }
+
+    fn email(&self) -> &str {
+        &self.email
+    }
+
+    fn password_digest(&self) -> Option<&str> {
+        Some(&self.password_digest)
+    }
+
+    async fn find_by_email(
+        store: &dyn UserStore,
+        email: &str,
+        plan: &FetchPlan,
+    ) -> doido::Result<Option<Self>> {
+        doido_auth::user_model::find_by_email_mapped::<Self>(store, email, plan)
+            .await
+            .map_err(Into::into)
+    }
+
+    async fn find_by_id(
+        store: &dyn UserStore,
+        id: Self::Id,
+        plan: &FetchPlan,
+    ) -> doido::Result<Option<Self>> {
+        doido_auth::user_model::find_by_id_mapped::<Self>(store, id, plan)
+            .await
+            .map_err(Into::into)
+    }
+
+    async fn insert(_store: &dyn UserStore, row: UserRow) -> doido::Result<Self> {
+        Self::from_row(row).map_err(Into::into)
+    }
+}
+
+impl RegisterableUserModel for Model {
+    async fn register(
+        store: &dyn UserStore,
+        email: String,
+        password_digest: String,
+    ) -> doido::Result<Self> {
+        #[cfg(feature = "auth-redis")]
+        {
+            let redis = store.redis().ok_or_else(|| {
+                doido_core::anyhow::anyhow!("expected Redis user store")
+            })?;
+            let id = chrono::Utc::now().timestamp();
+            redis.insert_user(id, &email, &password_digest).await.map_err(|e| {
+                doido_core::anyhow::anyhow!(e.to_string())
+            })?;
+            Ok(Self {
+                id,
+                email,
+                password_digest,
+            })
+        }
+        #[cfg(not(feature = "auth-redis"))]
+        {
+            let _ = (store, email, password_digest);
+            Err(doido_core::anyhow::anyhow!(
+                "enable doido-auth feature `auth-redis` for Redis user store"
+            ))
+        }
+    }
+}

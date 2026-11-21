@@ -1,10 +1,10 @@
 //! Custom strategy registry tests.
 
 use async_trait::async_trait;
-use doido_auth::identity::AuthIdentity;
-use doido_auth::registry::{has_strategy, register_strategy, registered_strategies};
+use doido_auth::strategy::registry::{has_strategy, register_strategy, registered_strategies};
 use doido_auth::strategy::AuthStrategy;
 use doido_auth::testing::{init_test_auth, test_auth_config};
+use doido_auth::AuthIdentity;
 use doido_core::Result;
 use doido_model::sea_orm::DatabaseConnection;
 use doido_model::testing::TestDb;

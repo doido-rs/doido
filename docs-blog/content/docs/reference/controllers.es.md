@@ -34,18 +34,21 @@ pub fn router() -> axum::Router {
         get!("/about", PagesController::about);
         post!("/login", SessionsController::create);
 
-        resources!(posts, PostsController);        // las 7 rutas REST
-        resources!(comments, CommentsController, only: [index, show]);
-        resources!(admin, AdminController, except: [destroy]);
-        resources!(posts, PostsController, member: [publish], collection: [search]);
+        resource!(posts, PostsController);        // las 7 rutas REST
+        resource!(comments, CommentsController, only: [index, show]);
+        resource!(admin, AdminController, except: [destroy]);
+        resource!(posts, PostsController, {
+            get!(collection: "search", PostsController::search);
+            get!(member: "publish", PostsController::publish);
+        });
 
-        resource!(profile, ProfileController);     // singular (sin :id)
+        resource!(profile, ProfileController, singular: true);
 
         namespace!(api, {                          // prefijo de path Y de módulo
-            resources!(users, Api::UsersController);
+            resource!(users, Api::UsersController);
         });
         scope!("/v2", {                            // solo prefijo de path
-            resources!(articles, V2::ArticlesController);
+            resource!(articles, V2::ArticlesController);
         });
 
         redirect!("/old", "/new");                 // redirección permanente
@@ -58,7 +61,7 @@ Macros de verbo soportadas: `get!`, `post!`, `put!`, `patch!`, `delete!`.
 
 ### Las 7 rutas REST
 
-`resources!(posts, PostsController)` genera las siete rutas RESTful, cada una con un helper
+`resource!(posts, PostsController)` genera las siete rutas RESTful, cada una con un helper
 de URL en tiempo de compilación:
 
 | Helper | Método | Path | Action |
@@ -71,8 +74,8 @@ de URL en tiempo de compilación:
 | `post_path(id)` | PATCH | `/posts/:id` | update |
 | `post_path(id)` | DELETE | `/posts/:id` | destroy |
 
-`only:` / `except:` restringen el conjunto generado; `member:` / `collection:` añaden rutas
-extra (las rutas de member reciben un `:id`, las de collection no).
+`only:` / `except:` restringen el conjunto generado. Dentro de un bloque `resource! { … }`,
+usa `get!(member: "acción", …)` (con `:id`) o `get!(collection: "acción", …)` (sin `:id`).
 
 ## Controladores
 

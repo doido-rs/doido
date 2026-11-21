@@ -1638,7 +1638,7 @@ dependencies = [
 
 [[package]]
 name = "doido"
-version = "0.0.32"
+version = "0.0.33-rc5"
 dependencies = [
  "assert_cmd",
  "clap",
@@ -1665,7 +1665,7 @@ dependencies = [
 
 [[package]]
 name = "doido-auth"
-version = "0.0.32"
+version = "0.0.33-rc5"
 dependencies = [
  "async-trait",
  "axum",
@@ -1679,7 +1679,9 @@ dependencies = [
  "doido-view",
  "http 1.5.0",
  "http-body-util",
+ "inventory",
  "jsonwebtoken",
+ "redis",
  "serde",
  "serde_json",
  "serde_norway",
@@ -1695,7 +1697,7 @@ dependencies = [
 
 [[package]]
 name = "doido-auth-macros"
-version = "0.0.32"
+version = "0.0.33-rc5"
 dependencies = [
  "doido-auth-route-dsl",
  "proc-macro2",
@@ -1705,7 +1707,7 @@ dependencies = [
 
 [[package]]
 name = "doido-auth-route-dsl"
-version = "0.0.32"
+version = "0.0.33-rc5"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1714,7 +1716,7 @@ dependencies = [
 
 [[package]]
 name = "doido-cable"
-version = "0.0.32"
+version = "0.0.33-rc5"
 dependencies = [
  "async-trait",
  "doido-cable-macros",
@@ -1732,7 +1734,7 @@ dependencies = [
 
 [[package]]
 name = "doido-cable-macros"
-version = "0.0.32"
+version = "0.0.33-rc5"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1741,11 +1743,12 @@ dependencies = [
 
 [[package]]
 name = "doido-cache"
-version = "0.0.32"
+version = "0.0.33-rc5"
 dependencies = [
  "async-trait",
  "doido-core",
  "flate2",
+ "inventory",
  "memcache",
  "redis",
  "serde",
@@ -1756,7 +1759,7 @@ dependencies = [
 
 [[package]]
 name = "doido-controller"
-version = "0.0.32"
+version = "0.0.33-rc5"
 dependencies = [
  "async-trait",
  "axum",
@@ -1786,7 +1789,7 @@ dependencies = [
 
 [[package]]
 name = "doido-controller-macros"
-version = "0.0.32"
+version = "0.0.33-rc5"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1795,13 +1798,15 @@ dependencies = [
 
 [[package]]
 name = "doido-core"
-version = "0.0.32"
+version = "0.0.33-rc5"
 dependencies = [
  "aes-gcm",
  "anyhow",
  "async-trait",
  "chrono",
  "clap",
+ "dotenvy",
+ "inventory",
  "regex",
  "serde",
  "serde_json",
@@ -1810,6 +1815,7 @@ dependencies = [
  "tempfile",
  "tera",
  "thiserror 2.0.20",
+ "tokio",
  "tracing",
  "tracing-error",
  "tracing-subscriber",
@@ -1818,12 +1824,11 @@ dependencies = [
 
 [[package]]
 name = "doido-generators"
-version = "0.0.32"
+version = "0.0.33-rc5"
 dependencies = [
  "assert_cmd",
  "chrono",
  "clap",
- "doido",
  "doido-auth",
  "doido-core",
  "doido-model",
@@ -1836,7 +1841,7 @@ dependencies = [
 
 [[package]]
 name = "doido-jobs"
-version = "0.0.32"
+version = "0.0.33-rc5"
 dependencies = [
  "async-trait",
  "axum",
@@ -1856,7 +1861,6 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_norway",
- "subtle",
  "tempfile",
  "tokio",
  "tower",
@@ -1865,7 +1869,7 @@ dependencies = [
 
 [[package]]
 name = "doido-jobs-macros"
-version = "0.0.32"
+version = "0.0.33-rc5"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1874,7 +1878,7 @@ dependencies = [
 
 [[package]]
 name = "doido-mailer"
-version = "0.0.32"
+version = "0.0.33-rc5"
 dependencies = [
  "async-trait",
  "base64 0.23.1",
@@ -1882,6 +1886,7 @@ dependencies = [
  "doido-jobs",
  "doido-mailer-macros",
  "doido-view",
+ "inventory",
  "rustls",
  "serde",
  "serde_json",
@@ -1894,7 +1899,7 @@ dependencies = [
 
 [[package]]
 name = "doido-mailer-macros"
-version = "0.0.32"
+version = "0.0.33-rc5"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1903,11 +1908,12 @@ dependencies = [
 
 [[package]]
 name = "doido-model"
-version = "0.0.32"
+version = "0.0.33-rc5"
 dependencies = [
  "bcrypt",
  "clap",
  "doido-core",
+ "inventory",
  "sea-orm",
  "sea-orm-cli",
  "sea-orm-migration",
@@ -1924,7 +1930,7 @@ dependencies = [
 
 [[package]]
 name = "doido-storage"
-version = "0.0.32"
+version = "0.0.33-rc5"
 dependencies = [
  "async-trait",
  "aws-sdk-s3",
@@ -1939,6 +1945,7 @@ dependencies = [
  "gcloud-storage",
  "hmac 0.13.0",
  "imagesize",
+ "inventory",
  "md-5",
  "serde",
  "serde_json",
@@ -1954,10 +1961,11 @@ dependencies = [
 
 [[package]]
 name = "doido-view"
-version = "0.0.32"
+version = "0.0.33-rc5"
 dependencies = [
  "doido-cache",
  "doido-core",
+ "inventory",
  "serde_json",
  "serde_norway",
  "tempfile",

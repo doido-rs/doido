@@ -1,5 +1,4 @@
-//! User model extensions — implements [`AuthUser`] for session and credential auth.
-//! Safe to edit; never overwritten by generators.
+//! User model extensions — implements [`UserModel`] for session and credential auth.
 #![allow(dead_code)]
 
 pub use super::_entities::users::*;
@@ -11,8 +10,8 @@ impl ActiveModelBehavior for ActiveModel {}
 
 use doido::model::sea_orm::Set;
 use doido::model::password::HasSecurePassword;
-use doido_auth::AuthUser;
-use doido_auth::RegisterableAuthUser;
+use doido_auth::user_model::{find_by_email_mapped, find_by_id_mapped, FetchPlan, UserRow};
+use doido_auth::{RegisterableUserModel, UserModel, UserStore};
 
 impl HasSecurePassword for Model {
     fn password_digest(&self) -> &str {
@@ -20,8 +19,17 @@ impl HasSecurePassword for Model {
     }
 }
 
-impl AuthUser for Model {
+impl UserModel for Model {
     type Id = i64;
+
+    fn from_row(row: UserRow) -> Result<Self, doido_auth::AuthError> {
+        Ok(Self {
+            id: row.id.and_then(|v| v.as_i64()).unwrap_or_default(),
+            email: row.email.unwrap_or_default(),
+            password_digest: row.password_digest.unwrap_or_default(),
+            ..Default::default()
+        })
+    }
 
     fn id(&self) -> Self::Id {
         self.id
@@ -35,28 +43,40 @@ impl AuthUser for Model {
         Some(&self.password_digest)
     }
 
-    async fn find_by_email(db: &DatabaseConnection, email: &str) -> doido::Result<Option<Self>> {
-        Entity::find()
-            .filter(Column::Email.eq(email))
-            .one(db)
+    async fn find_by_email(
+        store: &dyn UserStore,
+        email: &str,
+        plan: &FetchPlan,
+    ) -> doido::Result<Option<Self>> {
+        find_by_email_mapped::<Self>(store, email, plan)
             .await
             .map_err(Into::into)
     }
 
-    async fn find_by_id(db: &DatabaseConnection, id: Self::Id) -> doido::Result<Option<Self>> {
-        Entity::find_by_id(id)
-            .one(db)
+    async fn find_by_id(
+        store: &dyn UserStore,
+        id: Self::Id,
+        plan: &FetchPlan,
+    ) -> doido::Result<Option<Self>> {
+        find_by_id_mapped::<Self>(store, id, plan)
             .await
             .map_err(Into::into)
+    }
+
+    async fn insert(_store: &dyn UserStore, row: UserRow) -> doido::Result<Self> {
+        Self::from_row(row).map_err(Into::into)
     }
 }
 
-impl RegisterableAuthUser for Model {
+impl RegisterableUserModel for Model {
     async fn register(
-        db: &DatabaseConnection,
+        store: &dyn UserStore,
         email: String,
         password_digest: String,
     ) -> doido::Result<Self> {
+        let Some(db) = store.sea_orm() else {
+            return Err(doido_core::anyhow::anyhow!("user store has no SQL connection"));
+        };
         let now = chrono::Utc::now();
         let record = ActiveModel {
             email: Set(email),
@@ -70,7 +90,11 @@ impl RegisterableAuthUser for Model {
 }
 
 impl Model {
-    pub async fn find_by_email(db: &DatabaseConnection, email: &str) -> doido::Result<Option<Self>> {
-        <Self as AuthUser>::find_by_email(db, email).await
+    pub async fn find_by_email(
+        _db: &DatabaseConnection,
+        email: &str,
+    ) -> doido::Result<Option<Self>> {
+        let store = doido_auth::state::global().store.clone();
+        <Self as UserModel>::find_by_email(store.as_ref(), email, &FetchPlan::minimal()).await
     }
 }

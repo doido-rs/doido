@@ -69,7 +69,7 @@ global del proceso, leído con `pool::pool()` (hace panic si no está definido) 
 
 ```rust
 // En el arranque:
-let conn = doido::model::connect().await?;   // lee config/<env>.yml → [database]
+let conn = doido::model::connect().await?;   // lee config/environments/<env>.yml → [database]
 doido::model::pool::set_pool(conn).ok();
 
 // En cualquier lugar después:
@@ -77,7 +77,7 @@ let db = doido::model::pool::pool();          // &'static DatabaseConnection
 ```
 
 ```yaml
-# config/development.yml
+# config/environments/development.yml
 database:
   url: sqlite://db/development.db
   # max_connections: 10

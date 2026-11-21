@@ -48,7 +48,7 @@ fn rewire_local_controllers_points_at_app_auth_module() {
 #[test]
 fn inject_resources_adds_controller_use_and_route() {
     let out = inject_resources(SAMPLE_ROUTES, "articles", "ArticlesController", false);
-    assert!(out.contains("resources!(articles, ArticlesController);"));
+    assert!(out.contains("resource!(articles, ArticlesController);"));
     assert!(out.contains("use crate::controllers::ArticlesController;"));
 }
 

@@ -46,26 +46,26 @@ async fn locks_after_maximum_attempts_then_rejects() {
         .unwrap();
 
     // Not locked yet.
-    lockable::ensure_not_locked(db.conn(), "a@b.com")
+    lockable::ensure_not_locked(doido_auth::testing::auth_store().as_ref(), "a@b.com")
         .await
         .unwrap();
 
     for _ in 0..3 {
-        lockable::record_failure(db.conn(), "a@b.com")
+        lockable::record_failure(doido_auth::testing::auth_store().as_ref(), "a@b.com")
             .await
             .unwrap();
     }
 
-    let err = lockable::ensure_not_locked(db.conn(), "a@b.com")
+    let err = lockable::ensure_not_locked(doido_auth::testing::auth_store().as_ref(), "a@b.com")
         .await
         .unwrap_err();
     assert!(matches!(err, AuthError::AccountLocked));
 
     // A successful sign-in resets the counter and unlocks.
-    lockable::reset_attempts(db.conn(), "a@b.com")
+    lockable::reset_attempts(doido_auth::testing::auth_store().as_ref(), "a@b.com")
         .await
         .unwrap();
-    lockable::ensure_not_locked(db.conn(), "a@b.com")
+    lockable::ensure_not_locked(doido_auth::testing::auth_store().as_ref(), "a@b.com")
         .await
         .unwrap();
 }
@@ -81,7 +81,7 @@ async fn auto_unlocks_after_window() {
         .unwrap();
 
     // Window (60s) has elapsed — the attempt is allowed and the lock cleared.
-    lockable::ensure_not_locked(db.conn(), "a@b.com")
+    lockable::ensure_not_locked(doido_auth::testing::auth_store().as_ref(), "a@b.com")
         .await
         .unwrap();
 
@@ -112,11 +112,11 @@ async fn noop_when_module_disabled() {
 
     // No columns touched, no lock enforced.
     for _ in 0..50 {
-        lockable::record_failure(db.conn(), "a@b.com")
+        lockable::record_failure(doido_auth::testing::auth_store().as_ref(), "a@b.com")
             .await
             .unwrap();
     }
-    lockable::ensure_not_locked(db.conn(), "a@b.com")
+    lockable::ensure_not_locked(doido_auth::testing::auth_store().as_ref(), "a@b.com")
         .await
         .unwrap();
 }

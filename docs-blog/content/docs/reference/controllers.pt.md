@@ -34,18 +34,21 @@ pub fn router() -> axum::Router {
         get!("/about", PagesController::about);
         post!("/login", SessionsController::create);
 
-        resources!(posts, PostsController);        // todas as 7 rotas REST
-        resources!(comments, CommentsController, only: [index, show]);
-        resources!(admin, AdminController, except: [destroy]);
-        resources!(posts, PostsController, member: [publish], collection: [search]);
+        resource!(posts, PostsController);        // todas as 7 rotas REST
+        resource!(comments, CommentsController, only: [index, show]);
+        resource!(admin, AdminController, except: [destroy]);
+        resource!(posts, PostsController, {
+            get!(collection: "search", PostsController::search);
+            get!(member: "publish", PostsController::publish);
+        });
 
-        resource!(profile, ProfileController);     // singular (sem :id)
+        resource!(profile, ProfileController, singular: true);
 
         namespace!(api, {                          // prefixo de path E de módulo
-            resources!(users, Api::UsersController);
+            resource!(users, Api::UsersController);
         });
         scope!("/v2", {                            // apenas prefixo de path
-            resources!(articles, V2::ArticlesController);
+            resource!(articles, V2::ArticlesController);
         });
 
         redirect!("/old", "/new");                 // redirect permanente
@@ -58,7 +61,7 @@ Macros de verbo suportadas: `get!`, `post!`, `put!`, `patch!`, `delete!`.
 
 ### As 7 rotas REST
 
-`resources!(posts, PostsController)` gera todas as sete rotas RESTful, cada uma com um
+`resource!(posts, PostsController)` gera todas as sete rotas RESTful, cada uma com um
 helper de URL em tempo de compilação:
 
 | Helper | Método | Path | Action |
@@ -71,8 +74,8 @@ helper de URL em tempo de compilação:
 | `post_path(id)` | PATCH | `/posts/:id` | update |
 | `post_path(id)` | DELETE | `/posts/:id` | destroy |
 
-`only:` / `except:` restringem o conjunto gerado; `member:` / `collection:` adicionam
-rotas extras (rotas de member recebem um `:id`, rotas de collection não).
+`only:` / `except:` restringem o conjunto gerado. Dentro de um bloco `resource! { … }`,
+use `get!(member: "ação", …)` (com `:id`) ou `get!(collection: "ação", …)` (sem `:id`).
 
 ## Controllers
 

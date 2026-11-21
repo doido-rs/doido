@@ -4,6 +4,7 @@ pub mod controller;
 pub mod field;
 pub mod generator_gen;
 pub mod helper;
+pub mod initializer;
 pub mod job;
 pub mod locale;
 pub mod mailer;

@@ -267,10 +267,10 @@ impl AuthGenerator for AuthInstallGenerator {
             },
         ];
 
-        if let Some(f) = config_file("config/development.yml", &modules) {
+        if let Some(f) = config_file("config/environments/development.yml", &modules) {
             files.push(f);
         }
-        if let Some(f) = config_file("config/test.yml", &modules) {
+        if let Some(f) = config_file("config/environments/test.yml", &modules) {
             files.push(f);
         }
 
@@ -314,7 +314,7 @@ mod tests {
             .iter()
             .find(|f| f.path == "app/models/user.rs")
             .expect("user model");
-        assert!(user.content.contains("impl AuthUser for Model"));
+        assert!(user.content.contains("impl UserModel for Model"));
     }
 
     #[test]

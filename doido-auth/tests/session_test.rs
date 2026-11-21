@@ -1,6 +1,6 @@
 //! Session strategy tests.
 
-use doido_auth::session::{
+use doido_auth::strategy::session::{
     encode_session_cookie, sign_in_session, sign_out_session, SessionStrategy, SESSION_COOKIE,
     USER_ID_KEY,
 };

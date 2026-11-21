@@ -115,8 +115,81 @@ mod tests {
     }
 
     #[test]
+    fn cmd_opts_constructors() {
+        let empty = CmdOpts::new();
+        assert!(!empty.if_not_exists && !empty.if_exists);
+
+        let not_exists = CmdOpts::if_not_exists();
+        assert!(not_exists.if_not_exists && !not_exists.if_exists);
+
+        let exists = CmdOpts::if_exists();
+        assert!(!exists.if_not_exists && exists.if_exists);
+    }
+
+    #[test]
     fn mysql_duplicate_index_detection() {
         let err = DbErr::Custom("Error 1061 Duplicate key name 'idx_x'".into());
         assert!(is_duplicate_index_err(DatabaseBackend::MySql, &err));
+        assert!(!is_duplicate_index_err(DatabaseBackend::Postgres, &err));
+    }
+
+    #[test]
+    fn duplicate_column_detection() {
+        let err_mysql = DbErr::Custom("1060 Duplicate column name 'col'".into());
+        assert!(is_duplicate_column_err(DatabaseBackend::MySql, &err_mysql));
+
+        let err_pg = DbErr::Custom("column \"col\" already exists".into());
+        assert!(is_duplicate_column_err(DatabaseBackend::Postgres, &err_pg));
+
+        let err_sqlite = DbErr::Custom("duplicate column name: col".into());
+        assert!(is_duplicate_column_err(
+            DatabaseBackend::Sqlite,
+            &err_sqlite
+        ));
+    }
+
+    #[test]
+    fn missing_column_detection() {
+        let err_mysql = DbErr::Custom("1091 check that column/key exists".into());
+        assert!(is_missing_column_err(DatabaseBackend::MySql, &err_mysql));
+
+        let err_pg = DbErr::Custom("column does not exist".into());
+        assert!(is_missing_column_err(DatabaseBackend::Postgres, &err_pg));
+
+        let err_sqlite = DbErr::Custom("no such column: col".into());
+        assert!(is_missing_column_err(DatabaseBackend::Sqlite, &err_sqlite));
+    }
+
+    #[test]
+    fn duplicate_foreign_key_detection() {
+        let err_mysql = DbErr::Custom("1826 duplicate foreign key".into());
+        assert!(is_duplicate_foreign_key_err(
+            DatabaseBackend::MySql,
+            &err_mysql
+        ));
+
+        let err_pg = DbErr::Custom("constraint already exists".into());
+        assert!(is_duplicate_foreign_key_err(
+            DatabaseBackend::Postgres,
+            &err_pg
+        ));
+
+        let err_sqlite = DbErr::Custom("already exists".into());
+        assert!(is_duplicate_foreign_key_err(
+            DatabaseBackend::Sqlite,
+            &err_sqlite
+        ));
+    }
+
+    #[test]
+    fn missing_index_detection() {
+        let err_mysql = DbErr::Custom("can't drop index".into());
+        assert!(is_missing_index_err(DatabaseBackend::MySql, &err_mysql));
+
+        let err_pg = DbErr::Custom("index does not exist".into());
+        assert!(is_missing_index_err(DatabaseBackend::Postgres, &err_pg));
+
+        let err_sqlite = DbErr::Custom("no such index: idx".into());
+        assert!(is_missing_index_err(DatabaseBackend::Sqlite, &err_sqlite));
     }
 }

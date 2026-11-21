@@ -30,6 +30,7 @@ Rode `cargo doido generate` sem argumentos para listar todos os geradores regist
 |---------|------|
 | `controller` | Um controller com actions |
 | `helper` | Um helper de controller em `app/helpers/` |
+| `initializer` | Um initializer de aplicação em `config/initializers/` |
 | `model` | Um model + migration do SeaORM |
 | `migration` | Uma migration isolada |
 | `scaffold` | Model, controller, views, rotas — o CRUD completo |

@@ -27,7 +27,7 @@ superior reconocidas son `server`, `logger` y `middleware`; otros subsistemas (c
 jobs, storage, …) leen sus propias secciones del mismo archivo.
 
 ```yaml
-# config/development.yml
+# config/environments/development.yml
 server:
   bind: 0.0.0.0
   port: 3000
@@ -53,7 +53,7 @@ directamente con `from_yaml()`. Accede a las secciones mediante el trait `Config
 ```rust
 use doido::controller::{Config, YamlConfig};
 
-// Carga config/<entorno-actual>.yml (p. ej. config/development.yml).
+// Carga config/environments/<entorno-actual>.yml (p. ej. config/environments/development.yml).
 let config = YamlConfig::load()?;
 
 let addr = format!("{}:{}", config.server().bind, config.server().port); // "0.0.0.0:3000"
@@ -70,7 +70,7 @@ menos que se habiliten.
 
 ## Variables de entorno
 
-Cada `config/<env>.yml` se **renderiza con Tera al cargar**. Referencia variables con
+Cada `config/environments/<env>.yml` se **renderiza con Tera al cargar**. Referencia variables con
 `get_env`:
 
 ```yaml
@@ -80,19 +80,54 @@ database:
 
 | Variable | Propósito |
 |----------|-----------|
-| `DOIDO_ENV` | Selecciona `config/<env>.yml` (`development`, `test`, `production`) |
+| `DOIDO_ENV` | Selecciona `config/environments/<env>.yml` (`development`, `test`, `production`) |
 | `RUST_LOG` | Sobrescribe el nivel del logger |
 | `DOIDO_MASTER_KEY` | Descifra `config/credentials.yml.enc` |
 | `DOIDO_LOCALE` | Locale por defecto del backend |
 
 Secretos de despliegue (`DATABASE_URL`, SMTP, storage, …) van en YAML con `get_env`.
 Desarrollo: `.env` + `startup::prepare()`; producción: inyecta env para que el render
-los sustituya. Opcional: `doido config render --env production -o config/production.yml`.
+los sustituya. Opcional: `doido config render --env production -o config/environments/production.yml`.
+
+## Initializers (config/initializers/)
+
+Análogo en Rails: `config/initializers/*`.
+
+Las aplicaciones Doido generadas con `doido new` incluyen `config/initializers/mod.rs`
+y registran hooks de boot mediante `.initializers(initializers::registry())` en `doido::Doido::new()`.
+
+Los initializers se ejecutan sincrónicamente en orden de registro inmediatamente después
+de que el logger y las inflexiones se inicialicen, antes de los subcomandos de servidor o worker.
+Si algún initializer devuelve un `Err`, el boot de la aplicación se detiene de inmediato con exit code 1.
+
+```rust
+// config/initializers/mod.rs
+use doido::controller::initializers::Initializers;
+use doido::Result;
+
+pub fn init() -> Result<()> {
+    registry().run_all()
+}
+
+pub fn registry() -> Initializers {
+    let mut inits = Initializers::new();
+    register_initializers(&mut inits);
+    inits
+}
+
+#[allow(unused_variables)]
+fn register_initializers(inits: &mut Initializers) {
+    // Hooks de boot registrados
+}
+```
+
+Usa `cargo doido generate initializer <name>` para generar initializers individuales en
+`config/initializers/<name>.rs` y registrarlos automáticamente en `config/initializers/mod.rs`.
 
 ## Configuración de los subsistemas
 
 Las secciones `server`/`logger`/`middleware` están tipadas por `YamlConfig`, pero cada
-subsistema conectable lee su propia sección del mismo `config/<env>.yml`. Consulta la guía
+subsistema conectable lee su propia sección del mismo `config/environments/<env>.yml`. Consulta la guía
 correspondiente para las claves exactas:
 
 ```yaml

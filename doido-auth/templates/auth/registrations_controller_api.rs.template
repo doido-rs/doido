@@ -17,7 +17,7 @@ pub struct RegistrationsController;
 #[controller]
 impl RegistrationsController {
     /// POST /users/sign_up
-    pub async fn create(mut ctx: doido::controller::Context) -> doido::Result<Response> {
+    pub async fn create(ctx: &mut doido::controller::Context) -> doido::Result<Response> {
         let form: SignUpForm = ctx.body_json().await?;
         if form.password != form.password_confirmation {
             return Ok(ctx.status(422));

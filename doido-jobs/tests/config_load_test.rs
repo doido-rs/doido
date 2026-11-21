@@ -47,9 +47,9 @@ fn redis_settings_merge_with_defaults() {
 fn load_env_reads_jobs_yaml_from_disk() {
     let _guard = CWD_LOCK.lock().unwrap_or_else(|e| e.into_inner());
     let dir = TempDir::new().unwrap();
-    fs::create_dir_all(dir.path().join("config")).unwrap();
+    fs::create_dir_all(dir.path().join("config/environments")).unwrap();
     fs::write(
-        dir.path().join("config/test.yml"),
+        dir.path().join("config/environments/test.yml"),
         "jobs:\n  type: db\n  concurrency: 4\n",
     )
     .unwrap();
@@ -93,9 +93,9 @@ fn load_defaults_when_config_file_missing() {
 fn load_reads_existing_config_file() {
     let _guard = CWD_LOCK.lock().unwrap_or_else(|e| e.into_inner());
     let dir = TempDir::new().unwrap();
-    fs::create_dir_all(dir.path().join("config")).unwrap();
+    fs::create_dir_all(dir.path().join("config/environments")).unwrap();
     fs::write(
-        dir.path().join("config/test.yml"),
+        dir.path().join("config/environments/test.yml"),
         "jobs:\n  type: memory\n  concurrency: 9\n",
     )
     .unwrap();
@@ -129,9 +129,9 @@ fn jobs_settings_default_merges_into_config() {
 fn jobs_file_config_load_reads_disk() {
     let _guard = CWD_LOCK.lock().unwrap_or_else(|e| e.into_inner());
     let dir = TempDir::new().unwrap();
-    fs::create_dir_all(dir.path().join("config")).unwrap();
+    fs::create_dir_all(dir.path().join("config/environments")).unwrap();
     fs::write(
-        dir.path().join("config/test.yml"),
+        dir.path().join("config/environments/test.yml"),
         "jobs:\n  concurrency: 11\n",
     )
     .unwrap();
@@ -154,14 +154,15 @@ fn jobs_file_config_load_reads_disk() {
 
 #[cfg(feature = "jobs-db")]
 #[tokio::test]
+#[allow(clippy::await_holding_lock)]
 async fn build_configured_queue_installs_global_pool_from_config() {
     let _guard = CWD_LOCK.lock().unwrap_or_else(|e| e.into_inner());
     let _pool_guard = doido_model::pool::test_lock();
 
     let dir = TempDir::new().unwrap();
-    fs::create_dir_all(dir.path().join("config")).unwrap();
+    fs::create_dir_all(dir.path().join("config/environments")).unwrap();
     fs::write(
-        dir.path().join("config/test.yml"),
+        dir.path().join("config/environments/test.yml"),
         "database:\n  url: \"sqlite::memory:\"\njobs:\n  type: db\n",
     )
     .unwrap();

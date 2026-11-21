@@ -14,7 +14,8 @@ fn storage_install_creates_tables() {
             db::assert_table_exists(&h.app, "storage_blobs");
             db::assert_table_exists(&h.app, "storage_attachments");
             db::assert_table_exists(&h.app, "storage_variant_records");
-            let dev = std::fs::read_to_string(h.app.join("config/development.yml")).unwrap();
+            let dev =
+                std::fs::read_to_string(h.app.join("config/environments/development.yml")).unwrap();
             assert!(
                 dev.contains("storage:"),
                 "development.yml should wire storage"

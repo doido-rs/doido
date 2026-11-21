@@ -69,7 +69,7 @@ de volta com `pool::pool()` (dá panic se não definido) ou `pool::try_pool()` (
 
 ```rust
 // No boot:
-let conn = doido::model::connect().await?;   // lê config/<env>.yml → [database]
+let conn = doido::model::connect().await?;   // lê config/environments/<env>.yml → [database]
 doido::model::pool::set_pool(conn).ok();
 
 // Em qualquer lugar depois:
@@ -77,7 +77,7 @@ let db = doido::model::pool::pool();          // &'static DatabaseConnection
 ```
 
 ```yaml
-# config/development.yml
+# config/environments/development.yml
 database:
   url: sqlite://db/development.db
   # max_connections: 10

@@ -1,0 +1,117 @@
+//! Process-global auth state installed at boot.
+
+use crate::config::AuthConfig;
+use crate::error::AuthError;
+use crate::middleware::omniauthable::{providers_from_config, OAuthProvider};
+use crate::strategy::jwt::JwtStrategy;
+use crate::strategy::registry::{all_custom_strategies, get_strategy};
+use crate::strategy::AuthStrategy;
+use crate::user_model::store::build_user_store;
+use crate::user_model::UserStore;
+use doido_core::Result;
+use doido_model::sea_orm::DatabaseConnection;
+use std::collections::HashMap;
+use std::sync::{Arc, OnceLock, RwLock};
+
+/// Boot-time auth state: DB handle, config, and enabled strategies.
+pub struct AuthState {
+    pub db: DatabaseConnection,
+    pub store: Arc<dyn UserStore>,
+    pub config: AuthConfig,
+    pub strategies: Vec<Arc<dyn AuthStrategy>>,
+    pub jwt: Option<Arc<JwtStrategy>>,
+    pub oauth: HashMap<String, Arc<dyn OAuthProvider>>,
+}
+
+static AUTH_STATE: OnceLock<RwLock<Option<Arc<AuthState>>>> = OnceLock::new();
+
+fn slot() -> &'static RwLock<Option<Arc<AuthState>>> {
+    AUTH_STATE.get_or_init(|| RwLock::new(None))
+}
+
+impl AuthState {
+    pub(crate) fn build(db: DatabaseConnection, config: AuthConfig) -> Result<Self, AuthError> {
+        config.validate()?;
+        let mut strategies: Vec<Arc<dyn AuthStrategy>> = Vec::new();
+        let mut jwt = None;
+
+        for name in &config.strategies {
+            match name.as_str() {
+                "cookie" => {
+                    strategies.push(Arc::new(crate::strategy::session::from_config(&config)));
+                }
+                "jwt" => {
+                    let jwt_cfg = config
+                        .jwt
+                        .clone()
+                        .ok_or_else(|| AuthError::Config("missing auth.jwt".into()))?;
+                    let strategy = Arc::new(JwtStrategy::new(jwt_cfg)?);
+                    jwt = Some(strategy.clone());
+                    strategies.push(strategy);
+                }
+                custom => {
+                    let strategy = get_strategy(custom)
+                        .ok_or_else(|| AuthError::UnknownStrategy(custom.to_string()))?;
+                    strategies.push(strategy);
+                }
+            }
+        }
+
+        for custom in all_custom_strategies() {
+            if !strategies.iter().any(|s| s.name() == custom.name())
+                && config.strategies.iter().any(|n| n == custom.name())
+            {
+                strategies.push(custom);
+            }
+        }
+
+        // `rememberable` module: resolve the signed remember cookie after the
+        // configured strategies decline.
+        if config.has_module(crate::config::AuthModule::Rememberable) {
+            strategies.push(Arc::new(crate::strategy::rememberable::RememberStrategy));
+        }
+
+        let oauth = providers_from_config(&config.oauth);
+        let store = build_user_store(&config.user_store, db.clone())?;
+
+        Ok(Self {
+            db,
+            store,
+            config,
+            strategies,
+            jwt,
+            oauth,
+        })
+    }
+}
+
+/// Initialise auth at boot. Idempotent: returns Ok when already initialised.
+pub async fn init(db: DatabaseConnection, config: &AuthConfig) -> Result<()> {
+    let mut guard = slot().write().expect("auth state lock");
+    if guard.is_some() {
+        return Ok(());
+    }
+    let state = AuthState::build(db, config.clone()).map_err(|e| doido_core::anyhow::anyhow!(e))?;
+    *guard = Some(Arc::new(state));
+    Ok(())
+}
+
+/// Install or replace auth state (tests and advanced boot scenarios).
+pub fn set_state(state: AuthState) {
+    *slot().write().expect("auth state lock") = Some(Arc::new(state));
+}
+
+/// Returns the global auth state, panicking if [`init`] was never called.
+pub fn global() -> Arc<AuthState> {
+    try_global().expect("auth not initialised; call doido_auth::init() at boot")
+}
+
+/// Returns the global auth state when installed.
+pub fn try_global() -> Option<Arc<AuthState>> {
+    slot().read().expect("auth state lock").clone()
+}
+
+/// Clear auth state (tests only).
+pub fn reset_state() {
+    *slot().write().expect("auth state lock") = None;
+}

@@ -54,3 +54,21 @@ fn builder_accepts_before_run_hook() {
     });
     assert_eq!(hits.load(Ordering::SeqCst), 0);
 }
+
+#[test]
+fn builder_accepts_initializers() {
+    let mut inits = doido::Initializers::new();
+    inits.register("test_init", || Ok(()));
+    assert_eq!(inits.names(), vec!["test_init"]);
+    let _doido = Doido::new().initializers(inits);
+}
+
+#[test]
+fn builder_accepts_initializers_with_defaults() {
+    let inits = doido::Initializers::with_defaults();
+    assert_eq!(
+        inits.names(),
+        vec!["core", "db", "cache", "view", "storage", "auth", "jobs", "mailer"]
+    );
+    let _doido = Doido::new().initializers(inits);
+}

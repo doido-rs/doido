@@ -38,7 +38,7 @@ Each line reads: `- [ ] `[tag]` **Feature** — note. *(state)*`
 
 - [x] `[core]` **Root route** (`root "home#index"`) — *(missing)*
 - [x] `[core]` **`respond_to` / format-based content negotiation** — *(missing)*
-- [x] `[core]` **Named path/URL helpers for custom routes** — only `resources!` generates `_path` helpers; plain `get!/post!` routes get none. *(partial)*
+- [x] `[core]` **Named path/URL helpers for custom routes** — only `resource!` generates `_path` helpers; plain `get!/post!` routes get none. *(partial)*
 - [x] `[core]` **`member` / `collection` route blocks on resources** — must add manual method routes today. *(partial)*
 - [x] `[nice]` **Route constraints** (regex / format / lambda) — *(missing)*
 - [x] `[nice]` **Singular resource** (`resource :profile`) — *(missing)*
@@ -179,7 +179,7 @@ Each line reads: `- [ ] `[tag]` **Feature** — note. *(state)*`
 > Password hashing exists in `doido-model::password`; the items below are the unified
 > auth layer on top. Harness US-105→US-112 done; release e2e US-113 scaffolded.
 
-- [x] `[core]` **Generic `AuthUser` trait** — configurable SeaORM user model.
+- [x] `[core]` **Generic `UserModel` trait + `UserStore`** — configurable SeaORM (or Redis) user persistence.
 - [x] `[core]` **Axum extractors** (`CurrentUser`, `MaybeUser`, `RequireAuth`, `AuthToken`)
 - [x] `[core]` **Cookie/session auth strategy** — integrates with controller sessions.
 - [x] `[core]` **JWT bearer strategy** — access + refresh tokens.

@@ -11,7 +11,16 @@ documented in `RELEASING.md` at the repository root.
 
 ## Unreleased
 
-_No user-facing changes yet._
+### Changed
+
+- **BREAKING:** `resources!` removed — use `resource!` for plural REST (default).
+- **BREAKING:** `shallow_resources!` removed — use nested `resource! { … }` blocks (full member paths).
+- Singular resources require `singular: true` (e.g. `resource!(profile, ProfileController, singular: true)`).
+- `member` / `collection` extra routes move from `resource!` options to verb macros inside a resource block (`get!(member: "preview", …)`).
+
+### Added
+
+- Nested resources via `resource!(parent, ParentCtrl, { resource!(child, ChildCtrl); })`.
 
 ## 0.0.32-test2 - 2026-10-15
 

@@ -225,7 +225,7 @@ standard apps.
 
 - **`doido generate storage:install`** — migration for `storage_blobs`,
   `storage_attachments`, `storage_variant_records`; appends `storage:` to
-  `config/development.yml` and `config/test.yml` (skips if already present;
+  `config/environments/development.yml` and `config/environments/test.yml` (skips if already present;
   idempotent). `doido new` bundles the migration tables by default.
 - **`doido generate storage:adapter <Name>`** — scaffolds `app/storage/<name>_service.rs`
   plus `app/storage/mod.rs` with `register_all()` for boot wiring.
