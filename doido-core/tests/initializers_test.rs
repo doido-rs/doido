@@ -11,25 +11,36 @@ static ENV_LOCK: Mutex<()> = Mutex::new(());
 fn execution_context_predicates() {
     assert!(ExecutionContext::Server.is_server());
     assert!(!ExecutionContext::Server.is_worker());
+    assert!(!ExecutionContext::Server.is_console());
     assert!(!ExecutionContext::Server.is_skip());
     assert!(ExecutionContext::Server.is_server_or_worker());
     assert!(!ExecutionContext::Server.is_migration());
 
     assert!(ExecutionContext::Worker.is_worker());
     assert!(!ExecutionContext::Worker.is_server());
+    assert!(!ExecutionContext::Worker.is_console());
     assert!(!ExecutionContext::Worker.is_skip());
     assert!(ExecutionContext::Worker.is_server_or_worker());
     assert!(!ExecutionContext::Worker.is_migration());
 
+    assert!(ExecutionContext::Console.is_console());
+    assert!(!ExecutionContext::Console.is_server());
+    assert!(!ExecutionContext::Console.is_worker());
+    assert!(!ExecutionContext::Console.is_skip());
+    assert!(ExecutionContext::Console.is_server_or_worker());
+    assert!(!ExecutionContext::Console.is_migration());
+
     assert!(ExecutionContext::Skip.is_skip());
     assert!(!ExecutionContext::Skip.is_server());
     assert!(!ExecutionContext::Skip.is_worker());
+    assert!(!ExecutionContext::Skip.is_console());
     assert!(!ExecutionContext::Skip.is_server_or_worker());
     assert!(ExecutionContext::Skip.is_migration());
 }
 
 #[test]
 fn cli_context_matches_detect_execution_context() {
+    let _lock = ENV_LOCK.lock().unwrap();
     assert_eq!(cli_context(), detect_execution_context());
 }
 
@@ -71,6 +82,9 @@ fn detect_execution_context_recognizes_modes() {
 
     std::env::set_var("DOIDO_COMMAND", "worker");
     assert_eq!(detect_execution_context(), ExecutionContext::Worker);
+
+    std::env::set_var("DOIDO_COMMAND", "console");
+    assert_eq!(detect_execution_context(), ExecutionContext::Console);
 
     std::env::set_var("DOIDO_COMMAND", "db");
     assert_eq!(detect_execution_context(), ExecutionContext::Skip);
