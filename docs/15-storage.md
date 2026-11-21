@@ -91,7 +91,7 @@ Each entry in `drivers` is a [`ServiceConfig`]:
 | `root` | disk | Filesystem root (default `storage`) |
 | `bucket` | s3, r2, gcs | Bucket name |
 | `region` | s3, r2 | Region (`auto` for R2) |
-| `endpoint` | s3, r2 | Custom endpoint (required for R2) |
+| `endpoint` | s3, r2, azure, gcs | Custom base URL (R2, LocalStack, Azurite, fake-gcs-server) |
 | `access_key_id`, `secret_access_key` | s3, r2 | Else `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` |
 | `container`, `account` | azure | Container and storage account |
 | `access_key` | azure | Else `AZURE_STORAGE_ACCESS_KEY` |
@@ -249,6 +249,30 @@ let avatar = ctx.storage().one("User", "1", "avatar").await?;
 
 `MemoryService` keeps bytes in-process. `set_storage` / `init_with` install a
 global facade for integration tests.
+
+### Provider e2e (local emulators)
+
+Cloud provider round-trips run against Docker emulators — no real AWS/GCP/Azure
+accounts required:
+
+| Provider | Emulator | Default port |
+|----------|----------|--------------|
+| S3 | [Floci](https://floci.io) (LocalStack-compatible) | `4566` |
+| Azure | [Azurite](https://github.com/Azure/Azurite) | `10000` |
+| GCS | [fake-gcs-server](https://github.com/fsouza/fake-gcs-server) | `4443` |
+
+```sh
+make services-up          # starts floci, azurite, fake-gcs (+ redis/postgres/memcache)
+make test-storage-backends
+```
+
+Set `endpoint` in YAML (or `STORAGE_E2E_*_ENDPOINT` env vars in the test
+harness) to point Azure/GCS at emulators. S3 uses the same `endpoint` field
+already used for R2/LocalStack-compatible stores. Cloud tests self-skip when
+emulators are offline so `make verify` keeps working without Docker.
+
+Release e2e includes `storage_s3_upload` — a generated app exercising S3 direct
+upload + proxy over HTTP against Floci.
 
 ## Known requirements
 

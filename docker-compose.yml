@@ -1,8 +1,7 @@
 # Dev backends for Doido's feature-gated tests — `make services-up` / `make test-backends`.
 #
-# Only Redis is exercised by the current suite (doido-jobs `jobs-redis`); the
-# `jobs-db` backend runs on in-memory SQLite and needs no service. Postgres and
-# Memcached are provided ahead of the redis/memcache/db tests that will use them.
+# Redis/postgres/memcache back jobs/cache tests; floci (S3-compatible), azurite,
+# and fake-gcs back `make test-storage-backends` (doido-storage provider e2e).
 services:
   redis:
     image: redis:7-alpine
@@ -29,3 +28,36 @@ services:
   memcache:
     image: memcached:1.6-alpine
     ports: ["11211:11211"]
+
+  floci:
+    image: floci/floci:latest-compat
+    ports: ["4566:4566"]
+    environment:
+      AWS_DEFAULT_REGION: us-east-1
+    volumes:
+      - ./scripts/storage-emulators/s3-init.sh:/etc/localstack/init/ready.d/init.sh:ro
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://127.0.0.1:4566/_localstack/health"]
+      interval: 3s
+      timeout: 5s
+      retries: 20
+
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite
+    ports: ["10000:10000"]
+    command: ["azurite", "--blobHost", "0.0.0.0", "--blobPort", "10000", "--loose"]
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"require('net').connect(10000).on('connect',()=>process.exit(0)).on('error',()=>process.exit(1))\""]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+  fake-gcs:
+    image: fsouza/fake-gcs-server:1.52.3
+    ports: ["4443:4443"]
+    command: ["-scheme", "http", "-port", "4443", "-backend", "memory"]
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:4443/storage/v1/b"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
